@@ -11,22 +11,19 @@ Authors write::
 This module re-exports tags when ux-dom is installed (Python ≥3.14).
 It does **not** re-export ux-dom's Component class.
 
-Why not inherit ux-dom Component?
-    ux-dom Component.__init__ *is* render: it calls render() once, inserts
-    the tree as children, and freezes. That is the right lifetime for a
-    static SSR page unit.
+Why not inherit ux-dom Component (or Tags)?
+    Freeze is fixable: skip construct render(), republish _entry from live
+    render(). That is not the reason.
 
-    ux-compose Component is a Behavior unit: long-lived, MorphState-driven,
-    re-rendered after every @action. Inheriting the ux-dom class would
-    snapshot the empty tree at Behavior.add() time and never rebuild.
+    The MRO is the reason. Tree verbs (add/remove/get/clear, and whatever
+    ux-dom adds next) live on the same instance as @action names. A shared
+    MRO collides now or later. Fail closed: Component.__init_subclass__
+    rejects ux-dom tree bases.
 
-    Dual inheritance stays internal and invisible. The author surface is
-    one class: Behavior protocol + render() returns ux-dom trees.
+    Dual inheritance stays forbidden from product code. Authors return tags.
 """
 
 from __future__ import annotations
-
-from typing import Any
 
 HAS_DOM = False
 
@@ -34,12 +31,15 @@ HAS_DOM = False
 div = span = h1 = h2 = h3 = p = a = button = form = input_ = None
 ul = li = header = footer = aside = section = article = nav = main = None
 label = svg = path = rect = circle = None
+html = head = body = title = style = meta = link = script = None
+raw = None
 
 try:
     from ux_dom.dom import (  # type: ignore
         a,
         article,
         aside,
+        body,
         button,
         circle,
         div,
@@ -48,20 +48,28 @@ try:
         h1,
         h2,
         h3,
+        head,
         header,
+        html,
         input_,
         label,
         li,
+        link,
         main,
+        meta,
         nav,
         p,
         path,
         rect,
+        script,
         section,
         span,
+        style,
         svg,
+        title,
         ul,
     )
+    from ux_dom.dom.src.utils.dom_util import raw  # type: ignore
 
     HAS_DOM = True
 except ImportError:  # pragma: no cover
@@ -79,6 +87,15 @@ def require_dom() -> None:
 __all__ = [
     "HAS_DOM",
     "require_dom",
+    "raw",
+    "html",
+    "head",
+    "body",
+    "title",
+    "style",
+    "meta",
+    "link",
+    "script",
     "div",
     "span",
     "h1",

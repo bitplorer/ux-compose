@@ -67,7 +67,7 @@ app.add(Cart)
 print(app.dispatch("cart.add", sku="tee"))
 ```
 
-`render()` returns a **ux-dom tag tree**, not an HTML string. Compose Component is a Behavior unit (MorphState, `@action`) that *produces* trees; it does not subclass ux-dom Component (that class freezes `render()` at construct time). HTML strings still work at L1 without ux-dom.
+`render()` returns a **ux-dom tag tree**, not an HTML string. Compose Component is a Behavior unit (MorphState, `@action`) that *produces* trees; it does not subclass ux-dom Component. Freeze on that class is fixable; a shared MRO with tree verbs (`add`/`remove`/`get`/`clear`) is not. HTML strings still work at L1 without ux-dom.
 Live Caps (Level 2) — checkout succeeds **only** with a real Channel-minted Cap:
 
 ```python

@@ -9,14 +9,14 @@ render() returns a ux-dom tag tree (div, h1, …) when ux-dom is installed.
 HTML strings remain valid (Progressive Superpower / offline shim).
 
 This class does **not** subclass ux-dom Component. Freeze on that class is
-fixable (skip __init__, republish _entry). The MRO is not: add/remove/get/clear
+fragile (skip __init__, republish _entry). The MRO is not: add/remove/get/clear
 are reserved tree verbs today, and more will land. Sharing that MRO with
 @action names collides now or later. Tags are the return type of render().
 """
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import Any, AsyncIterator, Callable, Optional
 
 # Prefer real specialists when installed.
 try:
@@ -110,6 +110,7 @@ class Component(_BehaviorComponent):
     - @action(caps=...) methods return None | list[Op] | Result
     - control() via helpers for progressive attrs
     - __render__(pretty=False) re-runs render() — never a construct snapshot
+    - __async_render__ yields that HTML for StreamingResponse / DirectoryRouter
 
     Return semantics (hard contract from the mental model):
     1. return None → auto-morph dirty MorphStates
@@ -158,6 +159,15 @@ class Component(_BehaviorComponent):
         if pretty and tree is not None and not isinstance(tree, str):
             return str(tree)
         return _serialize_tree(tree)
+
+    async def __async_render__(self, pretty: bool = False, **_kw) -> AsyncIterator[str]:
+        """Async HTML stream for StreamingResponse / DirectoryRouter plane.
+
+        Yields the live string from ``__render__`` (single chunk). This lets
+        endpoints return a Compose Component instance and still be accepted by
+        ``streaming_response`` the same way a ``dom_tag`` is.
+        """
+        yield self.__render__(pretty=pretty)
 
 
 def _mro_collision_msg(cls: type, base: type) -> str:

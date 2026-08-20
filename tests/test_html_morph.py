@@ -65,11 +65,25 @@ def test_dispatch_morph_carries_html():
 
 @pytest.mark.skipif(not HAS_DOM, reason="ux-dom required for tree morph")
 def test_component_does_not_subclass_ux_dom_component():
-    """Behavior unit is long-lived; ux-dom Component freezes render() at construct."""
+    """Shared MRO with tree verbs collides now or later. Tags are the return type."""
     from ux_compose import Component
     from ux_dom.dom.src.component import Component as DomComponent
 
     assert not issubclass(Component, DomComponent)
+
+
+@pytest.mark.skipif(not HAS_DOM, reason="ux-dom required for tree morph")
+def test_product_class_cannot_also_inherit_ux_dom_component():
+    from ux_compose import Component
+    from ux_dom.dom.src.component import Component as DomComponent
+
+    with pytest.raises(TypeError, match="must not inherit"):
+
+        class Mixed(Component, DomComponent):  # type: ignore[misc]
+            id = "mixed"
+
+            def render(self):
+                return ""
 
 
 @pytest.mark.skipif(not HAS_DOM, reason="ux-dom required for tree morph")
@@ -143,3 +157,49 @@ def test_dispatch_morph_from_tag_tree():
     patch = str(payload.get("patch") or "")
     assert "count=1" in patch
     assert "<div" in patch
+
+
+@pytest.mark.skipif(not (HAS_DOM and HAS_BEHAVIOR), reason="dom+behavior")
+def test_behavior_actions_lists_add():
+    """Behavior.actions sees @action add (no ux-dom __dir__ hiding)."""
+    from ux_compose import App, Component, MorphState, action, div
+
+    class Cart(Component):
+        id = "cart"
+        count = MorphState(0)
+
+        def render(self):
+            return div(f"count={self.count}", id=self.id)
+
+        @action(caps=())
+        def add(self):
+            self.count = int(self.count) + 1
+
+    app = App.boot("S", strict_caps=False)
+    app.add(Cart)
+    names = app.behavior.actions("cart")
+    assert "cart.add" in names
+
+
+@pytest.mark.skipif(not HAS_DOM, reason="ux-dom required")
+def test_live_component_returns_tag_tree_not_frozen_self():
+    """render() returns a fresh tag tree. The Component instance is not the tree."""
+    from ux_compose import Component, MorphState, div
+
+    class Box(Component):
+        id = "box"
+        n = MorphState(0)
+
+        def render(self):
+            return div(f"n={self.n}", id=self.id)
+
+    inst = Box()
+    tree = inst.render()
+    assert inst is not tree
+    from ux_dom.dom.src.component import Component as DomComponent
+
+    assert not isinstance(inst, DomComponent)
+    assert hasattr(tree, "__render__")
+    assert "n=0" in tree.__render__(pretty=False)
+    inst.n = 4
+    assert "n=4" in inst.__render__(pretty=False)

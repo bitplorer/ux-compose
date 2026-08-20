@@ -1,1 +1,73 @@
-PLACEHOLDER
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Atelier design system tokens.
+  Prefer evolving tokens + component classes here; rebuild to output.css.
+  Demo hosts currently serve a static snapshot of the same system
+  (apps/atelier_*/static/css/atelier.css) until full uxdom create-app scaffolds.
+*/
+
+@layer base {
+  :root {
+    color-scheme: light only;
+    --bg: #f3efe6;
+    --bg-elevated: #faf7f1;
+    --surface: #fffdf8;
+    --fg: #161513;
+    --fg-muted: #6b6560;
+    --fg-subtle: #8a837b;
+    --border: color-mix(in oklab, var(--fg) 12%, transparent);
+    --border-strong: color-mix(in oklab, var(--fg) 22%, transparent);
+    --accent: #2f3b38;
+    --accent-fg: #f3efe6;
+    --danger: #7a2e24;
+    --radius-xs: 4px;
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+    --font-display: "Fraunces", Georgia, serif;
+    --font-body: "Source Sans 3", system-ui, sans-serif;
+    --shadow-sm: 0 1px 2px color-mix(in oklab, var(--fg) 6%, transparent);
+    --shadow-md: 0 4px 16px color-mix(in oklab, var(--fg) 8%, transparent);
+  }
+
+  html {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+}
+
+@layer components {
+  /* Component classes from the extracted design system live in the
+     static atelier.css snapshots for the demo hosts. When demos are
+     converted to full Tailwind className authoring they move here. */
+}

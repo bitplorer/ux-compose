@@ -1,10 +1,9 @@
 """Studio chrome — tokens, catalog page, pattern page. Isolation-safe."""
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from ux_compose import (
-    HAS_DOM,
     a,
     div,
     footer,
@@ -13,10 +12,8 @@ from ux_compose import (
     header,
     input_,
     p,
-    raw,
     section,
     span,
-    style,
 )
 from ux_compose.helpers import _serialize_tree
 
@@ -330,6 +327,9 @@ form.inline { margin: 0; display: inline-flex; }
 }
 """
 
+# Host applies Ops in wire order. Player applyOps is sequential (Morph-then-Play).
+# This is not MotionChannel — Channel beforeApply/afterApply never fire on this fetch.
+# toast/notify are Host chrome; the player does not know them.
 ENHANCE_JS = """
 (() => {
   const swap = (html) => {
@@ -356,19 +356,11 @@ ENHANCE_JS = """
   };
   const applyOps = async (ops) => {
     const list = Array.isArray(ops) ? ops : [];
-    const rest = [];
-    const motion = [];
     for (const op of list) {
-      const name = String((op && op.op) || '');
-      if (name.indexOf('transition.') === 0) motion.push(op);
-      else rest.push(op);
-    }
-    for (const op of rest) {
       if (op && (op.op === 'toast' || op.op === 'notify')) showToast(op.message);
     }
     if (window.UxMotion && typeof window.UxMotion.applyOps === 'function') {
-      await window.UxMotion.applyOps(rest);
-      await window.UxMotion.applyOps(motion);
+      await window.UxMotion.applyOps(list);
       return true;
     }
     return false;

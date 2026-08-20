@@ -27,7 +27,6 @@ from ux_compose import (
     title,
     div,
 )
-from ux_compose.helpers import _serialize_tree
 
 from apps.atelier_studio.chrome import (
     CSS,
@@ -40,7 +39,7 @@ from apps.atelier_studio.chrome import (
     toast_host,
 )
 from examples.catalog import PATTERNS, all_components, by_slug
-from apps.atelier_shop.shop import Cart, ConfirmModal, catalog_grid
+from apps.atelier_shop.shop import catalog_grid
 
 try:
     from fastapi import FastAPI, Request
@@ -273,7 +272,7 @@ def _pattern(slug: str, *, flash: str = "") -> str:
 
 
 def _shop(*, flash: str = "") -> str:
-    from ux_compose import aside, h1, p, section, span as sp, main as main_tag, header as hdr
+    from ux_compose import aside, h1, p, section
 
     cart = _inst("cart")
     modal = _inst("confirm-modal")
@@ -325,7 +324,7 @@ def _collect_ops(bucket: list, result: Any) -> None:
         bucket.extend(extra)
 
 
-def _fragment(slug: Optional[str], *, flash: str = "") -> str:
+def _fragment(slug: Optional[str]) -> str:
     """Stage-only HTML for JSON fallback / HTMX. Never the full document."""
     if slug == "shop":
         cart = _inst("cart")
@@ -473,11 +472,11 @@ def build_asgi():
                     "ops": ops_to_wire(last_ops),
                     "flash": flash,
                     "slug": slug,
-                    "html": _fragment(slug, flash=flash),
+                    "html": _fragment(slug),
                 }
             )
         if _wants_fragment(request):
-            return HTMLResponse(_fragment(slug, flash=flash))
+            return HTMLResponse(_fragment(slug))
         if slug == "shop":
             return HTMLResponse(_shop(flash=flash))
         if slug:

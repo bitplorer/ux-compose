@@ -97,6 +97,27 @@ def test_dispatch_morph_then_play_real_behavior():
     assert morph_i < play_i
 
 
+def test_hop_ops_json_wire_ordered():
+    """Host can ship Morph-then-Play as JSON without a second authoring language."""
+    import json
+
+    from ux_compose import App
+    from ux_compose.wire.caps import ops_to_wire
+    from examples.motion_xor import MotionBox
+
+    app = App.boot("T", strict_caps=False).use_behavior().use_motion()
+    app.add(MotionBox)
+    ops = app.dispatch("motionbox.hop")
+    wire = ops_to_wire(ops)
+    blob = json.dumps(wire)
+    names = [w.get("op") for w in wire]
+    assert "morph" in names
+    assert "transition.play" in names
+    assert names.index("morph") < names.index("transition.play")
+    assert "#motionbox-face" in blob
+    assert "html" not in (wire[names.index("transition.play")].get("plan") or {})
+
+
 def test_stagger_plan_emits_play():
     from ux_compose import update_with
     from ux_motion import scene, rise

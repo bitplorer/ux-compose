@@ -16,10 +16,15 @@ from ux_compose import (
     App,
     Component,
     MorphState,
+    RefState,
     action,
     notify,
     update_with,
     control,
+    HAS_DOM as COMPOSE_HAS_DOM,
+    div,
+    span,
+    button,
 )
 
 try:
@@ -38,22 +43,24 @@ except Exception:
 
 class Badge(Component):
     id = "badge"
-    count = MorphState(0)
+    count = RefState(0)
+    stamp = MorphState("idle")
 
     def render(self):
-        if HAS_DOM:
-            attrs = control("inc")
+        n = int(self.count or 0)
+        if COMPOSE_HAS_DOM or HAS_DOM:
             return div(
-                span(f"{self.count}"),
-                button("+1", **{k.replace("data-ux-", "").replace("-", "_"): v for k, v in []}),
+                span(str(n)),
+                button("+1", **control("inc")),
                 id=self.id,
                 className="badge",
             )
-        return f'<div id="{self.id}" class="badge">{self.count}</div>'
+        return f'<div id="{self.id}" class="badge">{n}</div>'
 
     @action(caps=())
     def inc(self):
-        self.count = int(self.count) + 1
+        self.count = int(self.count or 0) + 1
+        self.stamp = "tock" if self.stamp == "tick" else "tick"
         plan = None
         if scene is not None and rise is not None:
             try:

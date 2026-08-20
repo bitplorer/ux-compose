@@ -9,8 +9,10 @@ Demonstrates:
 - Progressive Superpower: same class at L1–L3
 - render() returns ux-dom tags (HTML string fallback without ux-dom)
 
+Id is ``demomodal`` so it does not collide with the product shop's confirm-modal.
+
 Run:
-  PYTHONPATH=src python examples/modal.py
+  PYTHONPATH=src:. python examples/modal.py
 """
 from __future__ import annotations
 
@@ -22,17 +24,18 @@ from ux_compose import (
     action,
     notify,
     update_with,
-    control,
     HAS_DOM,
     div,
     h2,
     p,
-    button,
+    header,
 )
+
+from examples._common import act
 
 
 class ConfirmModal(Component):
-    id = "confirm-modal"
+    id = "demomodal"
     open = MorphState(False)
     title = RefState("Confirm")
     body = RefState("")
@@ -40,39 +43,49 @@ class ConfirmModal(Component):
     def render(self):
         if HAS_DOM:
             if not self.open:
-                return div(id=self.id, className="modal closed", hidden=True)
+                return div(
+                    header(
+                        p("Presence flag + Cap confirm", className="kicker"),
+                        h2("Modal", className="widget-title"),
+                    ),
+                    p("Closed. The unit keeps its id in the tree.", className="lede"),
+                    act(
+                        "demomodal.open_modal",
+                        "Open dialog",
+                        kind="primary",
+                        title="Delete this piece?",
+                        body="This cannot be undone.",
+                    ),
+                    id=self.id,
+                    className="widget",
+                    data_open="0",
+                )
             return div(
-                h2(str(self.title)),
-                p(str(self.body)),
-                button("Cancel", **control("close")),
-                button("Confirm", **control("confirm")),
+                header(h2(str(self.title))),
+                p(str(self.body), className="lede"),
+                div(
+                    act("demomodal.close", "Cancel", kind="ghost"),
+                    act("demomodal.confirm", "Confirm", kind="primary"),
+                    className="row-actions",
+                ),
                 id=self.id,
-                className="modal open",
+                className="widget dialog",
                 role="dialog",
+                data_open="1",
             )
         if not self.open:
-            return f'<div id="{self.id}" class="modal closed" hidden></div>'
-        attrs_close = control("close")
-        attrs_ok = control("confirm")
-
-        def fmt(d):
-            return " ".join(f'{k}="{v}"' for k, v in d.items())
-
+            return f'<div id="{self.id}" class="modal closed"></div>'
         return (
             f'<div id="{self.id}" class="modal open" role="dialog">'
-            f"<h2>{self.title}</h2>"
-            f"<p>{self.body}</p>"
-            f'<button {fmt(attrs_close)}>Cancel</button>'
-            f'<button {fmt(attrs_ok)}>Confirm</button>'
-            f"</div>"
+            f"<h2>{self.title}</h2><p>{self.body}</p></div>"
         )
 
     @action(caps=())
     def open_modal(self, title: str = "Confirm", body: str = ""):
         self.open = True
-        self.title = title
-        self.body = body
-        return update_with(self, extra_ops=[notify(f"Opened: {title}")])
+        self.title = title or "Delete this piece?"
+        self.body = body or "This cannot be undone."
+        return update_with(self, extra_ops=[notify(f"Opened: {self.title}")])
 
     @action(caps=())
     def close(self):
@@ -89,20 +102,23 @@ if __name__ == "__main__":
     app = App.boot("Shop", strict_caps=False)
     app.add(ConfirmModal)
 
-    ops = app.dispatch("confirm-modal.open_modal", title="Delete item?", body="This cannot be undone.")
+    ops = app.dispatch(
+        "demomodal.open_modal",
+        title="Delete item?",
+        body="This cannot be undone.",
+    )
     print("Level:", int(app.level), f"({app.level.label})")
     print("Open ops:")
     for op in ops:
         print(" ", op)
 
-    ops = app.dispatch("confirm-modal.close")
+    ops = app.dispatch("demomodal.close")
     print("Close ops:", ops)
 
-    # Cap-protected path under strict
     strict = App.boot("Shop", strict_caps=True)
     strict.add(ConfirmModal)
     try:
-        strict.dispatch("confirm-modal.confirm")
+        strict.dispatch("demomodal.confirm")
         print("UNEXPECTED success")
     except Exception as e:
         print("Cap Law:", type(e).__name__, "— confirm refused offline under strict_caps")

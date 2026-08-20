@@ -112,15 +112,28 @@ PYTHONPATH=src:. python -m uvicorn apps.atelier_shop.server:app --host 0.0.0.0 -
 
 ## Examples
 
-- `examples/cart.py` — MorphState + Cap-protected action + motion Plan
-- `examples/modal.py` — open/close + Cap-protected confirm
-- `examples/form_validation.py` — field errors as MorphState
-- `examples/list_stagger.py` — list projection + filter
-- `examples/optimistic_list.py` — optimistic paint + confirm/rollback
-- `examples/page_transition.py` — region morph + optional motion Plan
-- `examples/document_boot.py` — full Document SSoT + L3 (Py≥3.14)
-- `examples/live_asgi.py` — FastAPI + Channel via `wire/` + Motion
-- `examples/cart_document.py` — Cart + Document SSoT + L3 Morph-then-Play e2e
+Full-length, commented modules covering **99% of product UI**. Map: [`examples/README.md`](examples/README.md).
+
+Playable host: `apps/atelier_studio` (Atelier of Patterns). Product shop at `/shop`.
+
+| Group | File |
+|-------|------|
+| Foundation | `examples/foundation.py` — counter, toggle, Morph vs Ref, return algebra |
+| Chrome | `examples/chrome.py`, `examples/modal.py`, `examples/shell.py` |
+| Overlays | `examples/overlays.py` — toasts, confirm, lightbox, palette, banner |
+| Forms | `examples/forms.py`, `examples/fields.py` — validation, wizard, typeahead, every remaining input |
+| Collections | `examples/lists.py`, `examples/table_board.py`, `examples/feeds.py` |
+| Navigation | `examples/navigation.py` |
+| Commerce | `examples/cart.py`, `examples/commerce_more.py`, stepper/rating in `examples/systems.py` |
+| Live Caps | `examples/live_caps.py` |
+| Motion | `examples/motion_xor.py` — XOR, Morph-then-Play, share |
+| Systems | `examples/systems.py`, `examples/ops.py` — chat, calendar, KPI, settings, presence |
+| Host | `examples/document_boot.py`, `examples/live_asgi.py`, `examples/cart_document.py` |
+
+```bash
+PYTHONPATH=src:. python examples/foundation.py
+PYTHONPATH=src:. uvicorn apps.atelier_studio.server:app --app-dir . --host 0.0.0.0 --port 8080
+```
 
 ## Cookbooks
 

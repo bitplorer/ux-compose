@@ -5,7 +5,7 @@ PY314 ?= /tmp/ux314venv/bin/python
 PY312 ?= /tmp/ux312venv/bin/python
 VENV  ?= /tmp/ux314venv
 
-.PHONY: test test314 test312 venv314 specialists examples doctor shop
+.PHONY: test test314 test312 venv314 specialists examples doctor shop studio
 
 venv314:
 	python3.14 -m venv --without-pip $(VENV) || true
@@ -33,6 +33,17 @@ test312:
 	  tests/test_cold_isolation.py tests/test_return_algebra.py tests/test_xor_helpers.py -q
 
 examples:
+	$(PY314) examples/foundation.py
+	$(PY314) examples/chrome.py
+	$(PY314) examples/shell.py
+	$(PY314) examples/forms.py
+	$(PY314) examples/fields.py
+	$(PY314) examples/lists.py
+	$(PY314) examples/feeds.py
+	$(PY314) examples/commerce_more.py
+	$(PY314) examples/ops.py
+	$(PY314) examples/live_caps.py
+	$(PY314) examples/motion_xor.py
 	$(PY314) examples/cart.py
 	$(PY314) examples/document_boot.py
 	$(PY314) examples/live_asgi.py
@@ -43,3 +54,6 @@ doctor:
 
 shop:
 	PYTHONPATH=src:. $(PY314) -m uvicorn apps.atelier_shop.server:app --host 0.0.0.0 --port 8080
+
+studio:
+	PYTHONPATH=src:. $(PY314) -m uvicorn apps.atelier_studio.server:app --host 0.0.0.0 --port 8080

@@ -17,11 +17,16 @@ from ux_compose import (
     App,
     Component,
     MorphState,
+    RefState,
     action,
     notify,
     update_with,
     control,
     doctor,
+    div,
+    h1,
+    span,
+    button,
 )
 
 try:
@@ -46,22 +51,26 @@ except Exception:
 
 
 class Counter(Component):
-    id = "counter"
-    n = MorphState(0)
+    id = "livecounter"
+    n = RefState(0)
+    stamp = MorphState("idle")
 
     def render(self):
+        val = int(self.n or 0)
         if HAS_DOM:
             return div(
-                h1(f"Count: {self.n}"),
+                h1(f"Count: {val}"),
                 span("+ via Channel Intent when live"),
+                button("+1", **control("inc")),
                 id=self.id,
                 className="counter",
             )
-        return f'<div id="{self.id}"><h1>Count: {self.n}</h1></div>'
+        return f'<div id="{self.id}"><h1>Count: {val}</h1></div>'
 
     @action(caps=())
     def inc(self):
-        self.n = int(self.n) + 1
+        self.n = int(self.n or 0) + 1
+        self.stamp = "tock" if self.stamp == "tick" else "tick"
         plan = None
         if scene is not None and rise is not None:
             try:
@@ -95,10 +104,14 @@ def build_app():
 
         @fastapi_app.get("/", response_class=HTMLResponse)
         def index():
-            ux.add(Counter)
-            # Ensure instance exists and render current tree
-            ops = ux.dispatch("counter.inc")  # demo tick
-            body = Counter().render() if not HAS_DOM else Counter().render()
+            inst = None
+            get = getattr(ux.behavior, "get", None)
+            if callable(get):
+                try:
+                    inst = get("livecounter")
+                except Exception:
+                    inst = None
+            body = inst.render() if inst is not None else Counter().render()
             if document is not None:
                 page = document(body if not hasattr(body, "__render__") else body)
                 return HTMLResponse(str(page))
@@ -126,7 +139,7 @@ if __name__ == "__main__":
     print("Document SSoT:", document is not None)
     print("FastAPI:", fastapi_app is not None)
 
-    ops = ux.dispatch("counter.inc")
+    ops = ux.dispatch("livecounter.inc")
     print("Dispatch ops:")
     for op in ops:
         print(" ", op)

@@ -20,7 +20,7 @@ from typing import Any, Callable, Optional
 
 # Prefer real specialists when installed.
 try:
-    from ux_behavior import  # type: ignore
+    from ux_behavior import (  # type: ignore
         Component as _BehaviorComponent,
         MorphState,
         RefState,

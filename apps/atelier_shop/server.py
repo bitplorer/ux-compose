@@ -136,7 +136,6 @@ def _sniff_multipart(raw: bytes) -> dict[str, Any]:
 
 
 
-
 def _document():
     if not HAS_DOM:
         return None

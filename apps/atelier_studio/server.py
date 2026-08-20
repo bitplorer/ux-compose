@@ -21,16 +21,12 @@ from ux_compose import (
     html,
     link,
     meta,
-    raw,
     script,
-    style,
     title,
     div,
 )
 
 from apps.atelier_studio.chrome import (
-    CSS,
-    ENHANCE_JS,
     catalog_page,
     foot,
     html_of,
@@ -223,7 +219,7 @@ def _shell(*main_kids: Any, flash: str = "") -> str:
                     rel="stylesheet",
                     href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap",
                 ),
-                style(raw(CSS) if raw is not None else CSS),
+                link(rel="stylesheet", href="/static/css/atelier.css"),
                 script(src="/static/idiomorph.min.js"),
                 script(src="/ux-pkg/ux-motion/static/ux-motion-player.js"),
             ),
@@ -233,7 +229,6 @@ def _shell(*main_kids: Any, flash: str = "") -> str:
                 *main_kids,
                 foot(),
                 toast_host(),
-                script(raw(ENHANCE_JS) if raw is not None else ENHANCE_JS),
             ),
             lang="en",
             style="color-scheme: light only",
@@ -392,10 +387,10 @@ def build_asgi():
 
     @asgi.get("/favicon.svg")
     def favicon():
-        svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-<rect width="100" height="100" rx="20" fill="#161513"/>
-<text x="50" y="58" font-size="56" text-anchor="middle"
-  font-family="Georgia, serif" fill="#f3efe6">A</text>
+        svg = """<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\">
+<rect width=\"100\" height=\"100\" rx=\"20\" fill=\"#161513\"/>
+<text x=\"50\" y=\"58\" font-size=\"56\" text-anchor=\"middle\"
+  font-family=\"Georgia, serif\" fill=\"#f3efe6\">A</text>
 </svg>"""
         return Response(content=svg, media_type="image/svg+xml")
 
@@ -404,6 +399,13 @@ def build_asgi():
         if not _IDIOMORPH.is_file():
             return Response(status_code=404)
         return FileResponse(_IDIOMORPH, media_type="application/javascript")
+
+    @asgi.get("/static/css/atelier.css")
+    def atelier_css():
+        css = _STATIC / "css" / "atelier.css"
+        if not css.is_file():
+            return Response(status_code=404)
+        return FileResponse(css, media_type="text/css")
 
     @asgi.post("/act/{action}")
     async def act(action: str, request: Request):

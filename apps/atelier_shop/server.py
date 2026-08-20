@@ -6,10 +6,34 @@ Channel attaches only through App.use_channel(asgi_app=...).
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Optional
 from urllib.parse import parse_qs
 
-from ux_compose import App, doctor
+from ux_compose import (
+    App,
+    doctor,
+    HAS_DOM as COMPOSE_HAS_DOM,
+    html,
+    head,
+    body,
+    title,
+    style,
+    meta,
+    link,
+    script,
+    header,
+    main,
+    footer,
+    section,
+    a,
+    h1,
+    p,
+    span,
+    div,
+    aside,
+    raw,
+)
 from ux_compose.helpers import _serialize_tree
 
 from apps.atelier_shop.shop import Cart, ConfirmModal, catalog_grid
@@ -31,8 +55,89 @@ except ImportError:
     Document = None  # type: ignore
 
 
+_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _clean_args(args: dict[str, Any]) -> dict[str, Any]:
+    """Drop multipart garbage keys so Behavior dispatch cannot see them."""
+    clean: dict[str, Any] = {}
+    for k, v in (args or {}).items():
+        if not isinstance(k, str) or not _IDENT.match(k):
+            continue
+        if k in {"action", "submit"}:
+            continue
+        if isinstance(v, (list, tuple)):
+            v = v[0] if v else ""
+        clean[k] = v
+    return clean
+
+
+def _parse_multipart(ctype: str, raw: bytes) -> dict[str, Any]:
+    m = re.search(r"boundary=([^;]+)", ctype or "", re.I)
+    if not m:
+        return {}
+    boundary = m.group(1).strip().strip('"')
+    if not boundary:
+        return {}
+    sep = b"--" + boundary.encode("ascii", "replace")
+    out: dict[str, Any] = {}
+    for part in raw.split(sep):
+        part = part.lstrip(b"\r\n")
+        if not part or part == b"--" or part.startswith(b"--"):
+            continue
+        header, sep2, body = part.partition(b"\r\n\r\n")
+        if not sep2:
+            header, sep2, body = part.partition(b"\n\n")
+        if not sep2:
+            continue
+        hm = re.search(br'name="([^"]+)"', header)
+        if not hm:
+            continue
+        name = hm.group(1).decode("utf-8", "replace")
+        if body.endswith(b"--"):
+            body = body[:-2]
+        body = body.rstrip(b"\r\n")
+        out[name] = body.decode("utf-8", "replace")
+    return out
+
+
+def _parse_action_args(ctype: str, raw: bytes) -> dict[str, Any]:
+    """Parse JSON, multipart, or urlencoded bodies. Browsers send FormData as multipart."""
+    original = ctype or ""
+    kind = original.lower()
+    raw = raw or b""
+    args: dict[str, Any] = {}
+    if "application/json" in kind:
+        try:
+            body = json.loads(raw.decode("utf-8") or "{}")
+            if isinstance(body, dict):
+                args = dict(body)
+        except Exception:
+            args = {}
+    elif "multipart/form-data" in kind:
+        args = _parse_multipart(original, raw)
+    else:
+        parsed = parse_qs(raw.decode("utf-8", errors="replace"), keep_blank_values=True)
+        args = {k: (v[0] if v else "") for k, v in parsed.items()}
+        # urlencoded parse on a multipart body yields one illegal key — sniff.
+        if args and not any(_IDENT.match(k) for k in args):
+            args = _sniff_multipart(raw) or args
+    return _clean_args(args)
+
+
+def _sniff_multipart(raw: bytes) -> dict[str, Any]:
+    if not raw.startswith(b"--"):
+        return {}
+    first = raw.split(b"\r\n", 1)[0].split(b"\n", 1)[0]
+    if first.endswith(b"--") or len(first) < 4:
+        return {}
+    boundary = first[2:].decode("ascii", "replace")
+    return _parse_multipart(f"multipart/form-data; boundary={boundary}", raw)
+
+
 CSS = """
 :root {
+  color-scheme: light only;
   --bg: #f3efe6;
   --bg-elevated: #faf7f1;
   --surface: #fffdf8;
@@ -75,18 +180,24 @@ CSS = """
 }
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
-html { background: var(--bg); color: var(--fg); }
+html {
+  color-scheme: light only;
+  background: #f3efe6;
+  color: #161513;
+}
 body {
+  color-scheme: light only;
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   min-height: 100dvh;
   background:
     radial-gradient(1200px 480px at 10% -10%, color-mix(in oklab, var(--fg) 4%, transparent), transparent 60%),
-    var(--bg);
-  color: var(--fg);
+    #f3efe6;
+  color: #161513;
 }
 button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
+button:disabled { opacity: 0.6; cursor: wait; }
 a { color: inherit; }
 img { max-width: 100%; }
 .wrap {
@@ -319,32 +430,41 @@ form.inline { margin: 0; }
 
 ENHANCE_JS = """
 (() => {
-  const stage = () => document.querySelector('#stage');
-  async function submit(form) {
-    const res = await fetch(form.action, {
-      method: 'POST',
-      body: new FormData(form),
-      headers: { 'HX-Request': 'true', 'Accept': 'text/html' },
-    });
-    if (!res.ok) return;
-    const html = await res.text();
-    const targetSel = form.getAttribute('data-target') || '#stage';
-    if (html.includes('id="stage"') || targetSel === '#stage') {
-      const wrap = document.createElement('div');
-      wrap.innerHTML = html;
-      const next = wrap.querySelector('#stage') || wrap.firstElementChild;
-      const cur = stage();
-      if (next && cur) cur.replaceWith(next);
-      else document.querySelector('main').innerHTML = html;
-      return;
-    }
-    const cur = document.querySelector(targetSel);
-    if (!cur) return;
+  const swap = (html) => {
     const wrap = document.createElement('div');
     wrap.innerHTML = html.trim();
-    const next = wrap.querySelector(targetSel) || wrap.firstElementChild;
-    if (next) cur.replaceWith(next);
+    const nextStage = wrap.querySelector('#stage');
+    const nextModal = wrap.querySelector('#confirm-modal');
+    const curStage = document.querySelector('#stage');
+    const curModal = document.querySelector('#confirm-modal');
+    if (nextStage && curStage) curStage.replaceWith(nextStage);
+    if (nextModal && curModal) curModal.replaceWith(nextModal);
+  };
+
+  async function submit(form) {
+    const btn = form.querySelector('[type="submit"]');
+    if (btn) btn.disabled = true;
+    try {
+      const body = new URLSearchParams(new FormData(form));
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: body.toString(),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'HX-Request': 'true',
+          'Accept': 'text/html',
+        },
+      });
+      if (!res.ok) throw new Error('act failed');
+      swap(await res.text());
+    } catch (err) {
+      form.removeAttribute('data-ux');
+      HTMLFormElement.prototype.submit.call(form);
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
+
   document.addEventListener('submit', (e) => {
     const form = e.target;
     if (!(form instanceof HTMLFormElement)) return;
@@ -395,57 +515,89 @@ def _html(tree: Any) -> str:
 def _page(*, flash: str = "") -> str:
     cart = _inst("cart")
     modal = _inst("confirm-modal")
-    cart_html = _html(cart.render()) if cart is not None else '<aside id="cart" class="bag"></aside>'
-    modal_html = _html(modal.render()) if modal is not None else '<div id="confirm-modal" hidden></div>'
     level = int(UX.level)
     label = UX.level.label
-    flash_html = f'<p class="bag-notice" role="status">{flash}</p>' if flash else ""
-    body = f"""
-<header class="top wrap">
-  <a class="brand" href="/">Atelier<span>Linen & Object</span></a>
-  <div class="nav-meta">Studio table · <span class="level-chip">L{level} {label}</span></div>
-</header>
-<main class="wrap">
-  <section class="hero">
-    <p class="kicker">Table of the week</p>
-    <h1>Quiet pieces for a working house.</h1>
-    <p class="lede">Four objects. Linen, oak, wool, clay. The bag lives on this page; placing an order is a capability, not a click.</p>
-  </section>
-  {flash_html}
-  <div id="stage" class="stage">
-    {_html(catalog_grid())}
-    {cart_html}
-  </div>
-</main>
-<footer class="foot wrap">
-  <span>Atelier · capability-secured checkout</span>
-  <span>No account. Host mints the Cap.</span>
-</footer>
-{modal_html}
-"""
-    fonts = (
-        '<link rel="preconnect" href="https://fonts.googleapis.com"/>'
-        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>'
-        '<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet"/>'
+    cart_tree = cart.render() if cart is not None else aside(id="cart", className="bag")
+    modal_tree = (
+        modal.render() if modal is not None else div(id="confirm-modal", hidden=True)
     )
-    inner = f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Atelier — Linen & Object</title>
-  <meta name="theme-color" content="#f3efe6"/>
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
-  {fonts}
-  <style>{CSS}</style>
-</head>
-<body>
-{body}
-<script>{ENHANCE_JS}</script>
-</body>
-</html>
-"""
-    return inner
+    flash_nodes = [p(flash, className="bag-notice", role="status")] if flash else []
+    if COMPOSE_HAS_DOM and html is not None:
+        tree = html(
+            head(
+                meta(charset="utf-8"),
+                meta(name="viewport", content="width=device-width, initial-scale=1"),
+                meta(name="color-scheme", content="light only"),
+                title("Atelier — Linen & Object"),
+                meta(name="theme-color", content="#f3efe6"),
+                link(rel="icon", type="image/svg+xml", href="/favicon.svg"),
+                link(rel="preconnect", href="https://fonts.googleapis.com"),
+                link(
+                    rel="preconnect",
+                    href="https://fonts.gstatic.com",
+                    crossorigin="anonymous",
+                ),
+                link(
+                    rel="stylesheet",
+                    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap",
+                ),
+                style(raw(CSS) if raw is not None else CSS),
+            ),
+            body(
+                header(
+                    a("Atelier", span("Linen & Object"), href="/", className="brand"),
+                    div(
+                        "Studio table · ",
+                        span(f"L{level} {label}", className="level-chip"),
+                        className="nav-meta",
+                    ),
+                    className="top wrap",
+                ),
+                main(
+                    section(
+                        p("Table of the week", className="kicker"),
+                        h1("Quiet pieces for a working house."),
+                        p(
+                            "Four objects. Linen, oak, wool, clay. The bag lives on this page; placing an order is a capability, not a click.",
+                            className="lede",
+                        ),
+                        className="hero",
+                    ),
+                    *flash_nodes,
+                    div(
+                        catalog_grid(),
+                        cart_tree,
+                        id="stage",
+                        className="stage",
+                    ),
+                    className="wrap",
+                ),
+                footer(
+                    span("Atelier · capability-secured checkout"),
+                    span("No account. Host mints the Cap."),
+                    className="foot wrap",
+                ),
+                modal_tree,
+                script(raw(ENHANCE_JS) if raw is not None else ENHANCE_JS),
+            ),
+            lang="en",
+            style="color-scheme: light only",
+        )
+        return "<!doctype html>\n" + _html(tree)
+    cart_html = _html(cart_tree)
+    modal_html = _html(modal_tree)
+    flash_html = f'<p class="bag-notice" role="status">{flash}</p>' if flash else ""
+    return (
+        "<!doctype html><html lang='en' style='color-scheme:light only'><head><meta charset='utf-8'/>"
+        "<meta name='color-scheme' content='light only'/>"
+        "<title>Atelier — Linen & Object</title><style>"
+        + CSS
+        + "</style></head><body>"
+        + flash_html
+        + f'<div id="stage" class="stage">{_html(catalog_grid())}{cart_html}</div>'
+        + modal_html
+        + f"<script>{ENHANCE_JS}</script></body></html>"
+    )
 
 
 def _wants_fragment(request: Optional[Any]) -> bool:
@@ -455,10 +607,18 @@ def _wants_fragment(request: Optional[Any]) -> bool:
     return str(hx).lower() in {"1", "true", "yes"}
 
 
-def _fragment_or_page(request, *, flash: str = "") -> str:
+def _fragment_or_page(request, *, flash: str = "") -> bool:
     if _wants_fragment(request):
         cart = _inst("cart")
         modal = _inst("confirm-modal")
+        if COMPOSE_HAS_DOM and div is not None:
+            stage = div(
+                catalog_grid(),
+                cart.render() if cart is not None else "",
+                id="stage",
+                className="stage",
+            )
+            return _html(stage) + _html(modal.render() if modal is not None else "")
         cart_html = _html(cart.render()) if cart is not None else ""
         modal_html = _html(modal.render()) if modal is not None else ""
         return (
@@ -524,19 +684,9 @@ def build_asgi():
 
     @asgi.post("/act/{action}")
     async def act(action: str, request: Request):
-        args: dict[str, Any] = {}
-        ctype = (request.headers.get("content-type") or "").lower()
         raw = await request.body()
-        if "application/json" in ctype:
-            try:
-                body = json.loads(raw.decode("utf-8") or "{}")
-                if isinstance(body, dict):
-                    args = dict(body)
-            except Exception:
-                args = {}
-        else:
-            parsed = parse_qs(raw.decode("utf-8", errors="replace"), keep_blank_values=True)
-            args = {k: (v[0] if v else "") for k, v in parsed.items()}
+        ctype = request.headers.get("content-type") or ""
+        args = _parse_action_args(ctype, raw)
         name = action
         flash = ""
         try:

@@ -18,7 +18,7 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 
 ## Post-ship increments (this cut)
 
-- Real HTML morph patches (`render()` → `__render__(pretty=False)` → `update(html=)`)
+- Unified Component: `render()` returns ux-dom tag trees; Component does **not** subclass ux-dom Component (construct-time freeze). Tags re-exported from `ux_compose`.
 - Live Cap mint path: `App.mint_cap` / `App.submit_intent` — checkout succeeds only with a real Channel Cap
 - Channel FastAPI host: `Behavior.attach(asgi)` owns `Channel.boot`; never `attach(Channel)` (include_router)
 - Optional CEK door via `wire/cek.py` (`App.use_cek`) — Isolation-safe, degrades if absent

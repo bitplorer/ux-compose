@@ -37,14 +37,21 @@ pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
 ```
 
 ```python
-from ux_compose import App, Component, MorphState, action, update_with, notify
+from ux_compose import (
+    App, Component, MorphState, action, update_with, notify, control,
+    div, h1, button,
+)
 
 class Cart(Component):
     id = "cart"
     count = MorphState(0)
 
     def render(self):
-        return f'<div id="cart">{self.count}</div>'
+        return div(
+            h1(f"Items: {self.count}"),
+            button("+ tee", **control("add", sku="tee")),
+            id=self.id,
+        )
 
     @action(caps=())
     def add(self, sku: str = ""):
@@ -60,6 +67,7 @@ app.add(Cart)
 print(app.dispatch("cart.add", sku="tee"))
 ```
 
+`render()` returns a **ux-dom tag tree**, not an HTML string. Compose Component is a Behavior unit (MorphState, `@action`) that *produces* trees; it does not subclass ux-dom Component (that class freezes `render()` at construct time). HTML strings still work at L1 without ux-dom.
 Live Caps (Level 2) — checkout succeeds **only** with a real Channel-minted Cap:
 
 ```python

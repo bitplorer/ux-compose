@@ -10,6 +10,7 @@ from typing import Any, Optional
 from urllib.parse import parse_qs
 
 from ux_compose import App, doctor
+from ux_compose.helpers import _serialize_tree
 
 from apps.atelier_shop.shop import Cart, ConfirmModal, catalog_grid
 
@@ -383,11 +384,19 @@ def _inst(cid: str):
     return None
 
 
+def _html(tree: Any) -> str:
+    if tree is None:
+        return ""
+    if isinstance(tree, str):
+        return tree
+    return _serialize_tree(tree)
+
+
 def _page(*, flash: str = "") -> str:
     cart = _inst("cart")
     modal = _inst("confirm-modal")
-    cart_html = cart.render() if cart is not None else '<aside id="cart" class="bag"></aside>'
-    modal_html = modal.render() if modal is not None else '<div id="confirm-modal" hidden></div>'
+    cart_html = _html(cart.render()) if cart is not None else '<aside id="cart" class="bag"></aside>'
+    modal_html = _html(modal.render()) if modal is not None else '<div id="confirm-modal" hidden></div>'
     level = int(UX.level)
     label = UX.level.label
     flash_html = f'<p class="bag-notice" role="status">{flash}</p>' if flash else ""
@@ -404,7 +413,7 @@ def _page(*, flash: str = "") -> str:
   </section>
   {flash_html}
   <div id="stage" class="stage">
-    {catalog_grid()}
+    {_html(catalog_grid())}
     {cart_html}
   </div>
 </main>
@@ -450,10 +459,10 @@ def _fragment_or_page(request, *, flash: str = "") -> str:
     if _wants_fragment(request):
         cart = _inst("cart")
         modal = _inst("confirm-modal")
-        cart_html = cart.render() if cart is not None else ""
-        modal_html = modal.render() if modal is not None else ""
+        cart_html = _html(cart.render()) if cart is not None else ""
+        modal_html = _html(modal.render()) if modal is not None else ""
         return (
-            f'<div id="stage" class="stage">{catalog_grid()}{cart_html}</div>'
+            f'<div id="stage" class="stage">{_html(catalog_grid())}{cart_html}</div>'
             f"{modal_html}"
         )
     return _page(flash=flash)

@@ -4,6 +4,13 @@ Unified Component — inevitable author surface.
 Satisfies the ux-behavior Component protocol (MorphState / RefState / @action)
 and produces renderable trees for ux-dom. Composition is internal; authors
 never see dual inheritance.
+
+render() returns a ux-dom tag tree (div, h1, …) when ux-dom is installed.
+HTML strings remain valid (Progressive Superpower / offline shim).
+
+This class does **not** subclass ux-dom Component. That specialist freezes
+render() at construct time; this unit is long-lived and re-renders after
+every MorphState change. See ux_compose.dom.
 """
 
 from __future__ import annotations
@@ -81,9 +88,11 @@ class Component(_BehaviorComponent):
     - id: stable target for morph + motion
     - MorphState fields: dirty → morph unit
     - RefState fields: silent memory
-    - render() → ux-dom tree (or object with __render__)
+    - render() → ux-dom tree (or HTML string). Prefer tags:
+          return div(h1(f"{self.count}"), id=self.id)
     - @action(caps=...) methods return None | list[Op] | Result
     - control() via helpers for progressive attrs
+    - __render__(pretty=False) serializes the current render() tree
 
     Return semantics (hard contract from the mental model):
     1. return None → auto-morph dirty MorphStates
@@ -110,6 +119,15 @@ class Component(_BehaviorComponent):
     def clear_dirty(self) -> None:
         if hasattr(self, "_dirty"):
             self._dirty.clear()
+
+    def __render__(self, pretty: bool = False, **_kw) -> str:
+        """Serialize live render() output. Always current MorphState, never a construct-time snapshot."""
+        from ux_compose.helpers import _serialize_tree
+
+        tree = self.render()
+        if pretty and tree is not None and not isinstance(tree, str):
+            return str(tree)
+        return _serialize_tree(tree)
 
 
 __all__ = ["Component", "MorphState", "RefState", "action"]

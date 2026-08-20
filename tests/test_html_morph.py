@@ -64,10 +64,18 @@ def test_dispatch_morph_carries_html():
 
 
 @pytest.mark.skipif(not HAS_DOM, reason="ux-dom required for tree morph")
+def test_component_does_not_subclass_ux_dom_component():
+    """Behavior unit is long-lived; ux-dom Component freezes render() at construct."""
+    from ux_compose import Component
+    from ux_dom.dom.src.component import Component as DomComponent
+
+    assert not issubclass(Component, DomComponent)
+
+
+@pytest.mark.skipif(not HAS_DOM, reason="ux-dom required for tree morph")
 def test_ux_dom_tree_serializes_via_render_pretty_false():
     from ux_compose.helpers import _serialize_tree, update_with
-    from ux_compose import Component, MorphState
-    from ux_dom.dom import div, span
+    from ux_compose import Component, MorphState, div, span
 
     class Card(Component):
         id = "card"
@@ -79,15 +87,59 @@ def test_ux_dom_tree_serializes_via_render_pretty_false():
     inst = Card()
     tree = inst.render()
     compact = _serialize_tree(tree)
-    pretty = str(tree)
     assert "n=2" in compact
     assert 'id="card"' in compact or "id='card'" in compact
-    # pretty=False is denser (no indent noise) — at minimum it is real HTML
     assert "<div" in compact and "</div>" in compact
     ops = update_with(inst)
     payload = getattr(ops[0], "payload", None) or ops[0]
     patch = str(payload.get("patch") or payload.get("html") or "")
     assert "n=2" in patch
-    # Morph patch must not be the Python repr of the tag
     assert "dom_tag" not in patch
     assert "HTMLElement" not in patch
+
+
+@pytest.mark.skipif(not HAS_DOM, reason="ux-dom required")
+def test_component_render_protocol_is_live_not_construct_snapshot():
+    """__render__ re-runs render() so MorphState changes appear — not a frozen tree."""
+    from ux_compose import Component, MorphState, div, span
+
+    class Box(Component):
+        id = "box"
+        n = MorphState(0)
+
+        def render(self):
+            return div(span(f"n={self.n}"), id=self.id)
+
+    inst = Box()
+    first = inst.__render__(pretty=False)
+    inst.n = 7
+    second = inst.__render__(pretty=False)
+    assert "n=0" in first
+    assert "n=7" in second
+    assert "n=0" not in second
+
+
+@pytest.mark.skipif(not (HAS_DOM and HAS_BEHAVIOR), reason="dom+behavior")
+def test_dispatch_morph_from_tag_tree():
+    from ux_compose import App, Component, MorphState, action, update_with, notify, div
+
+    class Cart(Component):
+        id = "cart"
+        count = MorphState(0)
+
+        def render(self):
+            return div(f"count={self.count}", id=self.id)
+
+        @action(caps=())
+        def add(self):
+            self.count = int(self.count) + 1
+            return update_with(self, extra_ops=[notify("ok")])
+
+    app = App.boot("S", strict_caps=False)
+    app.add(Cart)
+    ops = app.dispatch("cart.add")
+    morph = ops[0]
+    payload = getattr(morph, "payload", {}) or {}
+    patch = str(payload.get("patch") or "")
+    assert "count=1" in patch
+    assert "<div" in patch

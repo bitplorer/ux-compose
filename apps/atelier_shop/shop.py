@@ -1,6 +1,6 @@
 """Atelier shop Components — Level 1 author surface.
 
-Progressive Superpower: this module is valid at L1, L2, and L3 unchanged.
+render() returns ux-dom tag trees. The same Cart class is valid at L1–L3.
 Isolation: never imports ux_channel or CEK.
 """
 from __future__ import annotations
@@ -15,6 +15,24 @@ from ux_compose import (
     notify,
     update_with,
     control,
+    HAS_DOM,
+    div,
+    span,
+    h2,
+    p,
+    header,
+    aside,
+    section,
+    article,
+    ul,
+    li,
+    form,
+    input_,
+    button,
+    svg,
+    path,
+    rect,
+    circle,
 )
 
 try:
@@ -76,6 +94,43 @@ def _product(sku: str) -> dict[str, Any]:
     }
 
 
+def _mark(kind: str):
+    """Sparse monochrome SVG — no emoji."""
+    if not HAS_DOM:
+        return ""
+    if kind == "board":
+        return svg(
+            rect(x="8", y="18", width="48", height="28", rx="4", fill="none", stroke="currentColor", stroke_width="1.5"),
+            circle(cx="20", cy="32", r="3", fill="none", stroke="currentColor", stroke_width="1.5"),
+            viewBox="0 0 64 64",
+            width="64",
+            height="64",
+        )
+    if kind == "throw":
+        return svg(
+            rect(x="14", y="12", width="36", height="40", rx="2", fill="none", stroke="currentColor", stroke_width="1.5"),
+            path(d="M14 20h36M14 44h36", fill="none", stroke="currentColor", stroke_width="1.2"),
+            viewBox="0 0 64 64",
+            width="64",
+            height="64",
+        )
+    if kind == "pourer":
+        return svg(
+            path(d="M22 18h16l4 10v20a8 8 0 0 1-8 8H26a8 8 0 0 1-8-8V28z", fill="none", stroke="currentColor", stroke_width="1.5"),
+            path(d="M42 24h8l2 8", fill="none", stroke="currentColor", stroke_width="1.5"),
+            viewBox="0 0 64 64",
+            width="64",
+            height="64",
+        )
+    return svg(
+        path(d="M20 18h24v8H20zM18 26h28v24a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4z", fill="none", stroke="currentColor", stroke_width="1.5"),
+        path(d="M32 18v-6", fill="none", stroke="currentColor", stroke_width="1.5"),
+        viewBox="0 0 64 64",
+        width="64",
+        height="64",
+    )
+
+
 class Cart(Component):
     """Bag + checkout. checkout is Cap-protected (orders.place)."""
 
@@ -93,62 +148,76 @@ class Cart(Component):
     def subtotal(self) -> int:
         return sum(_product(s)["price"] * q for s, q in self._rows())
 
-    def render(self) -> str:
+    def render(self):
         rows = self._rows()
         count = sum(q for _, q in rows)
         notice = str(self.notice or "")
+        kids: list[Any] = [
+            header(h2("Bag"), span(str(count), className="bag-count"), className="bag-head"),
+        ]
+        if notice:
+            kids.append(p(notice, className="bag-notice", role="status"))
         if not rows:
-            body = (
-                '<div class="bag-empty">'
-                "<p class='bag-empty-title'>The bag is empty</p>"
-                "<p class='bag-empty-copy'>Choose a piece from the table. "
-                "Nothing is held until you place the order.</p>"
-                "</div>"
+            kids.append(
+                div(
+                    p("The bag is empty", className="bag-empty-title"),
+                    p(
+                        "Choose a piece from the table. Nothing is held until you place the order.",
+                        className="bag-empty-copy",
+                    ),
+                    className="bag-empty",
+                )
             )
         else:
             items = []
             for sku, qty in rows:
-                p = _product(sku)
-                line_total = p["price"] * qty
-                rm = control("cart.remove", sku=sku)
-                rm_attrs = " ".join(f'{k}="{v}"' for k, v in rm.items())
+                prod = _product(sku)
+                line_total = prod["price"] * qty
                 items.append(
-                    f'<li class="bag-line" id="bag-{sku}">'
-                    f'<span class="bag-line-name">{p["name"]}</span>'
-                    f'<span class="bag-line-meta">× {qty} · {_money(p["price"])}</span>'
-                    f'<span class="bag-line-sum">{_money(line_total)}</span>'
-                    f'<form class="inline" method="post" action="/act/cart.remove" data-ux="1" data-target="#cart">'
-                    f'<input type="hidden" name="sku" value="{sku}"/>'
-                    f'<button type="submit" class="text-btn" {rm_attrs}>Remove</button>'
-                    f"</form>"
-                    f"</li>"
+                    li(
+                        span(prod["name"], className="bag-line-name"),
+                        span(f"× {qty} · {_money(prod['price'])}", className="bag-line-meta"),
+                        span(_money(line_total), className="bag-line-sum"),
+                        form(
+                            input_(type="hidden", name="sku", value=sku),
+                            button("Remove", type="submit", className="text-btn", **control("cart.remove", sku=sku)),
+                            className="inline",
+                            method="post",
+                            action="/act/cart.remove",
+                            data_ux="1",
+                            data_target="#cart",
+                        ),
+                        className="bag-line",
+                        id=f"bag-{sku}",
+                    )
                 )
-            co = control("cart.open_checkout")
-            co_attrs = " ".join(f'{k}="{v}"' for k, v in co.items())
-            body = (
-                f'<ul class="bag-lines">{"".join(items)}</ul>'
-                f'<div class="bag-foot">'
-                f'<span class="bag-label">Subtotal</span>'
-                f'<span class="bag-sum">{_money(self.subtotal())}</span>'
-                f"</div>"
-                f'<form method="post" action="/act/cart.open_checkout" data-ux="1" data-target="#stage">'
-                f'<button type="submit" class="btn-primary" {co_attrs}>Review order</button>'
-                f"</form>"
+            kids.append(ul(*items, className="bag-lines"))
+            kids.append(
+                div(
+                    span("Subtotal", className="bag-label"),
+                    span(_money(self.subtotal()), className="bag-sum"),
+                    className="bag-foot",
+                )
             )
-        note = f'<p class="bag-notice" role="status">{notice}</p>' if notice else ""
-        return (
-            f'<aside id="cart" class="bag" data-count="{count}">'
-            f'<header class="bag-head">'
-            f"<h2>Bag</h2>"
-            f'<span class="bag-count">{count}</span>'
-            f"</header>"
-            f"{note}{body}"
-            f"</aside>"
-        )
+            kids.append(
+                form(
+                    button(
+                        "Review order",
+                        type="submit",
+                        className="btn-primary",
+                        **control("cart.open_checkout"),
+                    ),
+                    method="post",
+                    action="/act/cart.open_checkout",
+                    data_ux="1",
+                    data_target="#stage",
+                )
+            )
+        return aside(*kids, id="cart", className="bag", data_count=str(count))
 
     @action(caps=())
     def add(self, sku: str = "linen-01"):
-        p = _product(sku)
+        prod = _product(sku)
         rows = self._rows()
         found = False
         next_rows = []
@@ -161,7 +230,7 @@ class Cart(Component):
         if not found:
             next_rows.append((sku, 1))
         self.lines = tuple(next_rows)
-        self.notice = f"Added {p['name']}"
+        self.notice = f"Added {prod['name']}"
         self.stamp = "bag"
         plan = None
         if scene is not None and rise is not None:
@@ -169,7 +238,7 @@ class Cart(Component):
                 plan = scene("bag-pop").enter("#cart", rise.enter(ms=140))
             except Exception:
                 plan = None
-        return update_with(self, plan, extra_ops=[notify(f"Added {p['name']}")])
+        return update_with(self, plan, extra_ops=[notify(f"Added {prod['name']}")])
 
     @action(caps=())
     def remove(self, sku: str = ""):
@@ -184,7 +253,6 @@ class Cart(Component):
         if not self._rows():
             self.notice = "Bag is empty"
             return update_with(self, extra_ops=[notify("Bag is empty")])
-        # Modal is a sibling component — Host will also dispatch confirm-modal.open_modal
         return update_with(self)
 
     @action(caps=("orders.place",))
@@ -211,34 +279,50 @@ class ConfirmModal(Component):
     title = RefState("Place this order")
     body = RefState("")
 
-    def render(self) -> str:
+    def render(self):
         if not self.open:
-            return (
-                f'<div id="{self.id}" class="modal" hidden data-open="0"></div>'
-            )
-        close = control("confirm-modal.close")
-        # Checkout is the Cap-protected action on Cart
-        ok = control("cart.checkout")
-        def fmt(d):
-            return " ".join(f'{k}="{v}"' for k, v in d.items())
-        return (
-            f'<div id="{self.id}" class="modal" data-open="1" role="dialog" '
-            f'aria-modal="true" aria-labelledby="confirm-title">'
-            f'<div class="modal-scrim"></div>'
-            f'<div class="modal-panel">'
-            f'<p class="kicker">Order</p>'
-            f'<h2 id="confirm-title">{self.title}</h2>'
-            f'<p class="modal-copy">{self.body}</p>'
-            f'<div class="modal-actions">'
-            f'<form method="post" action="/act/confirm-modal.close" data-ux="1" data-target="#stage">'
-            f'<button type="submit" class="btn-ghost" {fmt(close)}>Keep looking</button>'
-            f"</form>"
-            f'<form method="post" action="/act/cart.checkout" data-ux="1" data-target="#stage">'
-            f'<button type="submit" class="btn-primary" {fmt(ok)}>Place order</button>'
-            f"</form>"
-            f"</div>"
-            f"</div>"
-            f"</div>"
+            return div(id=self.id, className="modal", hidden=True, data_open="0")
+        return div(
+            div(className="modal-scrim"),
+            div(
+                p("Order", className="kicker"),
+                h2(str(self.title), id="confirm-title"),
+                p(str(self.body), className="modal-copy"),
+                div(
+                    form(
+                        button(
+                            "Keep looking",
+                            type="submit",
+                            className="btn-ghost",
+                            **control("confirm-modal.close"),
+                        ),
+                        method="post",
+                        action="/act/confirm-modal.close",
+                        data_ux="1",
+                        data_target="#stage",
+                    ),
+                    form(
+                        button(
+                            "Place order",
+                            type="submit",
+                            className="btn-primary",
+                            **control("cart.checkout"),
+                        ),
+                        method="post",
+                        action="/act/cart.checkout",
+                        data_ux="1",
+                        data_target="#stage",
+                    ),
+                    className="modal-actions",
+                ),
+                className="modal-panel",
+            ),
+            id=self.id,
+            className="modal",
+            data_open="1",
+            role="dialog",
+            aria_modal="true",
+            aria_labelledby="confirm-title",
         )
 
     @action(caps=())
@@ -254,55 +338,33 @@ class ConfirmModal(Component):
         return update_with(self)
 
 
-def catalog_grid() -> str:
+def catalog_grid():
     cards = []
-    for p in CATALOG:
-        attrs = control("cart.add", sku=p["sku"])
-        attr_str = " ".join(f'{k}="{v}"' for k, v in attrs.items())
+    for prod in CATALOG:
         cards.append(
-            f'<article class="card tone-{p["tone"]}" id="item-{p["sku"]}">'
-            f'<div class="card-mark" aria-hidden="true">{_mark(p["mark"])}</div>'
-            f'<header class="card-head">'
-            f'<h2>{p["name"]}</h2>'
-            f'<p class="price">{_money(p["price"])}</p>'
-            f"</header>"
-            f'<p class="card-line">{p["line"]}</p>'
-            f'<form method="post" action="/act/cart.add" data-ux="1" data-target="#cart">'
-            f'<input type="hidden" name="sku" value="{p["sku"]}"/>'
-            f'<button type="submit" class="btn-secondary" {attr_str}>Add to bag</button>'
-            f"</form>"
-            f"</article>"
+            article(
+                div(_mark(prod["mark"]), className="card-mark", aria_hidden="true"),
+                header(
+                    h2(prod["name"]),
+                    p(_money(prod["price"]), className="price"),
+                    className="card-head",
+                ),
+                p(prod["line"], className="card-line"),
+                form(
+                    input_(type="hidden", name="sku", value=prod["sku"]),
+                    button(
+                        "Add to bag",
+                        type="submit",
+                        className="btn-secondary",
+                        **control("cart.add", sku=prod["sku"]),
+                    ),
+                    method="post",
+                    action="/act/cart.add",
+                    data_ux="1",
+                    data_target="#cart",
+                ),
+                className=f"card tone-{prod['tone']}",
+                id=f"item-{prod['sku']}",
+            )
         )
-    return f'<section class="grid" aria-label="Pieces">{"".join(cards)}</section>'
-
-
-def _mark(kind: str) -> str:
-    # Sparse monochrome SVG — no emoji
-    if kind == "board":
-        return (
-            '<svg viewBox="0 0 64 64" width="64" height="64">'
-            '<rect x="8" y="18" width="48" height="28" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>'
-            '<circle cx="20" cy="32" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>'
-            "</svg>"
-        )
-    if kind == "throw":
-        return (
-            '<svg viewBox="0 0 64 64" width="64" height="64">'
-            '<rect x="14" y="12" width="36" height="40" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/>'
-            '<path d="M14 20h36M14 44h36" fill="none" stroke="currentColor" stroke-width="1.2"/>'
-            "</svg>"
-        )
-    if kind == "pourer":
-        return (
-            '<svg viewBox="0 0 64 64" width="64" height="64">'
-            '<path d="M22 18h16l4 10v20a8 8 0 0 1-8 8H26a8 8 0 0 1-8-8V28z" fill="none" stroke="currentColor" stroke-width="1.5"/>'
-            '<path d="M42 24h8l2 8" fill="none" stroke="currentColor" stroke-width="1.5"/>'
-            "</svg>"
-        )
-    return (
-        '<svg viewBox="0 0 64 64" width="64" height="64">'
-        '<path d="M20 18h24v8H20zM18 26h28v24a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4z" '
-        'fill="none" stroke="currentColor" stroke-width="1.5"/>'
-        '<path d="M32 18v-6" fill="none" stroke="currentColor" stroke-width="1.5"/>'
-        "</svg>"
-    )
+    return section(*cards, className="grid", aria_label="Pieces")

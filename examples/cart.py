@@ -20,6 +20,11 @@ from ux_compose import (
     update_with,
     control,
     doctor,
+    HAS_DOM,
+    div,
+    h1,
+    span,
+    button,
 )
 
 # Optional motion (graceful if not installed)
@@ -38,9 +43,17 @@ class Cart(Component):
 
     def render(self):
         # Pure w.r.t. MorphState / RefState values at dispatch / SSR time.
+        last = self.last_sku or ""
+        if HAS_DOM:
+            return div(
+                h1(f"Items: {self.count}"),
+                span(last, className="last"),
+                button("+ tee", **control("add", sku="tee")),
+                id="cart",
+                className="cart",
+            )
         attrs = control("add", sku="tee")
         attr_str = " ".join(f'{k}="{v}"' for k, v in attrs.items())
-        last = self.last_sku or ""
         return (
             f'<div id="cart" class="cart">'
             f"<h1>Items: {self.count}</h1>"

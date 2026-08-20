@@ -607,7 +607,7 @@ def _wants_fragment(request: Optional[Any]) -> bool:
     return str(hx).lower() in {"1", "true", "yes"}
 
 
-def _fragment_or_page(request, *, flash: str = "") -> bool:
+def _fragment_or_page(request, *, flash: str = "") -> str:
     if _wants_fragment(request):
         cart = _inst("cart")
         modal = _inst("confirm-modal")

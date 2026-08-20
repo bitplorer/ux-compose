@@ -7,6 +7,7 @@ Demonstrates:
 - Public open + Cap-protected confirm
 - update_with for XOR-safe morph (+ optional motion)
 - Progressive Superpower: same class at L1–L3
+- render() returns ux-dom tags (HTML string fallback without ux-dom)
 
 Run:
   PYTHONPATH=src python examples/modal.py
@@ -22,6 +23,11 @@ from ux_compose import (
     notify,
     update_with,
     control,
+    HAS_DOM,
+    div,
+    h2,
+    p,
+    button,
 )
 
 
@@ -32,12 +38,26 @@ class ConfirmModal(Component):
     body = RefState("")
 
     def render(self):
+        if HAS_DOM:
+            if not self.open:
+                return div(id=self.id, className="modal closed", hidden=True)
+            return div(
+                h2(str(self.title)),
+                p(str(self.body)),
+                button("Cancel", **control("close")),
+                button("Confirm", **control("confirm")),
+                id=self.id,
+                className="modal open",
+                role="dialog",
+            )
         if not self.open:
             return f'<div id="{self.id}" class="modal closed" hidden></div>'
         attrs_close = control("close")
         attrs_ok = control("confirm")
+
         def fmt(d):
             return " ".join(f'{k}="{v}"' for k, v in d.items())
+
         return (
             f'<div id="{self.id}" class="modal open" role="dialog">'
             f"<h2>{self.title}</h2>"

@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ux-compose"
+version = "0.1.0"
+description = "Pure-Python composition root that fully harnesses ux-dom + ux-behavior + ux-motion + ux-channel into a progressive, isolation-enforced, server-driven hypermedia framework."
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "bitplorer"}]
+keywords = ["ux", "hypermedia", "server-driven", "python", "composition"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+]
+dependencies = [
+    # Specialists are optional / progressive. Authors install what they need.
+    # ux-behavior is the minimum for Level 1.
+]
+
+[project.optional-dependencies]
+dom = ["ux-dom"]
+behavior = ["ux-behavior"]
+motion = ["ux-motion"]
+channel = ["ux-channel"]
+full = ["ux-dom", "ux-behavior", "ux-motion", "ux-channel"]
+dev = ["pytest", "pytest-asyncio"]
+
+[project.scripts]
+uxcompose = "ux_compose.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ux_compose = ["py.typed"]
+
+
+# Full Document SSoT + all specialists: Python >=3.14 (ux-dom constraint).
+# Level 1 offline works on 3.11+ with pure shims or ux-behavior alone.

@@ -38,6 +38,7 @@ jobs:
           pip install "ux-motion @ git+https://github.com/bitplorer/ux-motion.git"
           pip install "ux-channel @ git+https://github.com/bitplorer/ux-channel.git#subdirectory=python"
           pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
+          pip install fastapi uvicorn
           pip install -e .
       - name: Full suite
         run: python -m pytest tests/ -q

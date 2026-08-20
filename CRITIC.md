@@ -11,11 +11,28 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 | Hard invariants never broken | **PASS** | Isolation AST + Cap Law + XOR helpers + Document SSoT |
 | Thin composition root (no re-implementation) | **PASS** | Prefer real specialists; pure shims only when absent |
 | Progressive L0–L3 zero-rewrite | **PASS** | Same Component class at L1 and L3; tests prove it |
-| Offline path works without channel | **PASS** | Pure shim + real Behavior; 48 tests |
-| Live path only through `wire/` | **PASS** | `wire/boot.py` sole importer of channel/MotionChannel |
+| Offline path works without channel | **PASS** | Pure shim + real Behavior; offline subset green |
+| Live path only through `wire/` | **PASS** | `wire/boot.py` + `wire/caps.py` + `wire/cek.py` sole importers of channel/CEK |
 | Doctor teaches + fail-closed | **PASS** | IsolationViolation, unlock messages, dual-Document heuristic |
 | Elite-love authoring surface | **PASS** | `update_with`, MorphState, @action, control, scene Plan |
 
+## Post-ship increments (this cut)
+
+- Real HTML morph patches (`render()` → `__render__(pretty=False)` → `update(html=)`)
+- Live Cap mint path: `App.mint_cap` / `App.submit_intent` — checkout succeeds only with a real Channel Cap
+- Channel FastAPI host: `Behavior.attach(asgi)` owns `Channel.boot`; never `attach(Channel)` (include_router)
+- Optional CEK door via `wire/cek.py` (`App.use_cek`) — Isolation-safe, degrades if absent
+- Product app: `apps/atelier_shop` (cart + confirm modal + Document shell)
+- Presence continuity cookbook: `cookbooks/PRESENCE.md`
+- GitHub Actions CI matrix (3.12 offline + 3.14 full stack)
+- create-app scaffold emits progressive L1–L3 app with Document optional
+
+## Soft notes (non-kill)
+
+1. **ux-dom requires Python ≥3.14** — documented; L1 offline works on 3.11+.
+2. **Doctor dual-Document** when scanning `examples/` may still list multiple educational Document() calls — product packages construct one Document at boot (`apps/atelier_shop`).
+3. After `use_channel`, `App.dispatch` is Host-internal (Behavior skips Caps when `_wire` is set). Live Cap verification is `submit_intent` / Channel edge. This is specialist contract, not a compose bug.
+
 ## Recommendation
 
-**Ship 0.1.0** under the frozen mental model.
+**Ship 0.1.0** under the frozen mental model. Live Cap + Isolation-safe FastAPI attach + one product app now exist. Do not reopen the mental model.

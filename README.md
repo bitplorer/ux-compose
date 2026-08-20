@@ -1,1 +1,137 @@
-placeholder
+# ux-compose
+
+**Thin pure-Python composition root** for the UX framework family.
+
+Harnesses four specialists without re-implementing them:
+
+| Specialist | Role |
+|------------|------|
+| **ux-dom** | Document SSoT, elements, runtimes (Python ≥3.14) |
+| **ux-behavior** | Offline Components, MorphState, @action, Cap Law |
+| **ux-channel** | Live Caps, Intent, signed control, ASGI |
+| **ux-motion** | Scene Plans, presence, Morph-then-Play |
+
+No React. No Vue. No client runtime. Server-authored, hypermedia-first, capability-secured, progressive.
+
+## Progressive levels
+
+| Level | What you get | Unlock |
+|-------|----------------|--------|
+| **0** | Static Document | `pip install ux-dom` (Py≥3.14) |
+| **1** | Offline interactive + MorphState + @action | `pip install ux-behavior` |
+| **2** | Live Caps + Intent | `+ ux-channel` + `App.use_channel(asgi_app=…)` |
+| **3** | Choreographed motion | `+ ux-motion` + `App.use_motion()` |
+
+**Progressive Superpower Contract:** code written at Level 1 remains correct and unchanged at higher levels. Zero rewrite.
+
+## Quick start
+
+```bash
+# Full stack (recommended): Python ≥3.14
+python3.14 -m venv .venv && source .venv/bin/activate
+pip install -e .
+pip install "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git"
+pip install "ux-motion @ git+https://github.com/bitplorer/ux-motion.git"
+pip install "ux-channel @ git+https://github.com/bitplorer/ux-channel.git#subdirectory=python"
+pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
+```
+
+```python
+from ux_compose import App, Component, MorphState, action, update_with, notify
+
+class Cart(Component):
+    id = "cart"
+    count = MorphState(0)
+
+    def render(self):
+        return f'<div id="cart">{self.count}</div>'
+
+    @action(caps=())
+    def add(self, sku: str = ""):
+        self.count = int(self.count) + 1
+        return update_with(self, extra_ops=[notify(f"Added {sku}")])
+
+    @action(caps=("orders.place",))
+    def checkout(self):
+        return [notify("Placed")]
+
+app = App.boot("Shop", strict_caps=False)
+app.add(Cart)
+print(app.dispatch("cart.add", sku="tee"))
+```
+
+Live Caps (Level 2) — checkout succeeds **only** with a real Channel-minted Cap:
+
+```python
+from fastapi import FastAPI
+asgi = FastAPI()
+app = App.boot("Shop", strict_caps=True)
+app.add(Cart)
+app.use_channel(asgi_app=asgi)   # Isolation door; never pass Channel as asgi
+refused = app.submit_intent("cart.checkout")          # missing Cap → not ok
+placed  = app.submit_intent("cart.checkout", mint=True)  # Host mints Cap
+```
+
+`App.use_channel(asgi_app=fastapi)` lets **Behavior.attach** own `Channel.boot`, so
+`include_router` lands on FastAPI (not on Channel). Product code never imports
+`ux_channel`.
+
+## Hard invariants (never broken)
+
+- **Isolation Law** — product code never imports `ux_channel` / CEK; only `wire/` may
+- **Document SSoT** — exactly one Document owns the HTML shell
+- **XOR Law** — morph vs `scene.enter(html=)` are exclusive
+- **Cap Law** — protected actions require Caps (fail-closed offline under `strict_caps`)
+- **Ops-as-data** — inspectable Op / Motion Plan
+- **Morph-then-Play** — morph Op precedes `transition.play`
+- **Cold import** — `import ux_compose` never pulls channel/CEK
+
+## CLI
+
+```bash
+python -m ux_compose.cli doctor --no-fail
+python -m ux_compose.cli create-app ./myapp --level 1
+```
+
+## Product app
+
+`apps/atelier_shop` — linen & object shop: cart, confirm modal, Document shell,
+live Cap checkout. Same Cart class at L1 and L3.
+
+```bash
+PYTHONPATH=src:. python -m uvicorn apps.atelier_shop.server:app --host 0.0.0.0 --port 8080
+```
+
+## Examples
+
+- `examples/cart.py` — MorphState + Cap-protected action + motion Plan
+- `examples/modal.py` — open/close + Cap-protected confirm
+- `examples/form_validation.py` — field errors as MorphState
+- `examples/list_stagger.py` — list projection + filter
+- `examples/optimistic_list.py` — optimistic paint + confirm/rollback
+- `examples/page_transition.py` — region morph + optional motion Plan
+- `examples/document_boot.py` — full Document SSoT + L3 (Py≥3.14)
+- `examples/live_asgi.py` — FastAPI + Channel via `wire/` + Motion
+- `examples/cart_document.py` — Cart + Document SSoT + L3 Morph-then-Play e2e
+
+## Cookbooks
+
+- `cookbooks/PRESENCE.md` — list reorder + shared-element via `scene.share`
+
+## Tests
+
+```bash
+# Full stack on Python 3.14
+/tmp/ux314venv/bin/python -m pytest tests/ -q
+# or: make test314
+```
+
+## Known notes
+
+- **ux-dom** requires Python ≥3.14. Level 1 offline works on 3.11+ with pure shims or `ux-behavior` alone.
+- **Channel FastAPI host**: `App.use_channel(asgi_app=fastapi)` is the Isolation-safe attach. Do not pass a Channel instance as `asgi`. Headless `use_channel()` boots Channel without HTTP for mint/submit tests.
+- Optional CEK: `app.use_cek(mode="adapt")` — degrades if `cek_host` is absent; `require` fails closed.
+
+## License
+
+MIT

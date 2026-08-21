@@ -369,21 +369,23 @@ def mount_surfaces(
 
     if include_directory_router and asgi_app is not None:
         try:
-            from ux_dom.routing.fastapi import DirectoryRouter, StreamingRoute
+            from ux_dom.routing.fastapi import DirectoryRouter, StreamingRoute, RouterHooks
 
-            try:
-                router = DirectoryRouter(
-                    base_directory=base_directory,
-                    package_dir=Path(package_dir).resolve(),
-                    route_class=StreamingRoute,
-                    unit_registry=bundle.unit_registry,
-                )
-            except TypeError:
-                router = DirectoryRouter(
-                    base_directory=base_directory,
-                    package_dir=Path(package_dir).resolve(),
-                    route_class=StreamingRoute,
-                )
+            registry = bundle.unit_registry
+
+            def _resolve_unit(cls, path, name):
+                # Generic hook: map page class → live Behavior instance when present
+                sid = str(getattr(cls, "id", None) or cls.__name__.lower())
+                return registry.get(sid)
+
+            hooks = RouterHooks(resolve_unit=_resolve_unit)
+            router = DirectoryRouter(
+                base_directory=base_directory,
+                package_dir=Path(package_dir).resolve(),
+                route_class=StreamingRoute,
+                hooks=hooks,
+                fail_closed=fail_closed,
+            )
             if hasattr(asgi_app, "include_router"):
                 asgi_app.include_router(router)
             table = getattr(router, "route_table", None)

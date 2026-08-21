@@ -19,11 +19,10 @@ class App:
     Progressive composition root.
 
     Example:
-        app = App.boot("Shop")                  # Level 1 by default
-        app = App.boot("Shop").use_channel()    # Level 2
-        app = App.boot("Shop").use_channel().use_motion()  # Level 3
-        app.add(Cart)
-        ops = app.dispatch("cart.add", sku="tee")  # works offline and live
+        app = App.boot("Shop")
+        app = App.boot("Shop").use_channel(asgi_app=api)
+        bundle = app.mount(PACKAGE, asgi_app=api, base="routes")
+        # Still supported: app.add(Cart); app.dispatch("cart.add", sku="tee")
     """
 
     def __init__(self, name: str = "App", *, strict_caps: bool = False):
@@ -69,16 +68,12 @@ class App:
             from ux_behavior import Behavior
             self._behavior = Behavior.boot(self.name, strict_caps=self.strict_caps)
             self._level = max(self._level, Level.L1)
-            # If ux-motion is installed, pre-register transition.* on the stamp so
-            # authors can return scene Plans from @action without stamp reject.
-            # Full L3 still requires use_motion() for MotionChannel peel.
             try:
                 import ux_motion  # noqa: F401
                 self._register_motion_stamp()
             except ImportError:
                 pass
         except ImportError:
-            # Offline shim when specialist missing
             self._behavior = _LocalBehavior(self)
             self._level = max(self._level, Level.L1)
         return self
@@ -87,11 +82,7 @@ class App:
         """Unlock Level 2. Imports only through wire/ (Isolation Law).
 
         When ux-channel is absent, degrades gracefully and stays at current level.
-        Level is only elevated when the wire door successfully imports Channel.
-
-        Pass asgi_app=FastAPI() so Channel.boot mounts /ux-channel on the real
-        host. Do not pass a Channel instance as asgi — attach_channel owns
-        Behavior.attach(asgi) so include_router lands on FastAPI.
+        Pass asgi_app=FastAPI() so Channel mounts on the real host.
         """
         if self._channel is not None:
             return self
@@ -100,21 +91,13 @@ class App:
             from ux_compose.wire.boot import attach_channel
             ch = attach_channel(self, **config)
             self._channel = ch
-            # attach_channel owns Behavior.attach — do NOT re-attach Channel as asgi
             self._level = max(self._level, Level.L2)
         except ImportError:
-            # Progressive: stay at current level; offline continues to work
             pass
         return self
 
     def use_motion(self) -> "App":
-        """Unlock Level 3. Motion + MotionChannel via controlled wire door.
-
-        When ux-motion is absent, degrades gracefully and stays at current level.
-        Level is only elevated when Motion/MotionChannel import succeeds.
-        Registers transition.play on the Behavior session stamp so motion Plans
-        are valid Ops under the Cap/stamp model (Composition Algebra).
-        """
+        """Unlock Level 3. Motion + MotionChannel via controlled wire door."""
         try:
             from ux_compose.wire.boot import attach_motion
             Motion, MotionChannel = attach_motion()
@@ -122,10 +105,8 @@ class App:
             self._level = max(self._level, Level.L3)
             if self._document is not None and hasattr(self._document, "use"):
                 self._document.use(Motion, MotionChannel)
-            # Allow transition.play Ops on the Behavior stamp (Morph-then-Play)
             self._register_motion_stamp()
         except ImportError:
-            # Progressive: stay at current level; L1/L2 continue to work
             pass
         return self
 
@@ -143,7 +124,6 @@ class App:
         return self
 
     def mint_cap(self, action: str, args: Optional[dict] = None, **kwargs) -> str:
-        """Thin wrap of wire.caps.mint_cap. Isolation door — product never imports channel."""
         if self._channel is None:
             self.use_channel()
         from ux_compose.wire.caps import mint_cap
@@ -158,7 +138,6 @@ class App:
         args: Optional[dict] = None,
         **kwargs,
     ):
-        """Thin wrap of wire.caps.submit_intent. Checkout succeeds only with a real Cap."""
         if self._channel is None:
             self.use_channel()
         from ux_compose.wire.caps import submit_intent
@@ -175,7 +154,6 @@ class App:
         args: Optional[dict] = None,
         **kwargs,
     ):
-        """ASGI-safe Intent submit (Channel.registry.async_dispatch)."""
         if self._channel is None:
             self.use_channel()
         from ux_compose.wire.caps import async_submit_intent
@@ -184,7 +162,6 @@ class App:
         )
 
     def _register_motion_stamp(self) -> None:
-        """Register transition.* pairs so motion Plans pass Behavior stamp checks."""
         behavior = self._behavior
         if behavior is None or not hasattr(behavior, "domain"):
             return
@@ -199,11 +176,11 @@ class App:
                 ),
             )
         except Exception:
-            # Already registered or Behavior version without domain API
             pass
 
     def add(self, *components: Type[Component]) -> "App":
-        self.use_behavior()  # ensure L1
+        """Manual / dynamic registration (preserved). Prefer mount() for route trees."""
+        self.use_behavior()
         for c in components:
             key = getattr(c, "id", None) or c.__name__.lower()
             self._components[key] = c
@@ -216,6 +193,37 @@ class App:
             except Exception:
                 pass
         return self
+
+    def mount(
+        self,
+        package_dir,
+        *,
+        asgi_app=None,
+        base: str = "routes",
+        base_directory: str | None = None,
+        fail_closed: bool = True,
+        include_directory_router: bool = True,
+        on_surface=None,
+        package_name=None,
+    ):
+        """Scan routes, register units on Behavior, optionally bind DirectoryRouter.
+
+        Additive: does not remove App.add or standalone DirectoryRouter usage.
+        Fail-closed validation by default (duplicate id/path raises).
+        """
+        from ux_compose.surfaces import mount_surfaces
+
+        self.use_behavior()
+        return mount_surfaces(
+            package_dir=package_dir,
+            base_directory=base_directory or base,
+            compose_app=self,
+            asgi_app=asgi_app,
+            fail_closed=fail_closed,
+            include_directory_router=include_directory_router,
+            on_surface=on_surface,
+            package_name=package_name,
+        )
 
     def dispatch(self, action: str, **kwargs) -> List[Any]:
         """Offline-first dispatch. Same surface for tests, agents, and live."""
@@ -275,7 +283,6 @@ def _local_dispatch(app: App, action: str, **kwargs) -> List[Any]:
     fn = getattr(inst, method, None)
     if fn is None:
         return []
-    # Cap Law — offline fail-closed under strict_caps
     caps = getattr(fn, "_ux_caps", ()) or ()
     if getattr(app, "strict_caps", False) and caps and getattr(app, "_channel", None) is None:
         raise PermissionError(

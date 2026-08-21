@@ -10,18 +10,23 @@ __version__ = "0.1.0"
 
 # Core author surface (Level 1+)
 from ux_compose.component import Component, MorphState, RefState, action
-from ux_compose.helpers import control, notify, update_with, morph_play
+from ux_compose.helpers import bind, control, notify, update_with, morph_play
 from ux_compose.app import App
+from ux_compose.surfaces import (
+    Surface,
+    SurfaceBundle,
+    SurfaceError,
+    mount_surfaces,
+    scan_surfaces,
+)
 from ux_compose.progressive import Level
 from ux_compose.doctor import doctor, DoctorResult
 
-# Motion helpers re-exported only if available; never pull channel
 try:
     from ux_motion import scene, fade, rise  # type: ignore
 except ImportError:  # pragma: no cover
     scene = fade = rise = None  # type: ignore
 
-# ux-dom tags — first-class render() return type when the specialist is present
 from ux_compose.dom import (  # noqa: E402
     HAS_DOM,
     a,
@@ -61,10 +66,16 @@ from ux_compose.dom import (  # noqa: E402
 
 __all__ = [
     "App",
+    "Surface",
+    "SurfaceBundle",
+    "SurfaceError",
+    "mount_surfaces",
+    "scan_surfaces",
     "Component",
     "MorphState",
     "RefState",
     "action",
+    "bind",
     "control",
     "notify",
     "update_with",

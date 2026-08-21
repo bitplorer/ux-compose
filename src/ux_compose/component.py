@@ -13,7 +13,6 @@ fragile (skip __init__, republish _entry). The MRO is not: add/remove/get/clear
 are reserved tree verbs today, and more will land. Sharing that MRO with
 @action names collides now or later. Tags are the return type of render().
 """
-
 from __future__ import annotations
 
 from typing import Any, AsyncIterator, Callable, Optional
@@ -99,7 +98,7 @@ class Component(_BehaviorComponent):
     """
     Unified Component.
 
-    - id: stable target for morph + motion
+    - id: stable target for morph + motion (default ClassName.lower(); override with id=)
     - MorphState fields: dirty → morph unit
     - RefState fields: silent memory
     - render() → ux-dom tree. Prefer tags::
@@ -127,6 +126,9 @@ class Component(_BehaviorComponent):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        # Auto-id when class body omitted id= (shim path; behavior base also does this)
+        if "id" not in cls.__dict__ and not getattr(cls, "id", ""):
+            cls.id = cls.__name__.lower()
         if not _HAS_DOM_COMPONENT:
             return
         for base in cls.__mro__:

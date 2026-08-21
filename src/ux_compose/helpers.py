@@ -9,12 +9,12 @@ When absent, helpers emit plain dict Ops for the pure-shim path.
 """
 from __future__ import annotations
 
-from typing import Any, Iterable, List, Optional
+from typing import Any, List, Optional
 
-# Prefer real specialist Ops when available
 try:
     from ux_behavior import notify as _real_notify, update as _real_update
     from ux_behavior.ops import Op as _Op
+
     _HAS_BEHAVIOR = True
 except ImportError:
     _real_notify = _real_update = _Op = None  # type: ignore
@@ -38,9 +38,14 @@ def notify(message: str, **kwargs) -> Any:
 
 
 def bind(action_obj, **kwargs):
-    """Symbol-safe UI attrs. Prefers ux_behavior.bind / .ui when available."""
+    """Symbol-safe UI attrs. Prefers ux_behavior.bind / .ui when available.
+
+    Progressive attrs: data-ux-action + data-ux-arg-*.
+    Keep control(str) for stringly escape hatch; prefer bind / .ui in product code.
+    """
     try:
         from ux_behavior.action import bind as _b
+
         return _b(action_obj, **kwargs)
     except Exception:
         pass
@@ -71,33 +76,126 @@ def bind(action_obj, **kwargs):
 
 
 def control(action: str, **args) -> dict:
-    """Progressive control attrs. Offline: plain data-*. Live: upgraded by Channel."""
+    """Progressive control attrs (string action name). Prefer bind() / .ui in new code."""
     attrs = {"data-ux-action": action}
     for k, v in args.items():
         attrs[f"data-ux-arg-{k}"] = str(v)
     return attrs
 
 
-def update_with(component: Any, *fields: str, **kwargs) -> Any:
-    """Morph-then-update helper. Emits update Op for component fields."""
+def _serialize_tree(tree: Any) -> str:
+    """Best-effort HTML serialization for Component.__render__ / morph payloads."""
+    if tree is None:
+        return ""
+    if isinstance(tree, str):
+        return tree
+    for attr in ("render", "__render__", "__html__", "to_html"):
+        fn = getattr(tree, attr, None)
+        if callable(fn):
+            try:
+                out = fn()
+                if out is not None and out is not tree:
+                    return _serialize_tree(out)
+            except TypeError:
+                try:
+                    return _serialize_tree(fn(tree))  # type: ignore[misc]
+                except Exception:
+                    pass
+            except Exception:
+                pass
+    try:
+        return str(tree)
+    except Exception:
+        return ""
+
+
+def _render_html(component_or_id: Any) -> str:
+    if isinstance(component_or_id, str):
+        return component_or_id
+    render = getattr(component_or_id, "render", None)
+    if callable(render):
+        try:
+            return _serialize_tree(render())
+        except Exception:
+            pass
+    return _serialize_tree(component_or_id)
+
+
+def update_with(
+    component: Any,
+    *fields: str,
+    html: Optional[str] = None,
+    strategy: str = "idiomorph",
+    **kwargs: Any,
+) -> Any:
+    """Morph / update helper used from @action methods.
+
+    When ux-behavior is present, prefer specialist update().
+    Otherwise emit a morph-oriented Op dict.
+    """
     if _HAS_BEHAVIOR and _real_update is not None:
-        return _real_update(component, *fields, **kwargs)
-    target = getattr(component, "id", None) or getattr(component, "__name__", "component")
-    payload = {"target": f"#{target}", "fields": list(fields), **kwargs}
-    return _as_op("", "update", payload)
+        try:
+            return _real_update(component, *fields, **kwargs)
+        except Exception:
+            pass
+
+    target = getattr(component, "id", None) or getattr(
+        component, "__name__", "component"
+    )
+    payload: dict[str, Any] = {
+        "target": f"#{target}" if not str(target).startswith("#") else str(target),
+        "strategy": strategy,
+    }
+    if fields:
+        payload["fields"] = list(fields)
+    if html is not None:
+        payload["html"] = html
+    else:
+        try:
+            payload["html"] = _render_html(component)
+        except Exception:
+            pass
+    payload.update(kwargs)
+    return _as_op("", "morph", payload)
 
 
-def morph_play(component: Any, plan: Any = None, **kwargs) -> list:
-    """Morph-then-Play: morph target then optional motion plan."""
-    target = getattr(component, "id", None) or "component"
+def _coerce_op(op: Any) -> Any:
+    if op is None:
+        return None
+    if _HAS_BEHAVIOR and _Op is not None and isinstance(op, _Op):
+        return op
+    if isinstance(op, dict):
+        return op
+    if hasattr(op, "ns") and hasattr(op, "name"):
+        return op
+    return op
+
+
+def _normalize_plan_ops(scene_or_plan: Any) -> List[Any]:
+    if scene_or_plan is None:
+        return []
+    if isinstance(scene_or_plan, list):
+        return [o for o in (_coerce_op(x) for x in scene_or_plan) if o is not None]
+    for attr in ("ops", "plan", "to_ops"):
+        val = getattr(scene_or_plan, attr, None)
+        if callable(val):
+            try:
+                return _normalize_plan_ops(val())
+            except Exception:
+                pass
+        elif isinstance(val, list):
+            return _normalize_plan_ops(val)
+    coerced = _coerce_op(scene_or_plan)
+    return [coerced] if coerced is not None else []
+
+
+def morph_play(target: str, plan: Any) -> List[Any]:
+    """Morph-then-Play: morph target, then append motion plan ops."""
+    tid = target if str(target).startswith("#") else f"#{target}"
     ops: List[Any] = [
-        _as_op("", "morph", {"target": f"#{target}", "strategy": kwargs.get("strategy", "idiomorph")})
+        _as_op("", "morph", {"target": tid, "strategy": "idiomorph"})
     ]
-    if plan is not None:
-        if isinstance(plan, list):
-            ops.extend(plan)
-        else:
-            ops.append(plan)
+    ops.extend(_normalize_plan_ops(plan))
     return ops
 
 

@@ -24,6 +24,38 @@ No React. No Vue. No client runtime. Server-authored, hypermedia-first, capabili
 
 **Progressive Superpower Contract:** code written at Level 1 remains correct and unchanged at higher levels. Zero rewrite.
 
+## Default product path
+
+Filesystem page units under `routes/` + `App.mount` (DirectoryRouter via RouterHooks):
+
+```text
+myapp/
+  app.py
+  routes/
+    hello.py          # page unit: class Hello (stem match)
+```
+
+```python
+from pathlib import Path
+from ux_compose import App
+
+app = App.boot("Shop", level=1)
+bundle = app.mount(Path(__file__).parent, asgi_app=api, base="routes")
+# offline still works:
+app.dispatch("hello.inc")
+# doctor can read the sealed bundle:
+from ux_compose import doctor
+doctor([], fail=False, bundle=bundle)
+```
+
+Scaffold emits this layout:
+
+```bash
+python -m ux_compose.cli create-app ./myapp --level 1
+```
+
+Runnable proof: `PYTHONPATH=src:. python examples/page_unit_mount.py`
+
 ## Quick start
 
 ```bash
@@ -129,9 +161,11 @@ Playable host: `apps/atelier_studio` (Atelier of Patterns). Product shop at `/sh
 | Motion | `examples/motion_xor.py` — XOR, Morph-then-Play, share |
 | Systems | `examples/systems.py`, `examples/ops.py` — chat, calendar, KPI, settings, presence |
 | Host | `examples/document_boot.py`, `examples/live_asgi.py`, `examples/cart_document.py` |
+| Page-unit mount | `examples/page_unit_mount.py` — locked product path + doctor bundle evidence |
 
 ```bash
 PYTHONPATH=src:. python examples/foundation.py
+PYTHONPATH=src:. python examples/page_unit_mount.py
 PYTHONPATH=src:. uvicorn apps.atelier_studio.server:app --app-dir . --host 0.0.0.0 --port 8080
 ```
 

@@ -133,7 +133,16 @@ python -m ux_compose.cli doctor --no-fail
 python -m ux_compose.cli create-app ./myapp --level 1
 ```
 
-## Product app
+## Product apps
+
+`apps/pulse` — **full-featured live showcase** of the locked product path:
+page units (`routes/`), App.mount, MorphState/RefState, Cap-gated checkout,
+interactive lab, doctor evidence, progressive channel/motion.
+
+```bash
+PYTHONPATH=src:. uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080
+# offline smoke: PYTHONPATH=src:. python apps.pulse.server.py
+```
 
 `apps/atelier_shop` — linen & object shop: cart, confirm modal, Document shell,
 live Cap checkout. Same Cart class at L1 and L3.
@@ -166,6 +175,7 @@ Playable host: `apps/atelier_studio` (Atelier of Patterns). Product shop at `/sh
 ```bash
 PYTHONPATH=src:. python examples/foundation.py
 PYTHONPATH=src:. python examples/page_unit_mount.py
+PYTHONPATH=src:. uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080
 PYTHONPATH=src:. uvicorn apps.atelier_studio.server:app --app-dir . --host 0.0.0.0 --port 8080
 ```
 

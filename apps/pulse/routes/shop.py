@@ -1,7 +1,13 @@
-"""Page unit: shop.py → Shop — commerce + Cap-protected checkout."""
+"""Page unit: shop.py → Shop — commerce trees + Cap-gated checkout."""
 from __future__ import annotations
 
 from ux_compose import Component, MorphState, RefState, action, control, notify, update_with
+
+try:
+    from ux_compose import div, span, h1, h3, p, button, section, article, HAS_DOM
+except Exception:
+    HAS_DOM = False
+    div = span = h1 = h3 = p = button = section = article = None  # type: ignore
 
 CATALOG = (
     {"sku": "linen-throw", "name": "Linen throw", "price": 4800, "blurb": "Stone-washed, heavy drape"},
@@ -18,7 +24,7 @@ class Shop(Component):
     id = "shop"
     stamp = MorphState("idle")
     notice = RefState("")
-    lines = RefState(())  # tuple of (sku, qty)
+    lines = RefState(())
     confirm_open = MorphState(False)
 
     def _qty(self, sku: str) -> int:
@@ -39,68 +45,75 @@ class Shop(Component):
         self.stamp = "a" if self.stamp == "b" else "b"
 
     def render(self):
+        if not (HAS_DOM and div is not None):
+            return f'<section id="shop">cart {_money(self._total())}</section>'
+
         cards = []
-        for p in CATALOG:
-            q = self._qty(p["sku"])
-            add = control("shop.add", sku=p["sku"])
-            add_s = " ".join(f'{k}="{v}"' for k, v in add.items())
-            cards.append(f'''
-<article class="card product">
-  <h3>{p["name"]}</h3>
-  <p class="muted">{p["blurb"]}</p>
-  <div class="row">
-    <span class="price">{_money(p["price"])}</span>
-    <span class="pill">qty {q}</span>
-    <button class="btn primary" {add_s}>Add</button>
-  </div>
-</article>''')
+        for prod in CATALOG:
+            q = self._qty(prod["sku"])
+            cards.append(
+                article(
+                    h3(prod["name"], className="font-serif text-lg"),
+                    p(prod["blurb"], className="mt-1 text-sm text-stone-600 dark:text-stone-400"),
+                    div(
+                        span(_money(prod["price"]), className="font-mono text-amber-700 dark:text-amber-400"),
+                        span(f"qty {q}", className="rounded-full border px-2 py-0.5 text-xs font-mono"),
+                        button(
+                            "Add", type="button",
+                            className="rounded-full bg-stone-900 px-3 py-1.5 text-sm text-stone-50 dark:bg-stone-100 dark:text-stone-900",
+                            **control("shop.add", sku=prod["sku"]),
+                        ),
+                        className="mt-4 flex flex-wrap items-center gap-2",
+                    ),
+                    className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-700 dark:bg-stone-900",
+                )
+            )
         total = _money(self._total())
         n = sum(int(q) for _, q in (self.lines or ()))
-        place = control("shop.request_checkout")
-        place_s = " ".join(f'{k}="{v}"' for k, v in place.items())
-        clear = control("shop.clear")
-        clear_s = " ".join(f'{k}="{v}"' for k, v in clear.items())
-        notice = f'<p class="muted">{self.notice}</p>' if self.notice else ""
-        modal = ""
+        modal = None
         if self.confirm_open:
-            yes = control("shop.checkout")
-            no = control("shop.close_confirm")
-            yes_s = " ".join(f'{k}="{v}"' for k, v in yes.items())
-            no_s = " ".join(f'{k}="{v}"' for k, v in no.items())
-            modal = f'''
-<div class="modal-backdrop" id="confirm">
-  <div class="modal stack">
-    <h3>Place order</h3>
-    <p class="muted">{n} piece(s) · {total}. Checkout is Cap-protected (<span class="mono">orders.place</span>).</p>
-    <div class="row">
-      <button class="btn primary" {yes_s}>Confirm</button>
-      <button class="btn ghost" {no_s}>Cancel</button>
-    </div>
-  </div>
-</div>'''
-        return f'''
-<section id="shop" class="stack" style="padding:var(--space-6) 0">
-  <div class="row" style="justify-content:space-between">
-    <div>
-      <h1 style="font-family:var(--font-display);font-size:var(--text-xl);margin:0">Atelier objects</h1>
-      <p class="muted">Commerce unit · Morph stamp · Cap-gated checkout</p>
-    </div>
-    <div class="row">
-      <span class="kpi">{total}</span>
-      <span class="pill">{n} items</span>
-    </div>
-  </div>
-  <div class="grid">{''.join(cards)}</div>
-  <div class="card row" style="justify-content:space-between">
-    <div>{notice}<span class="subtle">Offline add works; checkout needs a live Cap at L2.</span></div>
-    <div class="row">
-      <button class="btn ghost" {clear_s}>Clear</button>
-      <button class="btn primary" {place_s}>Checkout</button>
-    </div>
-  </div>
-</section>
-{modal}
-'''
+            modal = div(
+                div(
+                    h3("Place order", className="font-serif text-xl"),
+                    p(f"{n} piece(s) · {total}. Cap-protected (orders.place).", className="mt-2 text-sm text-stone-600"),
+                    div(
+                        button("Confirm", type="button", className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50", **control("shop.checkout")),
+                        button("Cancel", type="button", className="rounded-full px-4 py-2 text-sm", **control("shop.close_confirm")),
+                        className="mt-4 flex gap-2",
+                    ),
+                    className="w-full max-w-md rounded-2xl border border-stone-200 bg-white p-6 shadow-xl dark:border-stone-700 dark:bg-stone-900",
+                ),
+                className="fixed inset-0 z-30 grid place-items-center bg-black/40 p-4",
+                id="confirm",
+            )
+        notice = p(str(self.notice), className="text-sm text-stone-600") if self.notice else None
+        kids = [
+            div(
+                div(
+                    h1("Atelier objects", className="font-serif text-3xl tracking-tight"),
+                    p("Commerce · Morph stamp · Cap-gated checkout", className="text-sm text-stone-500"),
+                ),
+                div(
+                    span(total, className="font-serif text-3xl"),
+                    span(f"{n} items", className="rounded-full border px-2 py-0.5 text-xs font-mono"),
+                    className="flex items-center gap-3",
+                ),
+                className="flex flex-wrap items-end justify-between gap-4",
+            ),
+            div(*cards, className="mt-8 grid gap-4 sm:grid-cols-3"),
+            div(
+                div(notice, span("Offline add works; checkout needs a live Cap at L2.", className="text-xs text-stone-500"), className="space-y-1"),
+                div(
+                    button("Clear", type="button", className="rounded-full border px-4 py-2 text-sm", **control("shop.clear")),
+                    button("Checkout", type="button", className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50", **control("shop.request_checkout")),
+                    className="flex gap-2",
+                ),
+                className="mt-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-700 dark:bg-stone-900",
+            ),
+        ]
+        if modal is not None:
+            kids.append(modal)
+        return section(*kids, id=self.id, className="mx-auto max-w-5xl px-4 py-10")
 
     @action(caps=())
     def add(self, sku: str = ""):

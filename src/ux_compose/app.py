@@ -19,10 +19,9 @@ class App:
     Progressive composition root.
 
     Example:
-        app = App.boot("Shop")
-        app = App.boot("Shop").use_channel(asgi_app=api)
+        app = App.boot("Shop")  # level=auto
+        app = App.boot("Shop", level=1)  # pin offline for tests
         bundle = app.mount(PACKAGE, asgi_app=api, base="routes")
-        # Still supported: app.add(Cart); app.dispatch("cart.add", sku="tee")
     """
 
     def __init__(self, name: str = "App", *, strict_caps: bool = False):
@@ -38,17 +37,43 @@ class App:
         self._cek = None
 
     @classmethod
-    def boot(cls, name: str = "App", *, strict_caps: bool = False, level: int = 1) -> "App":
-        """Boot at the requested progressive level (default L1 = Behavior)."""
+    def boot(
+        cls,
+        name: str = "App",
+        *,
+        strict_caps: bool = False,
+        level: int | str = "auto",
+    ) -> "App":
+        """Boot at the requested progressive level.
+
+        level:
+          - ``"auto"`` (default) — Behavior on; channel/motion when importable
+          - ``0..3`` — pin progressive floor (tests / teaching)
+
+        HTMX is never auto-attached; opt in via Document.use(Htmx()).
+        """
         app = cls(name, strict_caps=strict_caps)
-        if level >= 1:
+        auto = isinstance(level, str) and str(level).lower() == "auto"
+        if auto:
             app.use_behavior()
-        if level >= 2:
             try:
                 app.use_channel()
             except Exception:
                 pass
-        if level >= 3:
+            try:
+                app.use_motion()
+            except Exception:
+                pass
+            return app
+        lv = max(0, min(3, int(level)))
+        if lv >= 1:
+            app.use_behavior()
+        if lv >= 2:
+            try:
+                app.use_channel()
+            except Exception:
+                pass
+        if lv >= 3:
             try:
                 app.use_motion()
             except Exception:
@@ -207,9 +232,6 @@ class App:
         package_name=None,
     ):
         """Scan routes, register units on Behavior, optionally bind DirectoryRouter.
-
-        Additive: does not remove App.add or standalone DirectoryRouter usage.
-        Fail-closed validation by default (duplicate id/path raises).
 
         When ``asgi_app`` is provided, wires ``RouterHooks.resolve_unit`` so
         synthetic page GETs receive live Behavior instances (page-unit path).

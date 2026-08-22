@@ -1,7 +1,13 @@
-"""Page unit: lab.py → Lab — MorphState/RefState, tabs, form, toast patterns."""
+"""Page unit: lab.py → Lab — tabs, counter, form, toast (tag trees)."""
 from __future__ import annotations
 
 from ux_compose import Component, MorphState, RefState, action, control, notify, update_with
+
+try:
+    from ux_compose import div, span, h1, h3, p, button, section, HAS_DOM
+except Exception:
+    HAS_DOM = False
+    div = span = h1 = h3 = p = button = section = None  # type: ignore
 
 
 class Lab(Component):
@@ -12,74 +18,75 @@ class Lab(Component):
     name = RefState("")
     email = RefState("")
     note = RefState("")
-    valid = MorphState("idle")  # idle | ok | err
+    valid = MorphState("idle")
     toast = RefState("")
 
     def render(self):
+        if not (HAS_DOM and div is not None):
+            return f'<section id="lab">lab tab={self.tab}</section>'
+
         tabs = []
         for key, label in (("counter", "Counter"), ("form", "Form"), ("toast", "Toast")):
-            sel = "true" if self.tab == key else "false"
-            attrs = control("lab.set_tab", tab=key)
-            a = " ".join(f'{k}="{v}"' for k, v in attrs.items())
-            tabs.append(f'<button class="tab" aria-selected="{sel}" {a}>{label}</button>')
+            selected = self.tab == key
+            tabs.append(
+                button(
+                    label, type="button",
+                    className="rounded-full border px-3 py-1.5 text-sm " + (
+                        "border-stone-400 bg-stone-100 dark:bg-stone-800" if selected else "border-transparent text-stone-500"
+                    ),
+                    **{"aria-selected": "true" if selected else "false"},
+                    **control("lab.set_tab", tab=key),
+                )
+            )
 
-        body = ""
         if self.tab == "counter":
-            inc = control("lab.inc")
-            dec = control("lab.dec")
-            reset = control("lab.reset")
-            body = f'''
-<div class="card stack">
-  <h3>RefState magnitude + Morph stamp</h3>
-  <p class="kpi">{int(self.count or 0)}</p>
-  <p class="subtle">stamp=<span class="mono">{self.stamp}</span> · Channel-safe quantity plane</p>
-  <div class="row">
-    <button class="btn" {" ".join(f'{k}="{v}"' for k,v in dec.items())}>−</button>
-    <button class="btn primary" {" ".join(f'{k}="{v}"' for k,v in inc.items())}>+</button>
-    <button class="btn ghost" {" ".join(f'{k}="{v}"' for k,v in reset.items())}>Reset</button>
-  </div>
-</div>'''
+            body = div(
+                h3("RefState magnitude + Morph stamp", className="font-serif text-lg"),
+                p(str(int(self.count or 0)), className="mt-4 font-serif text-5xl tracking-tight"),
+                p(f"stamp={self.stamp}", className="mt-1 font-mono text-xs text-stone-500"),
+                div(
+                    button("\u2212", type="button", className="rounded-full border px-3 py-1.5", **control("lab.dec")),
+                    button("+", type="button", className="rounded-full bg-stone-900 px-3 py-1.5 text-stone-50", **control("lab.inc")),
+                    button("Reset", type="button", className="rounded-full px-3 py-1.5 text-sm", **control("lab.reset")),
+                    className="mt-4 flex gap-2",
+                ),
+                className="rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-700 dark:bg-stone-900",
+            )
         elif self.tab == "form":
-            save = control("lab.save_form")
-            body = f'''
-<div class="card stack">
-  <h3>Validated form</h3>
-  <div class="field"><label>Name</label>
-    <input name="name" value="{self.name or ""}" data-action="lab.set_name" /></div>
-  <div class="field"><label>Email</label>
-    <input name="email" value="{self.email or ""}" data-action="lab.set_email" /></div>
-  <div class="field"><label>Note</label>
-    <textarea name="note" rows="3">{self.note or ""}</textarea></div>
-  <div class="row">
-    <button class="btn primary" {" ".join(f'{k}="{v}"' for k,v in save.items())}>Save</button>
-    <span class="pill {"ok" if self.valid=="ok" else "warn" if self.valid=="err" else ""}">{self.valid}</span>
-  </div>
-</div>'''
+            body = div(
+                h3("Validated form", className="font-serif text-lg"),
+                p(f"name={self.name or '\u2014'} \u00b7 email={self.email or '\u2014'}", className="mt-2 text-sm text-stone-600"),
+                div(
+                    button("Save sample", type="button", className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50",
+                           **control("lab.save_form", name="Ada", email="ada@example.com")),
+                    span(str(self.valid), className="rounded-full border px-2 py-0.5 text-xs font-mono"),
+                    className="mt-4 flex items-center gap-2",
+                ),
+                className="rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-700 dark:bg-stone-900",
+            )
         else:
-            show = control("lab.show_toast")
-            hide = control("lab.hide_toast")
-            toast_html = ""
-            if self.toast:
-                toast_html = f'<div class="toast" id="toast">{self.toast}</div>'
-            body = f'''
-<div class="card stack">
-  <h3>Toast plane</h3>
-  <p class="muted">One-shot messages via notify + local toast state.</p>
-  <div class="row">
-    <button class="btn primary" {" ".join(f'{k}="{v}"' for k,v in show.items())}>Show toast</button>
-    <button class="btn ghost" {" ".join(f'{k}="{v}"' for k,v in hide.items())}>Dismiss</button>
-  </div>
-</div>
-{toast_html}'''
+            toast = div(str(self.toast), className="fixed bottom-4 right-4 z-40 rounded-xl border bg-white px-4 py-3 shadow-lg", id="toast") if self.toast else None
+            body = div(
+                h3("Toast plane", className="font-serif text-lg"),
+                p("One-shot messages via notify + local toast state.", className="mt-1 text-sm text-stone-500"),
+                div(
+                    button("Show toast", type="button", className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50", **control("lab.show_toast")),
+                    button("Dismiss", type="button", className="rounded-full px-4 py-2 text-sm", **control("lab.hide_toast")),
+                    className="mt-4 flex gap-2",
+                ),
+                className="rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-700 dark:bg-stone-900",
+            )
+            if toast is not None:
+                body = div(body, toast)
 
-        return f'''
-<section id="lab" class="stack" style="padding:var(--space-6) 0">
-  <h1 style="font-family:var(--font-display);font-size:var(--text-xl);margin:0">Interactive lab</h1>
-  <p class="muted">Tabs · counter · form · toast — same Component, progressive-safe.</p>
-  <div class="tabs">{''.join(tabs)}</div>
-  {body}
-</section>
-'''
+        return section(
+            h1("Interactive lab", className="font-serif text-3xl tracking-tight"),
+            p("Tabs \u00b7 counter \u00b7 form \u00b7 toast \u2014 same Component, progressive-safe.", className="text-sm text-stone-500"),
+            div(*tabs, className="mt-6 flex flex-wrap gap-2"),
+            div(body, className="mt-4"),
+            id=self.id,
+            className="mx-auto max-w-5xl px-4 py-10",
+        )
 
     @action(caps=())
     def set_tab(self, tab: str = "counter"):
@@ -106,16 +113,6 @@ class Lab(Component):
         return update_with(self, extra_ops=[notify("reset")])
 
     @action(caps=())
-    def set_name(self, name: str = ""):
-        self.name = name
-        return update_with(self)
-
-    @action(caps=())
-    def set_email(self, email: str = ""):
-        self.email = email
-        return update_with(self)
-
-    @action(caps=())
     def save_form(self, name: str = "", email: str = "", note: str = ""):
         if name:
             self.name = name
@@ -125,12 +122,11 @@ class Lab(Component):
             self.note = note
         ok = bool(self.name) and ("@" in str(self.email or ""))
         self.valid = "ok" if ok else "err"
-        msg = "Saved" if ok else "Name + valid email required"
-        return update_with(self, extra_ops=[notify(msg)])
+        return update_with(self, extra_ops=[notify("Saved" if ok else "Name + valid email required")])
 
     @action(caps=())
     def show_toast(self):
-        self.toast = "Pulse lab · toast plane active"
+        self.toast = "Pulse lab \u00b7 toast plane active"
         return update_with(self, extra_ops=[notify(self.toast)])
 
     @action(caps=())

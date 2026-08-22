@@ -17,6 +17,7 @@ Page unit + DirectoryRouter (when asgi_app is provided):
   ``unit_registry`` (keyed by ``cls.id`` or ``cls.__name__.lower()``).
 * Explicit ``get``/``post`` methods on the class bypass ``resolve_unit``
   (ux-dom contract). Isolation: no Compose types leak into ux-dom.
+* Host bind lives in ``surfaces_host`` (core adapter first, DirectoryRouter fallback).
 """
 
 from __future__ import annotations
@@ -299,12 +300,10 @@ def mount_surfaces(
     on_surface: Optional[Callable[[Surface], None]] = None,
     package_name: Optional[str] = None,
 ) -> SurfaceBundle:
-    """Scan → validate → Behavior.add → optional DirectoryRouter.
+    """Scan → validate → Behavior.add → optional page router.
 
-    All existing APIs preserved (additive). When ``asgi_app`` is provided and
-    ``include_directory_router`` is True, builds ``RouterHooks(resolve_unit=...)``
-    so page GETs receive live instances from ``unit_registry``. Fail-closed by
-    default (duplicate id/path → SurfaceError).
+    Host bind is delegated to ``surfaces_host.attach_page_router`` (core adapter
+    first; DirectoryRouter FastAPI batteries as fallback).
     """
     surfaces = scan_surfaces(
         package_dir,
@@ -384,39 +383,23 @@ def mount_surfaces(
 
     if include_directory_router and asgi_app is not None:
         try:
-            from ux_dom.routing.fastapi import DirectoryRouter, StreamingRoute, RouterHooks
+            from ux_compose.surfaces_host import attach_page_router
 
-            registry = bundle.unit_registry
-
-            def _resolve_unit(cls, path, name):
-                # Soft contract with ux-dom: key by cls.id or cls.__name__.lower()
-                # Returns live Behavior instance when present; None → cls() fallback.
-                sid = str(getattr(cls, "id", None) or cls.__name__.lower())
-                return registry.get(sid)
-
-            hooks = RouterHooks(resolve_unit=_resolve_unit)
-            router = DirectoryRouter(
+            table = attach_page_router(
+                asgi_app=asgi_app,
+                package_dir=package_dir,
                 base_directory=base_directory,
-                package_dir=Path(package_dir).resolve(),
-                route_class=StreamingRoute,
-                hooks=hooks,
+                unit_registry=bundle.unit_registry,
                 fail_closed=fail_closed,
             )
-            if hasattr(asgi_app, "include_router"):
-                asgi_app.include_router(router)
-            table = getattr(router, "route_table", None)
-            if callable(table):
-                live = list(table())
-                if live:
-                    bundle.route_table = live
-            elif isinstance(table, list) and table:
-                bundle.route_table = list(table)
+            if table:
+                bundle.route_table = table
         except ImportError:
             if fail_closed:
                 raise SurfaceError(
-                    "DirectoryRouter unavailable (install ux-dom) but asgi_app was provided"
+                    "ux-dom routing unavailable (install ux-dom) but asgi_app was provided"
                 )
-            logger.warning("DirectoryRouter not available; page gate skipped")
+            logger.warning("page router not available; page gate skipped")
 
     bundle.sealed = True
     return bundle

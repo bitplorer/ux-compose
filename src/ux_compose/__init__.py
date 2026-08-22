@@ -8,7 +8,6 @@ from __future__ import annotations
 
 __version__ = "0.1.0"
 
-# Core author surface (Level 1+)
 from ux_compose.component import Component, MorphState, RefState, action
 from ux_compose.helpers import bind, control, notify, update_with, morph_play
 from ux_compose.app import App
@@ -22,6 +21,7 @@ from ux_compose.surfaces import (
 )
 from ux_compose.progressive import Level
 from ux_compose.doctor import doctor, DoctorResult
+from ux_compose.build import build
 
 try:
     from ux_motion import scene, fade, rise  # type: ignore
@@ -67,6 +67,7 @@ from ux_compose.dom import (  # noqa: E402
 
 __all__ = [
     "App",
+    "build",
     "Surface",
     "SurfaceBundle",
     "SurfaceError",

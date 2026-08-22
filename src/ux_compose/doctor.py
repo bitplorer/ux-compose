@@ -147,11 +147,19 @@ def _detect_capabilities() -> dict:
         "ux_behavior": False,
         "ux_motion": False,
         "ux_channel": False,
+        "directory_router": False,
     }
-    for name in list(caps):
+    for name in ("ux_dom", "ux_behavior", "ux_motion", "ux_channel"):
         try:
             if importlib.util.find_spec(name) is not None:
                 caps[name] = True
+        except (ModuleNotFoundError, ValueError):
+            pass
+    # DirectoryRouter is the page-unit product path (ux-dom routing)
+    if caps.get("ux_dom"):
+        try:
+            if importlib.util.find_spec("ux_dom.routing.fastapi") is not None:
+                caps["directory_router"] = True
         except (ModuleNotFoundError, ValueError):
             pass
     return caps
@@ -177,6 +185,21 @@ def _teaching_for_level(level: int, caps: dict) -> list[str]:
         )
     if level >= 3:
         lines.append("Full progressive stack available (L3). Isolation + Caps + Motion are all first-class.")
+    if caps.get("directory_router"):
+        lines.append(
+            "Page-unit path available: routes/ + stem match + App.mount / mount_surfaces "
+            "(DirectoryRouter via RouterHooks.resolve_unit). "
+            "Scaffold: uxcompose create-app <dir>."
+        )
+    elif caps.get("ux_dom"):
+        lines.append(
+            "ux-dom is present but DirectoryRouter import failed — check ux_dom.routing.fastapi."
+        )
+    else:
+        lines.append(
+            "For filesystem page-unit routing (routes/ + stem match): pip install ux-dom "
+            "then app.mount(package_dir, asgi_app=api, base='routes')."
+        )
     lines.append(
         "Progressive Superpower Contract: code written at Level 1 remains correct and unchanged "
         "when you unlock higher levels. Zero rewrite."
@@ -193,8 +216,8 @@ def doctor(
     Run the protective coach.
 
     - Scans for Isolation violations and dual-Document heuristics
-    - Reports which progressive specialists are available
-    - Emits teaching messages for the next unlock
+    - Reports progressive specialists + DirectoryRouter (page-unit path)
+    - Emits teaching messages for the next unlock and mount/routes guidance
     - Fails closed (raises) when fail=True and hard violations found
     """
     caps = _detect_capabilities()

@@ -1,11 +1,10 @@
-"""Progressive scaffold — create-app [--level=N|auto].
+"""Progressive scaffold — create-app [--level=N|auto] [--host=auto|fastapi|asgi].
 
 Emits the locked product path:
 - routes/ with page-unit convention (module stem == class name)
-- App.mount → mount_surfaces + RouterHooks.resolve_unit
+- composition root: ux_compose.build(host=, live=, level=)
 - Document trees + Tailwind className (no HTML strings)
-- Default runtimes: XElement + Csp (HTMX is opt-in, not default)
-- level=auto → unlock max available specialists (channel/motion when present)
+- HTMX opt-in only
 """
 from __future__ import annotations
 
@@ -14,97 +13,53 @@ from textwrap import dedent
 
 
 APP_PY = dedent('''\
-    """Progressive ux-compose app (level={level_repr}).
+    """Progressive ux-compose app (level={level_repr}, host={host}).
 
-    Day-1 defaults:
-    - Document trees + Tailwind className (not HTML strings)
-    - XElement + Csp runtimes (HTMX is opt-in — see use_htmx below)
-    - level=auto unlocks channel/motion when specialists are installed
-    - Page units under routes/ via App.mount + RouterHooks
-
-    Progressive Superpower Contract: page units stay valid across levels.
+    Composition root: host + live set only in build().
     """
     from __future__ import annotations
 
     from pathlib import Path
 
-    from ux_compose import App, doctor
+    from ux_compose.build import build
+    from ux_compose import doctor
 
-    try:
-        from ux_dom import Document
-        from ux_dom.runtime import XElement, Csp
-        HAS_DOM = True
-    except ImportError:
-        HAS_DOM = False
-        Document = XElement = Csp = None  # type: ignore
-
-    try:
-        from fastapi import FastAPI
-        HAS_FASTAPI = True
-    except ImportError:
-        HAS_FASTAPI = False
+    PACKAGE = Path(__file__).resolve().parent
 
 
-    def build(*, use_htmx: bool = False):
-        """Boot the app.
-
-        use_htmx: opt-in HTMX control plane. Default False — stack-native
-        XElement + channel (when installed) own the control path.
-        """
-        document = None
-        if HAS_DOM:
-            runtimes = [XElement(), Csp.auto()]
-            if use_htmx:
-                try:
-                    from ux_dom.runtime import Htmx
-                    runtimes.insert(1, Htmx())
-                except ImportError:
-                    pass
-            document = Document(head=[], body=[], ensure_csrf_token=False).use(*runtimes)
-
-        app = App.boot("{name}", strict_caps=False, level={level_boot})
-        if document is not None:
-            app.use_dom(document)
-
-        if {auto_channel}:
-            try:
-                app.use_channel()
-            except Exception:
-                pass
-        if {auto_motion}:
-            try:
-                app.use_motion()
-            except Exception:
-                pass
-
-        asgi = FastAPI(title="{name}") if HAS_FASTAPI else None
-        if asgi is not None and {auto_channel}:
-            try:
-                app.use_channel(asgi_app=asgi)
-            except Exception:
-                pass
-
-        package_dir = Path(__file__).resolve().parent
-        bundle = app.mount(
-            package_dir,
-            asgi_app=asgi,
+    def main(*, use_htmx: bool = False):
+        app, asgi, bundle = build(
+            PACKAGE,
+            name="{name}",
+            host="{host}",
+            live="auto",
+            level={level_boot},
             base="routes",
-            fail_closed=True,
+            use_htmx=use_htmx,
         )
         return app, asgi, bundle
 
 
     if __name__ == "__main__":
-        app, asgi, bundle = build()
+        app, asgi, bundle = main()
         print("Level:", int(app.level), f"({{app.level.label}})")
+        print("Host ASGI:", type(asgi).__name__ if asgi is not None else None)
         print("Surfaces:", list(bundle.surfaces.keys()) if bundle else [])
         print("Routes:", [r.get("path") for r in (bundle.route_table or [])] if bundle else [])
-        ops = app.dispatch("hello.inc")
-        for op in ops:
-            print(" ", op)
+        try:
+            ops = app.dispatch("hello.inc")
+            for op in ops:
+                print(" ", op)
+        except Exception as exc:
+            print(" dispatch:", exc)
         report = doctor([], fail=False, bundle=bundle)
         print("Doctor surfaces:", report.surfaces)
         print("Doctor routes:", report.routes)
+        if asgi is not None:
+            print("Serve: uvicorn app:asgi --host 0.0.0.0 --port 8080")
+
+    # ASGI attribute for uvicorn app:asgi
+    _app, asgi, _bundle = main()
 ''')
 
 
@@ -112,8 +67,7 @@ ROUTES_HELLO_PY = dedent('''\
     """Page unit — module stem matches class name (hello.py → Hello).
 
     Author contract: return ux-dom tag trees with Tailwind className.
-    control() emits semantic data-ux-* attrs (not hx_*). HTMX is opt-in
-    at the Document runtime layer, not in product code.
+    control() emits semantic data-ux-* attrs. HTMX is opt-in at Document layer.
     """
     from __future__ import annotations
 
@@ -166,46 +120,40 @@ ROUTES_HELLO_PY = dedent('''\
 README = dedent('''\
     # {name}
 
-    Progressive ux-compose app (level={level_repr}).
+    Progressive ux-compose app (level={level_repr}, host={host}).
 
-    ## Product path (locked)
-
-    - `routes/hello.py` — page unit (stem == class name)
-    - `render()` returns **ux-dom trees** + Tailwind `className`
-    - `app.mount(...)` — surfaces + DirectoryRouter via `RouterHooks`
-    - Runtimes default: **XElement + Csp** (HTMX is opt-in)
-
-    ## Day-1 live
-
-    When specialists are installed, scaffold unlocks them automatically
-    (`level=auto` or level ≥ 2/3). Offline L0/L1 is for tests / pins only.
-
-    ## Opt-in HTMX
-
-    HTMX is **not** a hard dependency. To enable:
+    ## Composition root
 
     ```python
-    app, asgi, bundle = build(use_htmx=True)
+    from ux_compose.build import build
+    app, asgi, bundle = build(
+        Path(__file__).parent,
+        host="{host}",   # auto | fastapi | asgi
+        live="auto",     # auto | channel | null
+        level={level_repr_py},
+    )
     ```
 
-    Prefer stack-native control: `control()` / `bind()` + channel when live.
+    ## Product path
+
+    - `routes/hello.py` — page unit (stem == class name)
+    - `render()` → ux-dom trees + Tailwind `className`
+    - Host set **only** in `build(host=...)` — swap without rewriting page units
 
     ## Run
 
     ```bash
     pip install ux-compose ux-dom ux-behavior
-    # optional live:
-    #   pip install ux-channel ux-motion fastapi
+    # optional: ux-channel ux-motion fastapi uvicorn
     python app.py
+    uvicorn app:asgi --port 8080
     ```
 
     ## Laws
 
     - Isolation: product modules never import `ux_channel` or CEK
     - Cap Law: protected actions fail closed under `strict_caps=True`
-    - Document SSoT: one Document owns the HTML shell
-    - Page unit: class name matches module stem
-    - Control plane: semantic `control()` attrs; HTMX is one optional consumer
+    - HTMX is opt-in (`use_htmx=True` in main)
 
     ```bash
     python -m ux_compose.cli doctor . --no-fail
@@ -218,40 +166,46 @@ def create_app(
     *,
     name: str = "myapp",
     level: int | str = "auto",
+    host: str = "auto",
 ) -> Path:
-    """Create a progressive app with the locked product path (routes/ + mount).
+    """Create a progressive app with locked product path.
 
-    level:
-      - "auto" (default) — unlock channel/motion when importable at runtime
-      - 0..3 — pin progressive floor (tests / teaching)
+    host: ``auto`` | ``fastapi`` | ``asgi`` — gateway at composition root only.
+    level: ``auto`` or 0..3 progressive floor.
     """
     root = Path(dest)
     root.mkdir(parents=True, exist_ok=True)
 
+    host_l = (host or "auto").lower()
+    if host_l not in ("auto", "fastapi", "asgi"):
+        host_l = "auto"
+
     if isinstance(level, str) and level.lower() == "auto":
         level_repr = "auto"
         level_boot = '"auto"'
-        auto_channel = "True"
-        auto_motion = "True"
+        level_repr_py = '"auto"'
     else:
         lv = max(0, min(3, int(level)))
         level_repr = str(lv)
         level_boot = str(lv)
-        auto_channel = "True" if lv >= 2 else "False"
-        auto_motion = "True" if lv >= 3 else "False"
+        level_repr_py = str(lv)
 
     (root / "app.py").write_text(
         APP_PY.format(
             name=name,
             level_repr=level_repr,
             level_boot=level_boot,
-            auto_channel=auto_channel,
-            auto_motion=auto_motion,
+            host=host_l,
         ),
         encoding="utf-8",
     )
     (root / "README.md").write_text(
-        README.format(name=name, level_repr=level_repr),
+        README.format(
+            name=name,
+            level_repr=level_repr,
+            level_repr_py=level_repr_py,
+            host=host_l,
+        ),
         encoding="utf-8",
     )
 

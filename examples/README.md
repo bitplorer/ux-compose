@@ -37,27 +37,4 @@ The live-safe form is what the studio uses.
 | Live Caps | `live_caps.py` | Fail-closed offline, mint vs refuse live |
 | Motion | `motion_xor.py` | XOR, Morph-then-Play, `scene.share` |
 | Systems | `systems.py` `ops.py` | Chat, inbox, tree, skeleton, consent, locale, chips, inline edit, calendar (Cap), progress, copy, settings (Cap), offline, presence, KPI, shortcuts |
-| Host | `document_boot.py` `live_asgi.py` `cart_document.py` | Document SSoT, FastAPI + Isolation door |
-
-`form_validation.py`, `list_stagger.py`, `optimistic_list.py`, `page_transition.py`
-re-export the full-length modules so old paths still run.
-
-## Residual cases (same shape, not a new verb)
-
-Tooltip = popover with less chrome. Bottom sheet = drawer CSS. Context menu =
-overflow. Infinite scroll = activity/pagination. Spreadsheet cell = inline edit.
-Gantt = calendar + timeline. Polls = choice group. Address form = wizard step.
-Payment card = checkout pay step. Anything new still follows the encoding rule.
-
-## Run offline
-
-```bash
-PYTHONPATH=src:. python examples/foundation.py
-PYTHONPATH=src:. python examples/fields.py
-PYTHONPATH=src:. python examples/live_caps.py
-```
-
-## Laws never broken
-
-Isolation (no `ux_channel` in these files), Document SSoT, XOR, Cap Law,
-Ops-as-data, Morph-then-Play, Cold import, Progressive Superpower.
+| Host | `document_boot.py` `live_asgi.py` `cart_document.py` `page_unit_mount.py` | Document SSoT, FastAPI + Isolation door, **page-unit product path** |

@@ -10,7 +10,7 @@ class Level(IntEnum):
 
     L0 — Document + static Components + page-unit routing (DirectoryRouter)
     L1 — + Behavior + MorphState + @action (offline interactive)
-    L2 — + Channel + Caps + control()
+    L2 — + Channel + Caps + control()  (HTMX is a separate opt-in control plane)
     L3 — + Motion / Scenes (choreography)
 
     Progressive Superpower Contract: code written at L1 remains correct

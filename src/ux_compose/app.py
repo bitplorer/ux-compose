@@ -210,6 +210,10 @@ class App:
 
         Additive: does not remove App.add or standalone DirectoryRouter usage.
         Fail-closed validation by default (duplicate id/path raises).
+
+        When ``asgi_app`` is provided, wires ``RouterHooks.resolve_unit`` so
+        synthetic page GETs receive live Behavior instances (page-unit path).
+        Explicit HTTP methods on page classes bypass resolve_unit.
         """
         from ux_compose.surfaces import mount_surfaces
 

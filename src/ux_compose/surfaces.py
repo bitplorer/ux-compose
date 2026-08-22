@@ -8,6 +8,15 @@ Laws enforced here:
 * fail-closed id / path clashes
 * ≤1 page owner per file (extra renderables become fragments: no URL)
 * define-in-module only (imported classes are not auto-registered)
+
+Page unit + DirectoryRouter (when asgi_app is provided):
+* Page units live under ``base_directory`` (default ``routes/``).
+* Class name should match the module stem (``hello.py`` → ``Hello``).
+* ``mount_surfaces`` builds ``RouterHooks(resolve_unit=...)`` so the
+  synthetic page GET receives the live Behavior instance from
+  ``unit_registry`` (keyed by ``cls.id`` or ``cls.__name__.lower()``).
+* Explicit ``get``/``post`` methods on the class bypass ``resolve_unit``
+  (ux-dom contract). Isolation: no Compose types leak into ux-dom.
 """
 
 from __future__ import annotations
@@ -290,7 +299,13 @@ def mount_surfaces(
     on_surface: Optional[Callable[[Surface], None]] = None,
     package_name: Optional[str] = None,
 ) -> SurfaceBundle:
-    """Scan → validate → Behavior.add → optional DirectoryRouter. All existing APIs preserved."""
+    """Scan → validate → Behavior.add → optional DirectoryRouter.
+
+    All existing APIs preserved (additive). When ``asgi_app`` is provided and
+    ``include_directory_router`` is True, builds ``RouterHooks(resolve_unit=...)``
+    so page GETs receive live instances from ``unit_registry``. Fail-closed by
+    default (duplicate id/path → SurfaceError).
+    """
     surfaces = scan_surfaces(
         package_dir,
         base_directory=base_directory,
@@ -374,7 +389,8 @@ def mount_surfaces(
             registry = bundle.unit_registry
 
             def _resolve_unit(cls, path, name):
-                # Generic hook: map page class → live Behavior instance when present
+                # Soft contract with ux-dom: key by cls.id or cls.__name__.lower()
+                # Returns live Behavior instance when present; None → cls() fallback.
                 sid = str(getattr(cls, "id", None) or cls.__name__.lower())
                 return registry.get(sid)
 

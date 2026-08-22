@@ -6,20 +6,27 @@ from enum import IntEnum
 
 
 class Level(IntEnum):
-    """Progressive disclosure levels. Higher levels are pure additive unlocks."""
-    L0 = 0  # Document + static Components + routing
+    """Progressive disclosure levels. Higher levels are pure additive unlocks.
+
+    L0 — Document + static Components + page-unit routing (DirectoryRouter)
+    L1 — + Behavior + MorphState + @action (offline interactive)
+    L2 — + Channel + Caps + control()
+    L3 — + Motion / Scenes (choreography)
+
+    Progressive Superpower Contract: code written at L1 remains correct
+    when you unlock L2/L3 — zero rewrite.
+    """
+
+    L0 = 0  # Document + static Components + page-unit routing
     L1 = 1  # + Behavior + MorphState + @action (offline interactive)
-    L2 = 2  # + Channel + Caps + control stamping (live secure)
-    L3 = 3  # + Motion + Scenes + MotionChannel (choreographed)
+    L2 = 2  # + Channel + Caps + control
+    L3 = 3  # + Motion / Scenes
 
     @property
     def label(self) -> str:
         return {
-            Level.L0: "static SSR",
-            Level.L1: "offline interactive",
-            Level.L2: "live Caps + morph",
-            Level.L3: "choreographed motion",
-        }[self]
-
-
-__all__ = ["Level"]
+            0: "static + routing",
+            1: "offline interactive",
+            2: "live channel",
+            3: "motion",
+        }.get(int(self), str(int(self)))

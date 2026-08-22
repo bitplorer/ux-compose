@@ -18,6 +18,7 @@ from ux_compose.surfaces import (
     SurfaceError,
     mount_surfaces,
     scan_surfaces,
+    validate_surfaces,
 )
 from ux_compose.progressive import Level
 from ux_compose.doctor import doctor, DoctorResult
@@ -71,6 +72,7 @@ __all__ = [
     "SurfaceError",
     "mount_surfaces",
     "scan_surfaces",
+    "validate_surfaces",
     "Component",
     "MorphState",
     "RefState",

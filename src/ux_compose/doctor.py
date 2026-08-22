@@ -11,7 +11,7 @@ import importlib.util
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Any, Iterable, List, Optional
 
 __all__ = ["doctor", "DoctorResult", "IsolationViolation", "scan_isolation"]
 
@@ -135,6 +135,9 @@ class DoctorResult:
     diagnostics: List[str] = field(default_factory=list)
     capabilities: dict = field(default_factory=dict)
     teaching: List[str] = field(default_factory=list)
+    # Optional evidence from a sealed SurfaceBundle (additive)
+    surfaces: List[str] = field(default_factory=list)
+    routes: List[str] = field(default_factory=list)
 
     def raise_if_failed(self):
         if not self.ok:
@@ -211,6 +214,7 @@ def doctor(
     paths: Optional[Iterable[str | Path]] = None,
     *,
     fail: bool = True,
+    bundle: Any = None,
 ) -> DoctorResult:
     """
     Run the protective coach.
@@ -218,7 +222,11 @@ def doctor(
     - Scans for Isolation violations and dual-Document heuristics
     - Reports progressive specialists + DirectoryRouter (page-unit path)
     - Emits teaching messages for the next unlock and mount/routes guidance
+    - Optionally records evidence from a sealed SurfaceBundle (surfaces, routes)
     - Fails closed (raises) when fail=True and hard violations found
+
+    ``bundle`` is optional and additive — pass the return value of App.mount /
+    mount_surfaces for route-table evidence without changing scan behaviour.
     """
     caps = _detect_capabilities()
     level = 0
@@ -243,12 +251,32 @@ def doctor(
 
     teaching = _teaching_for_level(level, caps)
 
+    surface_ids: list[str] = []
+    route_paths: list[str] = []
+    if bundle is not None:
+        surfaces_map = getattr(bundle, "surfaces", None) or {}
+        if isinstance(surfaces_map, dict):
+            surface_ids = sorted(str(k) for k in surfaces_map.keys())
+        table = getattr(bundle, "route_table", None) or []
+        if isinstance(table, list):
+            for rec in table:
+                if isinstance(rec, dict) and rec.get("path"):
+                    route_paths.append(str(rec["path"]))
+        errs = getattr(bundle, "errors", None) or []
+        if errs:
+            for e in errs:
+                diagnostics.append(f"surface bundle: {e}")
+        if not getattr(bundle, "sealed", True):
+            diagnostics.append("surface bundle is not sealed — mount may be incomplete")
+
     result = DoctorResult(
         ok=len([d for d in diagnostics if "violation" in d.lower() or "risk" in d.lower()]) == 0,
         level_available=level,
         diagnostics=diagnostics,
         capabilities=caps,
         teaching=teaching,
+        surfaces=surface_ids,
+        routes=route_paths,
     )
     if fail and not result.ok:
         result.raise_if_failed()
@@ -275,6 +303,10 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("  Next unlock guidance:")
         for t in res.teaching:
             print(f"    → {t}")
+    if res.surfaces:
+        print(f"  Surfaces: {', '.join(res.surfaces)}")
+    if res.routes:
+        print(f"  Routes: {', '.join(res.routes)}")
     if res.diagnostics:
         print("  Diagnostics:")
         for d in res.diagnostics:

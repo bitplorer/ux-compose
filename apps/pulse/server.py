@@ -1,9 +1,10 @@
-"""Pulse host — stunning live showcase of the locked ux-compose product path.
+"""Pulse host — live showcase of the locked ux-compose product path.
 
 - Page units under routes/ via App.mount + DirectoryRouter (RouterHooks)
-- Document SSoT when ux-dom present
-- Progressive Behavior → Channel → Motion
+- Document SSoT when ux-dom present (XElement default; HTMX opt-in)
+- Progressive Behavior → Channel → Motion (level=auto)
 - Isolation Law: never imports ux_channel directly
+- Style: Tailwind utility className (CDN stand-in for TailwindStyle/WebAssets)
 
 Serve:
   PYTHONPATH=src:. uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080
@@ -113,10 +114,13 @@ async def _parse_action_args(request: Any) -> dict[str, Any]:
     return _clean_args({k: v[0] if v else "" for k, v in parsed.items()})
 
 
-def _document():
+def _document(*, use_htmx: bool = False):
     if not HAS_DOM or Document is None:
         return None
-    return Document(head=[], body=[], ensure_csrf_token=False).use(XElement(), Htmx())
+    runtimes = [XElement()]
+    if use_htmx:
+        runtimes.append(Htmx())
+    return Document(head=[], body=[], ensure_csrf_token=False).use(*runtimes)
 
 
 def _shell(main_html: str, *, path: str = "/") -> str:
@@ -137,19 +141,19 @@ def _shell(main_html: str, *, path: str = "/") -> str:
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/css/pulse.css" />
-  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-  <script src="/static/pulse.js"></script>
+  <!-- Style: Tailwind utilities (stand-in for TailwindStyle/WebAssets) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Control: stack-native data-ux-action. HTMX is opt-in via Document.use(Htmx()). -->
 </head>
-<body>
-  <div class="wrap">
-    <header class="top">
-      <a class="brand" href="/">Pulse <span>compose</span></a>
-      <nav class="nav">{''.join(nav)}</nav>
+<body class="bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100">
+  <div class="mx-auto max-w-5xl">
+    <header class="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-stone-200/80 bg-stone-50/90 px-4 py-4 backdrop-blur dark:border-stone-800 dark:bg-stone-950/90">
+      <a class="font-serif text-lg tracking-tight" href="/">Pulse <span class="text-amber-700 dark:text-amber-400">compose</span></a>
+      <nav class="flex flex-wrap gap-1">{''.join(nav)}</nav>
     </header>
     <main id="main">{main_html}</main>
-    <footer class="footer">
-      ux-compose · page units · RouterHooks · progressive L0–L3 · Isolation Law
+    <footer class="border-t border-stone-200 px-4 py-6 text-sm text-stone-500 dark:border-stone-800">
+      ux-compose · page units · RouterHooks · progressive L0–L3 · Isolation Law · HTMX opt-in
     </footer>
   </div>
 </body>
@@ -168,7 +172,7 @@ def _render_surface(app: App, surface_id: str) -> str:
         reg = getattr(app, "_pulse_registry", {}) or {}
         inst = reg.get(surface_id)
     if inst is None:
-        return f'<p class="muted">Surface {surface_id!r} not mounted.</p>'
+        return f'<p class="text-stone-500">Surface {surface_id!r} not mounted.</p>'
     tree = inst.render()
     if hasattr(tree, "__iter__") and not isinstance(tree, (str, bytes)):
         try:
@@ -192,10 +196,10 @@ def _page_for_path(path: str) -> str:
 
 
 def build():
-    document = _document()
+    document = _document(use_htmx=False)
     asgi = FastAPI(title="Pulse") if HAS_FASTAPI else None
 
-    app = App.boot("Pulse", level=1)
+    app = App.boot("Pulse", level="auto")
     if document is not None:
         app.use_dom(document)
     try:
@@ -254,7 +258,7 @@ def build():
             else:
                 app.dispatch(action_name, **args)
         except Exception as exc:
-            return HTMLResponse(f'<p class="muted">Action error: {exc}</p>', status_code=400)
+            return HTMLResponse(f'<p class="text-stone-500">Action error: {exc}</p>', status_code=400)
 
         ref_path = "/"
         try:

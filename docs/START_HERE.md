@@ -4,6 +4,8 @@
 **Promise:** a running product path in minutes, then the ownership map.
 **Time:** ~5 minutes to scaffold + serve; ~15 minutes for levels 0–2.
 
+Root 5-minute path: [../START_HERE.md](../START_HERE.md). Map: [INDEX.md](INDEX.md).
+
 ---
 
 ## 1. What you are installing
@@ -108,3 +110,5 @@ Never: `uxdom create-app`, `uxdom serve`, or product HMR as a Document API.
 | Full example map | [../examples/README.md](../examples/README.md) |
 | Test expectations | [TESTING.md](TESTING.md) |
 | Package gate | [../README.md](../README.md) |
+| Contributor / agent | [../CONTRIBUTING.md](../CONTRIBUTING.md) · [../AGENTS.md](../AGENTS.md) |
+| Full map | [INDEX.md](INDEX.md) |

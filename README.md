@@ -13,9 +13,12 @@ Harnesses four specialists without re-implementing them:
 
 No React. No Vue. No client SPA runtime. Server-authored, hypermedia-first, capability-secured, progressive.
 
-> **New here?** → [`docs/START_HERE.md`](docs/START_HERE.md)
-> **Ownership law (authoritative):** [`docs/FLOW.md`](docs/FLOW.md)
-> **Full docs index:** [`docs/README.md`](docs/README.md)
+> **New here?** [`START_HERE.md`](START_HERE.md) · longer: [`docs/START_HERE.md`](docs/START_HERE.md)
+> **Ownership law:** [`docs/FLOW.md`](docs/FLOW.md)
+> **Map:** [`docs/INDEX.md`](docs/INDEX.md)
+> **Contributor / agent:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`AGENTS.md`](AGENTS.md)
+
+Compose is allowed to look like “the product” to authors. It must **import** specialists, not copy them.
 
 ### Brand lines
 
@@ -24,6 +27,14 @@ No React. No Vue. No client SPA runtime. Server-authored, hypermedia-first, capa
 | **PyPI / pip** | `ux-compose` |
 | **Import** | `ux_compose` |
 | **CLI** | **`uxcompose`** (sole product lifecycle) |
+
+### Ownership
+
+| Owns | Does **not** own |
+|------|------------------|
+| Product CLI (`create-app`, `serve`, `deploy`, `doctor`) | DOM serialize / tag trees (ux-dom) |
+| `App` composition, `App.mount`, delivery, HMR + tunnel under serve | Channel transport (wire/ only) |
+| Page-unit mount (`routes/` + `App.mount`) | Pure-dom tooling (`uxdom`); MorphState / Cap / Plan IR implementations |
 
 ---
 
@@ -37,7 +48,19 @@ uxcompose deploy --provider docker
 uxcompose doctor .
 ```
 
-Pure-dom tooling stays on **`uxdom`** (`doctor` · `lint` · `build` · `profile`) — not product scaffold/serve.
+Pure-dom tooling stays on **`uxdom`** (`doctor` · `lint` · `build` · `profile`).
+
+---
+
+## Audience
+
+| You are… | Start |
+|----------|--------|
+| **New** | [START_HERE.md](START_HERE.md) |
+| **Ownership / boundaries** | [docs/FLOW.md](docs/FLOW.md) |
+| **CLI** | [docs/CLI.md](docs/CLI.md) |
+| **Contributor / agent** | [CONTRIBUTING.md](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md) |
+| **Need a map** | [docs/INDEX.md](docs/INDEX.md) |
 
 ---
 
@@ -78,8 +101,9 @@ print(app.dispatch("cart.add", sku="tee"))
 ```
 
 `render()` returns a **ux-dom tag tree**, not an HTML string.
+Public names are `ux_compose` (`App`, `div`, `button`, …) — not a second `ux.*` namespace.
 
-Default product layout: `routes/` page units + `App.mount` (see START_HERE and `examples/page_unit_mount.py`).
+Default product layout: `routes/` page units + `App.mount` (`examples/page_unit_mount.py`).
 
 ---
 
@@ -102,58 +126,11 @@ Default product layout: `routes/` page units + `App.mount` (see START_HERE and `
 - Channel attach is `App.use_channel(asgi_app=…)` — Isolation-safe
 - HMR / tunnel are delivery under `uxcompose serve`, not Document APIs
 - Authors do not import `ux_channel` outside compose `wire/`
+- Do not reimplement specialists in this repo
 
-Full law: [`docs/FLOW.md`](docs/FLOW.md).
+Full law: [`docs/FLOW.md`](docs/FLOW.md). Examples: [`examples/README.md`](examples/README.md). Tests: `make test314`.
 
----
-
-## Examples & apps
-
-Full map: [`examples/README.md`](examples/README.md).
-
-```bash
-PYTHONPATH=src:. python examples/foundation.py
-PYTHONPATH=src:. python examples/page_unit_mount.py
-PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --port 8080
-PYTHONPATH=src:. uxcompose serve apps.atelier_studio.server:app --port 8080
-```
-
-| Group | Entry |
-|-------|--------|
-| Foundation / chrome / forms / commerce | `examples/*.py` |
-| Page-unit mount (product path) | `examples/page_unit_mount.py` |
-| Playable pattern host | `apps/atelier_studio` |
-| Linen shop (L1→L3 same Cart) | `apps/atelier_shop` |
-
-Cookbook: `cookbooks/PRESENCE.md`.
-
----
-
-## Documentation
-
-| Doc | Topic |
-|-----|--------|
-| [docs/START_HERE.md](docs/START_HERE.md) | New-user path |
-| [docs/FLOW.md](docs/FLOW.md) | Ownership law (SSoT) |
-| [docs/CLI.md](docs/CLI.md) | Product vs pure-dom CLI |
-| [docs/DX.md](docs/DX.md) | DX principles |
-| [docs/TESTING.md](docs/TESTING.md) | Test expectations |
-| [docs/README.md](docs/README.md) | Full index |
-
----
-
-## Tests
-
-```bash
-make test314
-# or: python -m pytest tests/ -q
-```
-
-## Known notes
-
-- **ux-dom** requires Python ≥3.14. Level 1 offline can run on 3.11+ with shims / behavior alone.
-- Optional CEK: `app.use_cek(mode="adapt")` — degrades if `cek_host` is absent; `require` fails closed.
-- Headless `use_channel()` boots Channel without HTTP for mint/submit tests.
+**Notes:** ux-dom requires Python ≥3.14 (L1 offline can run 3.11+). Optional CEK: `app.use_cek(mode="adapt")`. Headless `use_channel()` boots Channel without HTTP for mint/submit tests.
 
 ## License
 

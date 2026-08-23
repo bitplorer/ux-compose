@@ -1,11 +1,11 @@
 # ux-compose documentation index
 
-**Start:** [../START_HERE.md](../START_HERE.md) · longer: [START_HERE.md](START_HERE.md)
+**Start:** [../START_HERE.md](../START_HERE.md) · mental model: [START_HERE.md](START_HERE.md)
 **Ownership SSoT:** [FLOW.md](FLOW.md)
 **Docs landing:** [README.md](README.md)
 
 This layer owns composition + product CLI (`uxcompose`).
-It does **not** reimplement ux-dom / ux-behavior / ux-channel / ux-motion.
+It does **not** reimplement ux-dom / ux-channel / ux-behavior / ux-motion.
 
 ---
 
@@ -34,7 +34,7 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 | Doc | Topic |
 |-----|--------|
 | [../START_HERE.md](../START_HERE.md) | Root 5-minute path |
-| [START_HERE.md](START_HERE.md) | Docs copy of the new-user path |
+| [START_HERE.md](START_HERE.md) | Mental model + install (not a second 5-minute path) |
 | [../examples/README.md](../examples/README.md) | Example map |
 | [../examples/page_unit_mount.py](../examples/page_unit_mount.py) | Page-unit mount proof |
 
@@ -94,7 +94,9 @@ Level 1 code remains correct at higher levels. Zero rewrite.
 
 | Package | Role |
 |---------|------|
-| [ux-dom](https://github.com/bitplorer/ux-dom) | Render / Document / DirectoryRoutes |
-| [ux-behavior](https://github.com/bitplorer/ux-behavior) | Offline components, actions, state planes |
+| [ux-dom](https://github.com/bitplorer/ux-dom) | Render / Document |
 | [ux-channel](https://github.com/bitplorer/ux-channel) | Intent → Cap → Result |
-| [ux-motion](https://github.com/bitplorer/ux-motion) | Server-authored presence / transition plans |
+| [ux-behavior](https://github.com/bitplorer/ux-behavior) | Product behavior → Ops |
+| [ux-motion](https://github.com/bitplorer/ux-motion) | Presence / transition plans |
+
+Do not flatten these layers into this repo.

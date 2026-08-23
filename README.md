@@ -7,16 +7,16 @@ Harnesses four specialists without re-implementing them:
 | Specialist | Role |
 |------------|------|
 | **ux-dom** | Document SSoT, elements, runtimes (Python ≥3.14) |
-| **ux-behavior** | Offline Components, MorphState, `@action`, Cap Law |
 | **ux-channel** | Live Caps, Intent, signed control, ASGI |
+| **ux-behavior** | Offline Components, MorphState, `@action`, Cap Law |
 | **ux-motion** | Scene plans, presence, Morph-then-Play |
 
 No React. No Vue. No client SPA runtime. Server-authored, hypermedia-first, capability-secured, progressive.
 
-> **New here?** [`START_HERE.md`](START_HERE.md) · longer: [`docs/START_HERE.md`](docs/START_HERE.md)
-> **Ownership law:** [`docs/FLOW.md`](docs/FLOW.md)
-> **Map:** [`docs/INDEX.md`](docs/INDEX.md)
-> **Contributor / agent:** [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`AGENTS.md`](AGENTS.md)
+> **New here?** [START_HERE.md](START_HERE.md) (5 minutes). Mental model: [docs/START_HERE.md](docs/START_HERE.md)
+> **Ownership law:** [docs/FLOW.md](docs/FLOW.md)
+> **Map:** [docs/INDEX.md](docs/INDEX.md)
+> **Contributor / agent:** [CONTRIBUTING.md](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md)
 
 Compose is allowed to look like “the product” to authors. It must **import** specialists, not copy them.
 
@@ -27,6 +27,7 @@ Compose is allowed to look like “the product” to authors. It must **import**
 | **PyPI / pip** | `ux-compose` |
 | **Import** | `ux_compose` |
 | **CLI** | **`uxcompose`** (sole product lifecycle) |
+| **Version** | `0.1.0` |
 
 ### Ownership
 

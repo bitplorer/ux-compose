@@ -2,6 +2,8 @@
 
 Orientation for humans and agents continuing this package.
 
+**First-time:** [START_HERE.md](START_HERE.md). **Map:** [docs/INDEX.md](docs/INDEX.md).
+
 Read [docs/FLOW.md](docs/FLOW.md) (ownership SSoT) then [START_HERE.md](START_HERE.md)
 then [docs/INDEX.md](docs/INDEX.md). Public names: `src/ux_compose/__init__.py` `__all__`.
 
@@ -13,11 +15,11 @@ specialists and must **not** reimplement them.
 
 | Layer | Owns | Must **not** own |
 |-------|------|------------------|
-| **ux-dom** | HTML/CSS/JS trees, Document, serialize, pure discovery | Intent, Cap, Result, product CLI |
-| **ux-channel** | Intent / Result / Cap / wire / peers | HTML trees, CSS |
-| **ux-behavior** | Product behavior, Morph/Ref, `@action` | Raw HTML construction, wire codecs |
-| **ux-motion** | Presence / transition plans as data | Product behavior, DOM construction |
-| **ux-compose** (this repo) | `App`, `App.mount`, product CLI (`uxcompose` create-app / serve / deploy / doctor), HMR + tunnel under serve, Isolation-safe `wire/` | Re-implementing Document, Cap crypto, Plan IR, or MorphState |
+| **ux-dom** | HTML/CSS/JS trees, `Document`, serialize, pure discovery, `uxdom` | Intent, Cap, Result ops, MorphState, motion IR, product CLI |
+| **ux-channel** | Intent / Result / Cap / wire / peers / host runtime | HTML trees, CSS |
+| **ux-behavior** | Product behavior, Morph/Ref, `@action`, validation | Raw HTML construction, wire codecs |
+| **ux-motion** | Presence / transition plans as data (IR v1) | Product behavior, DOM construction |
+| **ux-compose** (this repo) | Author composition + product CLI (`uxcompose`) | Re-implementing any specialist |
 
 Do not invent a sixth product. `ux-app` is retired.
 

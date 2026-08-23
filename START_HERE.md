@@ -1,11 +1,11 @@
 # Start here — ux-compose
 
-**Audience:** engineers new to this package (or the UX stack).
+**Audience:** first-time users of this package (or the UX stack).
 **Promise:** a running product path in minutes, then the ownership map.
 **Time:** ~5 minutes to scaffold + serve; ~15 minutes for levels 0–2.
 
 Mental model + install (not a second 5-minute path): [docs/START_HERE.md](docs/START_HERE.md).
-Ownership law: [docs/FLOW.md](docs/FLOW.md). Map: [docs/INDEX.md](docs/INDEX.md).
+Ownership law: [docs/FLOW.md](docs/FLOW.md). **Map:** [docs/INDEX.md](docs/INDEX.md).
 
 ---
 

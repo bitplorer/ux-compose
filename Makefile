@@ -5,7 +5,7 @@ PY314 ?= /tmp/ux314venv/bin/python
 PY312 ?= /tmp/ux312venv/bin/python
 VENV  ?= /tmp/ux314venv
 
-.PHONY: test test314 test312 venv314 specialists examples doctor shop studio
+.PHONY: test test-matrix coverage test314 test312 venv314 specialists examples doctor shop studio pulse
 
 venv314:
 	python3.14 -m venv --without-pip $(VENV) || true
@@ -18,11 +18,19 @@ specialists: venv314
 	  "ux-motion @ git+https://github.com/bitplorer/ux-motion.git" \
 	  "ux-channel @ git+https://github.com/bitplorer/ux-channel.git#subdirectory=python" \
 	  "ux-dom @ git+https://github.com/bitplorer/ux-dom.git" \
-	  fastapi uvicorn pytest
-	$(PY314) -m pip install -e .
+	  fastapi uvicorn pytest pytest-cov httpx
+	$(PY314) -m pip install -e ".[dev]"
 
 test:
 	PYTHONPATH=src:. python -m pytest tests/ -q
+
+test-matrix:
+	PYTHONPATH=src:. python -m pytest \
+	  tests/unit tests/integration tests/regression \
+	  tests/concurrency tests/load tests/property tests/security -q
+
+coverage:
+	PYTHONPATH=src:. python -m pytest tests/ -q --cov=ux_compose --cov-report=term-missing
 
 test314:
 	cd $(CURDIR) && PYTHONPATH=src:. $(PY314) -m pytest tests/ -q
@@ -57,3 +65,6 @@ shop:
 
 studio:
 	PYTHONPATH=src:. $(PY314) -m uvicorn apps.atelier_studio.server:app --host 0.0.0.0 --port 8080
+
+pulse:
+	PYTHONPATH=src:. python -m uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080

@@ -3,6 +3,7 @@
 **Composition + delivery root** for the UX stack.
 **Ownership SSoT:** [FLOW.md](FLOW.md)
 **Map (audience + Diátaxis):** [INDEX.md](INDEX.md)
+GitHub renders this file when you open `docs/`. The Diátaxis audience+mode map is [INDEX.md](INDEX.md).
 
 ### Brand lines
 

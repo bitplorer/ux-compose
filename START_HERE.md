@@ -4,7 +4,7 @@
 **Promise:** a running product path in minutes, then the ownership map.
 **Time:** ~5 minutes to scaffold + serve; ~15 minutes for levels 0–2.
 
-Longer copy (same path): [docs/START_HERE.md](docs/START_HERE.md).
+Mental model + install (not a second 5-minute path): [docs/START_HERE.md](docs/START_HERE.md).
 Ownership law: [docs/FLOW.md](docs/FLOW.md). Map: [docs/INDEX.md](docs/INDEX.md).
 
 ---
@@ -108,7 +108,7 @@ print(app.dispatch("cart.add", sku="tee"))
 | Goal | Doc |
 |------|-----|
 | Ownership law (authoritative) | [docs/FLOW.md](docs/FLOW.md) |
-| Longer start | [docs/START_HERE.md](docs/START_HERE.md) |
+| Mental model + install | [docs/START_HERE.md](docs/START_HERE.md) |
 | CLI reference | [docs/CLI.md](docs/CLI.md) |
 | DX principles | [docs/DX.md](docs/DX.md) |
 | Full example map | [examples/README.md](examples/README.md) |

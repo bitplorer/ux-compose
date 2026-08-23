@@ -109,7 +109,7 @@ class Component(_BehaviorComponent):
     - @action(caps=...) methods return None | list[Op] | Result
     - control() via helpers for progressive attrs
     - __render__(pretty=False) re-runs render() — never a construct snapshot
-    - __async_render__ yields that HTML for StreamingResponse / DirectoryRouter
+    - __async_render__ yields that HTML for StreamingResponse / page-route plane
 
     Return semantics (hard contract from the mental model):
     1. return None → auto-morph dirty MorphStates
@@ -163,7 +163,7 @@ class Component(_BehaviorComponent):
         return _serialize_tree(tree)
 
     async def __async_render__(self, pretty: bool = False, **_kw) -> AsyncIterator[str]:
-        """Async HTML stream for StreamingResponse / DirectoryRouter plane.
+        """Async HTML stream for StreamingResponse / page-route plane.
 
         Yields the live string from ``__render__`` (single chunk). This lets
         endpoints return a Compose Component instance and still be accepted by

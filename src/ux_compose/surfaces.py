@@ -296,7 +296,8 @@ def mount_surfaces(
     compose_app: Any = None,
     asgi_app: Any = None,
     fail_closed: bool = True,
-    include_directory_router: bool = True,
+    bind_pages: bool = True,
+    include_directory_router: bool | None = None,
     on_surface: Optional[Callable[[Surface], None]] = None,
     package_name: Optional[str] = None,
     host: str = "auto",
@@ -305,7 +306,10 @@ def mount_surfaces(
 
     Host bind is delegated to ``surfaces_host.attach_page_router``
     (Invisible Strategy: pure core preferred; batteries only on host="batteries").
+    ``include_directory_router`` is a deprecated alias of ``bind_pages``.
     """
+    if include_directory_router is not None:
+        bind_pages = include_directory_router
     surfaces = scan_surfaces(
         package_dir,
         base_directory=base_directory,
@@ -382,7 +386,7 @@ def mount_surfaces(
                     }
                 )
 
-    if include_directory_router and asgi_app is not None:
+    if bind_pages and asgi_app is not None:
         try:
             from ux_compose.surfaces_host import attach_page_router
 

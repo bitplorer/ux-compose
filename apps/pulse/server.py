@@ -1,13 +1,13 @@
 """Pulse host — live showcase of the locked ux-compose product path.
 
-- Page units under routes/ via App.mount + DirectoryRouter (RouterHooks)
+- Page units under routes/ via App.mount + DirectoryRoutes (RouterHooks)
 - Document SSoT when ux-dom present (XElement default; HTMX opt-in)
 - Progressive Behavior → Channel → Motion (level=auto)
 - Isolation Law: never imports ux_channel directly
 - Style: Tailwind utility className (CDN stand-in for TailwindStyle/WebAssets)
 
 Serve:
-  PYTHONPATH=src:. uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080
+  PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080
 """
 from __future__ import annotations
 
@@ -216,7 +216,7 @@ def build():
         asgi_app=asgi,
         base="routes",
         fail_closed=False,
-        include_directory_router=bool(asgi is not None),
+        bind_pages=bool(asgi is not None),
     )
     app._pulse_registry = dict(bundle.unit_registry or {})
     app._pulse_bundle = bundle
@@ -316,6 +316,6 @@ if __name__ == "__main__":
     print("  Doctor surfaces:", report.surfaces)
     print("  Doctor routes:", report.routes)
     if asgi is not None:
-        print("  Serve: PYTHONPATH=src:. uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080")
+        print("  Serve: PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080")
     else:
         print("  Offline dispatch home.beat →", UX.dispatch("home.beat"))

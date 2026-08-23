@@ -12,8 +12,8 @@
 ```bash
 # with standalone CLI / pytailwindcss
 tailwindcss -i assets/css/input.css -o assets/css/output.css
-# or, when the host is a full uxdom create-app tree:
-#   uxdom serve   # watches + rebuilds
+# product CSS watch lives on uxcompose serve / uxdom build (pure-dom)
+#   uxdom build
 #   python -m app.tailwindcss
 ```
 

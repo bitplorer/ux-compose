@@ -1,7 +1,7 @@
 """Probe specialist packages and their CLI entrypoints.
 
-Pure, side-effect free, offline-safe. Used by create-app, doctor, and serve shims
-so compose can degrade gracefully when a specialist is absent.
+Pure, side-effect free, offline-safe. Used by doctor (and authors who want
+the same matrix). Never starts a server and never shells out to another CLI.
 """
 
 from __future__ import annotations
@@ -85,8 +85,7 @@ class ProbeResult:
             )
         if requested_level >= 3 and not s.get("ux_motion"):
             lines.append(
-                "L3 choreography: pip install ux-motion  →  app.use_motion() "
-                "(or Document.use(Motion, MotionChannel))"
+                "L3 choreography: pip install ux-motion  →  app.use_motion()"
             )
         if not lines:
             lines.append(

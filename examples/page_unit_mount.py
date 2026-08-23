@@ -3,7 +3,7 @@ E2E demo — locked product path (page unit + App.mount + doctor evidence).
 
 Proves:
 1. routes/hello.py page unit (stem match)
-2. App.mount → mount_surfaces (+ DirectoryRouter when asgi present)
+2. App.mount → mount_surfaces (+ DirectoryRoutes adapter when asgi present)
 3. Offline dispatch still works (Progressive Superpower Contract at L1)
 4. doctor(..., bundle=) records surface / route evidence
 5. Same page unit stays valid when channel/motion are unlocked (no rewrite)
@@ -54,14 +54,14 @@ def build(*, level: int = 1, with_asgi: bool = False):
         asgi_app=asgi,
         base="routes",
         fail_closed=True,
-        include_directory_router=bool(asgi is not None),
+        bind_pages=bool(asgi is not None),
     )
     return app, asgi, bundle
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Page-unit product-path E2E demo")
-    parser.add_argument("--asgi", action="store_true", help="Attach FastAPI for DirectoryRouter")
+    parser.add_argument("--asgi", action="store_true", help="Attach FastAPI for DirectoryRoutes page bind")
     parser.add_argument("--level", type=int, default=1, choices=(1, 2, 3))
     args = parser.parse_args(argv)
 

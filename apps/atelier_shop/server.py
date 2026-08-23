@@ -446,4 +446,4 @@ if __name__ == "__main__":
     print("FastAPI:", asgi is not None)
     if asgi is not None:
         print("Routes:", [getattr(r, "path", None) for r in asgi.routes])
-        print("Serve: uvicorn apps.atelier_shop.server:app --host 0.0.0.0 --port 8080")
+        print("Serve: uxcompose serve apps.atelier_shop.server:app --host 0.0.0.0 --port 8080")

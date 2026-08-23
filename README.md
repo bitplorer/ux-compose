@@ -143,7 +143,7 @@ page units (`routes/`), App.mount, MorphState/RefState, Cap-gated checkout,
 interactive lab, doctor evidence, progressive channel/motion.
 
 ```bash
-PYTHONPATH=src:. uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080
+PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080
 # offline smoke: PYTHONPATH=src:. python apps.pulse.server.py
 ```
 
@@ -151,7 +151,7 @@ PYTHONPATH=src:. uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080
 live Cap checkout. Same Cart class at L1 and L3.
 
 ```bash
-PYTHONPATH=src:. python -m uvicorn apps.atelier_shop.server:app --host 0.0.0.0 --port 8080
+PYTHONPATH=src:. uxcompose serve apps.atelier_shop.server:app --host 0.0.0.0 --port 8080
 ```
 
 ## Examples
@@ -178,8 +178,8 @@ Playable host: `apps/atelier_studio` (Atelier of Patterns). Product shop at `/sh
 ```bash
 PYTHONPATH=src:. python examples/foundation.py
 PYTHONPATH=src:. python examples/page_unit_mount.py
-PYTHONPATH=src:. uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080
-PYTHONPATH=src:. uvicorn apps.atelier_studio.server:app --app-dir . --host 0.0.0.0 --port 8080
+PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080
+PYTHONPATH=src:. uxcompose serve apps.atelier_studio.server:app --host 0.0.0.0 --port 8080
 ```
 
 ## Cookbooks

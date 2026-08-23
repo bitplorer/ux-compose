@@ -13,9 +13,7 @@
 # install specialists as needed
 pip install -e ".[dev]" fastapi uvicorn ux-dom ux-behavior
 
-PYTHONPATH=src:. uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080
-# or product CLI:
-#   uxcompose serve apps.pulse.server:app --port 8080
+PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080
 #   uxcompose serve apps.pulse.server:app --no-reload --hmr
 #   uxcompose serve apps.pulse.server:app --tunnel ngrok
 ```

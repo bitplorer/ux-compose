@@ -56,7 +56,7 @@ APP_PY = dedent('''\
         print("Doctor surfaces:", report.surfaces)
         print("Doctor routes:", report.routes)
         if asgi is not None:
-            print("Serve: uvicorn app:asgi --host 0.0.0.0 --port 8080")
+            print("Serve: uxcompose serve app:asgi --host 0.0.0.0 --port 8080")
 
     # ASGI attribute for uvicorn app:asgi
     _app, asgi, _bundle = main()
@@ -146,7 +146,7 @@ README = dedent('''\
     pip install ux-compose ux-dom ux-behavior
     # optional: ux-channel ux-motion fastapi uvicorn
     python app.py
-    uvicorn app:asgi --port 8080
+    uxcompose serve app:asgi --port 8080
     ```
 
     ## Laws
@@ -156,7 +156,7 @@ README = dedent('''\
     - HTMX is opt-in (`use_htmx=True` in main)
 
     ```bash
-    python -m ux_compose.cli doctor . --no-fail
+    uxcompose doctor . --no-fail
     ```
 ''')
 

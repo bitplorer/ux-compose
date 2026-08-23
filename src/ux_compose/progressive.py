@@ -8,7 +8,7 @@ from enum import IntEnum
 class Level(IntEnum):
     """Progressive disclosure levels. Higher levels are pure additive unlocks.
 
-    L0 — Document + static Components + page-unit routing (DirectoryRouter)
+    L0 — Document + static Components + page-unit routing (DirectoryRoutes)
     L1 — + Behavior + MorphState + @action (offline interactive)
     L2 — + Channel + Caps + control()  (HTMX is a separate opt-in control plane)
     L3 — + Motion / Scenes (choreography)

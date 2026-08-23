@@ -150,7 +150,7 @@ if __name__ == "__main__":
 
     if fastapi_app is not None:
         print("Routes:", [r.path for r in fastapi_app.routes if hasattr(r, "path")])
-        print("Serve with: uvicorn examples.live_asgi:fastapi_app --reload")
+        print("Serve with: uxcompose serve examples.live_asgi:fastapi_app")
         # Expose for uvicorn
         # fastapi_app already built
 

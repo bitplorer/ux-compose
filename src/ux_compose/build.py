@@ -52,7 +52,7 @@ def build(
 
     host:
       - ``"auto"`` — FastAPI if importable, else pure ASGI
-      - ``"fastapi"`` — FastAPI + route adapter / DirectoryRouter batteries
+      - ``"fastapi"`` — FastAPI + DirectoryRoutes thin adapter (preferred)
       - ``"asgi"`` — DirectoryASGI (no FastAPI)
 
     live:
@@ -134,7 +134,7 @@ def build(
             asgi_app=None,
             base=base,
             fail_closed=fail_closed,
-            include_directory_router=False,
+            bind_pages=False,
         )
         try:
             from ux_dom.routing.core import DirectoryRoutes, RouterHooks
@@ -164,7 +164,7 @@ def build(
             asgi_app=asgi,
             base=base,
             fail_closed=fail_closed,
-            include_directory_router=True,
+            bind_pages=True,
         )
 
     return BuildResult((app, asgi, bundle))

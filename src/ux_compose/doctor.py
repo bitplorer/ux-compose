@@ -145,24 +145,20 @@ class DoctorResult:
 
 
 def _detect_capabilities() -> dict:
+    from ux_compose.dx.probe import probe
+
+    pr = probe()
     caps = {
-        "ux_dom": False,
-        "ux_behavior": False,
-        "ux_motion": False,
-        "ux_channel": False,
-        "directory_router": False,
+        "ux_dom": pr.has_dom,
+        "ux_behavior": pr.has_behavior,
+        "ux_motion": pr.has_motion,
+        "ux_channel": pr.has_channel,
+        "directory_routes": False,
     }
-    for name in ("ux_dom", "ux_behavior", "ux_motion", "ux_channel"):
-        try:
-            if importlib.util.find_spec(name) is not None:
-                caps[name] = True
-        except (ModuleNotFoundError, ValueError):
-            pass
-    # DirectoryRouter is the page-unit product path (ux-dom routing)
     if caps.get("ux_dom"):
         try:
-            if importlib.util.find_spec("ux_dom.routing.fastapi") is not None:
-                caps["directory_router"] = True
+            if importlib.util.find_spec("ux_dom.routing.core") is not None:
+                caps["directory_routes"] = True
         except (ModuleNotFoundError, ValueError):
             pass
     return caps
@@ -179,24 +175,24 @@ def _teaching_for_level(level: int, caps: dict) -> list[str]:
     if level < 2 and caps.get("ux_behavior"):
         lines.append(
             "You are at Level 1 (offline interactive). To unlock live Caps + morph over the wire: "
-            "pip install ux-channel  then  app.use_channel(secret=...)"
+            "pip install ux-channel  then  app.use_channel(asgi_app=...)"
         )
     if level < 3 and caps.get("ux_channel"):
         lines.append(
             "You are at Level 2 (live). To unlock choreographed presence + Scenes: "
-            "pip install ux-motion  then  app.use_motion()  (or Document.use(Motion(), MotionChannel()))"
+            "pip install ux-motion  then  app.use_motion()"
         )
     if level >= 3:
         lines.append("Full progressive stack available (L3). Isolation + Caps + Motion are all first-class.")
-    if caps.get("directory_router"):
+    if caps.get("directory_routes"):
         lines.append(
             "Page-unit path available: routes/ + stem match + App.mount / mount_surfaces "
-            "(DirectoryRouter via RouterHooks.resolve_unit). "
+            "(DirectoryRoutes + thin host adapter via RouterHooks.resolve_unit). "
             "Scaffold: uxcompose create-app <dir>."
         )
     elif caps.get("ux_dom"):
         lines.append(
-            "ux-dom is present but DirectoryRouter import failed — check ux_dom.routing.fastapi."
+            "ux-dom is present but DirectoryRoutes import failed — check ux_dom.routing.core."
         )
     else:
         lines.append(
@@ -220,7 +216,7 @@ def doctor(
     Run the protective coach.
 
     - Scans for Isolation violations and dual-Document heuristics
-    - Reports progressive specialists + DirectoryRouter (page-unit path)
+    - Reports progressive specialists + DirectoryRoutes (page-unit path)
     - Emits teaching messages for the next unlock and mount/routes guidance
     - Optionally records evidence from a sealed SurfaceBundle (surfaces, routes)
     - Fails closed (raises) when fail=True and hard violations found

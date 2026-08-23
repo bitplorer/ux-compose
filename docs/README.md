@@ -2,6 +2,7 @@
 
 **Composition + delivery root** for the UX stack.
 **Ownership SSoT:** [FLOW.md](FLOW.md)
+**Map (audience + Diátaxis):** [INDEX.md](INDEX.md)
 
 ### Brand lines
 
@@ -18,17 +19,19 @@
 ```text
 New user:     START_HERE → FLOW (ownership) → README quick start → examples/
 Builder:      FLOW → CLI → DX → examples/README → TESTING
-Maintainer:   FLOW · resilience/MATRIX
+Maintainer:   FLOW · resilience/MATRIX · AGENTS
 ```
 
 | Audience | Start |
 |----------|--------|
-| **First time** | [START_HERE.md](START_HERE.md) |
+| **First time** | [../START_HERE.md](../START_HERE.md) · [START_HERE.md](START_HERE.md) |
 | **Ownership / boundaries** | [FLOW.md](FLOW.md) |
 | **CLI surface** | [CLI.md](CLI.md) |
 | **DX principles** | [DX.md](DX.md) |
 | **Tests / quality** | [TESTING.md](TESTING.md) |
 | **Resilience matrix** | [resilience/MATRIX.md](resilience/MATRIX.md) |
+| **Contributor / agent** | [../CONTRIBUTING.md](../CONTRIBUTING.md) · [../AGENTS.md](../AGENTS.md) |
+| **Full map** | [INDEX.md](INDEX.md) |
 
 ---
 

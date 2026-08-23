@@ -28,9 +28,9 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 |----------|--------|
 | **First time** | [../START_HERE.md](../START_HERE.md) · [START_HERE.md](START_HERE.md) |
 | **Ownership / boundaries** | [FLOW.md](FLOW.md) |
-| **CLI surface** | [CLI.md](CLI.md) |
-| **DX principles** | [DX.md](DX.md) |
-| **Tests / quality** | [TESTING.md](TESTING.md) |
+| **CLI surface** | [guides/CLI.md](guides/CLI.md) |
+| **DX principles** | [guides/DX.md](guides/DX.md) |
+| **Tests / quality** | [guides/TESTING.md](guides/TESTING.md) |
 | **Resilience matrix** | [resilience/MATRIX.md](resilience/MATRIX.md) |
 | **Contributor / agent** | [../CONTRIBUTING.md](../CONTRIBUTING.md) · [../AGENTS.md](../AGENTS.md) |
 | **Full map** | [INDEX.md](INDEX.md) |

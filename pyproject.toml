@@ -23,10 +23,7 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
-dependencies = [
-    # Specialists are optional / progressive. Authors install what they need.
-    # ux-behavior is the minimum for Level 1.
-]
+dependencies = []
 
 [project.optional-dependencies]
 dom = ["ux-dom"]
@@ -34,7 +31,7 @@ behavior = ["ux-behavior"]
 motion = ["ux-motion"]
 channel = ["ux-channel"]
 full = ["ux-dom", "ux-behavior", "ux-motion", "ux-channel"]
-dev = ["pytest", "pytest-asyncio"]
+dev = ["pytest", "pytest-asyncio", "pytest-cov", "httpx", "fastapi", "uvicorn"]
 
 [project.scripts]
 uxcompose = "ux_compose.cli:main"
@@ -45,6 +42,19 @@ where = ["src"]
 [tool.setuptools.package-data]
 ux_compose = ["py.typed"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+markers = [
+    "slow: longer stress tests",
+    "live: needs fastapi / specialists",
+]
 
-# Full Document SSoT + all specialists: Python >=3.14 (ux-dom constraint).
-# Level 1 offline works on 3.11+ with pure shims or ux-behavior alone.
+[tool.coverage.run]
+source = ["ux_compose"]
+branch = true
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true

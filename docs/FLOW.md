@@ -1,8 +1,26 @@
-# ux-compose Flow Map (permanent)
+# System Flow Map (permanent · residual-free)
 
-> **Anyone who needs to understand the system starts here.**
+> **Start here.** This is the only ownership contract.
 
-This document is the residual-free contract. It is intentionally short and complete.
+---
+
+## 0. One screen
+
+```text
+ux-dom      RENDER     tree → __render__ / __async_render__ → HTML str | bytes | stream
+                       Document shell: control attrs, runtime script tags, CSP stamp
+                       pure DirectoryRoutes + RouterHooks (discovery only)
+
+ux-compose  DELIVERY   HTTP responses, routes on ASGI app, host strategy
+            + PRODUCT  live units, progressive App, channel via wire/
+            + DEV      HMR (watch + WebSocket)
+            + SCAFFOLD uxcompose create-app  (sole product scaffold)
+
+ux-behavior units, MorphState, @action (offline)
+ux-channel  Intent/Caps behind wire/ only
+```
+
+**Author rule:** Render? → ux-dom. Serve / product app? → ux-compose.
 
 ---
 
@@ -10,84 +28,107 @@ This document is the residual-free contract. It is intentionally short and compl
 
 | Layer | Owns | Does **not** own |
 |-------|------|------------------|
-| **ux-dom** | Document SSoT, tag trees, pure page discovery (`DirectoryRoutes` + `RouterHooks`), thin adapters | Host choice for composition roots |
-| **ux-compose** | Author experience, progressive levels, live unit injection, **host strategy selection** (Invisible) | DOM production |
-| **ux-behavior** | MorphState, `@action`, Cap Law (offline) | Wire / Caps |
-| **ux-channel** | Intent, Caps, signed control, ASGI peer | Product code (Isolation Law) |
-| **wire/** | The *only* door that may import channel / CEK / MotionChannel | — |
+| **ux-dom** | Tag trees, `__render__` / `__async_render__`, pure body helpers, Document shell (control, runtime tags, **CSP stamp**), pure page discovery | Product HTTP delivery story, host choice, HMR process, product scaffold, channel |
+| **ux-compose** | Composition root (`App`), delivery (bind routes/responses to ASGI), host strategy (Invisible), live units, **HMR (dev)**, channel via `wire/`, **sole product scaffold** | DOM tree production / serialize |
+| **ux-behavior** | MorphState, `@action`, offline Cap Law | Wire / transport |
+| **ux-channel** | Intent, Caps, ASGI peer | Product imports (Isolation Law) |
+| **wire/** | Only door to channel / CEK / MotionChannel | — |
 
 ---
 
-## 2. Progressive Levels
+## 2. Document.use (what belongs)
+
+| Contribution | Yes/No | Why |
+|--------------|--------|-----|
+| control (ChannelControl / Htmx / Null) | **Yes** | Markup dialect on the document |
+| runtime script tags (XElement, …) | **Yes** | Shell scripts |
+| CSP policy + **stamp** | **Yes** | Document security |
+| style tags / href | **Yes** | Shell |
+| HMR watch + WebSocket | **No** | Dev **delivery** → ux-compose |
+| FastAPIHost / app builder | **No** | Delivery / composition → ux-compose |
+
+---
+
+## 3. Scaffold Law
+
+| Command | Role |
+|---------|------|
+| **`uxcompose create-app`** | **Only** product application scaffold |
+| `uxdom create-app` | Not the product path (do not promote) |
+
+Industry parallel: create-next-app lives with Next, not with React.
+
+---
+
+## 4. Progressive Levels
 
 | Level | Unlock | Door |
 |-------|--------|------|
-| **L0** | Static Document | ux-dom |
-| **L1** | Offline interactive + MorphState + `@action` | `App.use_behavior()` / `mount` |
+| **L0** | Static Document / trees | ux-dom |
+| **L1** | Offline interactive + MorphState + `@action` | `App` / mount |
 | **L2** | Live Caps + Intent | `App.use_channel(asgi_app=…)` → `wire/` |
 | **L3** | Motion | `App.use_motion()` → `wire/` |
 
-Progressive Superpower Contract: code written at L1 remains correct and unchanged at higher levels.
-
 ---
 
-## 3. Page Mount Flow (Invisible Strategy)
+## 5. Page Mount Flow
 
 ```text
 App.mount(package_dir, asgi_app=api)
-  → surfaces.scan_surfaces / validate
-  → Behavior.add → unit_registry (live instances)
-  → surfaces_host.attach_page_router(host=…)
-       preferred (auto/fastapi/starlette):
-         pure DirectoryRoutes + RouterHooks(resolve_unit=live)
-         + thin adapters.fastapi.mount → asgi_app.include_router
-       batteries (explicit host="batteries" only):
-         DirectoryRouter (never the default for compose)
+  → scan surfaces → unit_registry (live)
+  → pure DirectoryRoutes + RouterHooks(resolve_unit=live)
+  → delivery mounts routes on api
+  → page GET → tree → __async_render__ / __render__  (DOM ends)
+  → compose delivery wraps HTTP on api
 ```
-
-Authors never implement adapters. Host choice stays private.
 
 ---
 
-## 4. Channel Attachment Flow (Isolation Law)
+## 6. Channel Flow
 
 ```text
-App.use_channel(asgi_app=api)
-  → wire/boot.attach_channel
-  → Behavior.attach(asgi) owns Channel.boot(asgi)
-  → include_router lands on the real FastAPI (never on Channel)
-  → bridge_actions registers @action names on Channel.registry
-
+App.use_channel(asgi_app=api) → wire/ → Behavior.attach → Channel.boot
 Product code never imports ux_channel.
 ```
 
 ---
 
-## 5. Live Request Flow
+## 7. HMR Flow (dev only)
 
 ```text
-Browser click → signed Intent{action, args, cap}
-  → Channel verifies Cap (Cap Law)
-  → registry.dispatch → Behavior.dispatch(_trusted=True)
-  → list[Op]
-  → ops_to_wire → Result{ops}
-  → Peer applies morph / toast / transition.play
+ux-compose dev edge
+  watches package_dir from mount
+  WebSocket on same asgi_app
+  optional client stub in dev shell
+Not a Document.use product API.
 ```
 
 ---
 
-## 6. Where to change what
+## 8. Where to change what
 
 | Want to change… | Go to |
 |-----------------|-------|
-| Page discovery / path law | `ux-dom` `routing/core.py` |
-| Thin FastAPI materialize | `ux-dom` `routing/adapters/fastapi.py` |
-| Live unit injection / host choice | `ux-compose` `surfaces_host.py` |
-| Isolation doors | `ux-compose` `wire/` |
-| Author progressive API | `ux-compose` `app.py` |
-| Cap mint / Intent | `ux-compose` `wire/caps.py` |
-| Motion plans | `ux-motion` |
+| Serialize / tree HTML | ux-dom dunders |
+| CSP stamp / Document shell | ux-dom Document contributions |
+| Path law / discovery | ux-dom `routing/core.py` |
+| HTTP delivery / host bind | ux-compose delivery / `surfaces_host` |
+| Live units | ux-compose |
+| HMR | ux-compose (dev) |
+| Product scaffold | ux-compose `scaffold.py` |
+| Channel | ux-compose `wire/` |
 
 ---
 
-This map is the residual-free contract. Keep it accurate.
+## 9. Forbidden (residual generators)
+
+- Second product `App` (`ux_dom.plugins.App.web` as recommended path)
+- Product scaffold in ux-dom
+- HMR as first-class Document.use
+- CSP owned by FastAPI host package instead of Document
+- ux-dom core importing FastAPI for serialize
+- Product code importing `ux_channel`
+
+---
+
+Keep this file accurate. Any PR that reintroduces a dual product path fails review.

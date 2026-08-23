@@ -1,73 +1,52 @@
 # ux-compose
 
-**Thin pure-Python composition root** for the UX framework family.
+**Thin pure-Python composition and delivery root** for the UX framework family.
 
 Harnesses four specialists without re-implementing them:
 
 | Specialist | Role |
 |------------|------|
 | **ux-dom** | Document SSoT, elements, runtimes (Python ≥3.14) |
-| **ux-behavior** | Offline Components, MorphState, @action, Cap Law |
+| **ux-behavior** | Offline Components, MorphState, `@action`, Cap Law |
 | **ux-channel** | Live Caps, Intent, signed control, ASGI |
-| **ux-motion** | Scene Plans, presence, Morph-then-Play |
+| **ux-motion** | Scene plans, presence, Morph-then-Play |
 
-No React. No Vue. No client runtime. Server-authored, hypermedia-first, capability-secured, progressive.
+No React. No Vue. No client SPA runtime. Server-authored, hypermedia-first, capability-secured, progressive.
 
-> **Start here for the full map:** [`docs/FLOW.md`](docs/FLOW.md) — Ownership Law, progressive levels, page mount, Channel isolation, live request flow, and where-to-change guide.
+> **New here?** → [`docs/START_HERE.md`](docs/START_HERE.md)
+> **Ownership law (authoritative):** [`docs/FLOW.md`](docs/FLOW.md)
+> **Full docs index:** [`docs/README.md`](docs/README.md)
 
-## Progressive levels
+### Brand lines
 
-| Level | What you get | Unlock |
-|-------|----------------|--------|
-| **0** | Static Document | `pip install ux-dom` (Py≥3.14) |
-| **1** | Offline interactive + MorphState + @action | `pip install ux-behavior` |
-| **2** | Live Caps + Intent | `+ ux-channel` + `App.use_channel(asgi_app=…)` |
-| **3** | Choreographed motion | `+ ux-motion` + `App.use_motion()` |
+| Layer | Name |
+|-------|------|
+| **PyPI / pip** | `ux-compose` |
+| **Import** | `ux_compose` |
+| **CLI** | **`uxcompose`** (sole product lifecycle) |
 
-**Progressive Superpower Contract:** code written at Level 1 remains correct and unchanged at higher levels. Zero rewrite.
+---
 
-## Default product path
-
-Filesystem page units under `routes/` + `App.mount` (Invisible Strategy — pure core + thin adapter):
-
-```text
-myapp/
-  app.py
-  routes/
-    hello.py          # page unit: class Hello (stem match)
-```
-
-```python
-from pathlib import Path
-from ux_compose import App
-
-app = App.boot("Shop", level=1)
-app.use_host("fastapi")   # optional; default is auto
-bundle = app.mount(Path(__file__).parent, asgi_app=api, base="routes")
-# offline still works:
-app.dispatch("hello.inc")
-# doctor can read the sealed bundle:
-from ux_compose import doctor
-doctor([], fail=False, bundle=bundle)
-```
-
-Scaffold emits this layout:
+## Product path
 
 ```bash
-python -m ux_compose.cli create-app ./myapp --level 1
+uxcompose create-app myapp --level 1
+cd myapp
+uxcompose serve app:asgi --port 8080
+uxcompose deploy --provider docker
+uxcompose doctor .
 ```
 
-Runnable proof: `PYTHONPATH=src:. python examples/page_unit_mount.py`
+Pure-dom tooling stays on **`uxdom`** (`doctor` · `lint` · `build` · `profile`) — not product scaffold/serve.
 
-## Quick start
+---
+
+## Quick start (Level 1)
 
 ```bash
-# Full stack (recommended): Python ≥3.14
 python3.14 -m venv .venv && source .venv/bin/activate
 pip install -e .
 pip install "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git"
-pip install "ux-motion @ git+https://github.com/bitplorer/ux-motion.git"
-pip install "ux-channel @ git+https://github.com/bitplorer/ux-channel.git#subdirectory=python"
 pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
 ```
 
@@ -93,112 +72,88 @@ class Cart(Component):
         self.count = int(self.count) + 1
         return update_with(self, extra_ops=[notify(f"Added {sku}")])
 
-    @action(caps=("orders.place",))
-    def checkout(self):
-        return [notify("Placed")]
-
 app = App.boot("Shop", strict_caps=False)
 app.add(Cart)
 print(app.dispatch("cart.add", sku="tee"))
 ```
 
-`render()` returns a **ux-dom tag tree**, not an HTML string. Compose Component is a Behavior unit (MorphState, `@action`) that *produces* trees; it does not subclass ux-dom Component. Freeze on that class is fixable; a shared MRO with tree verbs (`add`/`remove`/`get`/`clear`) is not. HTML strings still work at L1 without ux-dom.
-Live Caps (Level 2) — checkout succeeds **only** with a real Channel-minted Cap:
+`render()` returns a **ux-dom tag tree**, not an HTML string.
 
-```python
-from fastapi import FastAPI
-asgi = FastAPI()
-app = App.boot("Shop", strict_caps=True)
-app.add(Cart)
-app.use_channel(asgi_app=asgi)   # Isolation door; never pass Channel as asgi
-refused = app.submit_intent("cart.checkout")          # missing Cap → not ok
-placed  = app.submit_intent("cart.checkout", mint=True)  # Host mints Cap
-```
+Default product layout: `routes/` page units + `App.mount` (see START_HERE and `examples/page_unit_mount.py`).
 
-`App.use_channel(asgi_app=fastapi)` lets **Behavior.attach** own `Channel.boot`, so
-`include_router` lands on FastAPI (not on Channel). Product code never imports
-`ux_channel`.
+---
 
-## Hard invariants (never broken)
+## Progressive levels
 
-- **Isolation Law** — product code never imports `ux_channel` / CEK; only `wire/` may
-- **Document SSoT** — exactly one Document owns the HTML shell
-- **XOR Law** — morph vs `scene.enter(html=)` are exclusive
-- **Cap Law** — protected actions require Caps (fail-closed offline under `strict_caps`)
-- **Ops-as-data** — inspectable Op / Motion Plan
-- **Morph-then-Play** — morph Op precedes `transition.play`
-- **Cold import** — `import ux_compose` never pulls channel/CEK
+| Level | What you get | Unlock |
+|-------|----------------|--------|
+| **0** | Static Document | `ux-dom` |
+| **1** | Offline MorphState + `@action` | `+ ux-behavior` |
+| **2** | Live Caps + Intent | `+ ux-channel` via `App.use_channel(asgi_app=…)` |
+| **3** | Choreographed motion | `+ ux-motion` via `App.use_motion()` |
 
-## CLI
+**Progressive contract:** Level 1 code remains correct at higher levels. Zero rewrite.
 
-```bash
-python -m ux_compose.cli doctor --no-fail
-python -m ux_compose.cli create-app ./myapp --level 1
-```
+---
 
-## Product apps
+## Hard invariants
 
-`apps/pulse` — **full-featured live showcase** of the locked product path:
-page units (`routes/`), App.mount, MorphState/RefState, Cap-gated checkout,
-interactive lab, doctor evidence, progressive channel/motion.
+- Product lifecycle CLI is **`uxcompose` only**
+- Channel attach is `App.use_channel(asgi_app=…)` — Isolation-safe
+- HMR / tunnel are delivery under `uxcompose serve`, not Document APIs
+- Authors do not import `ux_channel` outside compose `wire/`
 
-```bash
-PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080
-# offline smoke: PYTHONPATH=src:. python apps.pulse.server.py
-```
+Full law: [`docs/FLOW.md`](docs/FLOW.md).
 
-`apps/atelier_shop` — linen & object shop: cart, confirm modal, Document shell,
-live Cap checkout. Same Cart class at L1 and L3.
+---
 
-```bash
-PYTHONPATH=src:. uxcompose serve apps.atelier_shop.server:app --host 0.0.0.0 --port 8080
-```
+## Examples & apps
 
-## Examples
-
-Full-length, commented modules covering **99% of product UI**. Map: [`examples/README.md`](examples/README.md).
-
-Playable host: `apps/atelier_studio` (Atelier of Patterns). Product shop at `/shop`.
-
-| Group | File |
-|-------|------|
-| Foundation | `examples/foundation.py` — counter, toggle, Morph vs Ref, return algebra |
-| Chrome | `examples/chrome.py`, `examples/modal.py`, `examples/shell.py` |
-| Overlays | `examples/overlays.py` — toasts, confirm, lightbox, palette, banner |
-| Forms | `examples/forms.py`, `examples/fields.py` — validation, wizard, typeahead, every remaining input |
-| Collections | `examples/lists.py`, `examples/table_board.py`, `examples/feeds.py` |
-| Navigation | `examples/navigation.py` |
-| Commerce | `examples/cart.py`, `examples/commerce_more.py`, stepper/rating in `examples/systems.py` |
-| Live Caps | `examples/live_caps.py` |
-| Motion | `examples/motion_xor.py` — XOR, Morph-then-Play, share |
-| Systems | `examples/systems.py`, `examples/ops.py` — chat, calendar, KPI, settings, presence |
-| Host | `examples/document_boot.py`, `examples/live_asgi.py`, `examples/cart_document.py` |
-| Page-unit mount | `examples/page_unit_mount.py` — locked product path + doctor bundle evidence |
+Full map: [`examples/README.md`](examples/README.md).
 
 ```bash
 PYTHONPATH=src:. python examples/foundation.py
 PYTHONPATH=src:. python examples/page_unit_mount.py
-PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080
-PYTHONPATH=src:. uxcompose serve apps.atelier_studio.server:app --host 0.0.0.0 --port 8080
+PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --port 8080
+PYTHONPATH=src:. uxcompose serve apps.atelier_studio.server:app --port 8080
 ```
 
-## Cookbooks
+| Group | Entry |
+|-------|--------|
+| Foundation / chrome / forms / commerce | `examples/*.py` |
+| Page-unit mount (product path) | `examples/page_unit_mount.py` |
+| Playable pattern host | `apps/atelier_studio` |
+| Linen shop (L1→L3 same Cart) | `apps/atelier_shop` |
 
-- `cookbooks/PRESENCE.md` — list reorder + shared-element via `scene.share`
+Cookbook: `cookbooks/PRESENCE.md`.
+
+---
+
+## Documentation
+
+| Doc | Topic |
+|-----|--------|
+| [docs/START_HERE.md](docs/START_HERE.md) | New-user path |
+| [docs/FLOW.md](docs/FLOW.md) | Ownership law (SSoT) |
+| [docs/CLI.md](docs/CLI.md) | Product vs pure-dom CLI |
+| [docs/DX.md](docs/DX.md) | DX principles |
+| [docs/TESTING.md](docs/TESTING.md) | Test expectations |
+| [docs/README.md](docs/README.md) | Full index |
+
+---
 
 ## Tests
 
 ```bash
-# Full stack on Python 3.14
-/tmp/ux314venv/bin/python -m pytest tests/ -q
-# or: make test314
+make test314
+# or: python -m pytest tests/ -q
 ```
 
 ## Known notes
 
-- **ux-dom** requires Python ≥3.14. Level 1 offline works on 3.11+ with pure shims or `ux-behavior` alone.
-- **Channel FastAPI host**: `App.use_channel(asgi_app=fastapi)` is the Isolation-safe attach. Do not pass a Channel instance as `asgi`. Headless `use_channel()` boots Channel without HTTP for mint/submit tests.
+- **ux-dom** requires Python ≥3.14. Level 1 offline can run on 3.11+ with shims / behavior alone.
 - Optional CEK: `app.use_cek(mode="adapt")` — degrades if `cek_host` is absent; `require` fails closed.
+- Headless `use_channel()` boots Channel without HTTP for mint/submit tests.
 
 ## License
 

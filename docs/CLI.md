@@ -1,9 +1,9 @@
-# CLI ownership (residual-free)
+# CLI ownership (hard cut)
 
-| CLI | Owns | Does not own |
-|-----|------|----------------|
-| **`uxcompose`** | Product scaffold, serve, product doctor | DOM serialize / pure Document tooling |
-| **`uxdom`** | Pure-dom doctor/lint/build/profile, optional legacy scaffold | Product app path |
+| CLI | Owns |
+|-----|------|
+| **`uxcompose`** | **Sole product lifecycle:** create-app, serve, deploy, doctor |
+| **`uxdom`** | Pure Document tooling only: doctor, lint, build, profile |
 
 ## Product path (only)
 
@@ -11,6 +11,7 @@
 uxcompose create-app myapp --host auto --level auto
 cd myapp
 uxcompose serve app:asgi --port 8080
+uxcompose deploy --provider docker
 uxcompose doctor .
 ```
 
@@ -20,7 +21,8 @@ uxcompose doctor .
 uxdom doctor
 uxdom lint
 uxdom build
-# uxdom create-app  → not the product path; prefer uxcompose create-app
+uxdom profile
 ```
 
+`uxdom create-app` / `serve` / `deploy` are **removed from the product path**.
 See `docs/FLOW.md`.

@@ -5,6 +5,20 @@
 **Docs landing:** [README.md](README.md)
 
 This layer owns composition + product CLI (`uxcompose`).
+
+## Folder contract (Phase 2)
+
+| Folder | Diátaxis mode | May contain | Must not contain |
+|--------|---------------|-------------|------------------|
+| `docs/guides/` | how-to | Goal-oriented recipes | Conceptual essays as primary form |
+| `docs/reference/` | reference | Facts, signatures, tables | Learning narrative as primary form |
+| `docs/internals/` | explanation | Why, architecture, C4 | Step lists as primary form |
+| `docs/examples/` | examples | Worked recipes / pointers | Law |
+| `docs/adr/` | ADR | Decisions (or an index of them) | Mixed how-to |
+
+Specialized folders (`security/`, `ship/`, `design/`, `tutorial/`, `patterns/`, `archive/`) stay.
+`docs/INDEX.md` is the map. Do not add a second competing map.
+
 It does **not** reimplement ux-dom / ux-channel / ux-behavior / ux-motion.
 
 ---
@@ -15,8 +29,8 @@ It does **not** reimplement ux-dom / ux-channel / ux-behavior / ux-motion.
 |----------|-----------------------------------|
 | **First time** | [../START_HERE.md](../START_HERE.md) |
 | **Ownership / boundaries** | [FLOW.md](FLOW.md) |
-| **CLI surface** | [CLI.md](CLI.md) |
-| **DX / tests** | [DX.md](DX.md) · [TESTING.md](TESTING.md) |
+| **CLI surface** | [guides/CLI.md](guides/CLI.md) |
+| **DX / tests** | [guides/DX.md](guides/DX.md) · [guides/TESTING.md](guides/TESTING.md) |
 | **Maintainer / agent** | [../AGENTS.md](../AGENTS.md) · [../CONTRIBUTING.md](../CONTRIBUTING.md) |
 
 ```text
@@ -42,16 +56,18 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 
 | Doc | Topic |
 |-----|--------|
-| [CLI.md](CLI.md) | Product vs pure-dom CLI |
-| [DX.md](DX.md) | DX principles |
-| [TESTING.md](TESTING.md) | Test expectations / matrix |
+| [guides/README.md](guides/README.md) | How-to slot |
+| [guides/CLI.md](guides/CLI.md) | Product vs pure-dom CLI |
+| [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) | serve / HMR / tunnel |
+| [guides/DX.md](guides/DX.md) | DX principles |
+| [guides/TESTING.md](guides/TESTING.md) | Test expectations / matrix |
 | [../cookbooks/PRESENCE.md](../cookbooks/PRESENCE.md) | Presence cookbook |
 
 ### Reference
 
 | Doc | Topic |
 |-----|--------|
-| [CLI.md](CLI.md) | Command ownership table |
+| [guides/CLI.md](guides/CLI.md) | Command ownership table |
 | `src/ux_compose/__init__.py` | Public names (`__all__`) |
 | [resilience/MATRIX.md](resilience/MATRIX.md) | Resilience matrix |
 
@@ -60,6 +76,11 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 | Doc | Topic |
 |-----|--------|
 | [FLOW.md](FLOW.md) | Ownership law (authoritative) |
+| [internals/FLOW.md](internals/FLOW.md) | Same contract in the explanation slot |
+| [internals/c4.md](internals/c4.md) | C4-style context |
+| [adr/README.md](adr/README.md) | ADR slot |
+| [adr/0001-ownership.md](adr/0001-ownership.md) | Render vs product lifecycle |
+| [examples/README.md](examples/README.md) | Example slot |
 | [../CRITIC.md](../CRITIC.md) | Critic notes |
 
 ---

@@ -22,7 +22,7 @@ PYTHONPATH=src:. pytest tests/ -q
 PYTHONPATH=src:. pytest tests/regression -q   # hard-cut ownership
 ```
 
-See [docs/TESTING.md](docs/TESTING.md) for the full matrix (unit, integration,
+See [docs/guides/TESTING.md](docs/guides/TESTING.md) for the full matrix (unit, integration,
 regression, concurrency, load, property, security).
 
 Live showcase: `apps/pulse` via `uxcompose serve apps.pulse.server:app`.
@@ -46,7 +46,11 @@ Authoritative: [docs/FLOW.md](docs/FLOW.md). Agent contract: [AGENTS.md](AGENTS.
 | `README.md` | Gate | Full API, ADR bodies |
 | `START_HERE.md` | 5-minute first success | Exhaustive FLOW restatement |
 | `docs/FLOW.md` | Ownership law | Tutorial steps as primary form |
-| `docs/CLI.md` | CLI facts | Product-CLI teaching on uxdom |
+| `docs/guides/` | Goal-oriented recipes (CLI, serve/HMR/tunnel, DX, tests) | Conceptual essays as primary form |
+| `docs/reference/` | Facts | Learning narrative as primary form |
+| `docs/internals/` | Why / architecture / C4 | Step lists as primary form |
+| `docs/examples/` | Worked recipes / pointers | Law |
+| `docs/adr/` | Architecture decisions | Mixed how-to |
 | `docs/INDEX.md` | Audience + Diátaxis routing | Empty folder trees |
 
 Map: [docs/INDEX.md](docs/INDEX.md). Keep [docs/START_HERE.md](docs/START_HERE.md)

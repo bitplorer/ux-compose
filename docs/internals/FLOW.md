@@ -1,7 +1,7 @@
 # System Flow Map (permanent · residual-free)
 
-> **Diátaxis:** explanation · **Canonical:** `docs/FLOW.md` · **Layer:** ux-compose  
-> Map: [INDEX.md](INDEX.md).
+> **Diátaxis:** explanation · **Canonical:** `docs/internals/FLOW.md` · **Layer:** ux-compose  
+> Map: [INDEX.md](../INDEX.md).
 
 > **Start here.** This is the only ownership contract.
 
@@ -45,7 +45,7 @@ Allowed: control, runtime, CSP, style. **Not:** HMR process, FastAPIHost, produc
 
 ## 3–5. Product CLI / HMR / tunnel
 
-How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.md](guides/CLI.md).
+How-to: [../guides/serve-hmr-tunnel.md](../guides/serve-hmr-tunnel.md) · [../guides/CLI.md](../guides/CLI.md).
 
 ## 6. Forbidden
 
@@ -53,4 +53,4 @@ How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.
 - HMR as Document.use product API
 - Product code importing ux_channel
 
-See [guides/CLI.md](guides/CLI.md).
+See [../guides/CLI.md](../guides/CLI.md).

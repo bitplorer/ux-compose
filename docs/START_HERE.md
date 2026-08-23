@@ -1,10 +1,8 @@
-# Start here — ux-compose
+# Start here — ux-compose (mental model)
 
-**Audience:** engineers new to this package (or the UX stack).
-**Promise:** a running product path in minutes, then the ownership map.
-**Time:** ~5 minutes to scaffold + serve; ~15 minutes for levels 0–2.
-
-Root 5-minute path: [../START_HERE.md](../START_HERE.md). Map: [INDEX.md](INDEX.md).
+**Canonical 5-minute path (CLI + Cart):** [../START_HERE.md](../START_HERE.md).
+This page is the ownership / install map, not a second golden path.
+**Map:** [INDEX.md](INDEX.md).
 
 ---
 

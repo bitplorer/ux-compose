@@ -1,7 +1,7 @@
 """
 Surface catalog + mount — additive world-builder.
 
-Does not replace App.add, DirectoryRouter standalone, or Channel.
+Does not replace App.add or Channel.
 It unifies scan → validate → Behavior registration → optional Page gate.
 
 Laws enforced here:
@@ -9,7 +9,7 @@ Laws enforced here:
 * ≤1 page owner per file (extra renderables become fragments: no URL)
 * define-in-module only (imported classes are not auto-registered)
 
-Page unit + DirectoryRouter (when asgi_app is provided):
+Page unit + host bind (when asgi_app is provided):
 * Page units live under ``base_directory`` (default ``routes/``).
 * Class name should match the module stem (``hello.py`` → ``Hello``).
 * ``mount_surfaces`` builds ``RouterHooks(resolve_unit=...)`` so the
@@ -17,7 +17,7 @@ Page unit + DirectoryRouter (when asgi_app is provided):
   ``unit_registry`` (keyed by ``cls.id`` or ``cls.__name__.lower()``).
 * Explicit ``get``/``post`` methods on the class bypass ``resolve_unit``
   (ux-dom contract). Isolation: no Compose types leak into ux-dom.
-* Host bind lives in ``surfaces_host`` (core adapter first, DirectoryRouter fallback).
+* Host bind lives in ``surfaces_host`` (Invisible Strategy — pure core preferred).
 """
 
 from __future__ import annotations
@@ -299,11 +299,12 @@ def mount_surfaces(
     include_directory_router: bool = True,
     on_surface: Optional[Callable[[Surface], None]] = None,
     package_name: Optional[str] = None,
+    host: str = "auto",
 ) -> SurfaceBundle:
     """Scan → validate → Behavior.add → optional page router.
 
-    Host bind is delegated to ``surfaces_host.attach_page_router`` (core adapter
-    first; DirectoryRouter FastAPI batteries as fallback).
+    Host bind is delegated to ``surfaces_host.attach_page_router``
+    (Invisible Strategy: pure core preferred; batteries only on host="batteries").
     """
     surfaces = scan_surfaces(
         package_dir,
@@ -391,6 +392,7 @@ def mount_surfaces(
                 base_directory=base_directory,
                 unit_registry=bundle.unit_registry,
                 fail_closed=fail_closed,
+                host=host,
             )
             if table:
                 bundle.route_table = table

@@ -13,6 +13,8 @@ Harnesses four specialists without re-implementing them:
 
 No React. No Vue. No client runtime. Server-authored, hypermedia-first, capability-secured, progressive.
 
+> **Start here for the full map:** [`docs/FLOW.md`](docs/FLOW.md) — Ownership Law, progressive levels, page mount, Channel isolation, live request flow, and where-to-change guide.
+
 ## Progressive levels
 
 | Level | What you get | Unlock |
@@ -26,7 +28,7 @@ No React. No Vue. No client runtime. Server-authored, hypermedia-first, capabili
 
 ## Default product path
 
-Filesystem page units under `routes/` + `App.mount` (DirectoryRouter via RouterHooks):
+Filesystem page units under `routes/` + `App.mount` (Invisible Strategy — pure core + thin adapter):
 
 ```text
 myapp/
@@ -40,6 +42,7 @@ from pathlib import Path
 from ux_compose import App
 
 app = App.boot("Shop", level=1)
+app.use_host("fastapi")   # optional; default is auto
 bundle = app.mount(Path(__file__).parent, asgi_app=api, base="routes")
 # offline still works:
 app.dispatch("hello.inc")

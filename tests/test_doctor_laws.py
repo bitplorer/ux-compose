@@ -18,7 +18,15 @@ def test_isolation_clean_on_package():
     assert diags == [], diags
 
 
-def test_isolation_flags_forbidden_import():
+def test_isolation_does_not_flag_ux_channel_static_name():
+    with tempfile.TemporaryDirectory() as td:
+        ok = Path(td) / "runtime.py"
+        ok.write_text(
+            "from ux_dom.plugins.package_static import ux_channel_static\n",
+            encoding="utf-8",
+        )
+        assert scan_isolation([ok]) == []
+
     with tempfile.TemporaryDirectory() as td:
         bad = Path(td) / "product_cart.py"
         bad.write_text(

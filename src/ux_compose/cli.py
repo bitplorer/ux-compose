@@ -42,7 +42,7 @@ def _help() -> None:
     print("  uxcompose create-app <dest> [--name NAME] [--level auto|0-3] [--host auto|fastapi|asgi]")
     print("  uxcompose build [--watch] [--no-minify] [--skip-tailwind] [--skip-import] [--app app:asgi]")
     print("  uxcompose serve [app:asgi] [--host 0.0.0.0] [--port 8080] [--reload|--no-reload]")
-    print("                 [--hmr|--no-hmr] [--watch PATH ...]" )
+    print("                 [--hmr] [--watch PATH ...]" )
     print("                 [--tunnel none|ngrok|cloudflare] [--tunnel-token TOKEN]")
     print("  uxcompose deploy [--provider docker|fly|render|railway|vps|checklist] [--force] [--name NAME]")
     print("  uxcompose doctor [paths...] [--no-fail]")
@@ -121,8 +121,8 @@ def _serve(argv: list[str]) -> int:
     p.add_argument("--port", type=int, default=8080)
     p.add_argument("--reload", action="store_true")
     p.add_argument("--no-reload", action="store_true")
-    p.add_argument("--hmr", action="store_true", default=None, help="Attach browser HMR websocket")
-    p.add_argument("--no-hmr", action="store_true", help="Disable browser HMR")
+    p.add_argument("--hmr", action="store_true", default=False, help="Attach browser HMR websocket (needs --no-reload)")
+    p.add_argument("--no-hmr", action="store_true", help="Disable browser HMR (default)")
     p.add_argument("--watch", action="append", default=None, help="Extra HMR watch path (repeatable)")
     p.add_argument(
         "--tunnel",
@@ -137,11 +137,7 @@ def _serve(argv: list[str]) -> int:
     reload = True if not args.no_reload else False
     if args.reload:
         reload = True
-    hmr = True
-    if args.no_hmr:
-        hmr = False
-    elif args.hmr is True:
-        hmr = True
+    hmr = bool(args.hmr) and not args.no_hmr
 
     try:
         import uvicorn
@@ -240,17 +236,9 @@ def _deploy(argv: list[str]) -> int:
 
 
 def _doctor(argv: list[str]) -> int:
-    import argparse
-    from pathlib import Path
-    from ux_compose.doctor import doctor
+    from ux_compose.doctor import main as doctor_main
 
-    p = argparse.ArgumentParser(prog="uxcompose doctor")
-    p.add_argument("paths", nargs="*", default=["."])
-    p.add_argument("--no-fail", action="store_true")
-    args = p.parse_args(argv)
-    report = doctor([Path(x) for x in args.paths], fail=not args.no_fail)
-    print(report)
-    return 0 if args.no_fail or getattr(report, "ok", True) else 1
+    return doctor_main(argv)
 
 
 if __name__ == "__main__":

@@ -32,10 +32,28 @@ def test_product_build_owns_the_resolver():
     assert "_download_standalone" in tw
 
 
-def test_find_product_root_prefers_app_py(tmp_path, monkeypatch):
-    root = create_app(tmp_path / "p", name="p")
-    monkeypatch.chdir(root)
-    assert find_product_root() == root.resolve()
+def test_find_product_root_rejects_showcase_main_py(tmp_path, monkeypatch):
+    showcase = tmp_path / "show"
+    (showcase / "app").mkdir(parents=True)
+    (showcase / "app" / "main.py").write_text("# leftover\n", encoding="utf-8")
+    monkeypatch.chdir(showcase)
+    try:
+        find_product_root()
+        raise AssertionError("expected FileNotFoundError")
+    except FileNotFoundError as e:
+        assert "app.py" in str(e)
+        assert "uxdom build" in str(e)
+
+
+def test_build_honors_level_pin(tmp_path):
+    from ux_compose.build import build
+
+    root = create_app(tmp_path / "p", name="p", level=1)
+    app, _asgi, _bundle = build(
+        root, name="p", host="asgi", live="null", level=1, fail_closed=False
+    )
+    assert int(app.level) <= 1
+
 
 
 def test_run_product_build_skip_tailwind(tmp_path, monkeypatch):

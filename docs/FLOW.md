@@ -1,4 +1,4 @@
-# System Flow Map (permanent · residual-free)
+# System Flow Map (ownership contract)
 
 > **Diátaxis:** explanation · **Canonical:** `docs/FLOW.md` · **Layer:** ux-compose  
 > Map: [INDEX.md](INDEX.md).

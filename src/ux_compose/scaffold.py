@@ -35,35 +35,34 @@ APP_PY = dedent('''\
 
     try:
         from document import document
-        from settings import webassets
     except Exception:
         document = None
+    try:
+        from settings import webassets
+    except Exception:
         webassets = None
 
 
-    def _mount_css(asgi) -> None:
-        """Serve compiled CSS at /css/output.css."""
+    def _mount_css(asgi):
+        """Serve compiled CSS at /css/output.css. Returns asgi (maybe wrapped)."""
         if asgi is None or webassets is None:
-            return
+            return asgi
         mount = getattr(webassets, "mount_css", None)
         if callable(mount):
-            mount(asgi)
-            return
+            return mount(asgi)
         css_dir = getattr(getattr(webassets, "static", None), "css", None)
         if css_dir is None:
-            return
-        try:
-            from pathlib import Path as _P
-            from fastapi.staticfiles import StaticFiles
+            return asgi
+        from pathlib import Path as _P
+        from starlette.staticfiles import StaticFiles
 
-            _P(str(css_dir)).mkdir(parents=True, exist_ok=True)
-            asgi.mount(
-                "/css",
-                StaticFiles(directory=str(css_dir), check_dir=False),
-                name="css",
-            )
-        except Exception:
-            pass
+        _P(str(css_dir)).mkdir(parents=True, exist_ok=True)
+        asgi.mount(
+            "/css",
+            StaticFiles(directory=str(css_dir), check_dir=False),
+            name="css",
+        )
+        return asgi
 
 
     def main(*, use_htmx: bool = False):
@@ -81,8 +80,11 @@ APP_PY = dedent('''\
             try:
                 document.mount(asgi)
             except Exception:
-                pass
-        _mount_css(asgi)
+                # DirectoryASGI has no middleware / route table — package static
+                # needs FastAPI. CSS is attached separately below.
+                if hasattr(asgi, "add_middleware") or hasattr(asgi, "mount"):
+                    raise
+        asgi = _mount_css(asgi)
         return app, asgi, bundle
 
 
@@ -381,6 +383,9 @@ def create_app(
     css_dir = root / "assets" / "css"
     css_dir.mkdir(parents=True, exist_ok=True)
     (css_dir / "input.css").write_text(INPUT_CSS, encoding="utf-8")
+    from ux_compose.assets import WebAssets
+
+    WebAssets.from_app_root(root, dry_run=False)
 
     return root
 

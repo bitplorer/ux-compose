@@ -298,9 +298,6 @@ def discover_css_io(root: Path) -> Optional[tuple[Path, Path]]:
         alt = wa.dir / "input.css"
         if alt.is_file():
             input_css = alt
-        elif (root / "app" / "tailwindcss.py").is_file():
-            input_css = wa.input_css
         else:
             return None
-    wa.ensure()
     return input_css, wa.output_css

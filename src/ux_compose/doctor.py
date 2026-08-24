@@ -33,7 +33,7 @@ def _is_forbidden(name: str) -> bool:
     if not name:
         return False
     for f in FORBIDDEN_IMPORTS:
-        if name == f or name.startswith(f + ".") or name.startswith(f + "_"):
+        if name == f or name.startswith(f + "."):
             return True
     return False
 
@@ -288,7 +288,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--no-fail", action="store_true", help="Report only, do not raise on violations")
     args = parser.parse_args(argv)
     paths = args.paths or ["."]
-    res = doctor(paths, fail=not args.no_fail)
+    # Never raise from the CLI — print the report, then exit 1.
+    res = doctor(paths, fail=False)
 
     print("ux-compose doctor — protective coach")
     print(f"  Progressive level available: L{res.level_available}")
@@ -307,7 +308,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("  Diagnostics:")
         for d in res.diagnostics:
             print(f"    - {d}")
-        return 1
+        return 0 if args.no_fail else 1
+    if not res.ok:
+        return 0 if args.no_fail else 1
     print("  Isolation: OK — product autonomy and offline progressive path protected.")
     return 0
 

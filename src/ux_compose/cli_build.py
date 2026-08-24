@@ -57,19 +57,18 @@ class ProductBuildReport:
 def find_product_root(start: Optional[Path] = None) -> Path:
     """Locate a product app root.
 
-    Prefer ``app.py`` (uxcompose create-app). Fall back to ``app/main.py`` so a
-    leftover showcase tree can still be compiled from the product CLI.
+    Prefer ``app.py`` (uxcompose create-app). Leftover ``app/main.py``
+    showcase trees are ``uxdom build`` (Document/static verify), not this CLI.
     """
     cur = (start or Path.cwd()).resolve()
     for p in [cur, *cur.parents]:
         if (p / "app.py").is_file():
             return p
-        if (p / "app" / "main.py").is_file():
-            return p
         if p == p.parent:
             break
     raise FileNotFoundError(
-        "no product app found (expected app.py from uxcompose create-app)."
+        "no product app found (expected app.py from uxcompose create-app). "
+        "Leftover app/main.py trees: uxdom build (does not compile CSS)."
     )
 
 
@@ -85,7 +84,7 @@ def run_product_build(
     """Run the product production build.
 
     Steps:
-      1. Structure (app.py or app/main.py)
+      1. Structure (app.py from uxcompose create-app)
       2. Tailwind minify/watch via ux_compose.tailwind
       3. Soft import of the ASGI entry (default app:asgi)
       4. Soft product doctor
@@ -98,20 +97,11 @@ def run_product_build(
     report = ProductBuildReport(root=root)
 
     app_py = root / "app.py"
-    main_py = root / "app" / "main.py"
     if app_py.is_file():
         report.steps.append(BuildStep("app.py", True, str(app_py.relative_to(root))))
-    elif main_py.is_file():
-        report.steps.append(
-            BuildStep(
-                "app/main.py",
-                True,
-                f"{main_py.relative_to(root)} (showcase — product apps use app.py)",
-            )
-        )
     else:
         report.steps.append(
-            BuildStep("structure", False, "neither app.py nor app/main.py")
+            BuildStep("structure", False, "expected app.py from uxcompose create-app")
         )
         return report
 
@@ -130,6 +120,7 @@ def run_product_build(
             )
         else:
             input_css, output_css = io
+            output_css.parent.mkdir(parents=True, exist_ok=True)
             hit = resolve_tailwind(cwd=root, ensure=True)
             if hit is None:
                 report.steps.append(
@@ -242,7 +233,7 @@ def run_product_build(
             )
         )
     except Exception as e:
-        report.steps.append(BuildStep("doctor", True, f"soft skip: {e}"))
+        report.steps.append(BuildStep("doctor", False, f"doctor failed: {e}"))
 
     return report
 

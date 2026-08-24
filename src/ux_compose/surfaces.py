@@ -193,6 +193,7 @@ def scan_surfaces(
     *,
     base_directory: str = "routes",
     package_name: Optional[str] = None,
+    fail_closed: bool = False,
 ) -> list[Surface]:
     """Discover units under package_dir/base_directory (define-in-module only)."""
     root = Path(package_dir).resolve()
@@ -218,6 +219,10 @@ def scan_surfaces(
             mod = _import_module(module, file)
         except Exception as exc:
             logger.exception("surface scan import failed %s: %s", file, exc)
+            if fail_closed:
+                raise SurfaceError(
+                    f"surface scan import failed {file}: {exc}"
+                ) from exc
             continue
 
         mod_name = getattr(mod, "__name__", module)
@@ -314,6 +319,7 @@ def mount_surfaces(
         package_dir,
         base_directory=base_directory,
         package_name=package_name,
+        fail_closed=fail_closed,
     )
     errors = validate_surfaces(surfaces, fail=fail_closed)
     bundle = SurfaceBundle(errors=list(errors))

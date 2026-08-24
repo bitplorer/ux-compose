@@ -35,8 +35,6 @@ def _find_app_root(start: Optional[Path] = None) -> Path:
     for p in [cur, *cur.parents]:
         if (p / "app.py").is_file():
             return p
-        if (p / "app" / "main.py").is_file():
-            return p
         if p == p.parent:
             break
     raise FileNotFoundError(

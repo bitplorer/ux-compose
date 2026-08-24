@@ -26,6 +26,8 @@ def test_cli_has_product_commands_only_in_help(capsys):
     assert "os.execvp" not in out
     assert "uxdom serve" not in out
     assert "uxdom build" not in out
+    assert "ux_compose.tailwind" in out
+    assert "uxdom build" not in out
 
 
 def test_hmr_is_delivery_module():
@@ -42,6 +44,7 @@ def test_dx_doc_is_sole_product_cli():
     assert "uxcompose create-app" in text
     assert "DirectoryRoutes" in text
     assert "uxcompose build" in text
+    assert "ux_compose.tailwind" in text or "compiler" in text.lower()
 
 
 def test_doctor_teaches_directory_routes_not_router():

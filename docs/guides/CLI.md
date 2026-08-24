@@ -5,8 +5,8 @@
 
 | CLI | Owns |
 |-----|------|
-| **`uxcompose`** | **Sole product lifecycle:** create-app, **build**, serve, deploy, doctor |
-| **`uxdom`** | Pure Document tooling: doctor, lint, profile, add. Tailwind *resolver library* (`ux_dom.cli.tailwind`). |
+| **`uxcompose`** | **Sole product lifecycle:** create-app, **build** (incl. Tailwind CLI finder), serve, deploy, doctor |
+| **`uxdom`** | Pure Document tooling: doctor, lint, profile, add. WebAssets *paths*. |
 
 ## Product path (only)
 
@@ -19,7 +19,7 @@ uxcompose deploy --provider docker
 uxcompose doctor .
 ```
 
-`uxcompose build` minifies Tailwind via the ux-dom resolver
+`uxcompose build` minifies Tailwind via `ux_compose.tailwind`
 (`discover_css_io` / `resolve_tailwind` / `argv_with_io`) to
 `assets/static/file/css/output.css`. create-app already emits
 `assets/css/input.css`, the Document `<link href="/css/output.css">`,
@@ -36,7 +36,8 @@ uxdom add component Card
 
 `uxdom create-app` / `serve` / `deploy` are **removed from the product path**.
 `uxdom build` is Document/static verify for leftover `app/main.py` showcase
-trees — product apps use `uxcompose build`. See `docs/FLOW.md`.
+trees — it does not download a compiler. Product apps use `uxcompose build`.
+See `docs/FLOW.md`.
 
 `uxcompose serve` watches `.css` (HMR). It does not compile.
 `uxcompose deploy` does not run Tailwind; run `uxcompose build` first so

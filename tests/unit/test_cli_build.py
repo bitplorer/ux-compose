@@ -1,4 +1,4 @@
-"""Unit: product build CLI + hand-off to ux_dom.cli.tailwind."""
+"""Unit: product build CLI owns the Tailwind resolver."""
 from __future__ import annotations
 
 import sys
@@ -17,19 +17,19 @@ def test_help_lists_build(capsys):
     out = capsys.readouterr().out
     assert "uxcompose build" in out
     assert "create-app → build → serve → deploy" in out
-    assert "ux_dom.cli.tailwind" in out
+    assert "ux_compose.tailwind" in out
+    assert "ux_dom.cli.tailwind" not in out
 
 
-def test_product_build_hands_off_to_ux_dom_resolver():
+def test_product_build_owns_the_resolver():
     src = (ROOT / "src" / "ux_compose" / "cli_build.py").read_text(encoding="utf-8")
-    assert "from ux_dom.cli.tailwind import" in src
-    assert "discover_css_io" in src
-    assert "resolve_tailwind" in src
-    assert "argv_with_io" in src
-    # compose must not re-implement the finder
-    assert "TAILWIND_STANDALONE_VERSION" not in src
-    assert "standalone_asset_name" not in src
-    assert "def resolve_tailwind" not in src
+    assert "from ux_compose.tailwind import" in src
+    assert "ux_dom.cli.tailwind" not in src
+    tw = (ROOT / "src" / "ux_compose" / "tailwind.py").read_text(encoding="utf-8")
+    assert "def resolve_tailwind" in tw
+    assert "def discover_css_io" in tw
+    assert "def argv_with_io" in tw
+    assert "_download_standalone" in tw
 
 
 def test_find_product_root_prefers_app_py(tmp_path, monkeypatch):

@@ -12,7 +12,7 @@ uxcompose create-app / build / serve / deploy / doctor
         │
         ├─ probe specialists (find_spec + CLI on PATH)
         ├─ boot via build() / App.mount (DirectoryRoutes + thin adapter)
-        ├─ CSS minify hands off to ux_dom.cli.tailwind
+        ├─ CSS minify via ux_compose.tailwind (finder + ensure)
         └─ Isolation + Progressive Superpower
 ```
 
@@ -30,9 +30,9 @@ when Channel or Motion unlock. Zero rewrite.
 door is `ux_compose.wire/` via `App.use_channel` / `App.use_motion`.
 
 **Ownership:** `uxdom` is pure Document tooling (`doctor`, `lint`, `profile`,
-`add`). Tailwind *compiler resolution* lives there as a library. It is not a
-product CLI. There is no `uxdom create-app` / `serve` / `deploy`. Product
-CSS is `uxcompose build`.
+`add`). WebAssets *paths*, className, and the Document `<link>` live there.
+There is no `uxdom create-app` / `serve` / `deploy`. Product CSS compile
+(finder, download, minify) is `uxcompose build` (`ux_compose.tailwind`).
 
 ## Commands
 
@@ -88,7 +88,7 @@ pr.unlock_messages(requested_level=3)
 ## What compose deliberately does not own
 
 - Tag serialize / Document shell → ux-dom
-- Tailwind CLI *resolver* (`discover_css_io` / `resolve_tailwind` / `argv_with_io`) → ux-dom
+- WebAssets folders / className / stylesheet `<link>` → ux-dom
 - `uxdom add component|xelement|ui` → ux-dom (pure-dom)
 - Channel wire protocol / CEK → ux-channel (behind `wire/` only)
 - Scene IR / player scripts → ux-motion

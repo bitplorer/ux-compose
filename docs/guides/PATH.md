@@ -45,7 +45,7 @@ tour, open [UI.md](UI.md).
 
 `uxcompose` is the **only** product lifecycle CLI. `uxdom` stays pure-dom
 (`doctor` / `lint` / `profile` / `add`). Do not run `uxdom create-app`.
-Product CSS is `uxcompose build` (hands off to `ux_dom.cli.tailwind`).
+Product CSS is `uxcompose build` (`ux_compose.tailwind` finds the CLI).
 
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate

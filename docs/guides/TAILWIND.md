@@ -1,6 +1,6 @@
 # Production CSS — Tailwind
 
-> **Diátaxis:** how-to · **Layer:** ux-compose (compiler owned by ux-dom)
+> **Diátaxis:** how-to · **Layer:** ux-compose (`ux_compose.tailwind` owns the compiler)
 > Map: [../INDEX.md](../INDEX.md) · Tutorial: [PATH.md](PATH.md) §5
 > Assets contract: [../../assets/README.md](../../assets/README.md)
 
@@ -32,7 +32,7 @@ a `/css` mount from WebAssets. Compile with `uxcompose build`.
 |------|-----|----------|
 | 1. Author | you, on the tag tree | `className="…"` in `routes/*.py` |
 | 2. Tokens | you, in CSS | `assets/css/input.css` |
-| 3. Compile | Tailwind CLI via **ux-dom** | `assets/static/file/css/output.css` (minified) |
+| 3. Compile | Tailwind CLI via **uxcompose build** | `assets/static/file/css/output.css` (minified) |
 | 4. Link | one Document | `link rel=stylesheet href=/css/output.css` |
 | 5. Mount | FastAPI / ASGI host | `/css` → that directory |
 | 6. Deploy | you, before or in the image | the minified file is on disk when uvicorn starts |
@@ -44,7 +44,7 @@ className on trees
 assets/css/input.css     <- tokens, @source / content globs
         |
         v
-Tailwind CLI --minify    <- uxcompose build (hands off to ux_dom.cli.tailwind)
+Tailwind CLI --minify    <- uxcompose build (ux_compose.tailwind finder + ensure)
         |
         v
 assets/static/file/css/output.css
@@ -123,13 +123,14 @@ module.exports = {
 ```
 
 v3 `@tailwind base/components/utilities` still compiles. Prefer the v4 entry
-above so you match the CLI ux-dom downloads.
+above so you match the CLI compose downloads.
 
 ---
 
 ## 3. Compile for production
 
-**Output path is fixed** by `ux_dom.cli.tailwind.discover_css_io`:
+**Output path is fixed** by `ux_compose.tailwind.discover_css_io`
+(matches WebAssets `static.css` when ux-dom is installed):
 
 | Role | Path |
 |------|------|
@@ -147,7 +148,7 @@ uxcompose build
 # --skip-tailwind / --skip-import for structure-only checks
 ```
 
-Hands off to `ux_dom.cli.tailwind` (`discover_css_io` / `resolve_tailwind` /
+Runs `ux_compose.tailwind` (`discover_css_io` / `resolve_tailwind` /
 `argv_with_io`). Output is always `assets/static/file/css/output.css`.
 create-app already emits `assets/css/input.css`.
 
@@ -173,19 +174,19 @@ teach you the same.
 
 ### How the CLI is found
 
-`ux_dom.cli.tailwind.resolve_tailwind` (first hit wins):
+`ux_compose.tailwind.resolve_tailwind` (first hit wins):
 
-1. `UXDOM_TAILWIND` or `TAILWINDCSS` (path or command)
+1. `UXCOMPOSE_TAILWIND` (alias `UXDOM_TAILWIND`) or `TAILWINDCSS`
 2. `tailwindcss` on PATH
 3. `pytailwindcss` (`pip install pytailwindcss`)
 4. local `node_modules/.bin` / `@tailwindcss/cli` (never implicit npx here)
-5. cached official standalone under `$XDG_CACHE_HOME/ux-dom/` (v4.1.12)
-6. download that standalone (`ensure=True`; `UXDOM_TAILWIND_DOWNLOAD=0` disables)
+5. cached official standalone under `$XDG_CACHE_HOME/ux-compose/` (v4.1.12)
+   (also reads leftover `$XDG_CACHE_HOME/ux-dom/` binaries)
+6. download that standalone (`ensure=True`; `UXCOMPOSE_TAILWIND_DOWNLOAD=0` disables)
 7. last resort: `npx --yes @tailwindcss/cli`
 
-`uxdom build` uses `ensure=True`. A missing CLI is a real error, not a skip.
-
-`uxcompose build` uses the same `ensure=True` hand-off.
+`uxcompose build` uses `ensure=True`. A missing CLI is a real error, not a skip.
+`uxdom build` does **not** download — leftover verify only, product compile is here.
 
 Dev watch (do not ship this process):
 

@@ -14,7 +14,7 @@
 ```bash
 uxcompose build
 # → assets/static/file/css/output.css
-# hands off to ux_dom.cli.tailwind (compose does not re-implement the finder)
+# ux_compose.tailwind finds / ensures the CLI (not ux-dom)
 ```
 
 Dev watch is `--watch` instead of `--minify` (XOR). `uxcompose serve --hmr`

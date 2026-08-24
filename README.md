@@ -72,7 +72,7 @@ uxcompose doctor .
 ```
 
 Pure-dom tooling stays on **`uxdom`** (`doctor` · `lint` · `profile` · `add`).
-Product CSS is **`uxcompose build`** (hands off to `ux_dom.cli.tailwind`).
+Product CSS is **`uxcompose build`** (`ux_compose.tailwind` finds / ensures the CLI).
 
 ## Usage
 
@@ -114,9 +114,9 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 
 | Owns | Does **not** own |
 |------|------------------|
-| Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) | DOM serialize / tag trees (ux-dom) |
+| Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder | DOM serialize / tag trees / WebAssets *paths* (ux-dom) |
 | `App` composition, `App.mount`, delivery, HMR + tunnel under serve | Channel transport (wire/ only) |
-| Page-unit mount (`routes/` + `App.mount`); CSS minify via ux-dom resolver | Tailwind CLI finder (`ux_dom.cli.tailwind`); MorphState / Cap / Plan IR implementations |
+| Page-unit mount (`routes/` + `App.mount`); CSS minify via `ux_compose.tailwind` | MorphState / Cap / Plan IR implementations |
 
 ## Audience
 

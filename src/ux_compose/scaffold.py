@@ -310,9 +310,8 @@ README = dedent('''\
     uxcompose doctor . --no-fail
     ```
 
-    `uxcompose build` hands CSS minify to `ux_dom.cli.tailwind` (compose never
-    re-implements the Tailwind CLI finder). Output:
-    `assets/static/file/css/output.css`, linked as `/css/output.css`.
+    `uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`).
+    Output: `assets/static/file/css/output.css`, linked as `/css/output.css`.
 
     ## Laws
 

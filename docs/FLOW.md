@@ -13,10 +13,11 @@
 ux-dom      RENDER     tree → __render__ / __async_render__ → HTML str | bytes | stream
                        Document shell: control attrs, runtime script tags, CSP stamp
                        pure DirectoryRoutes + RouterHooks (discovery only)
-                       Tailwind compiler resolution (discover_css_io / resolve_tailwind / argv_with_io)
+                       WebAssets *paths*, className, stylesheet <link>
                        pure-dom DX: doctor | lint | profile | add
 
 ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
+            + CSS      Tailwind CLI finder / ensure / minify (ux_compose.tailwind)
             + DELIVERY HTTP bind, host strategy, live units
             + CHANNEL  wire/ only
             + DEV      HMR (/__uxcompose/hmr) · tunnel (ngrok|cloudflare)
@@ -40,10 +41,10 @@ Product path::
 
 | Layer | Owns | Does **not** own |
 |-------|------|------------------|
-| **ux-dom** | Tag trees, dunders, Document shell, pure discovery, Tailwind *compiler resolution*, pure-dom DX | Product lifecycle, HMR process, tunnel |
-| **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, wire/, **HMR + tunnel under serve** | DOM serialize, Tailwind CLI finder |
+| **ux-dom** | Tag trees, dunders, Document shell, pure discovery, WebAssets *paths*, className / `<link>`, pure-dom DX | Product lifecycle, HMR process, tunnel, Tailwind CLI finder |
+| **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, **Tailwind compiler**, wire/, **HMR + tunnel under serve** | DOM serialize |
 
-`uxcompose build` hands off to `ux_dom.cli.tailwind`. Compose never re-implements the resolver. `uxdom build` is Document/static verify for pure-dom `app/main.py` trees — not the product path.
+`uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`). Compose never re-implements Document serialize. `uxdom build` is Document/static verify for pure-dom `app/main.py` trees — not the product path.
 
 ---
 
@@ -64,6 +65,6 @@ How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.
 - Dual product paths on uxdom
 - HMR as Document.use product API
 - Product code importing ux_channel
-- Re-implementing the Tailwind CLI finder in compose
+- Tailwind CLI finder / download living on ux-dom
 
 See [guides/CLI.md](guides/CLI.md).

@@ -3,8 +3,8 @@
 Hard ownership (SoC + locality):
   create-app · build · serve · deploy · doctor  →  here only
   Pure Document tooling stays on uxdom (lint / profile / add / doctor).
-  Tailwind *compiler resolution* is a library on ux-dom
-  (``ux_dom.cli.tailwind``); the product command is ``uxcompose build``.
+  Tailwind *compiler resolution* lives here (``ux_compose.tailwind``).
+  ux-dom owns className, the Document ``<link>``, and WebAssets *paths*.
 
 serve owns process reload, optional browser HMR, optional public tunnel.
 """
@@ -48,7 +48,7 @@ def _help() -> None:
     print("")
     print("Product path: create-app → build → serve → deploy")
     print("HMR / tunnel are delivery features of serve (not Document.use).")
-    print("CSS minify hands off to ux_dom.cli.tailwind (compose does not re-implement the finder).")
+    print("CSS minify: ux_compose.tailwind (finder + ensure). Render paths: ux-dom WebAssets.")
     print("Render-only tooling: uxdom doctor|lint|profile|add")
 
 

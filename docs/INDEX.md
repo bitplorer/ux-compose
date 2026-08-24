@@ -26,14 +26,14 @@ It does **not** reimplement ux-dom / ux-channel / ux-behavior / ux-motion.
 Compose imports specialists. Pin `level=1` until you attach Channel.
 
 ```python
-from ux_compose import App, Component, MorphState, action, notify
+from ux_compose import App, Component, MorphState, action, notify, div
 
 class Cart(Component):
     id = "cart"
     count = MorphState(0)
 
     def render(self):
-        return f"\u003cdiv id='cart'\u003e{self.count}\u003c/div\u003e"
+        return div(str(self.count), id=self.id)
 
     @action(caps=())
     def add(self):
@@ -99,7 +99,7 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 | Doc | Topic |
 |-----|--------|
 | [guides/CLI.md](guides/CLI.md) | Command ownership table |
-| `src/ux_compose.__all__` | Public names |
+| `src/ux_compose/__init__.py` | Public names (`__all__`) |
 | [resilience/MATRIX.md](resilience/MATRIX.md) | Resilience matrix |
 
 ### Explanation

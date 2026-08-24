@@ -240,7 +240,10 @@ uxcompose serve app:asgi --tunnel cloudflare --tunnel-token "$TOKEN"
 
 1. Author utilities on the tree: `className="rounded-2xl border …"`.
 2. Tokens + `@layer components` live in `assets/css/input.css`.
-3. Tailwind scans `apps/**`, `examples/**`, `src/**` (`tailwind.config.js`).
+3. Tailwind scans **this app** (`app.py`, `routes/**/*.py`) via `@source` in
+   `assets/css/input.css`. `create-app` does not emit `tailwind.config.js`.
+   The globs `apps/**` / `examples/**` / `src/**` in this *library* repo's
+   `tailwind.config.js` are for compose demos, not product apps.
 4. Build CSS; the Document **links** the file.
 
 ```bash

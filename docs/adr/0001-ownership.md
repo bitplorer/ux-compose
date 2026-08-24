@@ -5,8 +5,7 @@
 
 **Status:** accepted  
 **Date:** 2026-08-24 (extracted from FLOW.md; law predates this extract)  
-**Amended:** 2026-08-24 — product `build` is compose-only; Tailwind *resolver* stays on ux-dom
-**Amended:** 2026-08-24 — Tailwind *compiler resolution* moves to ux-compose. ux-dom keeps WebAssets *paths* + className + `<link>`.
+**Amended:** 2026-08-24 — product `build` + Tailwind *compiler resolution* live on ux-compose (`ux_compose.tailwind`). ux-dom keeps WebAssets *paths* + className + `<link>`. Leftover `uxdom build` is Document/static verify for `app/main.py` trees and does not download a CLI.
 
 ## Context
 

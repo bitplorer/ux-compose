@@ -27,7 +27,6 @@ def test_cli_has_product_commands_only_in_help(capsys):
     assert "uxdom serve" not in out
     assert "uxdom build" not in out
     assert "ux_compose.tailwind" in out
-    assert "uxdom build" not in out
 
 
 def test_hmr_is_delivery_module():
@@ -45,6 +44,20 @@ def test_dx_doc_is_sole_product_cli():
     assert "DirectoryRoutes" in text
     assert "uxcompose build" in text
     assert "ux_compose.tailwind" in text or "compiler" in text.lower()
+
+
+def test_index_owns_product_build_and_compiler():
+    text = (ROOT / "docs" / "INDEX.md").read_text(encoding="utf-8")
+    assert "`create-app`, `build`, `serve`, `deploy`, `doctor`" in text
+    assert "Tailwind CLI finder" in text
+    assert "leftover `uxdom build`" in text
+
+
+def test_internals_flow_defers_to_canonical():
+    text = (ROOT / "docs" / "internals" / "FLOW.md").read_text(encoding="utf-8")
+    assert "FLOW.md wins" in text or "../FLOW.md" in text
+    assert "ux_compose.tailwind" in text
+    assert "create-app · build · serve · deploy" in text
 
 
 def test_doctor_teaches_directory_routes_not_router():

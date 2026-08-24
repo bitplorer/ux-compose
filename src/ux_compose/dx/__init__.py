@@ -1,6 +1,6 @@
 """DX probe — specialist detection for doctor and authoring tools.
 
-Compose CLI is the sole product lifecycle (create-app / serve / deploy / doctor).
+Compose CLI is the sole product lifecycle (create-app / build / serve / deploy / doctor).
 This package owns detection only — never re-implements DirectoryRoutes,
 Tailwind, or specialist generators.
 """

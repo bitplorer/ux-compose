@@ -86,8 +86,9 @@ stylesheet link inside `render()`.
 
 ## 2. Tokens and scan roots
 
-Create `assets/css/input.css`. ux-dom pins Tailwind standalone **v4.1.12**, so
-the v4 CSS-first entry is the default scaffold `TailwindCommand` writes:
+Create `assets/css/input.css`. `uxcompose create-app` already writes this
+v4 CSS-first entry. Compose pins the standalone CLI at **v4.1.12**
+(`ux_compose.tailwind.TAILWIND_STANDALONE_VERSION`):
 
 ```css
 @import "tailwindcss";

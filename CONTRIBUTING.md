@@ -33,7 +33,7 @@ Authoritative: [docs/FLOW.md](docs/FLOW.md). Agent contract: [AGENTS.md](AGENTS.
 
 | Do | Don't |
 |----|-------|
-| Put product lifecycle on `uxcompose` | Add `create-app` / `serve` / `deploy` to `uxdom` |
+| Put product lifecycle on `uxcompose` | Add `create-app` / product `build` / `serve` / `deploy` to `uxdom` |
 | Import specialists; wrap at `App` | Reimplement Document / Cap / Plan IR here |
 | Attach Channel via `App.use_channel(asgi_app=…)` | Import `ux_channel` from application modules |
 | Keep HMR under `uxcompose serve` | Add HMR as `Document.use` |

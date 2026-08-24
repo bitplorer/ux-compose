@@ -116,8 +116,8 @@ Never: `uxdom create-app`, `uxdom serve`, or product HMR as a Document API.
 | Goal | Doc |
 |------|-----|
 | Ownership law (authoritative) | [FLOW.md](FLOW.md) |
-| CLI reference | [CLI.md](CLI.md) |
-| DX principles | [DX.md](DX.md) |
+| CLI reference | [guides/CLI.md](guides/CLI.md) |
+| DX principles | [guides/DX.md](guides/DX.md) |
 | Full example map | [../examples/README.md](../examples/README.md) |
 | Test expectations | [TESTING.md](TESTING.md) |
 | Package gate | [../README.md](../README.md) |

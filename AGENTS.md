@@ -34,7 +34,8 @@ Do not document them. Tags are imported from `ux_compose`.
 
 ## What not to invent
 
-- Product CLI on `uxdom` (`create-app`, `serve`, `deploy`)
+- Product CLI on `uxdom` (`create-app`, product `build`, `serve`, `deploy`)
+- Tailwind CLI finder / download on ux-dom (`ux_compose.tailwind` owns it)
 - HMR as a `Document.use` product API
 - Product code importing `ux_channel` outside compose `wire/`
 - A copy of Channel codecs, Document serialize, or motion IR in this tree

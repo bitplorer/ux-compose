@@ -1,0 +1,19 @@
+name: Bug report
+description: App, CLI, serve, or mount does not match docs.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes: {label: Version / commit}
+    validations: {required: true}
+  - type: dropdown
+    id: level
+    attributes:
+      label: Progressive level
+      options: ["0 Document", "1 behavior", "2 channel", "3 motion"]
+    validations: {required: true}
+  - type: textarea
+    id: repro
+    attributes: {label: uxcompose doctor output and minimal snippet}
+    validations: {required: true}

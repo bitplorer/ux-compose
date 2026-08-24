@@ -15,7 +15,7 @@ specialists and must **not** reimplement them.
 
 | Layer | Owns | Must **not** own |
 |-------|------|------------------|
-| **ux-dom** | HTML/CSS/JS trees, `Document`, serialize, pure discovery, `uxdom`, WebAssets *paths* | Intent, Cap, Result ops, MorphState, motion IR, product CLI, Tailwind CLI finder |
+| **ux-dom** | HTML/CSS/JS trees, `Document`, serialize, pure discovery, `uxdom`, WebAssets *paths* | Intent, Cap, Result ops, MorphState, motion IR, product CLI, Tailwind compiler |
 | **ux-channel** | Intent / Result / Cap / wire / peers / host runtime | HTML trees, CSS |
 | **ux-behavior** | Product behavior, Morph/Ref, `@action`, validation | Raw HTML construction, wire codecs |
 | **ux-motion** | Presence / transition plans as data (IR v1) | Product behavior, DOM construction |
@@ -35,7 +35,7 @@ Do not document them. Tags are imported from `ux_compose`.
 ## What not to invent
 
 - Product CLI on `uxdom` (`create-app`, product `build`, `serve`, `deploy`)
-- Tailwind CLI finder / download on ux-dom (`ux_compose.tailwind` owns it)
+- Tailwind compiler on ux-dom (`ux_compose.tailwind` + `uxcompose build` own it)
 - HMR as a `Document.use` product API
 - Product code importing `ux_channel` outside compose `wire/`
 - A copy of Channel codecs, Document serialize, or motion IR in this tree

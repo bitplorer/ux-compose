@@ -170,8 +170,8 @@ uxdom build
 
 Document/static verify for leftover `app/main.py` trees. A
 `uxcompose create-app` tree has `app.py` at the root — **use
-`uxcompose build`**. If you run `uxdom build` in a product app it will
-teach you the same.
+`uxcompose build`**. `uxdom build` does **not** compile CSS. If you run
+it in a product app it will teach you `uxcompose build`.
 
 ### How the CLI is found
 
@@ -187,7 +187,7 @@ teach you the same.
 7. last resort: `npx --yes @tailwindcss/cli`
 
 `uxcompose build` uses `ensure=True`. A missing CLI is a real error, not a skip.
-`uxdom build` does **not** download — leftover verify only, product compile is here.
+`uxdom build` does **not** compile CSS. Product compile is here.
 
 Dev watch (do not ship this process):
 

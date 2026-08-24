@@ -288,9 +288,6 @@ def discover_css_io(root: Path) -> Optional[tuple[Path, Path]]:
     Output is the WebAssets static css dir (``assets/static/file/css/output.css``).
     If ux-dom is installed, the output dir comes from ``WebAssets.static.css``
     so the Document mount and the compiler write the same folder.
-
-    ux-dom keeps a leftover path helper (``ux_dom.cli.tailwind.discover_css_io``)
-    for Document/static verify; it does not own the product compiler.
     """
     root = Path(root)
     assets = root / "assets"

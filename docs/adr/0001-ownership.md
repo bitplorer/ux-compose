@@ -5,7 +5,7 @@
 
 **Status:** accepted  
 **Date:** 2026-08-24 (extracted from FLOW.md; law predates this extract)  
-**Amended:** 2026-08-24 — product `build` + Tailwind *compiler resolution* live on ux-compose (`ux_compose.tailwind`). ux-dom keeps WebAssets *paths* + className + `<link>`. Leftover `uxdom build` is Document/static verify for `app/main.py` trees and does not download a CLI.
+**Amended:** 2026-08-24 — product `build` + the Tailwind *compiler* live on ux-compose (`ux_compose.tailwind`). ux-dom keeps WebAssets *paths* + className + `<link>`. `TailwindCommand` / `TailwindStyle` / `ux_dom.cli.tailwind` fail closed. `uxdom build` is Document/static verify and does not compile CSS.
 
 ## Context
 
@@ -18,8 +18,8 @@ the old `app/main.py` layout, while `uxcompose create-app` emitted `app.py`.
 
 | Layer | Owns | Does **not** own |
 |-------|------|------------------|
-| **ux-dom** | Tag trees, dunders, Document shell, pure discovery, WebAssets *paths*, className / `<link>`, pure-dom DX | Product lifecycle, HMR process, tunnel, Tailwind CLI finder |
-| **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, **Tailwind compiler resolution** (`ux_compose.tailwind`), wire/, **HMR + tunnel under serve** | DOM serialize |
+| **ux-dom** | Tag trees, dunders, Document shell, pure discovery, WebAssets *paths*, className / `<link>`, pure-dom DX | Product lifecycle, HMR process, tunnel, Tailwind compiler |
+| **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, **Tailwind compiler** (`ux_compose.tailwind`), wire/, **HMR + tunnel under serve** | DOM serialize |
 
 **Author rule:** Render? → ux-dom. Product app lifecycle? → ux-compose only.
 
@@ -28,10 +28,9 @@ Product path: `uxcompose create-app` → `build` → `serve` → `deploy`.
 ## Consequences
 
 - `uxdom create-app` / `serve` / `deploy` are not the product path.
-- `uxcompose build` is the product CSS command. The Tailwind CLI finder / download / ensure lives in `ux_compose.tailwind`.
+- `uxcompose build` is the product CSS command. The Tailwind CLI finder / download / ensure / `@source` scaffold lives in `ux_compose.tailwind` + `uxcompose create-app`.
 - `uxdom build` remains Document/static verify for pure-dom `app/main.py`
-  trees. It does not download a compiler. Product apps (`app.py`) are taught
-  to use `uxcompose build`.
+  trees. It does not compile CSS. `TailwindCommand` fails closed.
 - HMR is not a `Document.use` product API.
 - Product code does not import `ux_channel` (attach via `App.use_channel`).
 - Full contract: [../FLOW.md](../FLOW.md).

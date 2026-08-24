@@ -14,8 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation contract: [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md).
 - Product `uxcompose build` — CSS minify via `ux_compose.tailwind` (finder + ensure). ux-dom keeps WebAssets paths + className + `<link>`.
 - `create-app` teaching surface: `settings.py`, `document.py`, `assets/css/input.css`, `requirements.txt`.
-- Tailwind CLI finder / download / ensure moved here (`ux_compose.tailwind`). ux-dom keeps WebAssets paths.
+- Tailwind CLI finder / download / ensure moved here (`ux_compose.tailwind`). ux-dom does not compile CSS (`TailwindCommand` fail-closed).
 
 ### Changed
 
-- Product path is `create-app → build → serve → deploy`. `uxdom build` is not the product CSS command.
+- Product path is `create-app → build → serve → deploy`. `uxdom build` does not compile CSS.

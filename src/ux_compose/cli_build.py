@@ -5,7 +5,7 @@ Ownership (FLOW law):
     Finding / downloading / invoking the Tailwind CLI is product DX.
   - Render paths stay on ux-dom: className, ``<link>``, WebAssets folders.
   - ``uxdom build`` is Document/static verify for leftover ``app/main.py``
-    trees. It does not download a compiler.
+    trees. It does not compile CSS.
 
 Product path::
 

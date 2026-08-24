@@ -41,10 +41,10 @@ Product path::
 
 | Layer | Owns | Does **not** own |
 |-------|------|------------------|
-| **ux-dom** | Tag trees, dunders, Document shell, pure discovery, WebAssets *paths*, className / `<link>`, pure-dom DX | Product lifecycle, HMR process, tunnel, Tailwind CLI finder |
+| **ux-dom** | Tag trees, dunders, Document shell, pure discovery, WebAssets *paths*, className / `<link>`, pure-dom DX | Product lifecycle, HMR process, tunnel, Tailwind compiler |
 | **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, **Tailwind compiler**, wire/, **HMR + tunnel under serve** | DOM serialize |
 
-`uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`). Compose never re-implements Document serialize. `uxdom build` is Document/static verify for pure-dom `app/main.py` trees — not the product path.
+`uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`). Compose never re-implements Document serialize. `uxdom build` is Document/static verify for pure-dom `app/main.py` trees — it does not compile CSS.
 
 ---
 
@@ -65,6 +65,6 @@ How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.
 - Dual product paths on uxdom
 - HMR as Document.use product API
 - Product code importing ux_channel
-- Tailwind CLI finder / download living on ux-dom
+- Tailwind compiler (finder, `@source` scaffold, CLI invoke) living on ux-dom
 
 See [guides/CLI.md](guides/CLI.md).

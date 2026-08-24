@@ -21,15 +21,42 @@ Specialized folders (`security/`, `ship/`, `design/`, `tutorial/`, `patterns/`, 
 
 It does **not** reimplement ux-dom / ux-channel / ux-behavior / ux-motion.
 
+## Smallest example
+
+Compose imports specialists. Pin `level=1` until you attach Channel.
+
+```python
+from ux_compose import App, Component, MorphState, action, notify
+
+class Cart(Component):
+    id = "cart"
+    count = MorphState(0)
+
+    def render(self):
+        return f"\u003cdiv id='cart'\u003e{self.count}\u003c/div\u003e"
+
+    @action(caps=())
+    def add(self):
+        self.count = int(self.count) + 1
+        return [notify("Added")]
+
+app = App.boot("Shop", level=1)
+app.add(Cart)
+print(app.dispatch("cart.add"))
+```
+
+Full cookbook: [guides/SNIPPETS.md](guides/SNIPPETS.md) · product path: [guides/PATH.md](guides/PATH.md) · UI kit: [guides/UI.md](guides/UI.md).
+
 ---
 
 ## Audience
 
 | You are… | Start (≤ 2 clicks from repo root) |
 |----------|-----------------------------------|
-| **First time** | [../START_HERE.md](../START_HERE.md) |
+| **First time** | [../START_HERE.md](../START_HERE.md) · [guides/PATH.md](guides/PATH.md) |
 | **Ownership / boundaries** | [FLOW.md](FLOW.md) |
 | **CLI surface** | [guides/CLI.md](guides/CLI.md) |
+| **Pick-and-use UI** | [guides/UI.md](guides/UI.md) |
 | **DX / tests** | [guides/DX.md](guides/DX.md) · [guides/TESTING.md](guides/TESTING.md) |
 | **Maintainer / agent** | [../AGENTS.md](../AGENTS.md) · [../CONTRIBUTING.md](../CONTRIBUTING.md) |
 
@@ -49,6 +76,7 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 |-----|--------|
 | [../START_HERE.md](../START_HERE.md) | Root 5-minute path |
 | [START_HERE.md](START_HERE.md) | Mental model + install (not a second 5-minute path) |
+| [guides/PATH.md](guides/PATH.md) | Scaffold → serve → HMR → Tailwind → composition → control flow → motion → live |
 | [../examples/README.md](../examples/README.md) | Example map |
 | [../examples/page_unit_mount.py](../examples/page_unit_mount.py) | Page-unit mount proof |
 
@@ -56,6 +84,9 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 
 | Doc | Topic |
 |-----|--------|
+| [guides/PATH.md](guides/PATH.md) | End-to-end product path (also tutorial) |
+| [guides/UI.md](guides/UI.md) | Pick-and-use Components |
+| [guides/SNIPPETS.md](guides/SNIPPETS.md) | Copy-paste App / Cart / levels / XOR / path / UI |
 | [guides/README.md](guides/README.md) | How-to slot |
 | [guides/CLI.md](guides/CLI.md) | Product vs pure-dom CLI |
 | [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) | serve / HMR / tunnel |
@@ -68,7 +99,7 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 | Doc | Topic |
 |-----|--------|
 | [guides/CLI.md](guides/CLI.md) | Command ownership table |
-| `src/ux_compose/__init__.py` | Public names (`__all__`) |
+| `src/ux_compose.__all__` | Public names |
 | [resilience/MATRIX.md](resilience/MATRIX.md) | Resilience matrix |
 
 ### Explanation
@@ -121,3 +152,16 @@ Level 1 code remains correct at higher levels. Zero rewrite.
 | [ux-motion](https://github.com/bitplorer/ux-motion) | Presence / transition plans |
 
 Do not flatten these layers into this repo.
+
+## Community health
+
+| File | Audience |
+|------|----------|
+| [../README.md](../README.md) | Everyone — Standard Readme door |
+| [../START_HERE.md](../START_HERE.md) | First-time user |
+| [../SUPPORT.md](../SUPPORT.md) | Questions |
+| [../SECURITY.md](../SECURITY.md) | Security reviewers / reporters |
+| [../CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md) | Everyone in the issue tracker |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | Contributors |
+| [../GOVERNANCE.md](../GOVERNANCE.md) | How decisions are made |
+| [DOCUMENTATION.md](DOCUMENTATION.md) | Docs authors (the family contract) |

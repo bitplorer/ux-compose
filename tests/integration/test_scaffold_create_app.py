@@ -38,7 +38,8 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     req = (root / "requirements.txt").read_text(encoding="utf-8")
 
     assert "BASE_DIR" in settings
-    assert "WebAssets" in settings
+    assert "from ux_compose import WebAssets" in settings
+    assert "from ux_dom import WebAssets" not in settings
     assert "DEBUG" in settings
     assert "import ux_channel" not in settings
     assert "from ux_channel" not in settings

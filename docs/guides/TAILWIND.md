@@ -131,7 +131,7 @@ above so you match the CLI compose downloads.
 ## 3. Compile for production
 
 **Output path is fixed** by `ux_compose.tailwind.discover_css_io`
-(matches WebAssets `static.css` when ux-dom is installed):
+(matches `ux_compose.assets.WebAssets.static.css`):
 
 | Role | Path |
 |------|------|
@@ -198,9 +198,9 @@ python -m pytailwindcss \
   --watch
 ```
 
-`TailwindStyle(..., minify=not DEBUG)` is the same split: watch while debug,
-one-shot minify when not. `UXDOM_TAILWIND_OWNED=1` tells the plugin to skip so
-the CLI is the only compiler.
+`uxcompose build --watch` in dev, `uxcompose build` (minify) in production.
+Not both. `TailwindStyle` on ux-dom fails closed — do not compile from
+Document lifespan. The CLI is the only compiler.
 
 ---
 
@@ -208,14 +208,14 @@ the CLI is the only compiler.
 
 The generated file is served as **`/css/output.css`**.
 
-`TailwindStyle.stylesheet_href()` returns `/css/{output_css}`. The ux-dom
-showcase mounts `WebAssets.static.css` (`assets/static/file/css`) at `/css`
-and links it from the Document:
+Product apps mount `WebAssets.static.css` (`assets/static/file/css`) at `/css`
+and link it from the Document. `href` is a string — Document does not take a
+`webassets=` field.
 
 ```python
 from pathlib import Path
-from fastapi.staticfiles import StaticFiles
-from ux_dom import Document, WebAssets
+from ux_compose import WebAssets
+from ux_dom import Document
 from ux_dom.dom import link, meta, title
 
 ROOT = Path(__file__).resolve().parent
@@ -230,17 +230,16 @@ document = Document(
     ],
     body=[],
     ensure_csrf_token=False,
-    webassets=webassets,
 )
 
 # after build() / FastAPI()
-css_dir = webassets.static.css  # assets/static/file/css
-asgi.mount("/css", StaticFiles(directory=str(css_dir), check_dir=False), name="css")
+webassets.mount_css(asgi)  # /css → assets/static/file/css
+document.mount(asgi)       # package static /ux-dom/static/…
 ```
 
 `create-app`'s `build(document=)` attaches the Document from `document.py`
-(head already has the `/css/output.css` link). `app.py` mounts WebAssets
-`static.css` at `/css` and calls `document.mount(asgi)` for runtime files.
+(head already has the `/css/output.css` link). `app.py` calls
+`webassets.mount_css(asgi)` and `document.mount(asgi)` for runtime files.
 
 Atelier demos link a **static snapshot** (`/static/css/atelier.css`) until
 those hosts are full product apps. Prefer `input.css` → `output.css`.
@@ -319,9 +318,8 @@ Same minify command in GitHub Actions (or equivalent). Upload `output.css`.
 The deploy job copies it next to the app. Image stays slim.
 
 Set `DEBUG=false` on the host either way (`uxdom` doctor warns if it stays
-true). Tailwind minify is independent of that flag unless you wired
-`TailwindStyle(minify=not DEBUG)` and compile at process start — prefer a
-file on disk so workers do not race the compiler.
+true). Tailwind minify is independent of that flag. Prefer a file on disk
+so workers do not race the compiler. `TailwindStyle` on ux-dom fails closed.
 
 ---
 

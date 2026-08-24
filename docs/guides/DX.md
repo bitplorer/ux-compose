@@ -30,9 +30,9 @@ when Channel or Motion unlock. Zero rewrite.
 door is `ux_compose.wire/` via `App.use_channel` / `App.use_motion`.
 
 **Ownership:** `uxdom` is pure Document tooling (`doctor`, `lint`, `profile`,
-`add`). WebAssets *paths*, className, and the Document `<link>` live there.
-There is no `uxdom create-app` / `serve` / `deploy`. Product CSS compile
-(finder, download, minify) is `uxcompose build` (`ux_compose.tailwind`).
+`add`). className, Document `<link>`, and package static live there.
+App folders are `ux_compose.WebAssets`. There is no `uxdom create-app` /
+`serve` / `deploy`. Product CSS compile is `uxcompose build`.
 
 ## Commands
 
@@ -88,7 +88,7 @@ pr.unlock_messages(requested_level=3)
 ## What compose deliberately does not own
 
 - Tag serialize / Document shell → ux-dom
-- WebAssets folders / className / stylesheet `<link>` → ux-dom
+- className / stylesheet `<link>` / package static (`/ux-dom/static/…`) → ux-dom
 - `uxdom add component|xelement|ui` → ux-dom (pure-dom)
 - Channel wire protocol / CEK → ux-channel (behind `wire/` only)
 - Scene IR / player scripts → ux-motion

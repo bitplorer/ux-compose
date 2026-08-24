@@ -13,11 +13,13 @@
 ux-dom      RENDER     tree → __render__ / __async_render__ → HTML str | bytes | stream
                        Document shell: control attrs, runtime script tags, CSP stamp
                        pure DirectoryRoutes + RouterHooks (discovery only)
-                       WebAssets *paths*, className, stylesheet <link>
+                       className, stylesheet <link>
+                       package static (/ux-dom/static/…)
                        pure-dom DX: doctor | lint | profile | add
 
 ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
             + CSS      Tailwind CLI finder / ensure / minify (ux_compose.tailwind)
+            + ASSETS   app folders (ux_compose.assets.WebAssets) · /css mount
             + DELIVERY HTTP bind, host strategy, live units
             + CHANNEL  wire/ only
             + DEV      HMR (/__uxcompose/hmr) · tunnel (ngrok|cloudflare)
@@ -41,8 +43,8 @@ Product path::
 
 | Layer | Owns | Does **not** own |
 |-------|------|------------------|
-| **ux-dom** | Tag trees, dunders, Document shell, pure discovery, WebAssets *paths*, className / `<link>`, pure-dom DX | Product lifecycle, HMR process, tunnel, Tailwind compiler |
-| **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, **Tailwind compiler**, wire/, **HMR + tunnel under serve** | DOM serialize |
+| **ux-dom** | Tag trees, dunders, Document shell, pure discovery, className / `<link>`, package static, pure-dom DX | Product lifecycle, HMR process, tunnel, Tailwind compiler, app asset layout |
+| **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, **Tailwind compiler**, **WebAssets layout**, wire/, **HMR + tunnel under serve** | DOM serialize |
 
 `uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`). Compose never re-implements Document serialize. `uxdom build` is Document/static verify for pure-dom `app/main.py` trees — it does not compile CSS.
 
@@ -52,7 +54,7 @@ Product path::
 
 Allowed: control, runtime, CSP, style. **Not:** HMR process, FastAPIHost, product App.
 
-create-app emits `document.py` (one Document + `page()`) and `settings.py` (WebAssets). `build(document=)` attaches that Document. Dual-Document in product files is a doctor fail.
+create-app emits `document.py` (one Document + `page()`) and `settings.py` (`ux_compose.WebAssets`). `build(document=)` attaches that Document. Dual-Document in product files is a doctor fail.
 
 ---
 
@@ -66,5 +68,6 @@ How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.
 - HMR as Document.use product API
 - Product code importing ux_channel
 - Tailwind compiler (finder, `@source` scaffold, CLI invoke) living on ux-dom
+- App asset layout (`WebAssets`) living on ux-dom
 
 See [guides/CLI.md](guides/CLI.md).

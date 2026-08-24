@@ -1,6 +1,7 @@
 """Tailwind CLI resolution — product build DX (this package).
 
-Render (className, ``<link>``, WebAssets *paths*) stays on ux-dom.
+Render (className, ``<link>``) stays on ux-dom.
+App folders + compiler I/O live here (``ux_compose.assets.WebAssets``).
 Finding, downloading, and invoking the compiler is ``uxcompose build``.
 Same split as React vs ``next build``.
 
@@ -282,35 +283,24 @@ def argv_with_io(
 
 
 def discover_css_io(root: Path) -> Optional[tuple[Path, Path]]:
-    """Resolve input/output CSS for a product (or leftover showcase) tree.
+    """Resolve input/output CSS for a product tree.
 
-    Product convention SSoT. Input is the author file ``assets/css/input.css``.
-    Output is the WebAssets static css dir (``assets/static/file/css/output.css``).
-    If ux-dom is installed, the output dir comes from ``WebAssets.static.css``
-    so the Document mount and the compiler write the same folder.
+    Product convention SSoT: ``WebAssets`` on this package.
+    Input is ``assets/css/input.css``. Output is ``WebAssets.output_css``
+    (``assets/static/file/css/output.css``), the folder ``/css`` mounts.
     """
     root = Path(root)
-    assets = root / "assets"
-    input_css = assets / "css" / "input.css"
+    from ux_compose.assets import WebAssets
+
+    wa = WebAssets.from_app_root(root, dry_run=True)
+    input_css = wa.input_css
     if not input_css.is_file():
-        alt = assets / "input.css"
+        alt = wa.dir / "input.css"
         if alt.is_file():
             input_css = alt
         elif (root / "app" / "tailwindcss.py").is_file():
-            input_css = assets / "css" / "input.css"
+            input_css = wa.input_css
         else:
             return None
-    output_css: Optional[Path] = None
-    try:
-        from ux_dom import WebAssets
-
-        wa = WebAssets(base_dir=assets, dry_run=True)
-        css_dir = getattr(getattr(wa, "static", None), "css", None)
-        if css_dir is not None:
-            output_css = Path(str(css_dir)) / "output.css"
-    except Exception:
-        output_css = None
-    if output_css is None:
-        output_css = assets / "static" / "file" / "css" / "output.css"
-    output_css.parent.mkdir(parents=True, exist_ok=True)
-    return input_css, output_css
+    wa.ensure()
+    return input_css, wa.output_css

@@ -2,7 +2,7 @@
 
 **Do not put CSS or client JS inside Python strings.**
 
-## Correct path (ux-dom / Tailwind)
+## Correct path (className on trees / compile on ux-compose)
 
 1. Author classes in Python (`className="…"`).
 2. Design tokens + component classes live in `assets/css/input.css`.

@@ -5,8 +5,8 @@
 
 | CLI | Owns |
 |-----|------|
-| **`uxcompose`** | **Sole product lifecycle:** create-app, **build** (incl. Tailwind CLI finder), serve, deploy, doctor |
-| **`uxdom`** | Pure Document tooling: doctor, lint, profile, add. WebAssets *paths*. |
+| **`uxcompose`** | **Sole product lifecycle:** create-app, **build** (Tailwind CLI + `WebAssets` folders), serve, deploy, doctor |
+| **`uxdom`** | Pure Document tooling: doctor, lint, profile, add. Package static. |
 
 ## Product path (only)
 

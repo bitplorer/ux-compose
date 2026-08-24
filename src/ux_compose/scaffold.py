@@ -42,8 +42,12 @@ APP_PY = dedent('''\
 
 
     def _mount_css(asgi) -> None:
-        """Serve compiled Tailwind at /css/output.css (WebAssets static.css)."""
+        """Serve compiled CSS at /css/output.css."""
         if asgi is None or webassets is None:
+            return
+        mount = getattr(webassets, "mount_css", None)
+        if callable(mount):
+            mount(asgi)
             return
         css_dir = getattr(getattr(webassets, "static", None), "css", None)
         if css_dir is None:
@@ -106,15 +110,17 @@ APP_PY = dedent('''\
 
 
 SETTINGS_PY = dedent('''\
-    """Environment SSoT — paths, debug, WebAssets.
+    """Environment SSoT — paths, debug, app asset layout.
 
-    Document reads this. The host never invents a second asset root.
-    Isolation: this module never imports ux_channel.
+    Document emits ``<link href="/css/output.css">``. This module owns the
+    disk folders. Isolation Law: Channel stays behind compose wire/.
     """
     from __future__ import annotations
 
     import os
     from pathlib import Path
+
+    from ux_compose import WebAssets
 
     BASE_DIR = Path(__file__).resolve().parent
     DEBUG = os.environ.get("DEBUG", "1") not in ("0", "false", "False")
@@ -122,13 +128,8 @@ SETTINGS_PY = dedent('''\
     ASSETS_DIR = BASE_DIR / "assets"
     OUTPUT_CSS = "output.css"
 
-    try:
-        from ux_dom import WebAssets
-
-        # dry_run=False creates assets/static/file/css (the compile output dir)
-        webassets = WebAssets(base_dir=ASSETS_DIR, dry_run=False)
-    except Exception:
-        webassets = None
+    # dry_run=False creates assets/static/file/css (compiler output dir)
+    webassets = WebAssets(base_dir=ASSETS_DIR, dry_run=False)
 ''')
 
 
@@ -147,7 +148,7 @@ DOCUMENT_PY = dedent('''\
         from ux_dom.runtime import XElement, Csp
         from ux_dom.dom import link, meta, title
 
-        from settings import DEBUG, OUTPUT_CSS, webassets
+        from settings import DEBUG, OUTPUT_CSS
 
         document = Document(
             head=[
@@ -158,7 +159,6 @@ DOCUMENT_PY = dedent('''\
             ],
             body=[],
             ensure_csrf_token=False,
-            webassets=webassets,
         ).use(XElement(), Csp.auto())
 
         def page(*body, page_title: str | None = None):
@@ -278,7 +278,7 @@ README = dedent('''\
 
     ## Mental model
 
-    - `settings.py` — environment (BASE_DIR, DEBUG, WebAssets)
+    - `settings.py` — environment (BASE_DIR, DEBUG, WebAssets on ux-compose)
     - `document.py` — Document SSoT + `.use(XElement, Csp)` + `page()`
     - `app.py` — composition root: `build(host=, live=, level=, document=)`
     - `routes/hello.py` — page unit (`render()` is a fragment; `get()` wraps with `page()`)

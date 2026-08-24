@@ -122,7 +122,7 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 
 | Owns | Does **not** own |
 |------|------------------|
-| Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder | DOM serialize / tag trees / WebAssets *paths* (ux-dom) |
+| Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder + app asset layout (`WebAssets`) | DOM serialize / tag trees / package static (ux-dom) |
 | App composition, host strategy, delivery | Channel transport (wire/ only) |
 | HMR + tunnel under `uxcompose serve` | Pure-dom tooling (`uxdom doctor` / lint / profile / add) |
 | Page-unit mount (`App.mount` + `routes/`) | Behavior units (ux-behavior); leftover `uxdom build` (`app/main.py` verify) |

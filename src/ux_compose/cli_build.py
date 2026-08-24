@@ -3,7 +3,8 @@
 Ownership (FLOW law):
   - Compiler resolution lives HERE (``ux_compose.tailwind``).
     Finding / downloading / invoking the Tailwind CLI is product DX.
-  - Render paths stay on ux-dom: className, ``<link>``, WebAssets folders.
+  - Render stays on ux-dom: className, ``<link>``, package static.
+  - App folders live HERE (``ux_compose.assets.WebAssets``).
   - ``uxdom build`` is Document/static verify for leftover ``app/main.py``
     trees. It does not compile CSS.
 

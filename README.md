@@ -114,7 +114,7 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 
 | Owns | Does **not** own |
 |------|------------------|
-| Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder | DOM serialize / tag trees / WebAssets *paths* (ux-dom) |
+| Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder + app asset layout | DOM serialize / tag trees / package static (ux-dom) |
 | `App` composition, `App.mount`, delivery, HMR + tunnel under serve | Channel transport (wire/ only) |
 | Page-unit mount (`routes/` + `App.mount`); CSS minify via `ux_compose.tailwind` | MorphState / Cap / Plan IR implementations |
 

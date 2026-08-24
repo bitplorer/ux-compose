@@ -15,11 +15,11 @@ specialists and must **not** reimplement them.
 
 | Layer | Owns | Must **not** own |
 |-------|------|------------------|
-| **ux-dom** | HTML/CSS/JS trees, `Document`, serialize, pure discovery, `uxdom`, WebAssets *paths* | Intent, Cap, Result ops, MorphState, motion IR, product CLI, Tailwind compiler |
+| **ux-dom** | HTML/CSS/JS trees, `Document`, serialize, pure discovery, `uxdom`, package static | Intent, Cap, Result ops, MorphState, motion IR, product CLI, Tailwind compiler, app asset layout |
 | **ux-channel** | Intent / Result / Cap / wire / peers / host runtime | HTML trees, CSS |
 | **ux-behavior** | Product behavior, Morph/Ref, `@action`, validation | Raw HTML construction, wire codecs |
 | **ux-motion** | Presence / transition plans as data (IR v1) | Product behavior, DOM construction |
-| **ux-compose** (this repo) | Author composition + product CLI (`uxcompose`: create-app, build, serve, deploy, doctor) + Tailwind compiler resolution | Re-implementing Document serialize |
+| **ux-compose** (this repo) | Author composition + product CLI (`uxcompose`: create-app, build, serve, deploy, doctor) + Tailwind compiler + **WebAssets layout** | Re-implementing Document serialize |
 
 Do not invent a sixth product. `ux-app` is retired.
 
@@ -36,6 +36,7 @@ Do not document them. Tags are imported from `ux_compose`.
 
 - Product CLI on `uxdom` (`create-app`, product `build`, `serve`, `deploy`)
 - Tailwind compiler on ux-dom (`ux_compose.tailwind` + `uxcompose build` own it)
+- App asset layout / `WebAssets` on ux-dom (`ux_compose.assets` owns it)
 - HMR as a `Document.use` product API
 - Product code importing `ux_channel` outside compose `wire/`
 - A copy of Channel codecs, Document serialize, or motion IR in this tree

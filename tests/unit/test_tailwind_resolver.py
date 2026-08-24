@@ -109,19 +109,15 @@ def test_discover_css_io_matches_scaffold(tmp_path):
     assert "@source" in css
 
 
-def test_discover_css_io_matches_webassets_when_installed(tmp_path):
-    import importlib.util
-
-    if importlib.util.find_spec("ux_dom") is None:
-        return
-    from ux_dom import WebAssets
+def test_discover_css_io_matches_compose_webassets(tmp_path):
+    from ux_compose.assets import WebAssets
 
     root = create_app(tmp_path / "wa", name="wa")
     io = discover_css_io(root)
     assert io is not None
     _, out = io
-    wa = WebAssets(base_dir=root / "assets", dry_run=True)
-    assert Path(str(wa.static.css)) / "output.css" == out
+    wa = WebAssets.from_app_root(root, dry_run=True)
+    assert wa.output_css == out
 
 
 def test_standalone_asset_name():

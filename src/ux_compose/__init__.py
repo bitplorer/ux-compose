@@ -22,6 +22,7 @@ from ux_compose.surfaces import (
 from ux_compose.progressive import Level
 from ux_compose.doctor import doctor, DoctorResult
 from ux_compose.build import build
+from ux_compose.assets import WebAssets
 
 try:
     from ux_motion import scene, fade, rise  # type: ignore
@@ -68,6 +69,7 @@ from ux_compose.dom import (  # noqa: E402
 __all__ = [
     "App",
     "build",
+    "WebAssets",
     "Surface",
     "SurfaceBundle",
     "SurfaceError",

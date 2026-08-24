@@ -60,6 +60,25 @@ def test_internals_flow_defers_to_canonical():
     assert "create-app · build · serve · deploy" in text
 
 
+def test_webassets_lives_on_compose():
+    from ux_compose import WebAssets
+    from ux_compose.assets import WebAssets as WA
+
+    assert WebAssets is WA
+    src = (ROOT / "src" / "ux_compose" / "scaffold.py").read_text(encoding="utf-8")
+    assert "from ux_compose import WebAssets" in src
+    assert "from ux_dom import WebAssets" not in src
+    doc = (ROOT / "docs" / "FLOW.md").read_text(encoding="utf-8")
+    assert "WebAssets" in doc
+    assert "ux_compose.assets" in doc or "asset layout" in doc.lower()
+    dx = (ROOT / "docs" / "guides" / "DX.md").read_text(encoding="utf-8")
+    assert "WebAssets folders" not in dx
+    tw = (ROOT / "docs" / "guides" / "TAILWIND.md").read_text(encoding="utf-8")
+    assert "from ux_dom import WebAssets" not in tw
+    assert "from ux_compose import WebAssets" in tw
+    assert "webassets=webassets" not in tw
+
+
 def test_doctor_teaches_directory_routes_not_router():
     report = doctor([], fail=False)
     assert "directory_router" not in report.capabilities

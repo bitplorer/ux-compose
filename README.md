@@ -1,26 +1,10 @@
 # ux-compose
 
-**Thin pure-Python composition and delivery root** for the UX framework family.
+[![CI](https://github.com/bitplorer/ux-compose/actions/workflows/ci.yml/badge.svg)](https://github.com/bitplorer/ux-compose/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Harnesses four specialists without re-implementing them:
-
-| Specialist | Role |
-|------------|------|
-| **ux-dom** | Document SSoT, elements, runtimes (Python ≥3.14) |
-| **ux-channel** | Live Caps, Intent, signed control, ASGI |
-| **ux-behavior** | Offline Components, MorphState, `@action`, Cap Law |
-| **ux-motion** | Scene plans, presence, Morph-then-Play |
-
-No React. No Vue. No client SPA runtime. Server-authored, hypermedia-first, capability-secured, progressive.
-
-> **New here?** [START_HERE.md](START_HERE.md) (5 minutes). Mental model: [docs/START_HERE.md](docs/START_HERE.md)
-> **Ownership law:** [docs/FLOW.md](docs/FLOW.md)
-> **Map:** [docs/INDEX.md](docs/INDEX.md)
-> **Contributor / agent:** [CONTRIBUTING.md](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md)
-
-Compose is allowed to look like “the product” to authors. It must **import** specialists, not copy them.
-
-### Brand lines
+Thin pure-Python composition and delivery root for the UX framework family. Imports specialists; does not copy them. No React. Server-authored, hypermedia-first, capability-secured, progressive.
 
 | Layer | Name |
 |-------|------|
@@ -28,69 +12,45 @@ Compose is allowed to look like “the product” to authors. It must **import**
 | **Import** | `ux_compose` |
 | **CLI** | **`uxcompose`** (sole product lifecycle) |
 | **Version** | `0.1.0` |
+| **Python** | ≥ 3.11 (ux-dom full stack needs ≥3.14) |
+| **License** | [MIT](LICENSE) |
 
-### Ownership
+## Table of Contents
 
-| Owns | Does **not** own |
-|------|------------------|
-| Product CLI (`create-app`, `serve`, `deploy`, `doctor`) | DOM serialize / tag trees (ux-dom) |
-| `App` composition, `App.mount`, delivery, HMR + tunnel under serve | Channel transport (wire/ only) |
-| Page-unit mount (`routes/` + `App.mount`) | Pure-dom tooling (`uxdom`); MorphState / Cap / Plan IR implementations |
+- [Install](#install)
+- [Usage](#usage)
+- [Ownership](#ownership)
+- [Audience](#audience)
+- [Progressive levels](#progressive-levels)
+- [Documentation](#documentation)
+- [API](#api)
+- [Security](#security)
+- [Contributing](#contributing)
+- [License](#license)
 
----
-
-## Product path
+## Install
 
 ```bash
+pip install -e .
+pip install "ux-compose[full]"   # ux-dom + ux-behavior + ux-motion + ux-channel
 uxcompose create-app myapp --level 1
 cd myapp
 uxcompose serve app:asgi --port 8080
-uxcompose deploy --provider docker
 uxcompose doctor .
 ```
 
-Pure-dom tooling stays on **`uxdom`** (`doctor` · `lint` · `build` · `profile`).
+Pure-dom tooling stays on **`uxdom`**.
 
----
-
-## Audience
-
-| You are… | Start |
-|----------|--------|
-| **New** | [START_HERE.md](START_HERE.md) |
-| **Ownership / boundaries** | [docs/FLOW.md](docs/FLOW.md) |
-| **CLI** | [docs/CLI.md](docs/CLI.md) |
-| **Contributor / agent** | [CONTRIBUTING.md](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md) |
-| **Need a map** | [docs/INDEX.md](docs/INDEX.md) |
-
----
-
-## Quick start (Level 1)
-
-```bash
-python3.14 -m venv .venv && source .venv/bin/activate
-pip install -e .
-pip install "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git"
-pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
-```
+## Usage
 
 ```python
-from ux_compose import (
-    App, Component, MorphState, action, update_with, notify, control,
-    div, h1, button,
-)
+from ux_compose import App, Component, MorphState, action, update_with, notify, control, div, h1, button
 
 class Cart(Component):
     id = "cart"
     count = MorphState(0)
-
     def render(self):
-        return div(
-            h1(f"Items: {self.count}"),
-            button("+ tee", **control("add", sku="tee")),
-            id=self.id,
-        )
-
+        return div(h1(f"Items: {self.count}"), button("+ tee", **control("add", sku="tee")), id=self.id)
     @action(caps=())
     def add(self, sku: str = ""):
         self.count = int(self.count) + 1
@@ -101,38 +61,53 @@ app.add(Cart)
 print(app.dispatch("cart.add", sku="tee"))
 ```
 
-`render()` returns a **ux-dom tag tree**, not an HTML string.
-Public names are `ux_compose` (`App`, `div`, `button`, …) — not a second `ux.*` namespace.
+`render()` returns a **ux-dom tag tree**. Five minutes: [START_HERE.md](START_HERE.md).
 
-Default product layout: `routes/` page units + `App.mount` (`examples/page_unit_mount.py`).
+## Ownership
 
----
+| Owns | Does **not** own |
+|------|------------------|
+| Product CLI (`create-app`, `serve`, `deploy`, `doctor`) | DOM serialize (ux-dom) |
+| `App` composition, HMR + tunnel under serve | Channel transport (wire/ only) |
+| Page-unit mount | MorphState / Cap / Plan IR implementations |
+
+## Audience
+
+| You are… | Start |
+|----------|--------|
+| **New** | [START_HERE.md](START_HERE.md) |
+| **Ownership** | [docs/FLOW.md](docs/FLOW.md) |
+| **CLI** | [docs/guides/CLI.md](docs/guides/CLI.md) |
+| **Map** | [docs/INDEX.md](docs/INDEX.md) |
+| **Security** | [SECURITY.md](SECURITY.md) |
 
 ## Progressive levels
 
-| Level | What you get | Unlock |
-|-------|----------------|--------|
-| **0** | Static Document | `ux-dom` |
-| **1** | Offline MorphState + `@action` | `+ ux-behavior` |
-| **2** | Live Caps + Intent | `+ ux-channel` via `App.use_channel(asgi_app=…)` |
-| **3** | Choreographed motion | `+ ux-motion` via `App.use_motion()` |
+| Level | Unlock |
+|-------|--------|
+| **0** | ux-dom |
+| **1** | + ux-behavior |
+| **2** | + ux-channel via `App.use_channel(asgi_app=…)` |
+| **3** | + ux-motion via `App.use_motion()` |
 
-**Progressive contract:** Level 1 code remains correct at higher levels. Zero rewrite.
+Level 1 code remains correct at higher levels. Zero rewrite.
 
----
+## Documentation
 
-## Hard invariants
+Family contract: [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md). Canonical CLI is `docs/guides/CLI.md` — not the Moved stub `docs/CLI.md`.
 
-- Product lifecycle CLI is **`uxcompose` only**
-- Channel attach is `App.use_channel(asgi_app=…)` — Isolation-safe
-- HMR / tunnel are delivery under `uxcompose serve`, not Document APIs
-- Authors do not import `ux_channel` outside compose `wire/`
-- Do not reimplement specialists in this repo
+## API
 
-Full law: [`docs/FLOW.md`](docs/FLOW.md). Examples: [`examples/README.md`](examples/README.md). Tests: `make test314`.
+`ux_compose.__all__`: `App`, `Component`, `MorphState`, `action`, `control`, `notify`, `update_with`, tag constructors, `scene`/`fade`/`rise` when motion is installed, `doctor`, CLI `uxcompose`.
 
-**Notes:** ux-dom requires Python ≥3.14 (L1 offline can run 3.11+). Optional CEK: `app.use_cek(mode="adapt")`. Headless `use_channel()` boots Channel without HTTP for mint/submit tests.
+## Security
+
+Union of the levels you enabled. Do not import `ux_channel` from product code. [SECURITY.md](SECURITY.md).
+
+## Contributing
+
+[CONTRIBUTING.md](CONTRIBUTING.md) · [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) · [SUPPORT.md](SUPPORT.md) · [GOVERNANCE.md](GOVERNANCE.md) · [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE).

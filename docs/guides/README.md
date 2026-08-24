@@ -6,6 +6,7 @@
 | Doc | What |
 |-----|------|
 | [PATH.md](PATH.md) | Scaffold → serve → HMR → Tailwind → composition → control flow → motion → live |
+| [TAILWIND.md](TAILWIND.md) | Production CSS: minify, `/css/output.css`, deploy |
 | [UI.md](UI.md) | Pick-and-use Components (toggle, tabs, modal, cart, …) |
 | [SNIPPETS.md](SNIPPETS.md) | Public-API cookbook |
 | [CLI.md](CLI.md) | Product vs pure-dom CLI |

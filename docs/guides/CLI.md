@@ -29,3 +29,21 @@ uxdom profile
 
 `uxdom create-app` / `serve` / `deploy` are **removed from the product path**.
 See `docs/FLOW.md`.
+
+## Production CSS
+
+`uxdom build` minifies Tailwind when the tree has `app/main.py` and
+`assets/css/input.css` → `assets/static/file/css/output.css`. Product apps from
+`uxcompose create-app` have `app.py` at the root — compile with the CLI
+directly, then deploy the file:
+
+```bash
+python -m pytailwindcss \
+  -i assets/css/input.css \
+  -o assets/static/file/css/output.css \
+  --minify
+uxcompose deploy --provider docker
+```
+
+`uxcompose serve` watches `.css` (HMR). It does not compile.
+`uxcompose deploy` does not run Tailwind. Full how-to: [TAILWIND.md](TAILWIND.md).

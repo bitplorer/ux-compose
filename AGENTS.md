@@ -19,7 +19,7 @@ specialists and must **not** reimplement them.
 | **ux-channel** | Intent / Result / Cap / wire / peers / host runtime | HTML trees, CSS |
 | **ux-behavior** | Product behavior, Morph/Ref, `@action`, validation | Raw HTML construction, wire codecs |
 | **ux-motion** | Presence / transition plans as data (IR v1) | Product behavior, DOM construction |
-| **ux-compose** (this repo) | Author composition + product CLI (`uxcompose`) | Re-implementing any specialist |
+| **ux-compose** (this repo) | Author composition + product CLI (`uxcompose`: create-app, build, serve, deploy, doctor) | Re-implementing any specialist; Tailwind CLI finder |
 
 Do not invent a sixth product. `ux-app` is retired.
 
@@ -44,12 +44,14 @@ Do not document them. Tags are imported from `ux_compose`.
 
 ```bash
 uxcompose create-app myapp --level 1
+uxcompose build
 uxcompose serve app:asgi --port 8080
 uxcompose deploy --provider docker
 uxcompose doctor .
 ```
 
-Pure-dom: `uxdom doctor | lint | build | profile`.
+Pure-dom: `uxdom doctor | lint | profile | add`.
+Product CSS: `uxcompose build` (hands off to `ux_dom.cli.tailwind`).
 
 ## Tests
 

@@ -12,16 +12,9 @@
 4. Build (production minify):
 
 ```bash
-# product output — same path uxdom build writes
-python -m pytailwindcss \
-  -i assets/css/input.css \
-  -o assets/static/file/css/output.css \
-  --minify
-
-# ux-dom app layout (app/main.py) also:
-#   uxdom build
-# fallback if app/tailwindcss.py exists and input.css does not:
-#   python -m app.tailwindcss
+uxcompose build
+# → assets/static/file/css/output.css
+# hands off to ux_dom.cli.tailwind (compose does not re-implement the finder)
 ```
 
 Dev watch is `--watch` instead of `--minify` (XOR). `uxcompose serve --hmr`
@@ -31,8 +24,8 @@ reloads the browser when `.css` changes; it does not compile.
    `assets/static/file/css` at `/css`. Never `style(raw(CSS))`.
    Never `cdn.tailwindcss.com`.
 
-Production deploy: compile before the image (commit `output.css`) or add a
-Docker `RUN` minify. `uxcompose deploy` does not run Tailwind.
+Production deploy: `uxcompose build` before the image (commit `output.css`)
+or add a Docker `RUN`. `uxcompose deploy` does not run Tailwind.
 How-to: [docs/guides/TAILWIND.md](../docs/guides/TAILWIND.md).
 
 ## Demo hosts (atelier_*)

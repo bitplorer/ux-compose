@@ -15,7 +15,7 @@ ux-dom      RENDER     tree → __render__ / __async_render__ → HTML str | byt
                        pure DirectoryRoutes + RouterHooks (discovery only)
                        pure-dom DX: doctor | lint | build | profile
 
-ux-compose  PRODUCT    create-app · serve · deploy · doctor
+ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
             + DELIVERY HTTP bind, host strategy, live units
             + CHANNEL  wire/ only
             + DEV      HMR (/__uxcompose/hmr) · tunnel (ngrok|cloudflare)

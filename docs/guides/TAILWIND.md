@@ -20,9 +20,9 @@ If code and this page disagree, **code wins**.
 4. Production compiles with `--minify`. Dev watches. Those flags are XOR.
 5. `cdn.tailwindcss.com` is not the product path (`apps/pulse` is a demo).
 
-`uxcompose create-app` already stamps Tailwind `className` on Hello. It does
-**not** emit `assets/css/input.css`, `tailwind.config.js`, a Document
-stylesheet link, or a `/css` mount. Those four are this how-to.
+`uxcompose create-app` stamps Tailwind `className` on Hello **and** emits
+`assets/css/input.css`, a Document stylesheet link (`/css/output.css`), and
+a `/css` mount from WebAssets. Compile with `uxcompose build`.
 
 ---
 
@@ -44,7 +44,7 @@ className on trees
 assets/css/input.css     <- tokens, @source / content globs
         |
         v
-Tailwind CLI --minify    <- uxdom build, or python -m pytailwindcss
+Tailwind CLI --minify    <- uxcompose build (hands off to ux_dom.cli.tailwind)
         |
         v
 assets/static/file/css/output.css
@@ -55,8 +55,8 @@ assets/static/file/css/output.css
 
 `uxcompose serve --hmr` watches `.css` and reloads the browser. It does **not**
 compile Tailwind. `uxcompose deploy` writes a Dockerfile that copies the tree
-and runs uvicorn. It does **not** run the compiler. Production CSS is a build
-step you add, not a side effect of serve or deploy.
+and runs uvicorn. It does **not** run the compiler. Production CSS is
+`uxcompose build`, not a side effect of serve or deploy.
 
 ---
 
@@ -139,36 +139,37 @@ above so you match the CLI ux-dom downloads.
 `--minify` in production. `--watch` in dev. Not both
 (`argv_with_io`: minify wins, else watch).
 
-### Product command (any layout)
+### Product command
 
 ```bash
-pip install pytailwindcss
+uxcompose build
+# --watch for dev (XOR with minify)
+# --skip-tailwind / --skip-import for structure-only checks
+```
+
+Hands off to `ux_dom.cli.tailwind` (`discover_css_io` / `resolve_tailwind` /
+`argv_with_io`). Output is always `assets/static/file/css/output.css`.
+create-app already emits `assets/css/input.css`.
+
+Same argv, if you want the raw CLI:
+
+```bash
 python -m pytailwindcss \
   -i assets/css/input.css \
   -o assets/static/file/css/output.css \
   --minify
 ```
 
-Same argv the CLI resolver builds. Equivalent if `tailwindcss` is on PATH:
-
-```bash
-tailwindcss -i assets/css/input.css -o assets/static/file/css/output.css --minify
-```
-
-### `uxdom build` (ux-dom app layout)
+### `uxdom build` (pure-dom showcase only)
 
 ```bash
 uxdom build
 ```
 
-Runs the same minify step, then structure / import / doctor checks. It looks
-for `app/main.py`. A `uxcompose create-app` tree has `app.py` at the root, so
-**use the CLI one-liner above** on product apps. `uxdom build` is the pure-dom
-pipeline (showcase, `app/main.py`).
-
-If `app/tailwindcss.py` exists and there is no `input.css`, `uxdom build` falls
-back to `python -m app.tailwindcss`. If there is no CSS at all, that step is a
-soft OK ("CDN or external CSS") — not a production recommendation.
+Document/static verify for leftover `app/main.py` trees. A
+`uxcompose create-app` tree has `app.py` at the root — **use
+`uxcompose build`**. If you run `uxdom build` in a product app it will
+teach you the same.
 
 ### How the CLI is found
 
@@ -183,6 +184,8 @@ soft OK ("CDN or external CSS") — not a production recommendation.
 7. last resort: `npx --yes @tailwindcss/cli`
 
 `uxdom build` uses `ensure=True`. A missing CLI is a real error, not a skip.
+
+`uxcompose build` uses the same `ensure=True` hand-off.
 
 Dev watch (do not ship this process):
 
@@ -233,8 +236,9 @@ css_dir = webassets.static.css  # assets/static/file/css
 asgi.mount("/css", StaticFiles(directory=str(css_dir), check_dir=False), name="css")
 ```
 
-`create-app`'s `build()` attaches `Document(head=[], ...)`. Replace or extend
-that head with the `link` above. One Document owns the shell (SSoT).
+`create-app`'s `build(document=)` attaches the Document from `document.py`
+(head already has the `/css/output.css` link). `app.py` mounts WebAssets
+`static.css` at `/css` and calls `document.mount(asgi)` for runtime files.
 
 Atelier demos link a **static snapshot** (`/static/css/atelier.css`) until
 those hosts are full product apps. Prefer `input.css` → `output.css`.
@@ -257,9 +261,8 @@ Proven hosts:
 Do **not** add `link(...)` inside `render()`. `update_with` republishes
 `render()` HTML; the morph target is `#hello`, not the shell.
 
-`uxcompose create-app` synthetic GET returns `render()` only. Add a host shell
-(atelier) or a Document wrapper at GET time (showcase `page()`). That is
-author wiring, not something `serve` injects.
+`uxcompose create-app` GET wraps `render()` with `page()` (Document shell).
+The morph payload remains `render()` — never put `link(...)` inside it.
 
 ---
 
@@ -283,16 +286,13 @@ No Tailwind in that image. Pick one:
 ### A. Compile before the image (simplest)
 
 ```bash
-python -m pytailwindcss \
-  -i assets/css/input.css \
-  -o assets/static/file/css/output.css \
-  --minify
+uxcompose build
 ```
 
 Commit `output.css` (or copy it in CI). `COPY . .` ships the bytes. The
 running image does not need a Tailwind binary. Fly / Render / Railway / VPS
 templates from `uxcompose deploy` are the same: they start uvicorn, they do
-not compile CSS.
+not compile CSS. `uxcompose deploy` prints this reminder.
 
 ### B. Compile in the image
 
@@ -329,9 +329,10 @@ file on disk so workers do not race the compiler.
 |----------|---------|
 | `script src="https://cdn.tailwindcss.com"` | Playground. Ships the compiler to every visitor. Pulse demo only. |
 | `style(raw("..."))` / CSS in Python strings | Assets contract. Dual palette, no minify, CSP pain. |
-| `assets/css/output.css` as the **served** file without a mount | `uxdom build` writes `assets/static/file/css/output.css`. Link `/css/output.css` to that folder. |
+| `assets/css/output.css` as the **served** file without a mount | `uxcompose build` writes `assets/static/file/css/output.css`. Link `/css/output.css` to that folder. |
 | `uxcompose serve` as the production compiler | HMR reloads on `.css` mtime. It never runs Tailwind. |
-| `uxcompose deploy` as a CSS build | Prepares Dockerfile / fly / render / railway / vps. No `RUN` minify. |
+| `uxcompose deploy` as a CSS build | Prepares Dockerfile / fly / render / railway / vps. Run `uxcompose build` first. |
+| `uxdom build` on a product app | Product CSS is `uxcompose build`. `uxdom build` is for `app/main.py` trees. |
 | Compiling inside `Component.render()` | Render is the morph payload. |
 
 ---
@@ -340,12 +341,14 @@ file on disk so workers do not race the compiler.
 
 ```text
 myapp/
-  app.py                         # build() + /css mount + Document link
-  routes/hello.py                # className on the fragment
+  settings.py                    # WebAssets
+  document.py                    # Document + page() + /css/output.css link
+  app.py                         # build(document=) + /css mount
+  routes/hello.py                # className on the fragment; get() wraps page()
   assets/css/input.css           # tokens + @source
   assets/static/file/css/
     output.css                   # minified; commit or CI/image emit
-  tailwind.config.js             # optional on v4
+  requirements.txt
 ```
 
 Verify the sheet is what the browser gets: open `/css/output.css` on the

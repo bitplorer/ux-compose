@@ -76,7 +76,7 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 |-----|--------|
 | [../START_HERE.md](../START_HERE.md) | Root 5-minute path |
 | [START_HERE.md](START_HERE.md) | Mental model + install (not a second 5-minute path) |
-| [guides/PATH.md](guides/PATH.md) | Scaffold → serve → HMR → Tailwind → composition → control flow → motion → live |
+| [guides/PATH.md](guides/PATH.md) | Scaffold → build → serve → HMR → Tailwind → composition → control flow → motion → live |
 | [guides/TAILWIND.md](guides/TAILWIND.md) | Production CSS how-to |
 | [../examples/README.md](../examples/README.md) | Example map |
 | [../examples/page_unit_mount.py](../examples/page_unit_mount.py) | Page-unit mount proof |

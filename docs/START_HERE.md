@@ -17,7 +17,7 @@ ux-dom       → render (trees, Document, DirectoryRoutes)
 ux-behavior  → offline units (MorphState, @action)
 ux-channel   → live Caps (behind wire/ only)
 ux-motion    → presence / transition plans
-ux-compose   → create-app · serve · deploy · App.mount · HMR
+ux-compose   → create-app · build · serve · deploy · App.mount · HMR
 ```
 
 Full map: [FLOW.md](FLOW.md).
@@ -40,6 +40,7 @@ Product CLI:
 ```bash
 uxcompose create-app myapp --level 1
 cd myapp
+uxcompose build
 uxcompose serve app:asgi --port 8080
 ```
 
@@ -47,21 +48,31 @@ uxcompose serve app:asgi --port 8080
 
 ## 3. First product shape
 
-Filesystem page units under `routes/` + `App.mount`:
+Filesystem page units under `routes/` + `build(document=)`:
 
 ```text
 myapp/
+  settings.py
+  document.py
   app.py
+  assets/css/input.css
+  requirements.txt
   routes/
     hello.py     # page unit (stem match)
 ```
 
 ```python
 from pathlib import Path
-from ux_compose import App
+from ux_compose.build import build
+from document import document
 
-app = App.boot("Shop", level=1)
-bundle = app.mount(Path(__file__).parent, asgi_app=api, base="routes")
+app, asgi, bundle = build(
+    Path(__file__).parent,
+    host="auto",
+    live="auto",
+    level=1,
+    document=document,
+)
 app.dispatch("hello.inc")
 ```
 
@@ -81,7 +92,7 @@ PYTHONPATH=src:. python examples/page_unit_mount.py
 | Offline interactive component | **ux-behavior** via compose App |
 | Live signed actions | `App.use_channel(asgi_app=fastapi)` |
 | Motion after morph | `App.use_motion()` + ux-motion |
-| Scaffold / serve / deploy | **`uxcompose` CLI only** |
+| Scaffold / build / serve / deploy | **`uxcompose` CLI only** |
 
 Never: `uxdom create-app`, `uxdom serve`, or product HMR as a Document API.
 

@@ -12,3 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Community health files: Code of Conduct, Security, Support, Governance, issue and pull-request templates.
 - Standard Readme README with canonical (non-stub) doc links.
 - Documentation contract: [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md).
+- Product `uxcompose build` — CSS minify hands off to `ux_dom.cli.tailwind`.
+- `create-app` teaching surface: `settings.py`, `document.py`, `assets/css/input.css`, `requirements.txt`.
+
+### Changed
+
+- Product path is `create-app → build → serve → deploy`. `uxdom build` is not the product CSS command.

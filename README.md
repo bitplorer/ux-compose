@@ -65,12 +65,14 @@ Product path:
 ```bash
 uxcompose create-app myapp --level 1
 cd myapp
+uxcompose build
 uxcompose serve app:asgi --port 8080
 uxcompose deploy --provider docker
 uxcompose doctor .
 ```
 
-Pure-dom tooling stays on **`uxdom`** (`doctor` · `lint` · `build` · `profile`).
+Pure-dom tooling stays on **`uxdom`** (`doctor` · `lint` · `profile` · `add`).
+Product CSS is **`uxcompose build`** (hands off to `ux_dom.cli.tailwind`).
 
 ## Usage
 
@@ -112,9 +114,9 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 
 | Owns | Does **not** own |
 |------|------------------|
-| Product CLI (`create-app`, `serve`, `deploy`, `doctor`) | DOM serialize / tag trees (ux-dom) |
+| Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) | DOM serialize / tag trees (ux-dom) |
 | `App` composition, `App.mount`, delivery, HMR + tunnel under serve | Channel transport (wire/ only) |
-| Page-unit mount (`routes/` + `App.mount`) | Pure-dom tooling (`uxdom`); MorphState / Cap / Plan IR implementations |
+| Page-unit mount (`routes/` + `App.mount`); CSS minify via ux-dom resolver | Tailwind CLI finder (`ux_dom.cli.tailwind`); MorphState / Cap / Plan IR implementations |
 
 ## Audience
 

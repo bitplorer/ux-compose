@@ -3,8 +3,8 @@
 Ownership split (FLOW law):
   - Compiler resolution stays in ux-dom (resolve_tailwind / argv_with_io /
     discover_css_io). Compose never re-implements the Tailwind CLI finder.
-  - Product lifecycle command lives on uxcompose. ``uxdom build`` remains the
-    pure-dom pipeline for ``app/main.py`` showcase trees.
+  - Product lifecycle command lives on uxcompose. ``uxdom build`` is
+    Document/static verify for pure-dom ``app/main.py`` trees only.
 
 Product path::
 
@@ -56,8 +56,8 @@ def find_product_root(start: Optional[Path] = None) -> Path:
     """Locate a product app root.
 
     Prefer ``app.py`` (uxcompose create-app). Fall back to ``app/main.py`` so a
-    pure-dom tree can still be built from the product CLI without a second
-    ceremony — compiler still comes from ux-dom.
+    pure-dom showcase tree can still be compiled from the product CLI —
+    compiler still comes from ux-dom. Product authors never need that fallback.
     """
     cur = (start or Path.cwd()).resolve()
     for p in [cur, *cur.parents]:
@@ -68,8 +68,7 @@ def find_product_root(start: Optional[Path] = None) -> Path:
         if p == p.parent:
             break
     raise FileNotFoundError(
-        "no product app found (expected app.py from uxcompose create-app, "
-        "or app/main.py from a pure-dom tree)."
+        "no product app found (expected app.py from uxcompose create-app)."
     )
 
 
@@ -104,7 +103,7 @@ def run_product_build(
             BuildStep(
                 "app/main.py",
                 True,
-                f"{main_py.relative_to(root)} (pure-dom layout)",
+                f"{main_py.relative_to(root)} (pure-dom showcase — product apps use app.py)",
             )
         )
     else:
@@ -139,8 +138,8 @@ def run_product_build(
                     BuildStep(
                         "tailwind",
                         True,
-                        "no assets/css/input.css — create one or re-run "
-                        "uxcompose create-app (CSS is soft-OK, not a production path)",
+                        "no assets/css/input.css — uxcompose create-app emits one; "
+                        "CSS is soft-OK without it, not a production path",
                     )
                 )
             else:
@@ -272,11 +271,13 @@ def format_product_build_report(report: ProductBuildReport) -> str:
         lines.append(f"  css → {report.output_css}")
     lines.append("=" * 48)
     lines.append("BUILD OK" if report.ok else "BUILD FAILED")
-    if report.ok and report.output_css:
-        lines.append(
-            "Next: link /css/output.css on the Document and mount "
-            "assets/static/file/css at /css, then uxcompose serve app:asgi"
-        )
+    if report.ok:
+        lines.append("Next: uxcompose serve app:asgi")
+        if report.output_css:
+            lines.append(
+                f"CSS linked as /css/output.css "
+                f"(file {report.output_css.name} under assets/static/file/css)"
+            )
     return "\n".join(lines)
 
 

@@ -22,8 +22,10 @@ def test_cli_has_product_commands_only_in_help(capsys):
     assert "serve" in out
     assert "deploy" in out
     assert "doctor" in out
+    assert "build" in out
     assert "os.execvp" not in out
     assert "uxdom serve" not in out
+    assert "uxdom build" not in out
 
 
 def test_hmr_is_delivery_module():
@@ -34,11 +36,12 @@ def test_hmr_is_delivery_module():
 
 
 def test_dx_doc_is_sole_product_cli():
-    text = (ROOT / "docs" / "DX.md").read_text(encoding="utf-8")
+    text = (ROOT / "docs" / "guides" / "DX.md").read_text(encoding="utf-8")
     assert "os.execvp" not in text
     assert "prefer specialist ceremony" not in text
     assert "uxcompose create-app" in text
     assert "DirectoryRoutes" in text
+    assert "uxcompose build" in text
 
 
 def test_doctor_teaches_directory_routes_not_router():

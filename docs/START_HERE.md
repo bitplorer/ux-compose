@@ -3,6 +3,7 @@
 **Canonical 5-minute path (CLI + Cart):** [../START_HERE.md](../START_HERE.md).
 This page is the ownership / install map, not a second golden path.
 **Map:** [INDEX.md](INDEX.md).
+**Cookbook:** [guides/SNIPPETS.md](guides/SNIPPETS.md) — App, Cart, levels, bind, surfaces, build(), XOR.
 
 ---
 

@@ -6,6 +6,7 @@
 
 Mental model + install (not a second 5-minute path): [docs/START_HERE.md](docs/START_HERE.md).
 Ownership law: [docs/FLOW.md](docs/FLOW.md). **Map:** [docs/INDEX.md](docs/INDEX.md).
+**Cookbook:** [docs/guides/SNIPPETS.md](docs/guides/SNIPPETS.md) — App, Cart, levels, bind, surfaces, build(), XOR.
 
 ---
 

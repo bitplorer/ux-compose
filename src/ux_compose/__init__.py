@@ -23,6 +23,7 @@ from ux_compose.progressive import Level
 from ux_compose.doctor import doctor, DoctorResult
 from ux_compose.build import build
 from ux_compose.assets import WebAssets
+from ux_compose.routing import DirectoryASGI, DirectoryRoutes, RouterHooks
 
 try:
     from ux_motion import scene, fade, rise  # type: ignore
@@ -70,6 +71,9 @@ __all__ = [
     "App",
     "build",
     "WebAssets",
+    "DirectoryRoutes",
+    "DirectoryASGI",
+    "RouterHooks",
     "Surface",
     "SurfaceBundle",
     "SurfaceError",

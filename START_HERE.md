@@ -19,7 +19,7 @@ Ownership law: [docs/FLOW.md](docs/FLOW.md). **Map:** [docs/INDEX.md](docs/INDEX
 re-implement DOM, behavior, channel, or motion — it harnesses them.
 
 ```text
-ux-dom       → render (trees, Document, DirectoryRoutes)
+ux-dom       → render (trees, Document)
 ux-behavior  → offline units (MorphState, @action)
 ux-channel   → live Caps (behind wire/ only)
 ux-motion    → presence / transition plans

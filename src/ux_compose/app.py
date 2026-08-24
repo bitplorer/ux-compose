@@ -87,8 +87,9 @@ class App:
     def use_host(self, host: str = "fastapi") -> "App":
         """Set host preference for page routing (Invisible Strategy).
 
-        Values: "auto" | "fastapi" | "starlette" | "asgi" | "batteries".
+        Values: "auto" | "fastapi" | "starlette" | "asgi".
         Authors never implement adapters; the strategy stays private.
+        ``batteries`` is leftover DirectoryRouter and fails closed.
         """
         self._host = (host or "auto").lower().strip()
         return self

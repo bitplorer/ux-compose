@@ -315,7 +315,7 @@ from ux_compose import App, Level
 app = App.boot("Shop", level=1)     # MorphState + @action, offline
 print(int(app.level), app.level.label)
 
-app.use_host("fastapi")             # auto | fastapi | starlette | asgi | batteries
+app.use_host("fastapi")             # auto | fastapi | starlette | asgi
 # app.use_channel(asgi_app=api)     # Level 2 — Isolation-safe (wire/ import)
 # app.use_motion()                  # Level 3 — Morph-then-Play
 # app.use_cek(mode="adapt")         # optional; mode="require" raises if missing

@@ -12,12 +12,13 @@
 ```text
 ux-dom      RENDER     tree → __render__ / __async_render__ → HTML str | bytes | stream
                        Document shell: control attrs, runtime script tags, CSP stamp
-                       pure DirectoryRoutes + RouterHooks (discovery only)
                        className, stylesheet <link>
                        package static (/ux-dom/static/…)
+                       leftover DirectoryRouter (standalone FastAPI trees only)
                        pure-dom DX: doctor | lint | profile | add
 
 ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
+            + ROUTES   DirectoryRoutes + thin adapters (filesystem → HTTP)
             + CSS      Tailwind CLI finder / ensure / minify (ux_compose.tailwind)
             + ASSETS   app folders (ux_compose.assets.WebAssets) · /css mount
             + DELIVERY HTTP bind, host strategy, live units
@@ -43,8 +44,8 @@ Product path::
 
 | Layer | Owns | Does **not** own |
 |-------|------|------------------|
-| **ux-dom** | Tag trees, dunders, Document shell, pure discovery, className / `<link>`, package static, pure-dom DX | Product lifecycle, HMR process, tunnel, Tailwind compiler, app asset layout |
-| **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, **Tailwind compiler**, **WebAssets layout**, wire/, **HMR + tunnel under serve** | DOM serialize |
+| **ux-dom** | Tag trees, dunders, Document shell, className / `<link>`, package static, leftover DirectoryRouter, pure-dom DX | Product lifecycle, page-unit DirectoryRoutes, HMR process, tunnel, Tailwind compiler, app asset layout, FastAPIHost |
+| **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, **DirectoryRoutes**, **Tailwind compiler**, **WebAssets layout**, wire/, **HMR + tunnel under serve** | DOM serialize |
 
 `uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`). Compose never re-implements Document serialize. `uxdom build` is Document/static verify for pure-dom `app/main.py` trees — it does not compile CSS.
 
@@ -69,5 +70,6 @@ How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.
 - Product code importing ux_channel
 - Tailwind compiler (finder, `@source` scaffold, CLI invoke) living on ux-dom
 - App asset layout (`WebAssets`) living on ux-dom
+- Product `DirectoryRoutes` / FastAPIHost / HotReload plugin living on ux-dom
 
 See [guides/CLI.md](guides/CLI.md).

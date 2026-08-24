@@ -13,11 +13,11 @@ This page is the ownership / install map, not a second golden path.
 `ux-compose` is the **product composition and delivery** layer. It does not re-implement DOM, behavior, channel, or motion — it harnesses them.
 
 ```text
-ux-dom       → render (trees, Document, DirectoryRoutes)
+ux-dom       → render (trees, Document, leftover DirectoryRouter)
 ux-behavior  → offline units (MorphState, @action)
 ux-channel   → live Caps (behind wire/ only)
 ux-motion    → presence / transition plans
-ux-compose   → create-app · build · serve · deploy · App.mount · HMR
+ux-compose   → create-app · build · serve · deploy · DirectoryRoutes · App.mount · HMR
 ```
 
 Full map: [FLOW.md](FLOW.md).

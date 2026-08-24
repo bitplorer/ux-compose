@@ -7,7 +7,6 @@ Messages teach the laws and frame failures as protection of product autonomy.
 from __future__ import annotations
 
 import ast
-import importlib.util
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -153,14 +152,8 @@ def _detect_capabilities() -> dict:
         "ux_behavior": pr.has_behavior,
         "ux_motion": pr.has_motion,
         "ux_channel": pr.has_channel,
-        "directory_routes": False,
+        "directory_routes": True,
     }
-    if caps.get("ux_dom"):
-        try:
-            if importlib.util.find_spec("ux_dom.routing.core") is not None:
-                caps["directory_routes"] = True
-        except (ModuleNotFoundError, ValueError):
-            pass
     return caps
 
 
@@ -187,17 +180,8 @@ def _teaching_for_level(level: int, caps: dict) -> list[str]:
     if caps.get("directory_routes"):
         lines.append(
             "Page-unit path available: routes/ + stem match + App.mount / mount_surfaces "
-            "(DirectoryRoutes + thin host adapter via RouterHooks.resolve_unit). "
+            "(ux_compose.routing.DirectoryRoutes + thin host adapter via RouterHooks.resolve_unit). "
             "Scaffold: uxcompose create-app <dir>."
-        )
-    elif caps.get("ux_dom"):
-        lines.append(
-            "ux-dom is present but DirectoryRoutes import failed — check ux_dom.routing.core."
-        )
-    else:
-        lines.append(
-            "For filesystem page-unit routing (routes/ + stem match): pip install ux-dom "
-            "then app.mount(package_dir, asgi_app=api, base='routes')."
         )
     lines.append(
         "Progressive Superpower Contract: code written at Level 1 remains correct and unchanged "

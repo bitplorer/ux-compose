@@ -174,8 +174,8 @@ def build(
             bind_pages=False,
         )
         try:
-            from ux_dom.routing.core import DirectoryRoutes, RouterHooks
-            from ux_dom.routing.adapters.asgi import DirectoryASGI
+            from ux_compose.routing.core import DirectoryRoutes, RouterHooks
+            from ux_compose.routing.adapters.asgi import DirectoryASGI
 
             registry = dict(getattr(bundle, "unit_registry", {}) or {})
 

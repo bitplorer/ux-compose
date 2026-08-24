@@ -6,8 +6,8 @@ Host choice happens via::
     app.use_host("fastapi")          # or "auto"
     app.mount(..., asgi_app=api)
 
-Preferred path is always pure ux-dom core + thin adapter.
-DirectoryRouter is never the primary path for compose users.
+Preferred path is always ``ux_compose.routing.DirectoryRoutes`` + thin adapter.
+Leftover ``DirectoryRouter`` (ux-dom batteries) is not a product path.
 """
 from __future__ import annotations
 
@@ -16,6 +16,17 @@ from pathlib import Path
 from typing import Any, Optional
 
 logger = logging.getLogger("ux_compose.surfaces_host")
+
+
+class ProductBatteriesRejected(RuntimeError):
+    """Raised when a caller asks for leftover DirectoryRouter batteries."""
+
+
+_BATTERIES_TEACH = (
+    "host='batteries' is leftover ux-dom DirectoryRouter, not the product path. "
+    "Use host='fastapi' | 'asgi' | 'auto' (ux_compose.routing.DirectoryRoutes). "
+    "Scaffold: uxcompose create-app / ux_compose.build(host=)."
+)
 
 
 def attach_page_router(
@@ -30,8 +41,8 @@ def attach_page_router(
     """Attach filesystem page routes to ``asgi_app``. Returns route_table or None.
 
     host:
-      - "auto" / "fastapi" / "starlette" / "asgi" → pure core + thin adapter (preferred)
-      - "batteries" → DirectoryRouter convenience path (explicit last-resort only)
+      - "auto" / "fastapi" / "starlette" / "asgi" → DirectoryRoutes + thin adapter
+      - "batteries" / "directory_router" → fail-closed (leftover, not product)
     """
 
     def _resolve_unit(cls, path, name):
@@ -40,67 +51,28 @@ def attach_page_router(
 
     host = (host or "auto").lower().strip()
 
-    # ------------------------------------------------------------------
-    # Preferred path for all normal compose usage (Invisible Strategy)
-    # ------------------------------------------------------------------
-    if host in ("auto", "fastapi", "starlette", "asgi"):
-        try:
-            from ux_dom.routing.core import DirectoryRoutes, RouterHooks
-            from ux_dom.routing.adapters.fastapi import mount as mount_routes
-
-            hooks = RouterHooks(resolve_unit=_resolve_unit)
-            core = DirectoryRoutes(
-                Path(package_dir).resolve(),
-                base_directory=base_directory,
-                hooks=hooks,
-                fail_closed=fail_closed,
-            )
-            core.discover()
-            if core.records and hasattr(asgi_app, "include_router"):
-                mount_routes(core, asgi_app)
-                table = core.route_table()
-                if table:
-                    return table
-            return []
-        except ImportError:
-            if fail_closed:
-                raise
-            logger.warning("ux-dom core/adapter unavailable; page gate skipped")
-            return None
-        except Exception as exc:
-            logger.warning("core + thin adapter failed (%s)", exc)
-            if fail_closed:
-                raise
-
-    # ------------------------------------------------------------------
-    # Explicit last-resort only (never the default for compose)
-    # ------------------------------------------------------------------
     if host in ("batteries", "directory_router"):
-        try:
-            from ux_dom.routing.fastapi import DirectoryRouter, StreamingRoute, RouterHooks
+        raise ProductBatteriesRejected(_BATTERIES_TEACH)
 
-            logger.info("using DirectoryRouter convenience path (host=%s)", host)
-            hooks = RouterHooks(resolve_unit=_resolve_unit)
-            router = DirectoryRouter(
-                base_directory=base_directory,
-                package_dir=Path(package_dir).resolve(),
-                route_class=StreamingRoute,
-                hooks=hooks,
-                fail_closed=fail_closed,
-            )
-            if hasattr(asgi_app, "include_router"):
-                asgi_app.include_router(router)
-            table = getattr(router, "route_table", None)
-            if callable(table):
-                live = list(table())
-                return live if live else []
-            if isinstance(table, list) and table:
-                return list(table)
-            return []
-        except ImportError:
-            if fail_closed:
-                raise
-            logger.warning("DirectoryRouter not available; page gate skipped")
-            return None
+    if host not in ("auto", "fastapi", "starlette", "asgi"):
+        raise ValueError(
+            "unknown host %r — use auto|fastapi|starlette|asgi" % host
+        )
 
-    return None
+    from ux_compose.routing.core import DirectoryRoutes, RouterHooks
+    from ux_compose.routing.adapters.fastapi import mount as mount_routes
+
+    hooks = RouterHooks(resolve_unit=_resolve_unit)
+    core = DirectoryRoutes(
+        Path(package_dir).resolve(),
+        base_directory=base_directory,
+        hooks=hooks,
+        fail_closed=fail_closed,
+    )
+    core.discover()
+    if core.records and hasattr(asgi_app, "include_router"):
+        mount_routes(core, asgi_app)
+        table = core.route_table()
+        if table:
+            return table
+    return []

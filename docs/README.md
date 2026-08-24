@@ -67,7 +67,7 @@ Level 1 code remains correct at higher levels. Zero rewrite.
 
 | Package | Role |
 |---------|------|
-| [ux-dom](https://github.com/bitplorer/ux-dom) | Render / Document / DirectoryRoutes |
+| [ux-dom](https://github.com/bitplorer/ux-dom) | Render / Document |
 | [ux-behavior](https://github.com/bitplorer/ux-behavior) | Offline components, actions, state planes |
 | [ux-channel](https://github.com/bitplorer/ux-channel) | Intent → Cap → Result |
 | [ux-motion](https://github.com/bitplorer/ux-motion) | Server-authored presence / transition plans |

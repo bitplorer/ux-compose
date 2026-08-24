@@ -11,7 +11,7 @@ Compose owns **product lifecycle**. Specialist DX stays on the specialist.
 uxcompose create-app / build / serve / deploy / doctor
         │
         ├─ probe specialists (find_spec + CLI on PATH)
-        ├─ boot via build() / App.mount (DirectoryRoutes + thin adapter)
+        ├─ boot via build() / App.mount (ux_compose.routing.DirectoryRoutes + thin adapter)
         ├─ CSS minify via ux_compose.tailwind (finder + ensure)
         └─ Isolation + Progressive Superpower
 ```
@@ -71,7 +71,8 @@ Reports:
 4. Isolation AST scan + dual-Document heuristic (fail-closed unless `--no-fail`)
 
 Page-unit teaching names **DirectoryRoutes + App.mount**, not DirectoryRouter.
-DirectoryRouter is last-resort `host="batteries"` only.
+DirectoryRouter is leftover ux-dom batteries for standalone FastAPI trees that
+cannot import compose. `host="batteries"` fails closed.
 
 ## Probe API (library)
 

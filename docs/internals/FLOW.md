@@ -12,12 +12,13 @@ Same contract as [../FLOW.md](../FLOW.md). If they disagree, **FLOW.md wins**.
 ```text
 ux-dom      RENDER     tree → __render__ / __async_render__ → HTML str | bytes | stream
                        Document shell: control attrs, runtime script tags, CSP stamp
-                       pure DirectoryRoutes + RouterHooks (discovery only)
                        className, stylesheet <link>
                        package static (/ux-dom/static/…)
+                       leftover DirectoryRouter (standalone FastAPI trees only)
                        pure-dom DX: doctor | lint | profile | add
 
 ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
+            + ROUTES   DirectoryRoutes + thin adapters (filesystem → HTTP)
             + CSS      Tailwind CLI finder / ensure / minify (ux_compose.tailwind)
             + ASSETS   app folders (ux_compose.assets.WebAssets) · /css mount
             + DELIVERY HTTP bind, host strategy, live units

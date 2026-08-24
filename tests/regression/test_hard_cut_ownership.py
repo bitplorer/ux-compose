@@ -94,3 +94,19 @@ def test_bind_pages_alias_still_accepted():
     assert "include_directory_router" in inspect.signature(App.mount).parameters
     assert "bind_pages" in inspect.signature(mount_surfaces).parameters
     assert "include_directory_router" in inspect.signature(mount_surfaces).parameters
+
+
+def test_directory_routes_lives_on_compose():
+    from ux_compose.routing.core import DirectoryRoutes
+    from ux_compose.routing.adapters.asgi import DirectoryASGI
+
+    src = (ROOT / "src" / "ux_compose" / "surfaces_host.py").read_text(encoding="utf-8")
+    assert "from ux_compose.routing.core import DirectoryRoutes" in src
+    assert "from ux_dom.routing.core import DirectoryRoutes" not in src
+    build = (ROOT / "src" / "ux_compose" / "build.py").read_text(encoding="utf-8")
+    assert "from ux_compose.routing.core import DirectoryRoutes" in build
+    assert "from ux_dom.routing.core import DirectoryRoutes" not in build
+    flow = (ROOT / "docs" / "FLOW.md").read_text(encoding="utf-8")
+    assert "DirectoryRoutes + thin adapters" in flow
+    assert callable(DirectoryRoutes)
+    assert callable(DirectoryASGI)

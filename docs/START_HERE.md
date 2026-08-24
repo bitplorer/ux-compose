@@ -4,6 +4,7 @@
 This page is the ownership / install map, not a second golden path.
 **Map:** [INDEX.md](INDEX.md).
 **Cookbook:** [guides/SNIPPETS.md](guides/SNIPPETS.md) — App, Cart, levels, bind, surfaces, build(), XOR.
+**Product path:** [guides/PATH.md](guides/PATH.md). **UI kit:** [guides/UI.md](guides/UI.md).
 
 ---
 

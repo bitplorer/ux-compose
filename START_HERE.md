@@ -7,6 +7,8 @@
 Mental model + install (not a second 5-minute path): [docs/START_HERE.md](docs/START_HERE.md).
 Ownership law: [docs/FLOW.md](docs/FLOW.md). **Map:** [docs/INDEX.md](docs/INDEX.md).
 **Cookbook:** [docs/guides/SNIPPETS.md](docs/guides/SNIPPETS.md) — App, Cart, levels, bind, surfaces, build(), XOR.
+**Product path:** [docs/guides/PATH.md](docs/guides/PATH.md) — scaffold → serve → HMR → Tailwind → composition → control flow → motion → live.
+**UI kit:** [docs/guides/UI.md](docs/guides/UI.md) — pick-and-use Components.
 
 ---
 
@@ -108,6 +110,9 @@ print(app.dispatch("cart.add", sku="tee"))
 
 | Goal | Doc |
 |------|-----|
+| End-to-end product path | [docs/guides/PATH.md](docs/guides/PATH.md) |
+| Pick-and-use UI | [docs/guides/UI.md](docs/guides/UI.md) |
+| Public-API cookbook | [docs/guides/SNIPPETS.md](docs/guides/SNIPPETS.md) |
 | Ownership law (authoritative) | [docs/FLOW.md](docs/FLOW.md) |
 | Mental model + install | [docs/START_HERE.md](docs/START_HERE.md) |
 | CLI reference | [docs/CLI.md](docs/CLI.md) |

@@ -38,11 +38,7 @@ def notify(message: str, **kwargs) -> Any:
 
 
 def bind(action_obj, **kwargs):
-    """Symbol-safe UI attrs. Prefers ux_behavior.bind / .ui when available.
-
-    Progressive attrs: data-ux-action + data-ux-arg-*.
-    Keep control(str) for stringly escape hatch; prefer bind / .ui in product code.
-    """
+    """Symbol-safe UI attrs. Prefers ux_behavior.bind / .ui when available."""
     try:
         from ux_behavior.action import bind as _b
 
@@ -84,7 +80,6 @@ def control(action: str, **args) -> dict:
 
 
 def _serialize_tree(tree: Any) -> str:
-    """Best-effort HTML serialization for Component.__render__ / morph payloads."""
     if tree is None:
         return ""
     if isinstance(tree, str):
@@ -121,44 +116,6 @@ def _render_html(component_or_id: Any) -> str:
     return _serialize_tree(component_or_id)
 
 
-def update_with(
-    component: Any,
-    *fields: str,
-    html: Optional[str] = None,
-    strategy: str = "idiomorph",
-    **kwargs: Any,
-) -> Any:
-    """Morph / update helper used from @action methods.
-
-    When ux-behavior is present, prefer specialist update().
-    Otherwise emit a morph-oriented Op dict.
-    """
-    if _HAS_BEHAVIOR and _real_update is not None:
-        try:
-            return _real_update(component, *fields, **kwargs)
-        except Exception:
-            pass
-
-    target = getattr(component, "id", None) or getattr(
-        component, "__name__", "component"
-    )
-    payload: dict[str, Any] = {
-        "target": f"#{target}" if not str(target).startswith("#") else str(target),
-        "strategy": strategy,
-    }
-    if fields:
-        payload["fields"] = list(fields)
-    if html is not None:
-        payload["html"] = html
-    else:
-        try:
-            payload["html"] = _render_html(component)
-        except Exception:
-            pass
-    payload.update(kwargs)
-    return _as_op("", "morph", payload)
-
-
 def _coerce_op(op: Any) -> Any:
     if op is None:
         return None
@@ -176,6 +133,11 @@ def _normalize_plan_ops(scene_or_plan: Any) -> List[Any]:
         return []
     if isinstance(scene_or_plan, list):
         return [o for o in (_coerce_op(x) for x in scene_or_plan) if o is not None]
+    if isinstance(scene_or_plan, dict):
+        if scene_or_plan.get("op") == "transition.play" or "plan" in scene_or_plan:
+            return [scene_or_plan]
+        # bare plan dict → wrap as transition.play
+        return [{"op": "transition.play", "plan": scene_or_plan}]
     for attr in ("ops", "plan", "to_ops"):
         val = getattr(scene_or_plan, attr, None)
         if callable(val):
@@ -187,6 +149,53 @@ def _normalize_plan_ops(scene_or_plan: Any) -> List[Any]:
             return _normalize_plan_ops(val)
     coerced = _coerce_op(scene_or_plan)
     return [coerced] if coerced is not None else []
+
+
+def update_with(
+    component: Any,
+    plan: Any = None,
+    *fields: str,
+    html: Optional[str] = None,
+    strategy: str = "idiomorph",
+    extra_ops: Optional[list] = None,
+    **kwargs: Any,
+) -> List[Any]:
+    """Morph-then-Play helper used from @action methods.
+
+    Returns an ordered list: morph Op first, then plan ops, then extra_ops.
+    XOR: never puts html= on the plan for the same target as the morph.
+    """
+    target = getattr(component, "id", None) or getattr(
+        component, "__name__", component if isinstance(component, str) else "component"
+    )
+    tid = f"#{target}" if not str(target).startswith("#") else str(target)
+
+    morph_payload: dict[str, Any] = {
+        "target": tid,
+        "strategy": strategy,
+    }
+    if fields:
+        morph_payload["fields"] = list(fields)
+    if html is not None:
+        morph_payload["html"] = html
+    else:
+        try:
+            morph_payload["html"] = _render_html(component)
+        except Exception:
+            pass
+    # strip helper kwargs that are not morph fields
+    for k, v in kwargs.items():
+        if k not in ("extra_ops",):
+            morph_payload[k] = v
+
+    ops: List[Any] = [_as_op("", "morph", morph_payload)]
+    ops.extend(_normalize_plan_ops(plan))
+    if extra_ops:
+        for o in extra_ops:
+            c = _coerce_op(o)
+            if c is not None:
+                ops.append(c)
+    return ops
 
 
 def morph_play(target: str, plan: Any) -> List[Any]:

@@ -13,11 +13,12 @@ This page is the ownership / install map, not a second golden path.
 `ux-compose` is the **product composition and delivery** layer. It does not re-implement DOM, behavior, channel, or motion — it harnesses them.
 
 ```text
-ux-dom       → render (trees, Document, leftover DirectoryRouter)
+ux-dom       → render (trees, Document, package static)
 ux-behavior  → offline units (MorphState, @action)
 ux-channel   → live Caps (behind wire/ only)
 ux-motion    → presence / transition plans
-ux-compose   → create-app · build · serve · deploy · DirectoryRoutes · App.mount · HMR
+ux-compose   → create-app · build · serve · deploy
+               DirectoryRoutes · WebAssets · Tailwind · App · HMR
 ```
 
 Full map: [FLOW.md](FLOW.md).
@@ -93,6 +94,7 @@ PYTHONPATH=src:. python examples/page_unit_mount.py
 | Live signed actions | `App.use_channel(asgi_app=fastapi)` |
 | Motion after morph | `App.use_motion()` + ux-motion |
 | Scaffold / build / serve / deploy | **`uxcompose` CLI only** |
+| Page routes + CSS folders | **`ux_compose.routing` + `WebAssets`** |
 
 Never: `uxdom create-app`, `uxdom serve`, or product HMR as a Document API.
 

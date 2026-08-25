@@ -25,7 +25,7 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 - Product app: `apps/atelier_shop` (cart + confirm modal + Document shell)
 - Presence continuity cookbook: `cookbooks/PRESENCE.md`
 - GitHub Actions CI matrix (3.12 offline + 3.14 full stack)
-- create-app scaffold emits progressive L1–L3 app with Document optional
+- create-app scaffold emits settings.py + document.py + assets/css/input.css + progressive L1–L3 app (`build(document=)`)
 
 ## Soft notes (non-kill)
 

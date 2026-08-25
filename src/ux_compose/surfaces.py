@@ -15,9 +15,9 @@ Page unit + host bind (when asgi_app is provided):
 * ``mount_surfaces`` builds ``RouterHooks(resolve_unit=...)`` so the
   synthetic page GET receives the live Behavior instance from
   ``unit_registry`` (keyed by ``cls.id`` or ``cls.__name__.lower()``).
-* Explicit ``get``/``post`` methods on the class bypass ``resolve_unit``
-  (ux-dom contract). Isolation: no Compose types leak into ux-dom.
-* Host bind lives in ``surfaces_host`` (Invisible Strategy — pure core preferred).
+* Explicit ``get``/``post`` methods on the class bypass ``resolve_unit``.
+  Isolation: no Compose types leak into ux-dom render.
+* Host bind lives in ``surfaces_host`` (Invisible Strategy — ``ux_compose.routing``).
 """
 
 from __future__ import annotations
@@ -193,6 +193,7 @@ def scan_surfaces(
     *,
     base_directory: str = "routes",
     package_name: Optional[str] = None,
+    fail_closed: bool = False,
 ) -> list[Surface]:
     """Discover units under package_dir/base_directory (define-in-module only)."""
     root = Path(package_dir).resolve()
@@ -218,6 +219,10 @@ def scan_surfaces(
             mod = _import_module(module, file)
         except Exception as exc:
             logger.exception("surface scan import failed %s: %s", file, exc)
+            if fail_closed:
+                raise SurfaceError(
+                    f"surface scan import failed {file}: {exc}"
+                ) from exc
             continue
 
         mod_name = getattr(mod, "__name__", module)
@@ -305,8 +310,9 @@ def mount_surfaces(
     """Scan → validate → Behavior.add → optional page router.
 
     Host bind is delegated to ``surfaces_host.attach_page_router``
-    (Invisible Strategy: pure core preferred; batteries only on host="batteries").
-    ``include_directory_router`` is a deprecated alias of ``bind_pages``.
+    (Invisible Strategy: ``ux_compose.routing.DirectoryRoutes`` + thin adapter).
+    ``host="batteries"`` fails closed. ``include_directory_router`` is a
+    deprecated alias of ``bind_pages``.
     """
     if include_directory_router is not None:
         bind_pages = include_directory_router
@@ -314,6 +320,7 @@ def mount_surfaces(
         package_dir,
         base_directory=base_directory,
         package_name=package_name,
+        fail_closed=fail_closed,
     )
     errors = validate_surfaces(surfaces, fail=fail_closed)
     bundle = SurfaceBundle(errors=list(errors))

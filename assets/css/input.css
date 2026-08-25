@@ -6,7 +6,7 @@
   Atelier design system tokens.
   Prefer evolving tokens + component classes here; rebuild to output.css.
   Demo hosts currently serve a static snapshot of the same system
-  (apps/atelier_*/static/css/atelier.css) until full uxdom create-app scaffolds.
+  (apps/atelier_*/static/css/atelier.css) until those hosts are full product apps.
 */
 
 @layer base {

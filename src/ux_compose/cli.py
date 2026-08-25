@@ -1,8 +1,11 @@
 """uxcompose CLI — sole product lifecycle DX.
 
 Hard ownership (SoC + locality):
-  create-app · serve · deploy · doctor  →  here only
-  Pure Document tooling stays on uxdom (lint/build/profile).
+  create-app · build · serve · deploy · doctor  →  here only
+  Pure Document tooling stays on uxdom (lint / profile / add / doctor).
+  Tailwind *compiler resolution* lives here (``ux_compose.tailwind``).
+  ux-dom owns className, the Document ``<link>``, and package static.
+  App asset folders live here (``ux_compose.assets.WebAssets``).
 
 serve owns process reload, optional browser HMR, optional public tunnel.
 """
@@ -20,6 +23,8 @@ def main(argv: list[str] | None = None) -> int:
     cmd, rest = argv[0], argv[1:]
     if cmd in ("create-app", "create"):
         return _create_app(rest)
+    if cmd == "build":
+        return _build(rest)
     if cmd == "serve":
         return _serve(rest)
     if cmd == "deploy":
@@ -35,15 +40,17 @@ def _help() -> None:
     print("uxcompose — product lifecycle (composition + delivery)")
     print("")
     print("  uxcompose create-app <dest> [--name NAME] [--level auto|0-3] [--host auto|fastapi|asgi]")
+    print("  uxcompose build [--watch] [--no-minify] [--skip-tailwind] [--skip-import] [--app app:asgi]")
     print("  uxcompose serve [app:asgi] [--host 0.0.0.0] [--port 8080] [--reload|--no-reload]")
-    print("                 [--hmr|--no-hmr] [--watch PATH ...]" )
+    print("                 [--hmr] [--watch PATH ...]" )
     print("                 [--tunnel none|ngrok|cloudflare] [--tunnel-token TOKEN]")
     print("  uxcompose deploy [--provider docker|fly|render|railway|vps|checklist] [--force] [--name NAME]")
     print("  uxcompose doctor [paths...] [--no-fail]")
     print("")
-    print("Product path: create-app → serve → deploy")
+    print("Product path: create-app → build → serve → deploy")
     print("HMR / tunnel are delivery features of serve (not Document.use).")
-    print("Render-only tooling: uxdom doctor|lint|build|profile")
+    print("CSS minify: ux_compose.tailwind (finder + ensure). App folders: ux_compose.assets.")
+    print("Render-only tooling: uxdom doctor|lint|profile|add")
 
 
 def _create_app(argv: list[str]) -> int:
@@ -59,9 +66,35 @@ def _create_app(argv: list[str]) -> int:
     level: int | str = "auto" if str(args.level).lower() == "auto" else int(args.level)
     root = create_app(args.dest, name=args.name, level=level, host=args.host)
     print(f"Created {root.resolve()} (level={args.level}, host={args.host})")
-    print(f"  Next: cd {root} && uxcompose serve app:asgi")
+    print(f"  Next: cd {root} && uxcompose build && uxcompose serve app:asgi")
     print("  Deploy: uxcompose deploy --provider docker")
     return 0
+
+
+def _build(argv: list[str]) -> int:
+    import argparse
+    from ux_compose.cli_build import format_product_build_report, run_product_build
+
+    p = argparse.ArgumentParser(prog="uxcompose build")
+    p.add_argument("--watch", action="store_true", help="Tailwind --watch (XOR with minify)")
+    p.add_argument("--no-minify", action="store_true", help="Skip --minify")
+    p.add_argument("--skip-tailwind", action="store_true")
+    p.add_argument("--skip-import", action="store_true")
+    p.add_argument("--app", default="app:asgi", help="ASGI entry for the import check")
+    args = p.parse_args(argv)
+    try:
+        report = run_product_build(
+            skip_tailwind=args.skip_tailwind,
+            skip_import=args.skip_import,
+            minify=not args.no_minify,
+            watch=args.watch,
+            app_ref=args.app,
+        )
+    except FileNotFoundError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(format_product_build_report(report))
+    return 0 if report.ok else 1
 
 
 def _load_asgi(app_ref: str):
@@ -88,8 +121,8 @@ def _serve(argv: list[str]) -> int:
     p.add_argument("--port", type=int, default=8080)
     p.add_argument("--reload", action="store_true")
     p.add_argument("--no-reload", action="store_true")
-    p.add_argument("--hmr", action="store_true", default=None, help="Attach browser HMR websocket")
-    p.add_argument("--no-hmr", action="store_true", help="Disable browser HMR")
+    p.add_argument("--hmr", action="store_true", default=False, help="Attach browser HMR websocket (needs --no-reload)")
+    p.add_argument("--no-hmr", action="store_true", help="Disable browser HMR (default)")
     p.add_argument("--watch", action="append", default=None, help="Extra HMR watch path (repeatable)")
     p.add_argument(
         "--tunnel",
@@ -104,11 +137,7 @@ def _serve(argv: list[str]) -> int:
     reload = True if not args.no_reload else False
     if args.reload:
         reload = True
-    hmr = True
-    if args.no_hmr:
-        hmr = False
-    elif args.hmr is True:
-        hmr = True
+    hmr = bool(args.hmr) and not args.no_hmr
 
     try:
         import uvicorn
@@ -207,17 +236,9 @@ def _deploy(argv: list[str]) -> int:
 
 
 def _doctor(argv: list[str]) -> int:
-    import argparse
-    from pathlib import Path
-    from ux_compose.doctor import doctor
+    from ux_compose.doctor import main as doctor_main
 
-    p = argparse.ArgumentParser(prog="uxcompose doctor")
-    p.add_argument("paths", nargs="*", default=["."])
-    p.add_argument("--no-fail", action="store_true")
-    args = p.parse_args(argv)
-    report = doctor([Path(x) for x in args.paths], fail=not args.no_fail)
-    print(report)
-    return 0 if args.no_fail or getattr(report, "ok", True) else 1
+    return doctor_main(argv)
 
 
 if __name__ == "__main__":

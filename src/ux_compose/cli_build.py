@@ -1,10 +1,12 @@
 """Product build — production CSS minify for app.py trees.
 
-Ownership split (FLOW law):
-  - Compiler resolution stays in ux-dom (resolve_tailwind / argv_with_io /
-    discover_css_io). Compose never re-implements the Tailwind CLI finder.
-  - Product lifecycle command lives on uxcompose. ``uxdom build`` remains the
-    pure-dom pipeline for ``app/main.py`` showcase trees.
+Ownership (FLOW law):
+  - Compiler resolution lives HERE (``ux_compose.tailwind``).
+    Finding / downloading / invoking the Tailwind CLI is product DX.
+  - Render stays on ux-dom: className, ``<link>``, package static.
+  - App folders live HERE (``ux_compose.assets.WebAssets``).
+  - ``uxdom build`` is Document/static verify for leftover ``app/main.py``
+    trees. It does not compile CSS.
 
 Product path::
 
@@ -55,21 +57,18 @@ class ProductBuildReport:
 def find_product_root(start: Optional[Path] = None) -> Path:
     """Locate a product app root.
 
-    Prefer ``app.py`` (uxcompose create-app). Fall back to ``app/main.py`` so a
-    pure-dom tree can still be built from the product CLI without a second
-    ceremony — compiler still comes from ux-dom.
+    Prefer ``app.py`` (uxcompose create-app). Leftover ``app/main.py``
+    showcase trees are ``uxdom build`` (Document/static verify), not this CLI.
     """
     cur = (start or Path.cwd()).resolve()
     for p in [cur, *cur.parents]:
         if (p / "app.py").is_file():
             return p
-        if (p / "app" / "main.py").is_file():
-            return p
         if p == p.parent:
             break
     raise FileNotFoundError(
-        "no product app found (expected app.py from uxcompose create-app, "
-        "or app/main.py from a pure-dom tree)."
+        "no product app found (expected app.py from uxcompose create-app). "
+        "Leftover app/main.py trees: uxdom build (does not compile CSS)."
     )
 
 
@@ -85,127 +84,104 @@ def run_product_build(
     """Run the product production build.
 
     Steps:
-      1. Structure (app.py or app/main.py)
-      2. Tailwind minify/watch via ux_dom.cli.tailwind (hand-off)
+      1. Structure (app.py from uxcompose create-app)
+      2. Tailwind minify/watch via ux_compose.tailwind
       3. Soft import of the ASGI entry (default app:asgi)
       4. Soft product doctor
 
     ``minify`` and ``watch`` are XOR (same as argv_with_io: minify wins).
     """
+    from ux_compose.tailwind import argv_with_io, discover_css_io, resolve_tailwind
+
     root = find_product_root(cwd)
     report = ProductBuildReport(root=root)
 
     app_py = root / "app.py"
-    main_py = root / "app" / "main.py"
     if app_py.is_file():
         report.steps.append(BuildStep("app.py", True, str(app_py.relative_to(root))))
-    elif main_py.is_file():
-        report.steps.append(
-            BuildStep(
-                "app/main.py",
-                True,
-                f"{main_py.relative_to(root)} (pure-dom layout)",
-            )
-        )
     else:
         report.steps.append(
-            BuildStep("structure", False, "neither app.py nor app/main.py")
+            BuildStep("structure", False, "expected app.py from uxcompose create-app")
         )
         return report
 
-    # ── Tailwind (hand-off to ux-dom resolver) ────────────────────────────
     if skip_tailwind:
         report.steps.append(BuildStep("tailwind", True, "skipped"))
     else:
-        try:
-            from ux_dom.cli.tailwind import (
-                argv_with_io,
-                discover_css_io,
-                resolve_tailwind,
-            )
-        except ImportError:
+        io = discover_css_io(root)
+        if io is None:
             report.steps.append(
                 BuildStep(
                     "tailwind",
-                    False,
-                    "ux-dom not installed — pip install ux-dom  "
-                    "(compiler resolution lives there; compose does not re-implement it)",
+                    True,
+                    "no assets/css/input.css — uxcompose create-app emits one; "
+                    "CSS is soft-OK without it, not a production path",
                 )
             )
         else:
-            io = discover_css_io(root)
-            if io is None:
+            input_css, output_css = io
+            output_css.parent.mkdir(parents=True, exist_ok=True)
+            hit = resolve_tailwind(cwd=root, ensure=True)
+            if hit is None:
                 report.steps.append(
                     BuildStep(
                         "tailwind",
-                        True,
-                        "no assets/css/input.css — create one or re-run "
-                        "uxcompose create-app (CSS is soft-OK, not a production path)",
+                        False,
+                        "Tailwind CLI not found. Install one of: "
+                        "pip install pytailwindcss · "
+                        "npm i -D @tailwindcss/cli · "
+                        "or put tailwindcss on PATH.",
                     )
                 )
             else:
-                input_css, output_css = io
-                hit = resolve_tailwind(cwd=root, ensure=True)
-                if hit is None:
+                use_minify = bool(minify) and not watch
+                cmd = argv_with_io(
+                    hit.argv,
+                    input_css=input_css,
+                    output_css=output_css,
+                    minify=use_minify,
+                    watch=bool(watch) and not use_minify,
+                )
+                env = os.environ.copy()
+                env["PYTHONPATH"] = os.pathsep.join(
+                    [str(root), env.get("PYTHONPATH", "")]
+                )
+                env["UXDOM_TAILWIND_OWNED"] = "1"
+                if watch and not use_minify:
+                    print(
+                        f"uxcompose build --watch  ({hit.source})\n"
+                        f"  in  {input_css.relative_to(root)}\n"
+                        f"  out {output_css.relative_to(root)}\n"
+                        "  Ctrl-C to stop",
+                        flush=True,
+                    )
+                    proc = subprocess.run(cmd, cwd=str(root), env=env)
                     report.steps.append(
                         BuildStep(
                             "tailwind",
-                            False,
-                            "Tailwind CLI not found. Install one of: "
-                            "pip install pytailwindcss · "
-                            "npm i -D @tailwindcss/cli · "
-                            "or put tailwindcss on PATH.",
+                            proc.returncode == 0,
+                            f"{hit.source} watch exit {proc.returncode}",
                         )
                     )
                 else:
-                    use_minify = bool(minify) and not watch
-                    cmd = argv_with_io(
-                        hit.argv,
-                        input_css=input_css,
-                        output_css=output_css,
-                        minify=use_minify,
-                        watch=bool(watch) and not use_minify,
+                    proc = subprocess.run(
+                        cmd,
+                        cwd=str(root),
+                        capture_output=True,
+                        text=True,
+                        timeout=180,
+                        env=env,
                     )
-                    env = os.environ.copy()
-                    env["PYTHONPATH"] = os.pathsep.join(
-                        [str(root), env.get("PYTHONPATH", "")]
-                    )
-                    if watch and not use_minify:
-                        print(
-                            f"uxcompose build --watch  ({hit.source})\n"
-                            f"  in  {input_css.relative_to(root)}\n"
-                            f"  out {output_css.relative_to(root)}\n"
-                            "  Ctrl-C to stop",
-                            flush=True,
-                        )
-                        proc = subprocess.run(cmd, cwd=str(root), env=env)
-                        report.steps.append(
-                            BuildStep(
-                                "tailwind",
-                                proc.returncode == 0,
-                                f"{hit.source} watch exit {proc.returncode}",
-                            )
-                        )
-                    else:
-                        proc = subprocess.run(
-                            cmd,
-                            cwd=str(root),
-                            capture_output=True,
-                            text=True,
-                            timeout=180,
-                            env=env,
-                        )
-                        out = ((proc.stdout or "") + (proc.stderr or "")).strip()
-                        ok = proc.returncode == 0
-                        detail = f"{hit.source} exit {proc.returncode}"
-                        if out:
-                            detail += f" · {out[:200]}"
-                        if ok and output_css.is_file():
-                            detail += f" · wrote {output_css.relative_to(root)}"
-                            report.output_css = output_css
-                        report.steps.append(BuildStep("tailwind", ok, detail))
+                    out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+                    ok = proc.returncode == 0
+                    detail = f"{hit.source} exit {proc.returncode}"
+                    if out:
+                        detail += f" · {out[:200]}"
+                    if ok and output_css.is_file():
+                        detail += f" · wrote {output_css.relative_to(root)}"
+                        report.output_css = output_css
+                    report.steps.append(BuildStep("tailwind", ok, detail))
 
-    # ── Soft import of ASGI entry ─────────────────────────────────────────
     if skip_import:
         report.steps.append(BuildStep("import", True, "skipped"))
     else:
@@ -244,7 +220,6 @@ def run_product_build(
                 )
             )
 
-    # ── Soft product doctor ───────────────────────────────────────────────
     try:
         from ux_compose.doctor import doctor
 
@@ -258,7 +233,7 @@ def run_product_build(
             )
         )
     except Exception as e:
-        report.steps.append(BuildStep("doctor", True, f"soft skip: {e}"))
+        report.steps.append(BuildStep("doctor", False, f"doctor failed: {e}"))
 
     return report
 
@@ -272,11 +247,13 @@ def format_product_build_report(report: ProductBuildReport) -> str:
         lines.append(f"  css → {report.output_css}")
     lines.append("=" * 48)
     lines.append("BUILD OK" if report.ok else "BUILD FAILED")
-    if report.ok and report.output_css:
-        lines.append(
-            "Next: link /css/output.css on the Document and mount "
-            "assets/static/file/css at /css, then uxcompose serve app:asgi"
-        )
+    if report.ok:
+        lines.append("Next: uxcompose serve app:asgi")
+        if report.output_css:
+            lines.append(
+                f"CSS linked as /css/output.css "
+                f"(file {report.output_css.name} under assets/static/file/css)"
+            )
     return "\n".join(lines)
 
 

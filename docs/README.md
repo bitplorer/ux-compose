@@ -41,10 +41,10 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 
 | Owns | Does **not** own |
 |------|------------------|
-| Product CLI (`create-app`, `serve`, `deploy`, `doctor`) | DOM serialize / tag trees (ux-dom) |
+| Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder + app asset layout | DOM serialize / tag trees / package static (ux-dom) |
 | App composition, host strategy, delivery | Channel transport (wire/ only) |
-| HMR + tunnel under `uxcompose serve` | Pure-dom tooling (`uxdom doctor` / lint / build) |
-| Page-unit mount (`App.mount` + `routes/`) | Behavior units (ux-behavior) |
+| HMR + tunnel under `uxcompose serve` | Pure-dom tooling (`uxdom doctor` / lint / profile / add) |
+| Page-unit mount (`App.mount` + `routes/`) | Behavior units (ux-behavior); leftover `uxdom build` (`app/main.py` verify) |
 
 **Author rule:** Render? → **ux-dom**. Product lifecycle? → **ux-compose** only.
 
@@ -67,7 +67,7 @@ Level 1 code remains correct at higher levels. Zero rewrite.
 
 | Package | Role |
 |---------|------|
-| [ux-dom](https://github.com/bitplorer/ux-dom) | Render / Document / DirectoryRoutes |
+| [ux-dom](https://github.com/bitplorer/ux-dom) | Render / Document |
 | [ux-behavior](https://github.com/bitplorer/ux-behavior) | Offline components, actions, state planes |
 | [ux-channel](https://github.com/bitplorer/ux-channel) | Intent → Cap → Result |
 | [ux-motion](https://github.com/bitplorer/ux-motion) | Server-authored presence / transition plans |

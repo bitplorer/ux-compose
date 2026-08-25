@@ -13,7 +13,7 @@ motion — without inventing APIs.
 1. Public names come from `ux_compose.__all__` and the `uxcompose` CLI in `pyproject.toml`.
 2. Scaffold text comes from `ux_compose.scaffold` (what `create-app` actually writes).
 3. Isolation Law: product modules never import `ux_channel`. Live Caps attach through `App.use_channel` / `wire/`.
-4. Ownership: compose owns create-app / serve / deploy / HMR / tunnel. ux-dom renders. ux-behavior owns `@action`.
+4. Ownership: compose owns create-app / build / serve / deploy / HMR / tunnel. ux-dom renders. ux-behavior owns `@action`.
 5. Progressive Superpower: L1 code stays correct at L2/L3. Zero rewrite of the Component.
 6. Tailwind is `className` on tag trees. CSS lives in `assets/css`, never inside Python strings.
 7. HMR is `uxcompose serve --no-reload --hmr`, not `Document.use`.
@@ -29,7 +29,7 @@ tour, open [UI.md](UI.md).
 
 | # | Job | You leave with |
 |---|-----|----------------|
-| 1 | [Scaffold](#1-scaffold) | `myapp/app.py` + `routes/hello.py` |
+| 1 | [Scaffold](#1-scaffold) | `settings.py` + `document.py` + `app.py` + `routes/hello.py` |
 | 2 | [Hello page unit](#2-hello-page-unit) | A Component that morphs |
 | 3 | [Serve](#3-serve) | HTTP on the product CLI |
 | 4 | [HMR + tunnel](#4-hmr-and-tunnel) | Browser reload + optional public URL |
@@ -44,7 +44,8 @@ tour, open [UI.md](UI.md).
 ## 1. Scaffold
 
 `uxcompose` is the **only** product lifecycle CLI. `uxdom` stays pure-dom
-(`doctor` / `lint` / `build` / `profile`). Do not run `uxdom create-app`.
+(`doctor` / `lint` / `profile` / `add`). Do not run `uxdom create-app`.
+Product CSS is `uxcompose build` (`ux_compose.tailwind` finds the CLI).
 
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate
@@ -59,11 +60,15 @@ What landed:
 
 ```text
 myapp/
-  app.py              # composition root: build(host=, live=, level=)
+  settings.py         # BASE_DIR, DEBUG, WebAssets
+  document.py         # Document SSoT + .use(XElement, Csp) + page()
+  app.py              # composition root: build(host=, live=, level=, document=)
   README.md
+  requirements.txt
+  assets/css/input.css
   routes/
     __init__.py
-    hello.py          # page unit: file stem == class name
+    hello.py          # page unit: file stem == class name; get() wraps page()
 ```
 
 `--level auto` unlocks specialists that import. Pin `--level 1` until Channel is
@@ -72,6 +77,7 @@ intentional. `--host auto` prefers FastAPI if installed, else a pure ASGI adapte
 Next:
 
 ```bash
+uxcompose build
 uxcompose serve app:asgi
 uxcompose doctor . --no-fail
 ```
@@ -148,6 +154,7 @@ class. Host adapters (FastAPI / ASGI) are chosen in `build(host=)`, not here.
 ```python
 from pathlib import Path
 from ux_compose.build import build
+from document import document
 
 PACKAGE = Path(__file__).resolve().parent
 
@@ -160,6 +167,7 @@ def main(*, use_htmx: bool = False):
         level=1,          # pin offline until Channel is a decision
         base="routes",
         use_htmx=use_htmx,
+        document=document,
     )
     return app, asgi, bundle
 
@@ -232,12 +240,16 @@ uxcompose serve app:asgi --tunnel cloudflare --tunnel-token "$TOKEN"
 
 1. Author utilities on the tree: `className="rounded-2xl border …"`.
 2. Tokens + `@layer components` live in `assets/css/input.css`.
-3. Tailwind scans `apps/**`, `examples/**`, `src/**` (`tailwind.config.js`).
+3. Tailwind scans **this app** (`app.py`, `routes/**/*.py`) via `@source` in
+   `assets/css/input.css`. `create-app` does not emit `tailwind.config.js`.
+   The globs `apps/**` / `examples/**` / `src/**` in this *library* repo's
+   `tailwind.config.js` are for compose demos, not product apps.
 4. Build CSS; the Document **links** the file.
 
 ```bash
-tailwindcss -i assets/css/input.css -o assets/css/output.css
-# product CSS watch lives on uxcompose serve / uxdom build
+uxcompose build
+# writes assets/static/file/css/output.css (minified)
+# product CSS watch lives on uxcompose build --watch
 ```
 
 Scaffold Hello already uses Tailwind utilities on `div` / `button` / `span`.
@@ -303,7 +315,7 @@ from ux_compose import App, Level
 app = App.boot("Shop", level=1)     # MorphState + @action, offline
 print(int(app.level), app.level.label)
 
-app.use_host("fastapi")             # auto | fastapi | starlette | asgi | batteries
+app.use_host("fastapi")             # auto | fastapi | starlette | asgi
 # app.use_channel(asgi_app=api)     # Level 2 — Isolation-safe (wire/ import)
 # app.use_motion()                  # Level 3 — Morph-then-Play
 # app.use_cek(mode="adapt")         # optional; mode="require" raises if missing

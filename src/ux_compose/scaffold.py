@@ -1,10 +1,16 @@
 """Progressive scaffold — create-app [--level=N|auto] [--host=auto|fastapi|asgi].
 
 Emits the locked product path:
-- routes/ with page-unit convention (module stem == class name)
-- composition root: ux_compose.build(host=, live=, level=)
-- Document trees + Tailwind className (no HTML strings)
-- HTMX opt-in only
+
+- settings.py          environment SSoT (BASE_DIR, DEBUG, WebAssets)
+- document.py          Document SSoT + .use(XElement, Csp) + page()
+- app.py               composition root via build(host=, live=, level=, document=)
+- routes/hello.py      page unit (module stem == class name)
+- assets/css/input.css Tailwind tokens + @source
+- requirements.txt     so ``uxcompose deploy`` is not a lie
+
+Laws: Isolation (no ux_channel in product files). Progressive Superpower
+(Level 1 page units stay correct when Channel or Motion unlock).
 """
 from __future__ import annotations
 
@@ -16,6 +22,7 @@ APP_PY = dedent('''\
     """Progressive ux-compose app (level={level_repr}, host={host}).
 
     Composition root: host + live set only in build().
+    Document SSoT lives in document.py; environment in settings.py.
     """
     from __future__ import annotations
 
@@ -25,6 +32,37 @@ APP_PY = dedent('''\
     from ux_compose import doctor
 
     PACKAGE = Path(__file__).resolve().parent
+
+    try:
+        from document import document
+    except Exception:
+        document = None
+    try:
+        from settings import webassets
+    except Exception:
+        webassets = None
+
+
+    def _mount_css(asgi):
+        """Serve compiled CSS at /css/output.css. Returns asgi (maybe wrapped)."""
+        if asgi is None or webassets is None:
+            return asgi
+        mount = getattr(webassets, "mount_css", None)
+        if callable(mount):
+            return mount(asgi)
+        css_dir = getattr(getattr(webassets, "static", None), "css", None)
+        if css_dir is None:
+            return asgi
+        from pathlib import Path as _P
+        from starlette.staticfiles import StaticFiles
+
+        _P(str(css_dir)).mkdir(parents=True, exist_ok=True)
+        asgi.mount(
+            "/css",
+            StaticFiles(directory=str(css_dir), check_dir=False),
+            name="css",
+        )
+        return asgi
 
 
     def main(*, use_htmx: bool = False):
@@ -36,7 +74,17 @@ APP_PY = dedent('''\
             level={level_boot},
             base="routes",
             use_htmx=use_htmx,
+            document=document,
         )
+        if document is not None and asgi is not None and hasattr(document, "mount"):
+            try:
+                document.mount(asgi)
+            except Exception:
+                # DirectoryASGI has no middleware / route table — package static
+                # needs FastAPI. CSS is attached separately below.
+                if hasattr(asgi, "add_middleware") or hasattr(asgi, "mount"):
+                    raise
+        asgi = _mount_css(asgi)
         return app, asgi, bundle
 
 
@@ -56,10 +104,75 @@ APP_PY = dedent('''\
         print("Doctor surfaces:", report.surfaces)
         print("Doctor routes:", report.routes)
         if asgi is not None:
-            print("Serve: uxcompose serve app:asgi --host 0.0.0.0 --port 8080")
+            print("Path: uxcompose build && uxcompose serve app:asgi --host 0.0.0.0 --port 8080")
 
     # ASGI attribute for uvicorn app:asgi
     _app, asgi, _bundle = main()
+''')
+
+
+SETTINGS_PY = dedent('''\
+    """Environment SSoT — paths, debug, app asset layout.
+
+    Document emits ``<link href="/css/output.css">``. This module owns the
+    disk folders. Isolation Law: Channel stays behind compose wire/.
+    """
+    from __future__ import annotations
+
+    import os
+    from pathlib import Path
+
+    from ux_compose import WebAssets
+
+    BASE_DIR = Path(__file__).resolve().parent
+    DEBUG = os.environ.get("DEBUG", "1") not in ("0", "false", "False")
+
+    ASSETS_DIR = BASE_DIR / "assets"
+    OUTPUT_CSS = "output.css"
+
+    # dry_run=False creates assets/static/file/css (compiler output dir)
+    webassets = WebAssets(base_dir=ASSETS_DIR, dry_run=False)
+''')
+
+
+DOCUMENT_PY = dedent('''\
+    """Document SSoT — one HTML shell for every GET.
+
+    .use(XElement, Csp) attaches runtimes. HTMX is opt-in via build(use_htmx=True).
+    page() wraps a fragment for HTTP GET. Component.render() stays a fragment
+    (the morph payload) — never put the stylesheet link inside render().
+    Isolation: this module never imports ux_channel.
+    """
+    from __future__ import annotations
+
+    try:
+        from ux_dom import Document
+        from ux_dom.runtime import XElement, Csp
+        from ux_dom.dom import link, meta, title
+
+        from settings import DEBUG, OUTPUT_CSS
+
+        document = Document(
+            head=[
+                meta(charset="utf-8"),
+                meta(name="viewport", content="width=device-width, initial-scale=1"),
+                title("Hello"),
+                link(href=f"/css/{OUTPUT_CSS}", rel="stylesheet"),
+            ],
+            body=[],
+            ensure_csrf_token=False,
+        ).use(XElement(), Csp.auto())
+
+        def page(*body, page_title: str | None = None):
+            """Wrap a fragment in the single Document shell."""
+            extra_head = [title(page_title)] if page_title else []
+            return document(*body, head=extra_head or None)
+
+    except Exception:  # ux-dom not installed — L1 HTML-string fallback still works
+        document = None
+
+        def page(*body, page_title: str | None = None):
+            return body[0] if body else None
 ''')
 
 
@@ -68,6 +181,8 @@ ROUTES_HELLO_PY = dedent('''\
 
     Author contract: return ux-dom tag trees with Tailwind className.
     control() emits semantic data-ux-* attrs. HTMX is opt-in at Document layer.
+    get() wraps the fragment in the Document shell for HTTP GET.
+    render() stays a fragment (the morph payload).
     """
     from __future__ import annotations
 
@@ -102,13 +217,23 @@ ROUTES_HELLO_PY = dedent('''\
                     id=self.id,
                     className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm",
                 )
-            attr_str = " ".join(f'{{k}}="{{v}}"' for k, v in attrs.items())
+            attr_str = " ".join(f'{k}="{v}"' for k, v in attrs.items())
             return (
                 f'<div id="hello" class="flex items-center gap-3">'
-                f"<span>{{n}}</span>"
-                f"<button {{attr_str}}>+1</button>"
+                f"<span>{n}</span>"
+                f"<button {attr_str}>+1</button>"
                 f"</div>"
             )
+
+        @classmethod
+        def get(cls):
+            """HTTP GET: wrap the fragment in the Document shell."""
+            try:
+                from document import page
+
+                return page(cls().render())
+            except Exception:
+                return cls().render()
 
         @action(caps=())
         def inc(self):
@@ -117,47 +242,85 @@ ROUTES_HELLO_PY = dedent('''\
 ''')
 
 
+INPUT_CSS = dedent('''\
+    @import "tailwindcss";
+    @source "../../**/*.{py,html,js}";
+
+    @layer base {
+      :root {
+        --bg: #f3efe6;
+        --surface: #fffdf8;
+        --fg: #161513;
+        --accent: #2f3b38;
+        --font-display: "Fraunces", Georgia, serif;
+        --font-body: "Source Sans 3", system-ui, sans-serif;
+      }
+      html { background: var(--bg); color: var(--fg); }
+      body { margin: 0; font-family: var(--font-body); }
+    }
+
+    @layer components {
+    }
+''')
+
+
+REQUIREMENTS = dedent('''\
+    ux-compose
+    ux-dom
+    ux-behavior
+    fastapi
+    uvicorn[standard]
+''')
+
+
 README = dedent('''\
     # {name}
 
     Progressive ux-compose app (level={level_repr}, host={host}).
 
+    ## Mental model
+
+    - `settings.py` — environment (BASE_DIR, DEBUG, WebAssets on ux-compose)
+    - `document.py` — Document SSoT + `.use(XElement, Csp)` + `page()`
+    - `app.py` — composition root: `build(host=, live=, level=, document=)`
+    - `routes/hello.py` — page unit (`render()` is a fragment; `get()` wraps with `page()`)
+    - `assets/css/input.css` — Tailwind tokens; compile with `uxcompose build`
+
     ## Composition root
 
     ```python
     from ux_compose.build import build
+    from document import document
     app, asgi, bundle = build(
         Path(__file__).parent,
         host="{host}",   # auto | fastapi | asgi
         live="auto",     # auto | channel | null
         level={level_repr_py},
+        document=document,
     )
     ```
 
+    Host is set **only** in `build(host=...)` — swap without rewriting page units.
+
     ## Product path
 
-    - `routes/hello.py` — page unit (stem == class name)
-    - `render()` → ux-dom trees + Tailwind `className`
-    - Host set **only** in `build(host=...)` — swap without rewriting page units
-
-    ## Run
-
     ```bash
-    pip install ux-compose ux-dom ux-behavior
-    # optional: ux-channel ux-motion fastapi uvicorn
-    python app.py
+    pip install -r requirements.txt
+    uxcompose build
     uxcompose serve app:asgi --port 8080
+    uxcompose deploy --provider docker
+    uxcompose doctor . --no-fail
     ```
+
+    `uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`).
+    Output: `assets/static/file/css/output.css`, linked as `/css/output.css`.
 
     ## Laws
 
     - Isolation: product modules never import `ux_channel` or CEK
     - Cap Law: protected actions fail closed under `strict_caps=True`
     - HTMX is opt-in (`use_htmx=True` in main)
-
-    ```bash
-    uxcompose doctor . --no-fail
-    ```
+    - Progressive Superpower: this Level 1 page unit stays correct at L2/L3
 ''')
 
 
@@ -199,6 +362,8 @@ def create_app(
         ),
         encoding="utf-8",
     )
+    (root / "settings.py").write_text(SETTINGS_PY, encoding="utf-8")
+    (root / "document.py").write_text(DOCUMENT_PY, encoding="utf-8")
     (root / "README.md").write_text(
         README.format(
             name=name,
@@ -208,11 +373,19 @@ def create_app(
         ),
         encoding="utf-8",
     )
+    (root / "requirements.txt").write_text(REQUIREMENTS, encoding="utf-8")
 
     routes = root / "routes"
     routes.mkdir(exist_ok=True)
     (routes / "__init__.py").write_text("", encoding="utf-8")
     (routes / "hello.py").write_text(ROUTES_HELLO_PY, encoding="utf-8")
+
+    css_dir = root / "assets" / "css"
+    css_dir.mkdir(parents=True, exist_ok=True)
+    (css_dir / "input.css").write_text(INPUT_CSS, encoding="utf-8")
+    from ux_compose.assets import WebAssets
+
+    WebAssets.from_app_root(root, dry_run=False)
 
     return root
 

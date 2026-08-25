@@ -35,8 +35,6 @@ def _find_app_root(start: Optional[Path] = None) -> Path:
     for p in [cur, *cur.parents]:
         if (p / "app.py").is_file():
             return p
-        if (p / "app" / "main.py").is_file():
-            return p
         if p == p.parent:
             break
     raise FileNotFoundError(
@@ -69,6 +67,11 @@ RUN pip install --no-cache-dir -U pip \\
     && pip install --no-cache-dir "uvicorn[standard]" fastapi ux-compose ux-dom ux-behavior
 
 COPY . .
+
+# CSS: run `uxcompose build` before `docker build` so output.css is in COPY.
+# Or compile in the image (uncomment):
+# RUN pip install --no-cache-dir pytailwindcss \\
+#  && uxcompose build --skip-import
 
 EXPOSE 8080
 CMD ["sh", "-c", "uvicorn app:asgi --host 0.0.0.0 --port ${PORT:-8080}"]
@@ -157,13 +160,15 @@ def prepare_deploy(
 
     result.notes.append("uxcompose deploy prepares config only — does not upload.")
     result.notes.append("ASGI entry: uvicorn app:asgi --host 0.0.0.0 --port $PORT")
+    result.notes.append("Compile CSS first: uxcompose build  (output.css on disk before the image).")
 
     if provider == "checklist":
         result.instructions = [
-            "1. uxcompose doctor .",
-            "2. Set secrets / DEBUG=false on host",
-            "3. uvicorn app:asgi --host 0.0.0.0 --port 8080",
-            "4. TLS reverse proxy in front",
+            "1. uxcompose build",
+            "2. uxcompose doctor .",
+            "3. Set secrets / DEBUG=false on host",
+            "4. uvicorn app:asgi --host 0.0.0.0 --port 8080",
+            "5. TLS reverse proxy in front",
         ]
         return result
 

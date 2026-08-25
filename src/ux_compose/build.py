@@ -3,6 +3,7 @@
 ::
 
     from ux_compose.build import build
+    from document import document
 
     app, asgi, bundle = build(
         Path(__file__).parent,
@@ -10,6 +11,7 @@
         host="auto",   # auto|fastapi|asgi
         live="auto",   # auto|channel|null
         level="auto",
+        document=document,  # Document SSoT from document.py
     )
 """
 from __future__ import annotations
@@ -36,6 +38,41 @@ class BuildResult(tuple):
         return self[2]
 
 
+def _attach_document(app: Any, document: Any, *, use_htmx: bool) -> Any:
+    """Attach the author's Document, or synthesize an empty one if none given.
+
+    Author-provided Document is the SSoT (settings + head link + runtimes).
+    HTMX stays opt-in. Missing ux-dom is a soft skip (L1 HTML-string path).
+    """
+    if document is not None:
+        if use_htmx:
+            try:
+                from ux_dom.runtime import Htmx
+
+                document.use(Htmx())
+            except Exception:
+                pass
+        app.use_dom(document)
+        return document
+    try:
+        from ux_dom import Document
+        from ux_dom.runtime import XElement, Csp
+
+        runtimes: list[Any] = [XElement(), Csp.auto()]
+        if use_htmx:
+            try:
+                from ux_dom.runtime import Htmx
+
+                runtimes.insert(1, Htmx())
+            except ImportError:
+                pass
+        document = Document(head=[], body=[], ensure_csrf_token=False).use(*runtimes)
+        app.use_dom(document)
+        return document
+    except ImportError:
+        return None
+
+
 def build(
     package_dir: str | Path,
     *,
@@ -47,6 +84,7 @@ def build(
     fail_closed: bool = True,
     use_htmx: bool = False,
     asgi_app: Any = None,
+    document: Any = None,
 ) -> BuildResult:
     """Boot specialists + mount page units. Host and live set only here.
 
@@ -59,6 +97,10 @@ def build(
       - ``"auto"`` — Channel when ux_channel importable
       - ``"channel"`` — prefer Channel
       - ``"null"`` — offline Behavior only
+
+    document:
+      - author's Document (from ``document.py``) — preferred
+      - ``None`` — synthesize an empty Document if ux-dom is installed
     """
     from ux_compose import App
 
@@ -69,6 +111,12 @@ def build(
     want_channel = live_l in ("auto", "channel")
     if live_l == "null":
         want_channel = False
+
+    auto_level = isinstance(level, str) and str(level).lower() == "auto"
+    boot_level: int | str = level
+    if live_l == "null":
+        # offline Behavior only — do not unlock Channel/Motion after boot
+        boot_level = 1 if auto_level else min(int(level), 1)
 
     asgi = asgi_app
     host_kind = host_l
@@ -96,23 +144,8 @@ def build(
             host_kind = "asgi"
             asgi = None
 
-    app = App.boot(name, strict_caps=False, level=level)
-
-    try:
-        from ux_dom import Document
-        from ux_dom.runtime import XElement, Csp
-
-        runtimes: list[Any] = [XElement(), Csp.auto()]
-        if use_htmx:
-            try:
-                from ux_dom.runtime import Htmx
-
-                runtimes.insert(1, Htmx())
-            except ImportError:
-                pass
-        app.use_dom(Document(head=[], body=[], ensure_csrf_token=False).use(*runtimes))
-    except ImportError:
-        pass
+    app = App.boot(name, strict_caps=False, level=boot_level)
+    _attach_document(app, document, use_htmx=use_htmx)
 
     if want_channel:
         try:
@@ -123,10 +156,14 @@ def build(
         except Exception:
             if live_l == "channel":
                 raise
-    try:
-        app.use_motion()
-    except Exception:
-        pass
+    pinned = None if auto_level else max(0, min(3, int(boot_level if live_l == "null" else level)))
+    want_motion = live_l != "null" and (auto_level or (pinned is not None and pinned >= 3))
+    if want_motion:
+        try:
+            app.use_motion()
+        except Exception:
+            if pinned is not None and pinned >= 3:
+                raise
 
     if host_kind == "asgi":
         bundle = app.mount(
@@ -137,8 +174,8 @@ def build(
             bind_pages=False,
         )
         try:
-            from ux_dom.routing.core import DirectoryRoutes, RouterHooks
-            from ux_dom.routing.adapters.asgi import DirectoryASGI
+            from ux_compose.routing.core import DirectoryRoutes, RouterHooks
+            from ux_compose.routing.adapters.asgi import DirectoryASGI
 
             registry = dict(getattr(bundle, "unit_registry", {}) or {})
 

@@ -8,10 +8,11 @@ Compose owns **product lifecycle**. Specialist DX stays on the specialist.
 ## Mental model
 
 ```text
-uxcompose create-app / serve / deploy / doctor
+uxcompose create-app / build / serve / deploy / doctor
         │
         ├─ probe specialists (find_spec + CLI on PATH)
-        ├─ boot via build() / App.mount (DirectoryRoutes + thin adapter)
+        ├─ boot via build() / App.mount (ux_compose.routing.DirectoryRoutes + thin adapter)
+        ├─ CSS minify via ux_compose.tailwind (finder + ensure)
         └─ Isolation + Progressive Superpower
 ```
 
@@ -28,15 +29,17 @@ when Channel or Motion unlock. Zero rewrite.
 **Isolation Law:** product modules never import `ux_channel` or CEK. The only
 door is `ux_compose.wire/` via `App.use_channel` / `App.use_motion`.
 
-**Ownership:** `uxdom` is pure Document tooling (`doctor`, `lint`, `build`,
-`profile`, `add`). It is not a product CLI. There is no `uxdom create-app` /
-`serve` / `deploy`.
+**Ownership:** `uxdom` is pure Document tooling (`doctor`, `lint`, `profile`,
+`add`). className, Document `<link>`, and package static live there.
+App folders are `ux_compose.WebAssets`. There is no `uxdom create-app` /
+`serve` / `deploy`. Product CSS compile is `uxcompose build`.
 
 ## Commands
 
 ```bash
 uxcompose doctor [path ...] [--no-fail]
 uxcompose create-app <dir> [--name NAME] [--level auto|0-3] [--host auto|fastapi|asgi]
+uxcompose build [--watch] [--no-minify]
 uxcompose serve [app:asgi] [--port 8080] [--reload|--no-reload] [--hmr] [--tunnel ngrok|cloudflare]
 uxcompose deploy [--provider docker|fly|render|railway|vps|checklist]
 ```
@@ -47,8 +50,12 @@ Emits the locked product path:
 
 ```text
 myapp/
-├── app.py                    # build(host=, live=, level=) composition root
-├── routes/hello.py           # page unit (stem == class name)
+├── settings.py               # BASE_DIR, DEBUG, WebAssets
+├── document.py               # Document SSoT + .use(XElement, Csp) + page()
+├── app.py                    # build(host=, live=, level=, document=)
+├── routes/hello.py           # page unit (stem == class name); get() wraps with page()
+├── assets/css/input.css      # Tailwind tokens + @source
+├── requirements.txt
 └── README.md
 ```
 
@@ -64,7 +71,8 @@ Reports:
 4. Isolation AST scan + dual-Document heuristic (fail-closed unless `--no-fail`)
 
 Page-unit teaching names **DirectoryRoutes + App.mount**, not DirectoryRouter.
-DirectoryRouter is last-resort `host="batteries"` only.
+DirectoryRouter is leftover ux-dom batteries for standalone FastAPI trees that
+cannot import compose. `host="batteries"` fails closed.
 
 ## Probe API (library)
 
@@ -81,7 +89,7 @@ pr.unlock_messages(requested_level=3)
 ## What compose deliberately does not own
 
 - Tag serialize / Document shell → ux-dom
-- Tailwind CLI resolver / `uxdom build` → ux-dom
+- className / stylesheet `<link>` / package static (`/ux-dom/static/…`) → ux-dom
 - `uxdom add component|xelement|ui` → ux-dom (pure-dom)
 - Channel wire protocol / CEK → ux-channel (behind `wire/` only)
 - Scene IR / player scripts → ux-motion
@@ -92,6 +100,7 @@ pr.unlock_messages(requested_level=3)
 pip install "ux-compose[full]"
 uxcompose create-app myapp --host auto --level auto
 cd myapp
+uxcompose build
 uxcompose doctor . --no-fail
 uxcompose serve app:asgi --port 8080
 ```

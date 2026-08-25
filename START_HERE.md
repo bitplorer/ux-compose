@@ -19,11 +19,11 @@ Ownership law: [docs/FLOW.md](docs/FLOW.md). **Map:** [docs/INDEX.md](docs/INDEX
 re-implement DOM, behavior, channel, or motion — it harnesses them.
 
 ```text
-ux-dom       → render (trees, Document, DirectoryRoutes)
+ux-dom       → render (trees, Document)
 ux-behavior  → offline units (MorphState, @action)
 ux-channel   → live Caps (behind wire/ only)
 ux-motion    → presence / transition plans
-ux-compose   → create-app · serve · deploy · App.mount · HMR
+ux-compose   → create-app · build · serve · deploy · App.mount · HMR
 ```
 
 Public imports are from `ux_compose` (`App`, `Component`, `div`, `button`, …).
@@ -43,30 +43,42 @@ pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
 
 uxcompose create-app myapp --level 1
 cd myapp
+uxcompose build
 uxcompose serve app:asgi --port 8080
 ```
 
 Never: `uxdom create-app`, `uxdom serve`, or product HMR as a Document API.
+Product CSS is `uxcompose build`, not `uxdom build`.
 
 ---
 
 ## 3. First product shape
 
-Filesystem page units under `routes/` + `App.mount`:
+Filesystem page units under `routes/` + `build(document=)`:
 
 ```text
 myapp/
+  settings.py
+  document.py
   app.py
+  assets/css/input.css
+  requirements.txt
   routes/
     hello.py     # page unit (stem match)
 ```
 
 ```python
 from pathlib import Path
-from ux_compose import App
+from ux_compose.build import build
+from document import document
 
-app = App.boot("Shop", level=1)
-bundle = app.mount(Path(__file__).parent, asgi_app=api, base="routes")
+app, asgi, bundle = build(
+    Path(__file__).parent,
+    host="auto",
+    live="auto",
+    level=1,
+    document=document,
+)
 app.dispatch("hello.inc")
 ```
 

@@ -101,4 +101,4 @@ Pen-style tests are **defensive unit checks** (sanitization, isolation), not a s
 
 Raise `cov-fail-under` as specialists are pinned in CI.
 
-See also: `docs/FLOW.md`, `docs/CLI.md`.
+See also: `docs/FLOW.md`, `docs/guides/CLI.md`.

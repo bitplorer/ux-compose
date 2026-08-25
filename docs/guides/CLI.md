@@ -34,9 +34,7 @@ uxdom profile
 uxdom add component Card
 ```
 
-`uxdom create-app` / `serve` / `deploy` are **removed from the product path**.
-`uxdom build` is Document/static verify for leftover `app/main.py` showcase
-trees — it does **not** compile CSS. Product apps use `uxcompose build`.
+Product apps use `uxcompose build` for CSS. ux-dom does not compile CSS.
 See `docs/FLOW.md`.
 
 `uxcompose serve` watches `.css` (HMR). It does not compile.

@@ -46,7 +46,7 @@ Product path::
 | **ux-dom** | Tag trees, dunders, Document shell, className / `<link>`, package static, pure-dom DX | Product lifecycle, DirectoryRoutes, HMR, tunnel, Tailwind compiler, WebAssets, host strategy |
 | **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, **DirectoryRoutes**, **Tailwind compiler**, **WebAssets**, wire/, **HMR + tunnel under serve** | DOM serialize |
 
-`uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`). Compose never re-implements Document serialize. `uxdom build` is Document/static verify for pure-dom trees — it does not compile CSS.
+`uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`). Compose never re-implements Document serialize. ux-dom does not compile CSS.
 
 ---
 

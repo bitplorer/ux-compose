@@ -14,7 +14,6 @@ ux-dom      RENDER     tree → __render__ / __async_render__ → HTML str | byt
                        Document shell: control attrs, runtime script tags, CSP stamp
                        className, stylesheet <link>
                        package static (/ux-dom/static/…)
-                       leftover DirectoryRouter (standalone FastAPI trees only)
                        pure-dom DX: doctor | lint | profile | add
 
 ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
@@ -37,16 +36,16 @@ ux-channel  Intent/Caps behind wire/ only
 
 | Layer | Owns | Does **not** own |
 |-------|------|------------------|
-| **ux-dom** | Tag trees, dunders, Document shell, pure discovery, className / `<link>`, package static, pure-dom DX | Product lifecycle, HMR process, tunnel, Tailwind compiler, app asset layout |
-| **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, **Tailwind compiler**, **WebAssets layout**, wire/, **HMR + tunnel under serve** | DOM serialize |
+| **ux-dom** | Tag trees, dunders, Document shell, className / `<link>`, package static, pure-dom DX | Product lifecycle, DirectoryRoutes, HMR, tunnel, Tailwind compiler, WebAssets, host strategy |
+| **ux-compose** | Composition, delivery, create-app/**build**/serve/deploy/doctor, **DirectoryRoutes**, **Tailwind compiler**, **WebAssets layout**, wire/, **HMR + tunnel under serve** | DOM serialize |
 
-`uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`). `uxdom build` is leftover Document/static verify for `app/main.py` trees — it does not compile CSS.
+`uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`). ux-dom does not compile CSS.
 
 ---
 
 ## 2. Document.use
 
-Allowed: control, runtime, CSP, style. **Not:** HMR process, FastAPIHost, product App.
+Allowed: control, runtime, CSP, style. **Not:** HMR process, host strategy, product App.
 
 create-app emits `document.py` (one Document + `page()`) and `settings.py` (`ux_compose.WebAssets`). `build(document=)` attaches that Document.
 

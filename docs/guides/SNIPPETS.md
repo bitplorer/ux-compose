@@ -35,7 +35,7 @@ Every block is meant to run (or to be the exact fragment you drop into a running
 
 <a id="co-install"></a>
 
-Sole product lifecycle CLI is uxcompose. uxdom stays pure-dom (doctor/lint/build/profile).
+Sole product lifecycle CLI is uxcompose. uxdom stays pure-dom (doctor / lint / profile / add).
 
 ```bash
 uxcompose create-app myapp --level 1
@@ -136,7 +136,7 @@ cd myapp
 uxcompose serve app:asgi --port 8080
 uxcompose doctor .
 uxcompose deploy --provider docker
-# product lifecycle lives here. uxdom doctor/lint/build stay pure-dom.
+# product lifecycle lives here. uxdom doctor / lint / profile stay pure-dom.
 ```
 
 
@@ -245,7 +245,7 @@ from ux_compose import App, Level
 app = App.boot("Shop", level=1)
 print(int(app.level), app.level.label)   # 1 offline interactive
 
-app.use_host("fastapi")                  # auto | fastapi | starlette | asgi | batteries
+app.use_host("fastapi")                  # auto | fastapi | asgi
 # app.use_channel(asgi_app=api)          # Level 2 — Isolation-safe wire/ import
 # app.use_motion()                       # Level 3
 # app.use_cek(mode="adapt")              # optional; mode="require" raises if missing
@@ -263,7 +263,7 @@ assert Level.L1.value == 1
 If you are rewriting the Cart to 'go live', you have violated the contract. Attach Channel; do not fork the component.
 
 ```python
-# L0  Document + static Components + DirectoryRoutes
+# L0  Document + static Components  (page units: DirectoryRoutes on compose)
 # L1  + Behavior + MorphState + @action     ← write here first
 # L2  + Channel + Caps + control()          ← App.use_channel
 # L3  + Motion / Scenes                     ← App.use_motion + update_with

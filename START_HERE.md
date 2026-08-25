@@ -47,8 +47,8 @@ uxcompose build
 uxcompose serve app:asgi --port 8080
 ```
 
-Never: `uxdom create-app`, `uxdom serve`, or product HMR as a Document API.
-Product CSS is `uxcompose build`, not `uxdom build`.
+HMR is `uxcompose serve`, not a Document API.
+Product CSS is `uxcompose build`.
 
 ---
 
@@ -129,9 +129,9 @@ print(app.dispatch("cart.add", sku="tee"))
 | Public-API cookbook | [docs/guides/SNIPPETS.md](docs/guides/SNIPPETS.md) |
 | Ownership law (authoritative) | [docs/FLOW.md](docs/FLOW.md) |
 | Mental model + install | [docs/START_HERE.md](docs/START_HERE.md) |
-| CLI reference | [docs/CLI.md](docs/CLI.md) |
-| DX principles | [docs/DX.md](docs/DX.md) |
+| CLI reference | [docs/guides/CLI.md](docs/guides/CLI.md) |
+| DX principles | [docs/guides/DX.md](docs/guides/DX.md) |
 | Full example map | [examples/README.md](examples/README.md) |
-| Test expectations | [docs/TESTING.md](docs/TESTING.md) |
+| Test expectations | [docs/guides/TESTING.md](docs/guides/TESTING.md) |
 | Contributor / agent | [CONTRIBUTING.md](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md) |
 | Full map | [docs/INDEX.md](docs/INDEX.md) |

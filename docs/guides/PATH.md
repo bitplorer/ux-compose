@@ -43,8 +43,7 @@ tour, open [UI.md](UI.md).
 
 ## 1. Scaffold
 
-`uxcompose` is the **only** product lifecycle CLI. `uxdom` stays pure-dom
-(`doctor` / `lint` / `profile` / `add`). Do not run `uxdom create-app`.
+`uxcompose` is the **only** product lifecycle CLI. `uxdom` stays pure-dom (`doctor` / `lint` / `profile` / `add`).
 Product CSS is `uxcompose build` (`ux_compose.tailwind` finds the CLI).
 
 ```bash

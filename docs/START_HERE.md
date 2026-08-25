@@ -96,7 +96,7 @@ PYTHONPATH=src:. python examples/page_unit_mount.py
 | Scaffold / build / serve / deploy | **`uxcompose` CLI only** |
 | Page routes + CSS folders | **`ux_compose.routing` + `WebAssets`** |
 
-Never: `uxdom create-app`, `uxdom serve`, or product HMR as a Document API.
+HMR is `uxcompose serve`, not a Document API.
 
 ---
 

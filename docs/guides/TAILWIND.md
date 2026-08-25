@@ -162,17 +162,6 @@ python -m pytailwindcss \
   --minify
 ```
 
-### `uxdom build` (pure-dom showcase only)
-
-```bash
-uxdom build
-```
-
-Document/static verify for leftover `app/main.py` trees. A
-`uxcompose create-app` tree has `app.py` at the root — **use
-`uxcompose build`**. `uxdom build` does **not** compile CSS. If you run
-it in a product app it will teach you `uxcompose build`.
-
 ### How the CLI is found
 
 `ux_compose.tailwind.resolve_tailwind` (first hit wins):
@@ -187,7 +176,7 @@ it in a product app it will teach you `uxcompose build`.
 7. last resort: `npx --yes @tailwindcss/cli`
 
 `uxcompose build` uses `ensure=True`. A missing CLI is a real error, not a skip.
-`uxdom build` does **not** compile CSS. Product compile is here.
+Product compile is here.
 
 Dev watch (do not ship this process):
 
@@ -332,7 +321,6 @@ so workers do not race the compiler. `TailwindStyle` on ux-dom fails closed.
 | `assets/css/output.css` as the **served** file without a mount | `uxcompose build` writes `assets/static/file/css/output.css`. Link `/css/output.css` to that folder. |
 | `uxcompose serve` as the production compiler | HMR reloads on `.css` mtime. It never runs Tailwind. |
 | `uxcompose deploy` as a CSS build | Prepares Dockerfile / fly / render / railway / vps. Run `uxcompose build` first. |
-| `uxdom build` on a product app | Product CSS is `uxcompose build`. `uxdom build` is for `app/main.py` trees. |
 | Compiling inside `Component.render()` | Render is the morph payload. |
 
 ---

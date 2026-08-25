@@ -50,7 +50,8 @@ def test_index_owns_product_build_and_compiler():
     text = (ROOT / "docs" / "INDEX.md").read_text(encoding="utf-8")
     assert "`create-app`, `build`, `serve`, `deploy`, `doctor`" in text
     assert "Tailwind CLI finder" in text
-    assert "leftover `uxdom build`" in text
+    assert "uxdom doctor" in text
+    assert "leftover `uxdom build`" not in text
 
 
 def test_internals_flow_defers_to_canonical():

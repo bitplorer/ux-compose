@@ -31,8 +31,7 @@ door is `ux_compose.wire/` via `App.use_channel` / `App.use_motion`.
 
 **Ownership:** `uxdom` is pure Document tooling (`doctor`, `lint`, `profile`,
 `add`). className, Document `<link>`, and package static live there.
-App folders are `ux_compose.WebAssets`. There is no `uxdom create-app` /
-`serve` / `deploy`. Product CSS compile is `uxcompose build`.
+App folders are `ux_compose.WebAssets`. Product CSS compile is `uxcompose build`.
 
 ## Commands
 
@@ -70,9 +69,8 @@ Reports:
 3. Unlock teaching for the next level
 4. Isolation AST scan + dual-Document heuristic (fail-closed unless `--no-fail`)
 
-Page-unit teaching names **DirectoryRoutes + App.mount**, not DirectoryRouter.
-DirectoryRouter is leftover ux-dom batteries for standalone FastAPI trees that
-cannot import compose. `host="batteries"` fails closed.
+Page-unit teaching names **DirectoryRoutes + App.mount**.
+`host="batteries"` fails closed.
 
 ## Probe API (library)
 

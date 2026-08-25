@@ -63,7 +63,7 @@ make test314
 PYTHONPATH=src:. python -m pytest tests/ -q
 ```
 
-See [docs/TESTING.md](docs/TESTING.md). Regression tests under `tests/regression/`
+See [docs/guides/TESTING.md](docs/guides/TESTING.md). Regression tests under `tests/regression/`
 lock the hard-cut (no product CLI dual path).
 
 ## Isolation

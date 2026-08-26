@@ -39,6 +39,21 @@ tour, open [UI.md](UI.md).
 | 8 | [Motion](#8-motion-xor) | Morph-then-Play, no `html=` on the plan |
 | 9 | [Live](#9-go-live) | Channel through `wire/`, Isolation held |
 
+CLI is the lifecycle. Page units never know which phase they are in.
+
+```text
+create-app → author routes/ → dispatch / doctor → uxcompose build
+         → serve (--hmr / --tunnel) → unlock L2/L3 → deploy → doctor
+```
+
+| Phase | Command | You do not |
+|-------|---------|------------|
+| Scaffold | `uxcompose create-app` | hand-write `get()` / `HTMLResponse` |
+| Prove | `app.dispatch` + `uxcompose doctor` | stand up HTTP to test Clock B |
+| CSS | `uxcompose build` | compile in `serve` / `deploy` |
+| Dev | `uxcompose serve app:asgi` | `Document.use` for HMR |
+| Ship | `uxcompose deploy --provider docker` | a second ASGI process |
+
 ---
 
 ## 1. Scaffold
@@ -60,14 +75,14 @@ What landed:
 ```text
 myapp/
   settings.py         # BASE_DIR, DEBUG, WebAssets
-  document.py         # Document SSoT + .use(XElement, Csp) + page()
+  document.py         # Document SSoT + .use(XElement, Csp); host wraps GET
   app.py              # composition root: build(host=, live=, level=, document=)
   README.md
   requirements.txt
   assets/css/input.css
   routes/
     __init__.py
-    hello.py          # page unit: file stem == class name; get() wraps page()
+    hello.py          # page unit: stem == class name; render() is a fragment
 ```
 
 `--level auto` unlocks specialists that import. Pin `--level 1` until Channel is
@@ -142,7 +157,9 @@ class Hello(Component):
 ```
 
 Page-unit law: `routes/hello.py` exports class `Hello`. The stem matches the
-class. Host adapters (FastAPI / ASGI) are chosen in `build(host=)`, not here.
+class. `render()` is a fragment; the host wraps Document. Host adapters are
+chosen in `build(host=)`, not here. HTML / JSON / stream from `render()`:
+[HOST.md](HOST.md).
 
 ---
 
@@ -496,34 +513,28 @@ plan = (
 
 ## 9. Go live
 
-Channel attaches **only** through compose `wire/`. This module does not import
-`ux_channel`.
+Channel attaches **only** through compose `wire/`. Product modules do not import
+`ux_channel`. Prefer `build(live="auto")` so Channel binds on the real ASGI
+process. Handmade `HTMLResponse` / `Hello.get` is leftover — see
+[HOST.md](HOST.md) and [reference/host.md](../reference/host.md).
 
 ```python
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
-from ux_compose import App, doctor
-from ux_dom import Document
-from ux_dom.runtime import XElement, Csp
+from pathlib import Path
+from ux_compose.build import build
+from document import document
 
-api = FastAPI(title="Shop")
-document = Document(head=[], body=[], ensure_csrf_token=False).use(
-    XElement(), Csp.auto()
+app, asgi, bundle = build(
+    Path(__file__).parent,
+    host="auto",
+    live="auto",     # Channel when ux-channel is installed
+    document=document,
 )
+# extra APIs on the same process:
+# @asgi.get("/api/health")
+# def health():
+#     return {"ok": True}
 
-ux = App.boot("Shop", strict_caps=False, level=1)
-ux.use_dom(document)
-ux.use_channel(asgi_app=api)   # Isolation door
-ux.use_motion()                # no-op if ux-motion missing
-ux.add(Hello)
-
-@api.get("/", response_class=HTMLResponse)
-def index():
-    inst = ux.behavior.get("hello")
-    return HTMLResponse(str(document(inst.render())))
-
-print(int(ux.level), ux.level.label)
-print(doctor([], fail=False).capabilities)
+print(int(app.level), app.level.label)
 ```
 
 Serve the FastAPI app the same way:

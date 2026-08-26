@@ -50,9 +50,9 @@ Emits the locked product path:
 ```text
 myapp/
 ├── settings.py               # BASE_DIR, DEBUG, WebAssets
-├── document.py               # Document SSoT + .use(XElement, Csp) + page()
+├── document.py               # Document SSoT + .use(XElement, Csp); host wraps GET
 ├── app.py                    # build(host=, live=, level=, document=)
-├── routes/hello.py           # page unit (stem == class name); get() wraps with page()
+├── routes/hello.py           # page unit (stem == class name); render() is a fragment
 ├── assets/css/input.css      # Tailwind tokens + @source
 ├── requirements.txt
 └── README.md
@@ -69,8 +69,8 @@ Reports:
 3. Unlock teaching for the next level
 4. Isolation AST scan + dual-Document heuristic (fail-closed unless `--no-fail`)
 
-Page-unit teaching names **DirectoryRoutes + App.mount**.
-`host="batteries"` fails closed.
+Page-unit teaching names **create-app + build()** (`DirectoryRoutes`).
+`App.mount` is a secondary door. `host="batteries"` fails closed.
 
 ## Probe API (library)
 

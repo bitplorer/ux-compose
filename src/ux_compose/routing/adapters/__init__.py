@@ -1,11 +1,10 @@
-"""Host adapters for DirectoryRoutes core.
+"""Compat shims for DirectoryRoutes host modules.
 
-* ``fastapi`` — materialize/mount onto APIRouter-compatible apps
-* ``asgi`` — pure :class:`DirectoryASGI` (no framework)
+Product code: ``ux_compose.routing.fastapi`` and ``ux_compose.routing.asgi``.
 """
 from __future__ import annotations
 
-from ux_compose.routing.adapters.asgi import DirectoryASGI, match_record
-from ux_compose.routing.adapters.fastapi import materialize, mount
+from ux_compose.routing.asgi import DirectoryASGI, match_record
+from ux_compose.routing.fastapi import materialize, mount
 
 __all__ = ["materialize", "mount", "DirectoryASGI", "match_record"]

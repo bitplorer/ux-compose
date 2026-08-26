@@ -35,7 +35,9 @@ class App:
         self._level = Level.L0
         self._behavior = None
         self._channel = None
+        self._channel_asgi = None
         self._document = None
+        self._author_document = None
         self._motion = False
         self._cek = None
         self._host = "auto"  # Invisible Strategy preference
@@ -51,8 +53,10 @@ class App:
         """Boot at the requested progressive level.
 
         level:
-          - ``"auto"`` (default) — Behavior on; channel/motion when importable
-          - ``0..3`` — pin progressive floor (tests / teaching)
+          - ``"auto"`` (default) — Level 1 (Behavior). Channel/Motion attach
+            in ``build()`` once the ASGI process exists, or via explicit
+            ``use_channel`` / ``use_motion``.
+          - ``0..3`` — pin progressive floor (tests / teaching / headless)
 
         HTMX is never auto-attached; opt in via Document.use(Htmx()).
         """
@@ -60,14 +64,8 @@ class App:
         auto = isinstance(level, str) and str(level).lower() == "auto"
         if auto:
             app.use_behavior()
-            try:
-                app.use_channel()
-            except Exception:
-                pass
-            try:
-                app.use_motion()
-            except Exception:
-                pass
+            # Channel/Motion attach in build() once the ASGI process exists,
+            # or via explicit use_channel / use_motion (tests, headless).
             return app
         lv = max(0, min(3, int(level)))
         if lv >= 1:
@@ -87,16 +85,23 @@ class App:
     def use_host(self, host: str = "fastapi") -> "App":
         """Set host preference for page routing (Invisible Strategy).
 
-        Values: "auto" | "fastapi" | "starlette" | "asgi".
+        Values: "auto" | "fastapi" | "asgi".
         Authors never implement adapters; the strategy stays private.
         ``batteries`` is leftover DirectoryRouter and fails closed.
+        ``starlette`` is accepted as an alias of auto/fastapi (not a host).
         """
         self._host = (host or "auto").lower().strip()
         return self
 
-    def use_dom(self, document: Any = None) -> "App":
-        """Attach Document (ux-dom). Document SSoT respected."""
+    def use_dom(self, document: Any = None, *, author: bool = True) -> "App":
+        """Attach Document (ux-dom). Document SSoT respected.
+
+        ``author=True`` (default): this Document wraps GET. ``author=False``
+        is a synthesized runtime (CSP / static mount only).
+        """
         self._document = document
+        if author:
+            self._author_document = document
         return self
 
     def use_behavior(self) -> "App":
@@ -122,14 +127,27 @@ class App:
 
         When ux-channel is absent, degrades gracefully and stays at current level.
         Pass asgi_app=FastAPI() so Channel mounts on the real host.
+
+        If Channel was already booted headless, a later asgi_app= **rebinds**
+        onto that process (Behavior.attach is otherwise idempotent on _wire).
         """
-        if self._channel is not None:
+        asgi = config.get("asgi_app")
+        if self._channel is not None and asgi is None:
             return self
+        if self._channel is not None and asgi is not None:
+            if getattr(self, "_channel_asgi", None) is asgi:
+                return self
+            behavior = self._behavior
+            if behavior is not None and getattr(behavior, "_wire", None) is not None:
+                # Headless boot landed first — allow attach() to Channel.boot(asgi)
+                behavior._wire = None
+            self._channel = None
         self.use_behavior()
         try:
             from ux_compose.wire.boot import attach_channel
             ch = attach_channel(self, **config)
             self._channel = ch
+            self._channel_asgi = asgi
             self._level = max(self._level, Level.L2)
         except ImportError:
             pass
@@ -251,7 +269,7 @@ class App:
 
         When ``asgi_app`` is provided, wires ``RouterHooks.resolve_unit`` so
         synthetic page GETs receive live Behavior instances (page-unit path).
-        Explicit HTTP methods on page classes bypass resolve_unit.
+        Page units have no HTTP verbs; extra APIs live on the FastAPI process.
 
         Host preference (Invisible Strategy) comes from ``use_host`` or the
         ``host=`` argument. Authors never implement adapters.
@@ -276,8 +294,14 @@ class App:
         )
 
     def dispatch(self, action: str, **kwargs) -> List[Any]:
-        """Offline-first dispatch. Same surface for tests, agents, and live."""
+        """Offline-first dispatch. Same surface for tests, agents, and live.
+
+        Channel Intent uses ``args=dict``. L1 uses ``**kwargs``. One door:
+        ``dispatch("cart.add", sku="tee")`` and
+        ``dispatch("cart.add", args={"sku": "tee"})`` are the same call.
+        """
         self.use_behavior()
+        kwargs = _unpack_action_kwargs(kwargs)
         if self._behavior is not None and hasattr(self._behavior, "dispatch"):
             return self._behavior.dispatch(action, **kwargs) or []
         return _local_dispatch(self, action, **kwargs)
@@ -303,6 +327,24 @@ class App:
         return doctor(paths, fail=fail)
 
 
+def _unpack_action_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """Flatten Channel-style ``args=dict`` into L1 kwargs.
+
+    ``args`` as a dict is the Intent payload, not a parameter named args.
+    A real action parameter called ``args`` still works: pass it as a
+    non-dict, or inside the packed dict.
+    """
+    packed = kwargs.get("args")
+    if not isinstance(packed, dict):
+        return dict(kwargs)
+    out = dict(packed)
+    for key, value in kwargs.items():
+        if key == "args":
+            continue
+        out[key] = value
+    return out
+
+
 class _LocalBehavior:
     """Minimal offline Behavior shim when ux-behavior is absent."""
     def __init__(self, app: App):
@@ -314,7 +356,7 @@ class _LocalBehavior:
         self._registry[key] = comp_cls
 
     def dispatch(self, action: str, **kwargs):
-        return _local_dispatch(self.app, action, **kwargs)
+        return _local_dispatch(self.app, action, **_unpack_action_kwargs(kwargs))
 
 
 def _local_dispatch(app: App, action: str, **kwargs) -> List[Any]:

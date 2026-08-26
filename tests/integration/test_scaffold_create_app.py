@@ -46,15 +46,15 @@ def test_create_app_teaches_document_and_settings(tmp_path):
 
     assert "Document(" in document
     assert ".use(" in document
-    assert "def page(" in document
+    assert "def page(" not in document
     assert "XElement" in document
     assert "Csp" in document
     assert "import ux_channel" not in document
     assert "from ux_channel" not in document
 
     assert "class Hello" in hello
-    assert "def get(" in hello
-    assert "from document import page" in hello
+    assert "def get(" not in hello
+    assert "def render(" in hello
     assert "className" in hello
 
     assert '@import "tailwindcss"' in css
@@ -68,7 +68,7 @@ def test_create_app_isolation_and_single_document(tmp_path):
     root = create_app(tmp_path / "iso", name="iso")
     files = list(root.rglob("*.py"))
     assert scan_isolation(files) == []
-    # One Document() in document.py; page() reuses it
+    # One Document() in document.py; host wraps GET (no leftover page())
     assert scan_dual_document(files) == []
     src = (root / "document.py").read_text(encoding="utf-8")
     tree = ast.parse(src)

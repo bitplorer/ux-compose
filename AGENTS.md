@@ -41,6 +41,7 @@ Do not document them. Tags are imported from `ux_compose`.
 - Product code importing `ux_channel` outside compose `wire/`
 - A copy of Channel codecs, Document serialize, or motion IR in this tree
 - Dual product paths
+- A second HTTP pipeline, FastAPI HTML `default_response_class`, `StreamingRoute`, or HTTP verbs on page units (see Product host below)
 
 ## CLI spine
 
@@ -70,3 +71,22 @@ lock the hard-cut (no product CLI dual path).
 
 Cold import never pulls the wire. `App.use_channel(asgi_app=…)` is the live door.
 `app.use_motion()` is the motion door. Level 1 code remains correct at L2/L3.
+
+## Product host (Clock A)
+
+Read [docs/reference/host.md](docs/reference/host.md) **before** changing
+`routing/`, `build.py`, `scaffold.py`, or `wire/boot.py`. Decision:
+[docs/adr/0002-product-host.md](docs/adr/0002-product-host.md).
+
+Do not invent a second HTTP pipeline. Payload type picks media type (`dict` →
+JSON, generator → stream, tree/`str` → HTML). Do not set FastAPI
+`default_response_class`. Do not use `StreamingRoute`. Do not put HTTP verbs
+on page units. Do not boot Channel in `App.boot("auto")`. New media types
+follow spec §10 (predicate + both hosts + `tests/unit/test_host.py` + the spec
+page in the same change). `build()` wraps GET only with the author Document
+(`wrap=`). `attach_motion()` returns instances, not classes.
+`App.mount` / `attach_page_router` pass the same `wrap=` as `build()`.
+`materialize(route_class=)` fails closed. Scaffold does not emit `page()`.
+Examples (`examples/live_asgi.py`) use `build()` for Clock A GET — not a
+handmade `@app.get` + `HTMLResponse`. `App.mount` is a secondary door.
+

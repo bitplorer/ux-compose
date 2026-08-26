@@ -15,8 +15,8 @@ Page unit + host bind (when asgi_app is provided):
 * ``mount_surfaces`` builds ``RouterHooks(resolve_unit=...)`` so the
   synthetic page GET receives the live Behavior instance from
   ``unit_registry`` (keyed by ``cls.id`` or ``cls.__name__.lower()``).
-* Explicit ``get``/``post`` methods on the class bypass ``resolve_unit``.
-  Isolation: no Compose types leak into ux-dom render.
+* Page units have no HTTP verbs. Isolation: no Compose types leak into
+  ux-dom render.
 * Host bind lives in ``surfaces_host`` (Invisible Strategy — ``ux_compose.routing``).
 """
 
@@ -153,21 +153,17 @@ def _folder_url_prefix(rel_dir: str, base_directory: str) -> str:
             if cleaned:
                 cleaned.pop()
             continue
-        if len(part) >= 2 and part[0] == "[" and part[-1] == "]":
-            cleaned.append("{" + part[1:-1] + "}")
-        elif part.startswith("(") and part.endswith(")"):
+        if part.startswith("(") and part.endswith(")"):
             continue
-        else:
-            cleaned.append(part)
+        cleaned.append(part)
     return ("/" + "/".join(cleaned)) if cleaned else ""
 
 
 def _file_url(prefix: str, stem: str, route_file_name: str = "route") -> str:
-    if stem in (route_file_name, "index"):
-        return prefix or "/"
-    if stem.startswith("_"):
-        return prefix or "/"
-    return f"{prefix}/{stem}".replace("//", "/") or f"/{stem}"
+    from ux_compose.routing.core import http_path
+
+    segs = [p for p in (prefix or "").strip("/").split("/") if p] + [stem]
+    return http_path(*segs)
 
 
 def _import_module(module: str, file: Path) -> Any:
@@ -240,10 +236,14 @@ def scan_surfaces(
             units_in_file.append((name, obj))
 
         page_assigned = False
+        from ux_compose.routing.core import _stem_key
+
+        stem = _stem_key(file.stem)
         for name, obj in units_in_file:
             sid = str(getattr(obj, "id", None) or obj.__name__.lower())
             renderable = _is_renderable(obj)
-            is_page = bool(renderable and not page_assigned)
+            stem_hit = name.lower() == stem or obj.__name__.lower() == stem
+            is_page = bool(renderable and stem_hit and not page_assigned)
             if is_page:
                 page_assigned = True
             found.append(
@@ -404,14 +404,14 @@ def mount_surfaces(
                 unit_registry=bundle.unit_registry,
                 fail_closed=fail_closed,
                 host=host,
+                document=getattr(compose_app, "_document", None) if compose_app is not None else None,
+                wrap=getattr(compose_app, "_author_document", None) if compose_app is not None else None,
             )
             if table:
                 bundle.route_table = table
         except ImportError:
             if fail_closed:
-                raise SurfaceError(
-                    "ux-dom routing unavailable (install ux-dom) but asgi_app was provided"
-                )
+                raise
             logger.warning("page router not available; page gate skipped")
 
     bundle.sealed = True

@@ -47,7 +47,7 @@ ux-channel  Intent/Caps behind wire/ only
 
 Allowed: control, runtime, CSP, style. **Not:** HMR process, host strategy, product App.
 
-create-app emits `document.py` (one Document + `page()`) and `settings.py` (`ux_compose.WebAssets`). `build(document=)` attaches that Document.
+create-app emits `document.py` (one Document; host wraps GET) and `settings.py` (`ux_compose.WebAssets`). `build(document=)` attaches that Document.
 
 ---
 
@@ -64,3 +64,11 @@ How-to: [../guides/serve-hmr-tunnel.md](../guides/serve-hmr-tunnel.md) · [../gu
 - App asset layout (`WebAssets`) living on ux-dom
 
 See [../guides/CLI.md](../guides/CLI.md).
+
+---
+
+## 7. Product host (Clock A)
+
+Canonical: [../FLOW.md](../FLOW.md) §7. Spec: [../reference/host.md](../reference/host.md).
+If they disagree, **FLOW.md / reference/host.md win**.
+

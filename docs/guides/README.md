@@ -6,6 +6,7 @@
 | Doc | What |
 |-----|------|
 | [PATH.md](PATH.md) | Scaffold → build → serve → HMR → Tailwind → composition → control flow → motion → live |
+| [HOST.md](HOST.md) | Return HTML / JSON / stream from `render()` |
 | [TAILWIND.md](TAILWIND.md) | Production CSS: minify, `/css/output.css`, deploy |
 | [UI.md](UI.md) | Pick-and-use Components (toggle, tabs, modal, cart, …) |
 | [SNIPPETS.md](SNIPPETS.md) | Public-API cookbook |

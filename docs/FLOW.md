@@ -54,7 +54,7 @@ Product path::
 
 Allowed: control, runtime, CSP, style. **Not:** HMR process, product App, host strategy.
 
-create-app emits `document.py` (one Document + `page()`) and `settings.py` (`ux_compose.WebAssets`). `build(document=)` attaches that Document. Dual-Document in product files is a doctor fail.
+create-app emits `document.py` (one Document; host wraps GET) and `settings.py` (`ux_compose.WebAssets`). `build(document=)` attaches that Document. Dual-Document in product files is a doctor fail.
 
 ---
 
@@ -72,3 +72,39 @@ How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.
 - Product routing / host / HotReload living on ux-dom
 
 See [guides/CLI.md](guides/CLI.md).
+
+---
+
+## 7. Product host (Clock A)
+
+Page GET is one pipeline. Authors never implement it. Spec:
+[reference/host.md](reference/host.md) · decision: [adr/0002-product-host.md](adr/0002-product-host.md)
+· recipes: [guides/HOST.md](guides/HOST.md).
+
+```text
+host.open  →  App L1  →  Document  →  Channel.attach(asgi)  →  host.bind
+                                                          document.mount
+                                                          page routes
+```
+
+`routing/fastapi.py` owns GET `/hello`:
+
+    resolve_unit → render() → payload dispatch
+      dict            → JSON (FastAPI encodes)
+      generator       → StreamingResponse
+      tree / str      → apply_html_document(wrap) → HTMLResponse
+      Response        → as-is
+
+Author `document=` is the wrap. A synthesized Document is mount-only
+(CSP / static on FastAPI). Payload type picks media type, not Accept.
+Trees stay buffered (CSP + `Content-Length`). `str` is HTML, never JSON,
+never a stream.
+
+Locked (full table in the spec):
+
+- FastAPI is the product process. DirectoryASGI is the no-Starlette degrade.
+- Page units have no HTTP verbs. One path law (`http_path`).
+- `App.boot("auto")` is Level 1. Channel binds after the process exists.
+- `host="batteries"` fails closed. No `StreamingRoute`. No HTML
+  `default_response_class`.
+

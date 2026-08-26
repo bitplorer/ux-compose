@@ -37,4 +37,4 @@ The live-safe form is what the studio uses.
 | Live Caps | `live_caps.py` | Fail-closed offline, mint vs refuse live |
 | Motion | `motion_xor.py` | XOR, Morph-then-Play, `scene.share` |
 | Systems | `systems.py` `ops.py` | Chat, inbox, tree, skeleton, consent, locale, chips, inline edit, calendar (Cap), progress, copy, settings (Cap), offline, presence, KPI, shortcuts |
-| Host | `document_boot.py` `live_asgi.py` `cart_document.py` `page_unit_mount.py` | Document SSoT, FastAPI + Isolation door, **page-unit product path** |
+| Host | `document_boot.py` `live_asgi.py` `cart_document.py` `page_unit_mount.py` | Document SSoT, `build()` Clock A GET, Isolation door; `App.mount` secondary |

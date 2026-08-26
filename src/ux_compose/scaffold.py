@@ -3,7 +3,7 @@
 Emits the locked product path:
 
 - settings.py          environment SSoT (BASE_DIR, DEBUG, WebAssets)
-- document.py          Document SSoT + .use(XElement, Csp) + page()
+- document.py          Document SSoT + .use(XElement, Csp)
 - app.py               composition root via build(host=, live=, level=, document=)
 - routes/hello.py      page unit (module stem == class name)
 - assets/css/input.css Tailwind tokens + @source
@@ -76,14 +76,6 @@ APP_PY = dedent('''\
             use_htmx=use_htmx,
             document=document,
         )
-        if document is not None and asgi is not None and hasattr(document, "mount"):
-            try:
-                document.mount(asgi)
-            except Exception:
-                # DirectoryASGI has no middleware / route table — package static
-                # needs FastAPI. CSS is attached separately below.
-                if hasattr(asgi, "add_middleware") or hasattr(asgi, "mount"):
-                    raise
         asgi = _mount_css(asgi)
         return app, asgi, bundle
 
@@ -139,8 +131,8 @@ DOCUMENT_PY = dedent('''\
     """Document SSoT — one HTML shell for every GET.
 
     .use(XElement, Csp) attaches runtimes. HTMX is opt-in via build(use_htmx=True).
-    page() wraps a fragment for HTTP GET. Component.render() stays a fragment
-    (the morph payload) — never put the stylesheet link inside render().
+    The host wraps render() with this Document. Component.render() stays a
+    fragment (the morph payload) — never put the stylesheet link inside render().
     Isolation: this module never imports ux_channel.
     """
     from __future__ import annotations
@@ -150,7 +142,7 @@ DOCUMENT_PY = dedent('''\
         from ux_dom.runtime import XElement, Csp
         from ux_dom.dom import link, meta, title
 
-        from settings import DEBUG, OUTPUT_CSS
+        from settings import OUTPUT_CSS
 
         document = Document(
             head=[
@@ -163,16 +155,8 @@ DOCUMENT_PY = dedent('''\
             ensure_csrf_token=False,
         ).use(XElement(), Csp.auto())
 
-        def page(*body, page_title: str | None = None):
-            """Wrap a fragment in the single Document shell."""
-            extra_head = [title(page_title)] if page_title else []
-            return document(*body, head=extra_head or None)
-
     except Exception:  # ux-dom not installed — L1 HTML-string fallback still works
         document = None
-
-        def page(*body, page_title: str | None = None):
-            return body[0] if body else None
 ''')
 
 
@@ -181,8 +165,7 @@ ROUTES_HELLO_PY = dedent('''\
 
     Author contract: return ux-dom tag trees with Tailwind className.
     control() emits semantic data-ux-* attrs. HTMX is opt-in at Document layer.
-    get() wraps the fragment in the Document shell for HTTP GET.
-    render() stays a fragment (the morph payload).
+    render() stays a fragment (the morph payload). The host wraps Document.
     """
     from __future__ import annotations
 
@@ -224,16 +207,6 @@ ROUTES_HELLO_PY = dedent('''\
                 f"<button {attr_str}>+1</button>"
                 f"</div>"
             )
-
-        @classmethod
-        def get(cls):
-            """HTTP GET: wrap the fragment in the Document shell."""
-            try:
-                from document import page
-
-                return page(cls().render())
-            except Exception:
-                return cls().render()
 
         @action(caps=())
         def inc(self):
@@ -281,9 +254,9 @@ README = dedent('''\
     ## Mental model
 
     - `settings.py` — environment (BASE_DIR, DEBUG, WebAssets on ux-compose)
-    - `document.py` — Document SSoT + `.use(XElement, Csp)` + `page()`
+    - `document.py` — Document SSoT + `.use(XElement, Csp)`; host wraps GET
     - `app.py` — composition root: `build(host=, live=, level=, document=)`
-    - `routes/hello.py` — page unit (`render()` is a fragment; `get()` wraps with `page()`)
+    - `routes/hello.py` — page unit (`render()` is a fragment; host wraps Document)
     - `assets/css/input.css` — Tailwind tokens; compile with `uxcompose build`
 
     ## Composition root

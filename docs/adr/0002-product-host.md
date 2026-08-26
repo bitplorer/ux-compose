@@ -23,10 +23,11 @@ booted headless then no-op'd on the real ASGI app, and leftover
 4. `App.boot("auto")` is Level 1. Channel binds in `build()` after the process
    exists; `use_channel(asgi_app=)` rebinds if a headless wire landed first.
 5. One path law in `http_path`: `index.py`/`route.py` → `/`, `[param]` → `{param}`.
-6. Streaming is a return value (`StreamingResponse(tree)`), not a route class.
-7. Media type is the payload, not `Accept`. `dict` / list-of-dicts → JSON
-   (FastAPI encodes). Tree / `str` / bytes → HTML + Document wrap. Response
-   subclass → pass through. Same spirit as ux-dom `html_response`.
+6. Media type is the payload, not `Accept` and not a route class:
+   `dict` / list-of-dicts → JSON (FastAPI encodes); async/sync generator →
+   `StreamingResponse`; tree / `str` / bytes → HTML + Document wrap; Response
+   subclass → pass through. Same spirit as ux-dom `html_response` /
+   `streaming_response`. Leftover `StreamingRoute` is not the product path.
 
 ## Consequences
 

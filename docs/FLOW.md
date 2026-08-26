@@ -87,9 +87,9 @@ host.open  →  App L1  →  Document  →  Channel.attach(asgi)  →  host.bind
 
 `routing/fastapi.py` owns GET `/hello`:
 
-    resolve_unit → render() → [JSON as-is | document(tree) → HTMLResponse]
+    resolve_unit → render() → [JSON as-is | stream → StreamingResponse | document(tree) → HTMLResponse]
 
-Media type is the payload, not Accept: `dict` → JSON, tree/str → HTML.
+Media type is the payload, not Accept: `dict` → JSON, generator → stream, tree/str → HTML.
 
 Locked:
 
@@ -97,7 +97,7 @@ Locked:
 - Page units have no HTTP verbs. Path params come from the Request.
 - `App.boot("auto")` is Level 1. Channel binds in `build()` after the process exists.
 - One path law (`http_path`): `index.py`/`route.py` → `/`, `[param]` → `{param}`.
-- Streaming is a return value, not a route class.
+- Payload type picks media type: `dict` → JSON, generator → stream, tree/str → HTML.
 - `host="batteries"` (leftover DirectoryRouter) fails closed.
 
 ADR: [adr/0002-product-host.md](adr/0002-product-host.md).

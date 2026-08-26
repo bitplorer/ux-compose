@@ -22,6 +22,7 @@ from ux_compose.routing.core import (
     RouterHooks,
     http_path,
     is_json_payload,
+    is_stream_payload,
     module_exports,
     pick_page_type,
 )
@@ -42,6 +43,7 @@ __all__ = [
     "pick_page_type",
     "http_path",
     "is_json_payload",
+    "is_stream_payload",
     "materialize",
     "mount",
 ]

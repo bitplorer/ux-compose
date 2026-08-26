@@ -9,6 +9,7 @@ Page units have no HTTP verbs. This file:
 Media type is the payload, not Accept:
   tree / str / bytes → HTMLResponse (and Document wrap)
   dict / list-of-dicts → returned as-is (FastAPI JSON-encodes)
+  async/sync generator → StreamingResponse
   Response subclass (JSONResponse, StreamingResponse, …) → pass through
 
 JSON author routes stay JSON: this module does **not** set FastAPI's
@@ -16,9 +17,15 @@ default_response_class. Streaming is a return value, not a route_class.
 """
 from __future__ import annotations
 
+import inspect
 from typing import Any, Callable, Optional
 
-from ux_compose.routing.core import DirectoryRoutes, RouterHooks, is_json_payload
+from ux_compose.routing.core import (
+    DirectoryRoutes,
+    RouterHooks,
+    is_json_payload,
+    is_stream_payload,
+)
 
 __all__ = ["create", "bind", "page_endpoint", "materialize", "mount"]
 
@@ -80,10 +87,27 @@ def _as_html_response(tree: Any) -> Any:
         return StarletteHTML(content=body)
 
 
+def _as_stream_response(payload: Any) -> Any:
+    try:
+        from ux_dom.response.starlette import StreamingResponse
+
+        return StreamingResponse(payload)
+    except ImportError:
+        pass
+    except TypeError:
+        # ux-dom stream prepare rejects sync generators — Starlette accepts them.
+        pass
+    from starlette.responses import StreamingResponse as StarletteStream
+
+    return StarletteStream(payload, media_type="text/html; charset=utf-8")
+
+
 def _as_http_response(payload: Any, *, document: Any = None) -> Any:
     """Payload type picks media type. Same spirit as ux-dom html_response."""
     if _is_response(payload) or is_json_payload(payload):
         return payload
+    if is_stream_payload(payload):
+        return _as_stream_response(payload)
     tree = payload
     if document is not None and callable(document):
         try:
@@ -101,7 +125,7 @@ def page_endpoint(
 ) -> Callable:
     """Closed-signature GET. Path params come from the Request, not Component."""
 
-    def endpoint(request: Any = None):
+    async def endpoint(request: Any = None):
         path_params: dict[str, Any] = {}
         if request is not None:
             path_params = dict(getattr(request, "path_params", {}) or {})
@@ -116,6 +140,8 @@ def page_endpoint(
             if inst is None:
                 return _as_html_response("")
             tree = _call_render(inst, path_params)
+        if inspect.isawaitable(tree):
+            tree = await tree
         return _as_http_response(tree, document=document)
 
     # from __future__ import annotations stringifies types. FastAPI must see

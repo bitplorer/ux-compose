@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from ux_compose.routing.core import DirectoryRoutes, http_path, is_json_payload
+from ux_compose.routing.core import DirectoryRoutes, http_path, is_json_payload, is_stream_payload
 
 
 def test_is_json_payload():
@@ -16,6 +16,18 @@ def test_is_json_payload():
     assert not is_json_payload("<div>hi</div>")
     assert not is_json_payload(b"<div>")
     assert not is_json_payload(None)
+
+
+def test_is_stream_payload():
+    def gen():
+        yield "a"
+        yield "b"
+
+    assert is_stream_payload(gen())
+    assert not is_stream_payload("<div>hi</div>")
+    assert not is_stream_payload({"ok": True})
+    assert not is_stream_payload([{"a": 1}])
+    assert not is_stream_payload(None)
 
 
 def test_http_path_law():
@@ -151,6 +163,41 @@ def test_page_render_dict_is_json(tmp_path: Path):
     assert r.status_code == 200
     assert "json" in r.headers.get("content-type", "")
     assert r.json() == {"ok": True, "n": 1}
+
+
+def test_page_render_generator_streams(tmp_path: Path):
+    pytest.importorskip("fastapi")
+    pytest.importorskip("httpx")
+
+    pkg = tmp_path / "demo"
+    routes = pkg / "routes"
+    routes.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (routes / "ticks.py").write_text(
+        "class Ticks:\n"
+        "    def render(self):\n"
+        "        def gen():\n"
+        "            yield '<div>a</div>'\n"
+        "            yield '<div>b</div>'\n"
+        "        return gen()\n",
+        encoding="utf-8",
+    )
+    from ux_compose.build import build
+    from ux_compose.routing.fastapi import _as_http_response
+    from fastapi.testclient import TestClient
+
+    def gen():
+        yield "<div>a</div>"
+        yield "<div>b</div>"
+
+    wrapped = _as_http_response(gen())
+    assert "Streaming" in type(wrapped).__name__
+
+    _app, asgi, _bundle = build(pkg, name="Demo", host="fastapi", live="null", level=1)
+    r = TestClient(asgi).get("/ticks")
+    assert r.status_code == 200
+    assert "a" in r.text and "b" in r.text
+    assert "html" in r.headers.get("content-type", "")
 
 
 def test_build_asgi_degrade(tmp_path: Path):

@@ -24,9 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `route.py` → `/`, `[param]` → `{param}`. Scaffold `Hello` is `render()` only.
 - `host="batteries"` (leftover ux-dom DirectoryRouter) fails closed.
 - FastAPI is not given an HTML `default_response_class` — author JSON routes
-  stay JSON. Page `render()` that returns a `dict` is JSON automatically
-  (payload type picks media type; HTML strings stay HTML). Streaming is a
-  return value, not a route class.
+  stay JSON. Page `render()` that returns a `dict` is JSON automatically;
+  a generator / async generator is `StreamingResponse` automatically
+  (payload type picks media type; HTML strings stay buffered HTML).
+  Leftover `StreamingRoute` is not the product path.
 - **Docs:** teaching pages no longer name leftover `uxdom build` / DirectoryRouter /
   `host=batteries` as something to run. Stub cites (`docs/CLI.md`, `docs/DX.md`,
   `docs/TESTING.md`) point at `docs/guides/`. Product path is the only path taught.

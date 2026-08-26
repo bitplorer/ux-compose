@@ -15,11 +15,18 @@ Mount under any server::
 """
 from __future__ import annotations
 
+import inspect
 import re
 from typing import Any, Callable, Optional
 from urllib.parse import unquote
 
-from ux_compose.routing.core import DirectoryRoutes, RouteRecord, RouterHooks, is_json_payload
+from ux_compose.routing.core import (
+    DirectoryRoutes,
+    RouteRecord,
+    RouterHooks,
+    is_json_payload,
+    is_stream_payload,
+)
 
 __all__ = ["DirectoryASGI", "match_record"]
 
@@ -118,6 +125,44 @@ def _encode(result: Any) -> tuple[bytes, bytes]:
     return _body_bytes(result), b"text/html; charset=utf-8"
 
 
+def _chunk_bytes(chunk: Any) -> bytes:
+    if chunk is None:
+        return b""
+    if isinstance(chunk, (bytes, bytearray, memoryview)):
+        return bytes(chunk)
+    return str(chunk).encode("utf-8")
+
+
+async def _send_stream(send: Callable, iterable: Any, *, content_type: bytes) -> None:
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [(b"content-type", content_type)],
+        }
+    )
+    try:
+        if hasattr(iterable, "__aiter__"):
+            async for chunk in iterable:
+                data = _chunk_bytes(chunk)
+                if data:
+                    await send(
+                        {"type": "http.response.body", "body": data, "more_body": True}
+                    )
+        else:
+            for chunk in iterable:
+                data = _chunk_bytes(chunk)
+                if data:
+                    await send(
+                        {"type": "http.response.body", "body": data, "more_body": True}
+                    )
+    except Exception as exc:
+        err = ("Error: %s" % exc).encode("utf-8", "replace")
+        await send({"type": "http.response.body", "body": err, "more_body": False})
+        return
+    await send({"type": "http.response.body", "body": b"", "more_body": False})
+
+
 class DirectoryASGI:
     """Pure ASGI application over :class:`DirectoryRoutes`.
 
@@ -164,6 +209,13 @@ class DirectoryASGI:
         rec, params = hit
         try:
             result = _invoke(rec, self.hooks, params)
+            if inspect.isawaitable(result):
+                result = await result
+            if is_stream_payload(result):
+                await _send_stream(
+                    send, result, content_type=b"text/html; charset=utf-8"
+                )
+                return
             if (
                 self.document is not None
                 and callable(self.document)

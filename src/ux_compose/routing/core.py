@@ -15,6 +15,7 @@ Locked model:
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import logging
 import sys
 from dataclasses import dataclass, field
@@ -36,6 +37,7 @@ __all__ = [
     "module_exports",
     "http_path",
     "is_json_payload",
+    "is_stream_payload",
 ]
 
 
@@ -138,6 +140,7 @@ def is_json_payload(obj: Any) -> bool:
 
     Payload type picks media type (not Accept):
       dict / list-of-dicts → JSON (FastAPI encodes)
+      async/sync generator → StreamingResponse
       str / bytes / tag / Document / Component → HTML
       Response subclass → pass through
     """
@@ -147,6 +150,26 @@ def is_json_payload(obj: Any) -> bool:
         if not obj:
             return True
         return all(isinstance(x, dict) for x in obj)
+    return False
+
+
+def is_stream_payload(obj: Any) -> bool:
+    """True when the return value is a body stream, not a buffered tree.
+
+    Trees stay HTMLResponse. ``str`` is iterable — it is not a stream.
+    Authors stream by returning a generator / async generator (or an
+    explicit StreamingResponse).
+    """
+    if obj is None or isinstance(obj, (str, bytes, bytearray, memoryview, dict)):
+        return False
+    if is_json_payload(obj):
+        return False
+    if inspect.isasyncgen(obj) or inspect.isgenerator(obj):
+        return True
+    if hasattr(obj, "__aiter__") and not hasattr(obj, "__render__") and not hasattr(
+        obj, "children"
+    ):
+        return True
     return False
 
 

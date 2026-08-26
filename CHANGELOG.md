@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [0.1.0] — 2026-08-26
+
+This is **0.1**. Clock A is the product host for this version, not a rewrite
+and not a 0.2 line.
+
 ### Added
 
 - **Product FastAPI host (Clock A).** `routing/host.py` owns process order
@@ -17,7 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   layers, wrap-vs-mount, and future protocol:
   [docs/reference/host.md](docs/reference/host.md). Author recipes:
   [docs/guides/HOST.md](docs/guides/HOST.md).
-
+- Community health files: Code of Conduct, Security, Support, Governance, issue and pull-request templates.
+- Standard Readme README with canonical (non-stub) doc links.
+- Documentation contract: [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md).
+- Product `uxcompose build` — CSS minify via `ux_compose.tailwind`. App folders: `ux_compose.assets.WebAssets`. ux-dom keeps className + `<link>` + package static.
+- `create-app` teaching surface: `settings.py`, `document.py`, `assets/css/input.css`, `requirements.txt`.
+- Tailwind CLI finder / download / ensure moved here (`ux_compose.tailwind`). ux-dom does not compile CSS (`TailwindCommand` fail-closed).
+- Product path fail-closed: `build()` honors `level` / `live=null`; `WebAssets.mount_css` wraps DirectoryASGI (no silent `/css` 404); discover CSS is pure (no leftover `app/tailwindcss.py` branch); `uxcompose doctor` prints the teaching report; browser HMR is opt-in (`--hmr`); product root is `app.py` only.
+- `serve="dual_copy"` is the package-static escape hatch name (`serve="webassets"` remains a leftover alias). Not `WebAssets`.
 
 ### Changed
 
@@ -54,21 +66,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   leftover `httpx2` is gone. Teaching is `create-app` + `build()` (`App.mount`
   is a secondary door). Clock A GET asserts `Content-Security-Policy` when
   Document mounts Csp.
-
-
-## [0.1.0] — 2026-08-24
-
-### Added
-
-- Community health files: Code of Conduct, Security, Support, Governance, issue and pull-request templates.
-- Standard Readme README with canonical (non-stub) doc links.
-- Documentation contract: [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md).
-- Product `uxcompose build` — CSS minify via `ux_compose.tailwind`. App folders: `ux_compose.assets.WebAssets`. ux-dom keeps className + `<link>` + package static.
-- `create-app` teaching surface: `settings.py`, `document.py`, `assets/css/input.css`, `requirements.txt`.
-- Tailwind CLI finder / download / ensure moved here (`ux_compose.tailwind`). ux-dom does not compile CSS (`TailwindCommand` fail-closed).
-- Product path fail-closed: `build()` honors `level` / `live=null`; `WebAssets.mount_css` wraps DirectoryASGI (no silent `/css` 404); discover CSS is pure (no leftover `app/tailwindcss.py` branch); `uxcompose doctor` prints the teaching report; browser HMR is opt-in (`--hmr`); product root is `app.py` only.
-- `serve="dual_copy"` is the package-static escape hatch name (`serve="webassets"` remains a leftover alias). Not `WebAssets`.
-
-### Changed
-
 - Product path is `create-app → build → serve → deploy`. `uxdom build` does not compile CSS.

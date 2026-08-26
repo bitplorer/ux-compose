@@ -105,13 +105,26 @@ def attach_channel(
 
     # Preferred path: Behavior.attach owns Channel.boot on real ASGI
     if behavior is not None and hasattr(behavior, "attach") and asgi is not None:
+        attach_kwargs: dict[str, Any] = {}
+        if secret is not None:
+            attach_kwargs["secret"] = secret
         try:
-            behavior.attach(asgi, channel_config=cfg)
+            behavior.attach(asgi, **attach_kwargs)
             ch = getattr(behavior, "_wire", None)
             _bridge(behavior, ch)
             return ch
+        except TypeError:
+            # Older attach() signatures — retry positional
+            try:
+                behavior.attach(asgi)
+                ch = getattr(behavior, "_wire", None)
+                _bridge(behavior, ch)
+                return ch
+            except Exception:
+                if asgi is not None:
+                    raise
         except Exception:
-            pass
+            raise
 
     # Headless / fallback boot
     try:

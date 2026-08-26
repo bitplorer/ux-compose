@@ -2,13 +2,12 @@
 
 Owned here because this is Next-style file routing, not render.
 
-    from ux_compose.routing import DirectoryRoutes, RouterHooks
-    from ux_compose.routing.adapters.fastapi import mount
-    from ux_compose.routing.adapters.asgi import DirectoryASGI
+    from ux_compose.routing import DirectoryRoutes, RouterHooks, DirectoryASGI
+    from ux_compose.routing.host import open, bind
 
 Leftover standalone FastAPI trees that cannot import compose still use
 ``ux_dom.routing.fastapi.DirectoryRouter`` (labeled leftover). Product
-apps use ``App.mount`` / ``ux_compose.build``.
+apps use ``ux_compose.build`` / ``App.mount``.
 """
 from __future__ import annotations
 
@@ -21,10 +20,11 @@ from ux_compose.routing.core import (
     ResolveUnit,
     RouteRecord,
     RouterHooks,
+    http_path,
     module_exports,
     pick_page_type,
 )
-from ux_compose.routing.adapters.asgi import DirectoryASGI, match_record
+from ux_compose.routing.asgi import DirectoryASGI, match_record
 
 __all__ = [
     "DirectoryRoutes",
@@ -39,18 +39,19 @@ __all__ = [
     "match_record",
     "module_exports",
     "pick_page_type",
+    "http_path",
     "materialize",
     "mount",
 ]
 
 
 def materialize(*args, **kwargs):
-    from ux_compose.routing.adapters.fastapi import materialize as _m
+    from ux_compose.routing.fastapi import materialize as _m
 
     return _m(*args, **kwargs)
 
 
 def mount(*args, **kwargs):
-    from ux_compose.routing.adapters.fastapi import mount as _m
+    from ux_compose.routing.fastapi import mount as _m
 
     return _m(*args, **kwargs)

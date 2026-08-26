@@ -113,6 +113,7 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 | [internals/c4.md](internals/c4.md) | C4-style context |
 | [adr/README.md](adr/README.md) | ADR slot |
 | [adr/0001-ownership.md](adr/0001-ownership.md) | Render vs product lifecycle |
+| [adr/0002-product-host.md](adr/0002-product-host.md) | Product FastAPI host (Clock A) |
 | [examples/README.md](examples/README.md) | Example slot |
 | [../CRITIC.md](../CRITIC.md) | Critic notes |
 

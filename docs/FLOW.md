@@ -72,3 +72,31 @@ How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.
 - Product routing / host / HotReload living on ux-dom
 
 See [guides/CLI.md](guides/CLI.md).
+
+---
+
+## 7. Product host (Clock A)
+
+Page GET is one pipeline. Authors never implement it.
+
+```text
+host.open  →  App L1  →  Document  →  Channel.attach(asgi)  →  host.bind
+                                                          document.mount
+                                                          page routes
+```
+
+`routing/fastapi.py` owns GET `/hello`:
+
+    resolve_unit → render() → document(tree) → HTMLResponse
+
+Locked:
+
+- FastAPI is the product process (`host="auto"|"fastapi"`). DirectoryASGI is the no-Starlette degrade.
+- Page units have no HTTP verbs. Path params come from the Request.
+- `App.boot("auto")` is Level 1. Channel binds in `build()` after the process exists.
+- One path law (`http_path`): `index.py`/`route.py` → `/`, `[param]` → `{param}`.
+- Streaming is a return value, not a route class.
+- `host="batteries"` (leftover DirectoryRouter) fails closed.
+
+ADR: [adr/0002-product-host.md](adr/0002-product-host.md).
+

@@ -34,6 +34,7 @@ __all__ = [
     "RouteRecord",
     "pick_page_type",
     "module_exports",
+    "http_path",
 ]
 
 
@@ -69,8 +70,8 @@ class OnRoute(Protocol):
 class RouterHooks:
     """Generic extension sockets — host-agnostic.
 
-    resolve_unit is used only for the synthetic page GET (when the class has
-    no explicit ``get``). Explicit HTTP methods bypass resolve_unit.
+    resolve_unit is used only for the synthetic page GET.
+    Page units have no HTTP verbs; extra APIs live on the FastAPI process.
     """
 
     __slots__ = ("resolve_unit", "accept_symbol", "on_route")
@@ -103,11 +104,48 @@ def module_exports(route_file: Any) -> list:
     return names
 
 
+def http_path(*segments: str) -> str:
+    """Filesystem relative to ``routes/`` → URL.
+
+    Locked path law (one scanner):
+      * class name never in the path
+      * ``index.py`` / ``route.py`` → folder prefix or ``/``
+      * ``[param]`` → ``{param}``
+    """
+    parts = [s for s in segments if s and s not in (".",)]
+    if parts and parts[-1] in ("index", "route"):
+        parts = parts[:-1]
+    out: list[str] = []
+    for part in parts:
+        if part.startswith("_"):
+            continue
+        if part == "..":
+            if out:
+                out.pop()
+            continue
+        if len(part) >= 2 and part[0] == "[" and part[-1] == "]":
+            out.append("{" + part[1:-1] + "}")
+        elif part.startswith("(") and part.endswith(")"):
+            continue
+        else:
+            out.append(part)
+    return ("/" + "/".join(out)) if out else "/"
+
+
 def is_renderable_unit(klass: type) -> bool:
     return any(
         callable(getattr(klass, n, None))
         for n in ("render", "__render__", "__async_render__")
     )
+
+
+def _stem_key(stem: str) -> str:
+    s = (stem or "").lower()
+    if len(s) >= 2 and s[0] == "[" and s[-1] == "]":
+        s = s[1:-1]
+        if s.startswith("..."):
+            s = s[3:]
+    return s
 
 
 def pick_page_type(
@@ -120,7 +158,7 @@ def pick_page_type(
 ):
     """Select the page unit: renderable class whose name matches the file stem."""
     mod_name = getattr(route_file, "__name__", "")
-    stem = file_stem.lower()
+    stem = _stem_key(file_stem)
     matches = []
     for name in exported:
         obj = getattr(route_file, name, None)
@@ -193,7 +231,6 @@ class DirectoryRoutes:
     base_directory: str = "routes"
     hooks: Optional[RouterHooks] = None
     fail_closed: bool = True
-    methods: tuple = ("get", "post", "put", "patch", "delete")
     records: list = field(default_factory=list)
 
     def discover(self) -> list:
@@ -226,8 +263,7 @@ class DirectoryRoutes:
                 rel = file.relative_to(base).with_suffix("")
             except ValueError:
                 continue
-            parts = list(rel.parts)
-            path = "/" + "/".join(parts)
+            path = http_path(*rel.parts)
 
             exported = module_exports(route_file)
             page_cls = pick_page_type(
@@ -240,33 +276,18 @@ class DirectoryRoutes:
             if page_cls is None:
                 continue
 
-            explicit = []
-            for m in self.methods:
-                fn = getattr(page_cls, m, None)
-                if callable(fn) and not isinstance(fn, type):
-                    explicit.append(m)
-
-            if explicit:
-                for m in explicit:
-                    rec = RouteRecord(
-                        method=m.upper(),
-                        path=path,
-                        name=f"{page_cls.__name__}.{m}",
-                        handler=getattr(page_cls, m),
-                        page_cls=page_cls,
-                        kind="explicit",
-                    )
-                    self._emit(rec, hooks)
-            else:
-                rec = RouteRecord(
-                    method="GET",
-                    path=path,
-                    name=page_cls.__name__,
-                    handler=None,
-                    page_cls=page_cls,
-                    kind="page",
-                )
-                self._emit(rec, hooks)
+            # Page GET is always synthetic. HTTP verbs do not live on the
+            # Component (FastAPI must not inspect classmethods). Extra APIs
+            # are author routes on the FastAPI process.
+            rec = RouteRecord(
+                method="GET",
+                path=path,
+                name=page_cls.__name__,
+                handler=None,
+                page_cls=page_cls,
+                kind="page",
+            )
+            self._emit(rec, hooks)
 
         return self.records
 

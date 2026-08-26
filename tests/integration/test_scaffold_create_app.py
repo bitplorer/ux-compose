@@ -53,8 +53,8 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     assert "from ux_channel" not in document
 
     assert "class Hello" in hello
-    assert "def get(" in hello
-    assert "from document import page" in hello
+    assert "def get(" not in hello
+    assert "def render(" in hello
     assert "className" in hello
 
     assert '@import "tailwindcss"' in css

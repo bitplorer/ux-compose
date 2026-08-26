@@ -1,12 +1,11 @@
-"""Host bind for page routes — boundary only (Invisible Strategy).
+"""Host bind for page routes — boundary only.
 
-Authors never see this module or any adapter type.
-Host choice happens via::
+Authors never see this module. Host choice happens via::
 
     app.use_host("fastapi")          # or "auto"
     app.mount(..., asgi_app=api)
 
-Preferred path is always ``ux_compose.routing.DirectoryRoutes`` + thin adapter.
+Preferred path: ``ux_compose.routing.host.open/bind``.
 Leftover ``DirectoryRouter`` (ux-dom batteries) is not a product path.
 """
 from __future__ import annotations
@@ -18,15 +17,7 @@ from typing import Any, Optional
 logger = logging.getLogger("ux_compose.surfaces_host")
 
 
-class ProductBatteriesRejected(RuntimeError):
-    """Raised when a caller asks for leftover DirectoryRouter batteries."""
-
-
-_BATTERIES_TEACH = (
-    "host='batteries' is leftover ux-dom DirectoryRouter, not the product path. "
-    "Use host='fastapi' | 'asgi' | 'auto' (ux_compose.routing.DirectoryRoutes). "
-    "Scaffold: uxcompose create-app / ux_compose.build(host=)."
-)
+from ux_compose.routing.host import ProductBatteriesRejected, _BATTERIES_TEACH
 
 
 def attach_page_router(
@@ -37,11 +28,12 @@ def attach_page_router(
     unit_registry: dict,
     fail_closed: bool = True,
     host: str = "auto",
+    document: Any = None,
 ) -> Optional[list]:
     """Attach filesystem page routes to ``asgi_app``. Returns route_table or None.
 
     host:
-      - "auto" / "fastapi" / "starlette" / "asgi" → DirectoryRoutes + thin adapter
+      - "auto" / "fastapi" / "asgi" → DirectoryRoutes + host.bind
       - "batteries" / "directory_router" → fail-closed (leftover, not product)
     """
 
@@ -56,11 +48,11 @@ def attach_page_router(
 
     if host not in ("auto", "fastapi", "starlette", "asgi"):
         raise ValueError(
-            "unknown host %r — use auto|fastapi|starlette|asgi" % host
+            "unknown host %r — use auto|fastapi|asgi" % host
         )
 
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks
-    from ux_compose.routing.adapters.fastapi import mount as mount_routes
+    from ux_compose.routing.host import KIND_FASTAPI, bind as host_bind, open as host_open
 
     hooks = RouterHooks(resolve_unit=_resolve_unit)
     core = DirectoryRoutes(
@@ -70,9 +62,17 @@ def attach_page_router(
         fail_closed=fail_closed,
     )
     core.discover()
-    if core.records and hasattr(asgi_app, "include_router"):
-        mount_routes(core, asgi_app)
-        table = core.route_table()
-        if table:
-            return table
-    return []
+    if not core.records:
+        return []
+
+    asgi, kind = host_open(name="App", host=host, asgi_app=asgi_app)
+    if kind == KIND_FASTAPI and asgi is not None and hasattr(asgi, "include_router"):
+        host_bind(
+            asgi=asgi,
+            kind=kind,
+            core=core,
+            document=document,
+            resolve_unit=_resolve_unit,
+        )
+        return core.route_table()
+    return core.route_table() if core.records else []

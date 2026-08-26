@@ -76,14 +76,6 @@ APP_PY = dedent('''\
             use_htmx=use_htmx,
             document=document,
         )
-        if document is not None and asgi is not None and hasattr(document, "mount"):
-            try:
-                document.mount(asgi)
-            except Exception:
-                # DirectoryASGI has no middleware / route table — package static
-                # needs FastAPI. CSS is attached separately below.
-                if hasattr(asgi, "add_middleware") or hasattr(asgi, "mount"):
-                    raise
         asgi = _mount_css(asgi)
         return app, asgi, bundle
 
@@ -181,8 +173,7 @@ ROUTES_HELLO_PY = dedent('''\
 
     Author contract: return ux-dom tag trees with Tailwind className.
     control() emits semantic data-ux-* attrs. HTMX is opt-in at Document layer.
-    get() wraps the fragment in the Document shell for HTTP GET.
-    render() stays a fragment (the morph payload).
+    render() stays a fragment (the morph payload). The host wraps Document.
     """
     from __future__ import annotations
 
@@ -224,16 +215,6 @@ ROUTES_HELLO_PY = dedent('''\
                 f"<button {attr_str}>+1</button>"
                 f"</div>"
             )
-
-        @classmethod
-        def get(cls):
-            """HTTP GET: wrap the fragment in the Document shell."""
-            try:
-                from document import page
-
-                return page(cls().render())
-            except Exception:
-                return cls().render()
 
         @action(caps=())
         def inc(self):
@@ -283,7 +264,7 @@ README = dedent('''\
     - `settings.py` — environment (BASE_DIR, DEBUG, WebAssets on ux-compose)
     - `document.py` — Document SSoT + `.use(XElement, Csp)` + `page()`
     - `app.py` — composition root: `build(host=, live=, level=, document=)`
-    - `routes/hello.py` — page unit (`render()` is a fragment; `get()` wraps with `page()`)
+    - `routes/hello.py` — page unit (`render()` is a fragment; host wraps Document)
     - `assets/css/input.css` — Tailwind tokens; compile with `uxcompose build`
 
     ## Composition root

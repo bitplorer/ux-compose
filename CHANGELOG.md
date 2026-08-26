@@ -10,10 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Product FastAPI host (Clock A).** `routing/host.py` owns process order
-  (`open` then `bind`). `routing/fastapi.py` owns page GET:
-  resolve → render → `document()` → `HTMLResponse`. DirectoryASGI is the
-  no-Starlette degrade (still wraps `document()`). ADR:
+  (`open` then `bind`). `routing/fastapi.py` owns page GET. DirectoryASGI is
+  the no-Starlette degrade. ADR:
   [docs/adr/0002-product-host.md](docs/adr/0002-product-host.md).
+- **Host spec.** Payload law, path law, created-app layout, file map, and
+  future protocol: [docs/reference/host.md](docs/reference/host.md). Author
+  recipes: [docs/guides/HOST.md](docs/guides/HOST.md).
+
 
 ### Changed
 

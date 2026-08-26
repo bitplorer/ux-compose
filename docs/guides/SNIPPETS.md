@@ -7,7 +7,7 @@ Composition root. Imports specialists. Sole product CLI: uxcompose.
 
 Every block is meant to run (or to be the exact fragment you drop into a running app). Names are public exports. If code and this page disagree, **code wins**.
 
-**12 snippets** covering install, core usage, fail-closed errors, live/async, CLI, and the usage patterns that keep layers from leaking.
+**13 snippets** covering install, core usage, fail-closed errors, live/async, CLI, host payload, and the usage patterns that keep layers from leaking.
 
 ### Public names in this cookbook
 
@@ -26,6 +26,7 @@ Every block is meant to run (or to be the exact fragment you drop into a running
 - [scan / validate / mount surfaces](#co-surfaces)
 - [build() composition root](#co-build)
 - [use_host / use_channel / use_motion](#co-host)
+- [HTML / JSON / stream from render()](#co-payload)
 - [Pattern: progressive levels 0–3](#co-pattern-levels)
 
 
@@ -251,6 +252,41 @@ app.use_host("fastapi")                  # auto | fastapi | asgi
 # app.use_cek(mode="adapt")              # optional; mode="require" raises if missing
 
 assert Level.L1.value == 1
+```
+
+
+### HTML / JSON / stream from render()
+
+<a id="co-payload"></a>
+
+Payload type picks media type. Law: [reference/host.md](../reference/host.md).
+Recipes: [HOST.md](HOST.md).
+
+```python
+class Hello:
+    def render(self):
+        return "<div id='hello'>hi</div>"          # HTMLResponse
+
+class Health:
+    def render(self):
+        return {"ok": True}                        # JSON, no JSONResponse()
+
+class Ticks:
+    def render(self):
+        def gen():
+            yield "<div>a</div>"
+            yield "<div>b</div>"
+        return gen()                               # StreamingResponse
+```
+
+Extra APIs stay on the FastAPI process, not on the class:
+
+```python
+app, asgi, bundle = build(PACKAGE, document=document)
+
+@asgi.get("/api/health")
+def health():
+    return {"ok": True}
 ```
 
 

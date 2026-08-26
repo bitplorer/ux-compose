@@ -52,7 +52,7 @@ myapp/
 ├── settings.py               # BASE_DIR, DEBUG, WebAssets
 ├── document.py               # Document SSoT + .use(XElement, Csp) + page()
 ├── app.py                    # build(host=, live=, level=, document=)
-├── routes/hello.py           # page unit (stem == class name); get() wraps with page()
+├── routes/hello.py           # page unit (stem == class name); render() is a fragment
 ├── assets/css/input.css      # Tailwind tokens + @source
 ├── requirements.txt
 └── README.md

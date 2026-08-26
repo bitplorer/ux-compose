@@ -58,12 +58,12 @@ Full cookbook: [guides/SNIPPETS.md](guides/SNIPPETS.md) · product path: [guides
 | **CLI surface** | [guides/CLI.md](guides/CLI.md) |
 | **Pick-and-use UI** | [guides/UI.md](guides/UI.md) |
 | **DX / tests** | [guides/DX.md](guides/DX.md) · [guides/TESTING.md](guides/TESTING.md) |
-| **Maintainer / agent** | [../AGENTS.md](../AGENTS.md) · [../CONTRIBUTING.md](../CONTRIBUTING.md) |
+| **Maintainer / agent** | [../AGENTS.md](../AGENTS.md) · [reference/host.md](reference/host.md) · [../CONTRIBUTING.md](../CONTRIBUTING.md) |
 
 ```text
 New user:     START_HERE → FLOW (ownership) → README quick start → examples/
 Builder:      FLOW → CLI → DX → examples/README → TESTING
-Maintainer:   FLOW · resilience/MATRIX · AGENTS
+Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 ```
 
 ---
@@ -86,6 +86,7 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 | Doc | Topic |
 |-----|--------|
 | [guides/PATH.md](guides/PATH.md) | End-to-end product path (also tutorial) |
+| [guides/HOST.md](guides/HOST.md) | HTML / JSON / stream recipes |
 | [guides/TAILWIND.md](guides/TAILWIND.md) | Production Tailwind: minify, link, mount, deploy |
 | [guides/UI.md](guides/UI.md) | Pick-and-use Components |
 | [guides/SNIPPETS.md](guides/SNIPPETS.md) | Copy-paste App / Cart / levels / XOR / path / UI |
@@ -102,6 +103,7 @@ Maintainer:   FLOW · resilience/MATRIX · AGENTS
 |-----|--------|
 | [guides/CLI.md](guides/CLI.md) | Command ownership table |
 | `src/ux_compose/__init__.py` | Public names (`__all__`) |
+| [reference/host.md](reference/host.md) | Clock A: payload law, path law, file map, future protocol |
 | [resilience/MATRIX.md](resilience/MATRIX.md) | Resilience matrix |
 
 ### Explanation

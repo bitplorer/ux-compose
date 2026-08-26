@@ -95,6 +95,7 @@ PYTHONPATH=src:. python examples/page_unit_mount.py
 | Motion after morph | `App.use_motion()` + ux-motion |
 | Scaffold / build / serve / deploy | **`uxcompose` CLI only** |
 | Page routes + CSS folders | **`ux_compose.routing` + `WebAssets`** |
+| HTML / JSON / stream from `render()` | **payload type** — [guides/HOST.md](guides/HOST.md) |
 
 HMR is `uxcompose serve`, not a Document API.
 

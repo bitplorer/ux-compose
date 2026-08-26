@@ -64,3 +64,11 @@ How-to: [../guides/serve-hmr-tunnel.md](../guides/serve-hmr-tunnel.md) · [../gu
 - App asset layout (`WebAssets`) living on ux-dom
 
 See [../guides/CLI.md](../guides/CLI.md).
+
+---
+
+## 7. Product host (Clock A)
+
+Canonical: [../FLOW.md](../FLOW.md) §7. Spec: [../reference/host.md](../reference/host.md).
+If they disagree, **FLOW.md / reference/host.md win**.
+

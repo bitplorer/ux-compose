@@ -77,7 +77,9 @@ See [guides/CLI.md](guides/CLI.md).
 
 ## 7. Product host (Clock A)
 
-Page GET is one pipeline. Authors never implement it.
+Page GET is one pipeline. Authors never implement it. Spec:
+[reference/host.md](reference/host.md) · decision: [adr/0002-product-host.md](adr/0002-product-host.md)
+· recipes: [guides/HOST.md](guides/HOST.md).
 
 ```text
 host.open  →  App L1  →  Document  →  Channel.attach(asgi)  →  host.bind
@@ -87,18 +89,20 @@ host.open  →  App L1  →  Document  →  Channel.attach(asgi)  →  host.bind
 
 `routing/fastapi.py` owns GET `/hello`:
 
-    resolve_unit → render() → [JSON as-is | stream → StreamingResponse | document(tree) → HTMLResponse]
+    resolve_unit → render() → payload dispatch
+      dict            → JSON (FastAPI encodes)
+      generator       → StreamingResponse
+      tree / str      → document(tree) → HTMLResponse
+      Response        → as-is
 
-Media type is the payload, not Accept: `dict` → JSON, generator → stream, tree/str → HTML.
+Payload type picks media type, not Accept. Trees stay buffered (CSP +
+`Content-Length`). `str` is HTML, never JSON, never a stream.
 
-Locked:
+Locked (full table in the spec):
 
-- FastAPI is the product process (`host="auto"|"fastapi"`). DirectoryASGI is the no-Starlette degrade.
-- Page units have no HTTP verbs. Path params come from the Request.
-- `App.boot("auto")` is Level 1. Channel binds in `build()` after the process exists.
-- One path law (`http_path`): `index.py`/`route.py` → `/`, `[param]` → `{param}`.
-- Payload type picks media type: `dict` → JSON, generator → stream, tree/str → HTML.
-- `host="batteries"` (leftover DirectoryRouter) fails closed.
-
-ADR: [adr/0002-product-host.md](adr/0002-product-host.md).
+- FastAPI is the product process. DirectoryASGI is the no-Starlette degrade.
+- Page units have no HTTP verbs. One path law (`http_path`).
+- `App.boot("auto")` is Level 1. Channel binds after the process exists.
+- `host="batteries"` fails closed. No `StreamingRoute`. No HTML
+  `default_response_class`.
 

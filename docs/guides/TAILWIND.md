@@ -332,7 +332,7 @@ myapp/
   settings.py                    # WebAssets
   document.py                    # Document + page() + /css/output.css link
   app.py                         # build(document=) + /css mount
-  routes/hello.py                # className on the fragment; get() wraps page()
+  routes/hello.py                # className on the fragment; host wraps Document
   assets/css/input.css           # tokens + @source
   assets/static/file/css/
     output.css                   # minified; commit or CI/image emit

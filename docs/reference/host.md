@@ -35,7 +35,11 @@ DirectoryRoutes.discover()     # one path law
 host.bind(...)                 # document.mount then page routes
 ```
 
-Orchestra: `ux_compose.build.build`. Order owner: `routing/host.py`.
+`routing/host.py` owns order: `open()` then `bind(document=, wrap=)`.
+`build()` passes the author Document as `wrap` and the (possibly synthesized)
+Document as `document`. Synthesized Document is **mount-only** (CSP / static).
+Wrapping GET with a shell the author did not write drops HTML-string fragments
+(ux-dom treats a positional `str` on `<body>` as a script `src`).
 
 `App.boot("auto")` is **Level 1**. Channel never boots headless on auto —
 `Behavior.attach` is idempotent on `_wire`, so a headless Channel would never
@@ -72,7 +76,10 @@ Dispatch (`routing/fastapi.py` `_as_http_response`):
 
 1. already a Response **or** JSON payload → return as-is (FastAPI JSON-encodes dicts)
 2. stream payload → `StreamingResponse` (ux-dom if it accepts the body, else Starlette)
-3. else → `document(tree)` then `HTMLResponse`
+3. else → `apply_html_document(wrap, tree)` then `HTMLResponse`
+
+`apply_html_document` lives in `routing/core.py`. HTML `str` becomes
+ux-dom `raw()` so the fragment is body markup, not a script `src`.
 
 DirectoryASGI (`host="asgi"`) uses the same predicates. Streams go out as
 chunked ASGI `more_body`. JSON is `json.dumps`. HTML is `to_html_bytes`.
@@ -152,9 +159,9 @@ Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs,
 |----------|------|
 | What happens on GET /hello? | `src/ux_compose/routing/fastapi.py` |
 | Process order? | `src/ux_compose/routing/host.py` |
-| Path / stem / JSON / stream predicates? | `src/ux_compose/routing/core.py` |
+| Path / stem / JSON / stream / wrap? | `src/ux_compose/routing/core.py` |
 | No-Starlette degrade? | `src/ux_compose/routing/asgi.py` |
-| Orchestra? | `src/ux_compose/build.py` |
+| Orchestra (`wrap=` vs `document=`)? | `src/ux_compose/build.py` |
 | Channel attach? | `src/ux_compose/wire/boot.py` only |
 | Scaffold? | `src/ux_compose/scaffold.py` |
 | Fitness tests? | `tests/unit/test_host.py` |
@@ -188,13 +195,44 @@ FastAPI is **not** given `default_response_class=HTMLResponse`. Author
 - Document is SSoT: one `Document` in `document.py`. `build(document=)` attaches
   it. Dual-Document is a doctor fail.
 - `document.mount(asgi)` (CSP middleware, package static) runs in `host.bind`
-  on FastAPI only. DirectoryASGI wraps `document()` on the HTML body; doctor
-  reports CSP middleware is not attached.
+  on FastAPI only, using the (possibly synthesized) Document. Page GET wraps
+  **only** the author `document=` (`wrap=`). DirectoryASGI has no middleware;
+  doctor reports CSP middleware is not attached.
 - HTMX is opt-in (`build(use_htmx=True)` / `Document.use(Htmx())`).
 
 ---
 
-## 9. Future protocol (do not fragment)
+## 9. CSP on FastAPI (two layers, one nonce)
+
+FastAPI has no CSP of its own. The product path installs ux-dom `Csp` because
+the process has `add_middleware`. DirectoryASGI does not.
+
+| Layer | What | When | Owner |
+|-------|------|------|-------|
+| **Header** | `Content-Security-Policy` on `http.response.start` | every HTTP response | `CspMiddleware` via `document.mount` |
+| **Stamp** | `nonce=` on `<script>` / `<style>` **before first byte** | HTML body / tree stream | `prepare_html_body` / `prepare_html_stream` |
+
+Same nonce. Middleware creates it (`ContextVar` + `scope["ux_dom_csp_nonce"]`).
+Serialize only reads it. Middleware does **not** overwrite a CSP header the
+response already set.
+
+| `render()` returns | Document wrap | Nonce stamp | CSP header (FastAPI) |
+|--------------------|---------------|-------------|----------------------|
+| tag / HTML `str` | yes (author wrap) | yes (`HTMLResponse.render`) | yes |
+| `dict` | no | n/a | yes (process-wide) |
+| generator | no | no | yes |
+| ux-dom `StreamingResponse(tree)` | no | yes (stamp then chunks) | yes |
+
+`Csp.auto()` picks `Csp.dev()` when `DEBUG` is truthy, else `Csp.prod()`.
+Authors attach once in `document.py`: `.use(XElement(), Csp.auto())`. They
+never set CSP headers in page units.
+
+Trees stay buffered `HTMLResponse` so stamp + `Content-Length` happen before
+the first byte. That is why leftover `StreamingRoute` is not the product path.
+
+---
+
+## 10. Future protocol (do not fragment)
 
 Adding a media type (SSE, `FileResponse`, `RedirectResponse`, …):
 
@@ -219,6 +257,7 @@ Do **not**:
 | A second path function next to `http_path` | two scanners, two URLs |
 | Logic in `routing/adapters/` | shims only |
 | Mini HTML builder when `HAS_DOM` is false | invents a sixth product; L1 uses strings |
+| Wrap GET with a synthesized Document | HTML `str` becomes script `src`; fragment vanishes |
 | `host="batteries"` as a product path | leftover ux-dom `DirectoryRouter` |
 
 If a future need conflicts with the payload law, write **ADR 0003**. Do not
@@ -226,7 +265,7 @@ quietly add a second pipeline.
 
 ---
 
-## 10. Related
+## 11. Related
 
 | Doc | Role |
 |-----|------|

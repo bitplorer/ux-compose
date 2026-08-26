@@ -23,6 +23,7 @@ from typing import Any, Callable, Optional
 from ux_compose.routing.core import (
     DirectoryRoutes,
     RouterHooks,
+    apply_html_document,
     is_json_payload,
     is_stream_payload,
 )
@@ -108,12 +109,7 @@ def _as_http_response(payload: Any, *, document: Any = None) -> Any:
         return payload
     if is_stream_payload(payload):
         return _as_stream_response(payload)
-    tree = payload
-    if document is not None and callable(document):
-        try:
-            tree = document(tree)
-        except Exception:
-            pass
+    tree = apply_html_document(document, payload)
     return _as_html_response(tree)
 
 

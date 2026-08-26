@@ -82,6 +82,7 @@ Do not invent a second HTTP pipeline. Payload type picks media type (`dict` →
 JSON, generator → stream, tree/`str` → HTML). Do not set FastAPI
 `default_response_class`. Do not use `StreamingRoute`. Do not put HTTP verbs
 on page units. Do not boot Channel in `App.boot("auto")`. New media types
-follow spec §9 (predicate + both hosts + `tests/unit/test_host.py` + the spec
-page in the same change).
+follow spec §10 (predicate + both hosts + `tests/unit/test_host.py` + the spec
+page in the same change). `build()` wraps GET only with the author Document
+(`wrap=`). `attach_motion()` returns instances, not classes.
 

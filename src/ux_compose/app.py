@@ -287,8 +287,14 @@ class App:
         )
 
     def dispatch(self, action: str, **kwargs) -> List[Any]:
-        """Offline-first dispatch. Same surface for tests, agents, and live."""
+        """Offline-first dispatch. Same surface for tests, agents, and live.
+
+        Channel Intent uses ``args=dict``. L1 uses ``**kwargs``. One door:
+        ``dispatch("cart.add", sku="tee")`` and
+        ``dispatch("cart.add", args={"sku": "tee"})`` are the same call.
+        """
         self.use_behavior()
+        kwargs = _unpack_action_kwargs(kwargs)
         if self._behavior is not None and hasattr(self._behavior, "dispatch"):
             return self._behavior.dispatch(action, **kwargs) or []
         return _local_dispatch(self, action, **kwargs)
@@ -314,6 +320,24 @@ class App:
         return doctor(paths, fail=fail)
 
 
+def _unpack_action_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """Flatten Channel-style ``args=dict`` into L1 kwargs.
+
+    ``args`` as a dict is the Intent payload, not a parameter named args.
+    A real action parameter called ``args`` still works: pass it as a
+    non-dict, or inside the packed dict.
+    """
+    packed = kwargs.get("args")
+    if not isinstance(packed, dict):
+        return dict(kwargs)
+    out = dict(packed)
+    for key, value in kwargs.items():
+        if key == "args":
+            continue
+        out[key] = value
+    return out
+
+
 class _LocalBehavior:
     """Minimal offline Behavior shim when ux-behavior is absent."""
     def __init__(self, app: App):
@@ -325,7 +349,7 @@ class _LocalBehavior:
         self._registry[key] = comp_cls
 
     def dispatch(self, action: str, **kwargs):
-        return _local_dispatch(self.app, action, **kwargs)
+        return _local_dispatch(self.app, action, **_unpack_action_kwargs(kwargs))
 
 
 def _local_dispatch(app: App, action: str, **kwargs) -> List[Any]:

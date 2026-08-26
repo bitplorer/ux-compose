@@ -223,12 +223,13 @@ document = Document(
 
 # after build() / FastAPI()
 webassets.mount_css(asgi)  # /css → assets/static/file/css
-document.mount(asgi)       # package static /ux-dom/static/…
+# document.mount(asgi) is host.bind — do not call it from app.py
 ```
 
 `create-app`'s `build(document=)` attaches the Document from `document.py`
-(head already has the `/css/output.css` link). `app.py` calls
-`webassets.mount_css(asgi)` and `document.mount(asgi)` for runtime files.
+(head already has the `/css/output.css` link). `host.bind` calls
+`document.mount(asgi)` (CSP + package static). `app.py` only needs
+`webassets.mount_css(asgi)` for `/css`.
 
 Atelier demos link a **static snapshot** (`/static/css/atelier.css`) until
 those hosts are full product apps. Prefer `input.css` → `output.css`.

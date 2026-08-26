@@ -24,6 +24,7 @@ from ux_compose.routing.core import (
     DirectoryRoutes,
     RouteRecord,
     RouterHooks,
+    apply_html_document,
     is_json_payload,
     is_stream_payload,
 )
@@ -216,15 +217,8 @@ class DirectoryASGI:
                     send, result, content_type=b"text/html; charset=utf-8"
                 )
                 return
-            if (
-                self.document is not None
-                and callable(self.document)
-                and not is_json_payload(result)
-            ):
-                try:
-                    result = self.document(result)
-                except Exception:
-                    pass
+            if not is_json_payload(result):
+                result = apply_html_document(self.document, result)
             body, content_type = _encode(result)
             status = 200
         except Exception as exc:

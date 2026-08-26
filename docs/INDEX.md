@@ -103,7 +103,7 @@ Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 |-----|--------|
 | [guides/CLI.md](guides/CLI.md) | Command ownership table |
 | `src/ux_compose/__init__.py` | Public names (`__all__`) |
-| [reference/host.md](reference/host.md) | Clock A: payload law, path law, file map, future protocol |
+| [reference/host.md](reference/host.md) | Clock A: payload law, wrap vs mount, CSP layers, future protocol |
 | [resilience/MATRIX.md](resilience/MATRIX.md) | Resilience matrix |
 
 ### Explanation

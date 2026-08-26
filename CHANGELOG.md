@@ -13,9 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`open` then `bind`). `routing/fastapi.py` owns page GET. DirectoryASGI is
   the no-Starlette degrade. ADR:
   [docs/adr/0002-product-host.md](docs/adr/0002-product-host.md).
-- **Host spec.** Payload law, path law, created-app layout, file map, and
-  future protocol: [docs/reference/host.md](docs/reference/host.md). Author
-  recipes: [docs/guides/HOST.md](docs/guides/HOST.md).
+- **Host spec.** Payload law, path law, created-app layout, file map, CSP
+  layers, wrap-vs-mount, and future protocol:
+  [docs/reference/host.md](docs/reference/host.md). Author recipes:
+  [docs/guides/HOST.md](docs/guides/HOST.md).
 
 
 ### Changed
@@ -31,6 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a generator / async generator is `StreamingResponse` automatically
   (payload type picks media type; HTML strings stay buffered HTML).
   Leftover `StreamingRoute` is not the product path.
+- GET wrap uses the author `document=` only. A synthesized Document is
+  mount-only (CSP/static). HTML strings go through `apply_html_document`
+  (`raw()`), so a positional str is never treated as a script `src`.
+- `attach_motion()` returns instances (`Motion()`, `MotionChannel()`).
+  Passing the class made `document.mount` call `served_files()` unbound.
+- `App.dispatch("x", args={...})` unpacks Channel-style Intent payloads.
+  Clock A tests speak ASGI (no Starlette TestClient / httpx2).
 - **Docs:** teaching pages no longer name leftover `uxdom build` / DirectoryRouter /
   `host=batteries` as something to run. Stub cites (`docs/CLI.md`, `docs/DX.md`,
   `docs/TESTING.md`) point at `docs/guides/`. Product path is the only path taught.

@@ -159,8 +159,25 @@ def bridge_actions(behavior: Any, channel: Any) -> list[str]:
         get = getattr(registry, "get", None)
         if callable(get) and get(name) is not None:
             continue
-        def _handler(ctx: Any = None, *, _action: str = name, **kw: Any) -> list[dict]:
-            raw = behavior.dispatch(_action, _trusted=True, **kw)
+
+        def _handler(
+            ctx: Any = None,
+            *,
+            _action: str = name,
+            args: Any = None,
+            **kw: Any,
+        ) -> list[dict]:
+            # Channel Intent is args=dict. Behavior.dispatch is **kwargs.
+            payload: dict[str, Any] = {}
+            if isinstance(args, dict):
+                payload.update(args)
+            payload.update(kw)
+            if ctx is not None:
+                extra = getattr(ctx, "args", None)
+                if isinstance(extra, dict):
+                    for key, value in extra.items():
+                        payload.setdefault(key, value)
+            raw = behavior.dispatch(_action, _trusted=True, **payload)
             return ops_to_wire(raw)
 
         try:

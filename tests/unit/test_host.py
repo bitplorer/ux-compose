@@ -1,12 +1,32 @@
-"""Product FastAPI host — Clock A fitness function."""
+"""Product FastAPI host — Clock A fitness tests. ASGI protocol only (no TestClient).
+"""
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
 
 import pytest
 
-from ux_compose.routing.core import DirectoryRoutes, http_path, is_json_payload, is_stream_payload
+from ux_compose.routing.core import (
+    DirectoryRoutes,
+    apply_html_document,
+    http_path,
+    is_json_payload,
+    is_stream_payload,
+)
+
+from tests.asgi_http import asgi_get
+
+
+def _pkg(tmp_path: Path, files: dict[str, str]) -> Path:
+    pkg = tmp_path / "demo"
+    routes = pkg / "routes"
+    routes.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    for rel, src in files.items():
+        dest = pkg / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(src, encoding="utf-8")
+    return pkg
 
 
 def test_is_json_payload():
@@ -39,6 +59,15 @@ def test_http_path_law():
     assert http_path("[id]", "page") == "/{id}/page"
 
 
+def test_apply_html_document_never_drops_fragment():
+    def shell(child=None):
+        return f"SHELL:{child}"
+
+    assert apply_html_document(None, "<div id='hello'>hi</div>") == "<div id='hello'>hi</div>"
+    assert apply_html_document(shell, "<div id='hello'>hi</div>") == "SHELL:<div id='hello'>hi</div>"
+    assert apply_html_document(shell, None) == "SHELL:None"
+
+
 def test_discover_index_and_param(tmp_path: Path):
     pkg = tmp_path / "shop"
     routes = pkg / "routes"
@@ -62,18 +91,16 @@ def test_discover_index_and_param(tmp_path: Path):
 
 def test_build_fastapi_page_is_html(tmp_path: Path):
     pytest.importorskip("fastapi")
-    pytest.importorskip("httpx")
-
-    pkg = tmp_path / "demo"
-    routes = pkg / "routes"
-    routes.mkdir(parents=True)
-    (pkg / "__init__.py").write_text("", encoding="utf-8")
-    (routes / "hello.py").write_text(
-        "class Hello:\n"
-        "    id = 'hello'\n"
-        "    def render(self):\n"
-        "        return '<div id=\"hello\">hi</div>'\n",
-        encoding="utf-8",
+    pkg = _pkg(
+        tmp_path,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    id = 'hello'\n"
+                "    def render(self):\n"
+                "        return '<div id=\"hello\">hi</div>'\n"
+            )
+        },
     )
     from ux_compose.build import build
 
@@ -82,36 +109,29 @@ def test_build_fastapi_page_is_html(tmp_path: Path):
     paths = [r.get("path") for r in (bundle.route_table or [])]
     assert "/hello" in paths
 
-    from fastapi.testclient import TestClient
-
-    client = TestClient(asgi)
-    r = client.get("/hello")
+    r = asgi_get(asgi, "/hello")
     assert r.status_code == 200
-    ctype = r.headers.get("content-type", "")
-    assert "text/html" in ctype
+    assert "text/html" in r.headers.get("content-type", "")
     assert "hello" in r.text
     assert r.headers.get("content-length") is not None
 
 
 def test_build_param_route(tmp_path: Path):
     pytest.importorskip("fastapi")
-    pytest.importorskip("httpx")
-
-    pkg = tmp_path / "shop"
-    routes = pkg / "routes"
-    routes.mkdir(parents=True)
-    (pkg / "__init__.py").write_text("", encoding="utf-8")
-    (routes / "[sku].py").write_text(
-        "class Sku:\n"
-        "    def render(self, sku='x'):\n"
-        "        return f'<div id=\"sku\">{sku}</div>'\n",
-        encoding="utf-8",
+    pkg = _pkg(
+        tmp_path,
+        {
+            "routes/[sku].py": (
+                "class Sku:\n"
+                "    def render(self, sku='x'):\n"
+                "        return f'<div id=\"sku\">{sku}</div>'\n"
+            )
+        },
     )
     from ux_compose.build import build
-    from fastapi.testclient import TestClient
 
     _app, asgi, _bundle = build(pkg, name="Shop", host="fastapi", live="null", level=1)
-    r = TestClient(asgi).get("/oak")
+    r = asgi_get(asgi, "/oak")
     assert r.status_code == 200
     assert "oak" in r.text
     assert "text/html" in r.headers.get("content-type", "")
@@ -119,12 +139,9 @@ def test_build_param_route(tmp_path: Path):
 
 def test_build_json_route_untouched(tmp_path: Path):
     pytest.importorskip("fastapi")
-    pkg = tmp_path / "demo"
-    (pkg / "routes").mkdir(parents=True)
-    (pkg / "__init__.py").write_text("", encoding="utf-8")
-    (pkg / "routes" / "hello.py").write_text(
-        "class Hello:\n    def render(self):\n        return 'x'\n",
-        encoding="utf-8",
+    pkg = _pkg(
+        tmp_path,
+        {"routes/hello.py": "class Hello:\n    def render(self):\n        return 'x'\n"},
     )
     from ux_compose.build import build
 
@@ -134,32 +151,27 @@ def test_build_json_route_untouched(tmp_path: Path):
     def health():
         return {"ok": True}
 
-    from fastapi.testclient import TestClient
-
-    r = TestClient(asgi).get("/api/health")
+    r = asgi_get(asgi, "/api/health")
     assert r.status_code == 200
     assert r.json() == {"ok": True}
 
 
 def test_page_render_dict_is_json(tmp_path: Path):
     pytest.importorskip("fastapi")
-    pytest.importorskip("httpx")
-
-    pkg = tmp_path / "demo"
-    routes = pkg / "routes"
-    routes.mkdir(parents=True)
-    (pkg / "__init__.py").write_text("", encoding="utf-8")
-    (routes / "health.py").write_text(
-        "class Health:\n"
-        "    def render(self):\n"
-        "        return {'ok': True, 'n': 1}\n",
-        encoding="utf-8",
+    pkg = _pkg(
+        tmp_path,
+        {
+            "routes/health.py": (
+                "class Health:\n"
+                "    def render(self):\n"
+                "        return {'ok': True, 'n': 1}\n"
+            )
+        },
     )
     from ux_compose.build import build
-    from fastapi.testclient import TestClient
 
     _app, asgi, _bundle = build(pkg, name="Demo", host="fastapi", live="null", level=1)
-    r = TestClient(asgi).get("/health")
+    r = asgi_get(asgi, "/health")
     assert r.status_code == 200
     assert "json" in r.headers.get("content-type", "")
     assert r.json() == {"ok": True, "n": 1}
@@ -167,24 +179,21 @@ def test_page_render_dict_is_json(tmp_path: Path):
 
 def test_page_render_generator_streams(tmp_path: Path):
     pytest.importorskip("fastapi")
-    pytest.importorskip("httpx")
-
-    pkg = tmp_path / "demo"
-    routes = pkg / "routes"
-    routes.mkdir(parents=True)
-    (pkg / "__init__.py").write_text("", encoding="utf-8")
-    (routes / "ticks.py").write_text(
-        "class Ticks:\n"
-        "    def render(self):\n"
-        "        def gen():\n"
-        "            yield '<div>a</div>'\n"
-        "            yield '<div>b</div>'\n"
-        "        return gen()\n",
-        encoding="utf-8",
+    pkg = _pkg(
+        tmp_path,
+        {
+            "routes/ticks.py": (
+                "class Ticks:\n"
+                "    def render(self):\n"
+                "        def gen():\n"
+                "            yield '<div>a</div>'\n"
+                "            yield '<div>b</div>'\n"
+                "        return gen()\n"
+            )
+        },
     )
     from ux_compose.build import build
     from ux_compose.routing.fastapi import _as_http_response
-    from fastapi.testclient import TestClient
 
     def gen():
         yield "<div>a</div>"
@@ -194,22 +203,48 @@ def test_page_render_generator_streams(tmp_path: Path):
     assert "Streaming" in type(wrapped).__name__
 
     _app, asgi, _bundle = build(pkg, name="Demo", host="fastapi", live="null", level=1)
-    r = TestClient(asgi).get("/ticks")
+    r = asgi_get(asgi, "/ticks")
     assert r.status_code == 200
     assert "a" in r.text and "b" in r.text
     assert "html" in r.headers.get("content-type", "")
 
 
+def test_author_document_wrap_keeps_fragment(tmp_path: Path):
+    pytest.importorskip("fastapi")
+    pkg = _pkg(
+        tmp_path,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    def render(self):\n"
+                "        return '<div id=\"hello\">hi</div>'\n"
+            )
+        },
+    )
+    from ux_compose.build import build
+
+    def document(child=None):
+        return f"<html><body>{child}</body></html>"
+
+    _app, asgi, _bundle = build(
+        pkg, name="Demo", host="fastapi", live="null", level=1, document=document
+    )
+    r = asgi_get(asgi, "/hello")
+    assert r.status_code == 200
+    assert "hello" in r.text
+    assert "<html>" in r.text
+
+
 def test_build_asgi_degrade(tmp_path: Path):
-    pkg = tmp_path / "demo"
-    routes = pkg / "routes"
-    routes.mkdir(parents=True)
-    (pkg / "__init__.py").write_text("", encoding="utf-8")
-    (routes / "hello.py").write_text(
-        "class Hello:\n"
-        "    def render(self):\n"
-        "        return '<div id=\"hello\">hi</div>'\n",
-        encoding="utf-8",
+    pkg = _pkg(
+        tmp_path,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    def render(self):\n"
+                "        return '<div id=\"hello\">hi</div>'\n"
+            )
+        },
     )
     from ux_compose.build import build
     from ux_compose.routing.asgi import DirectoryASGI
@@ -219,32 +254,10 @@ def test_build_asgi_degrade(tmp_path: Path):
     paths = [r.get("path") for r in (bundle.route_table or [])]
     assert "/hello" in paths
 
-    status = {}
-    body = b""
-
-    async def receive():
-        return {"type": "http.request", "body": b"", "more_body": False}
-
-    async def send(msg):
-        nonlocal body
-        if msg["type"] == "http.response.start":
-            status["code"] = msg["status"]
-            status["headers"] = dict(msg.get("headers") or [])
-        elif msg["type"] == "http.response.body":
-            body += msg.get("body") or b""
-
-    scope = {
-        "type": "http",
-        "method": "GET",
-        "path": "/hello",
-        "query_string": b"",
-        "headers": [],
-    }
-    asyncio.run(asgi(scope, receive, send))
-    assert status.get("code") == 200
-    assert b"hello" in body
-    ctype = status.get("headers", {}).get(b"content-type", b"").decode()
-    assert "text/html" in ctype
+    r = asgi_get(asgi, "/hello")
+    assert r.status_code == 200
+    assert "hello" in r.text
+    assert "text/html" in r.headers.get("content-type", "")
 
 
 def test_build_batteries_fails_closed(tmp_path: Path):
@@ -274,6 +287,40 @@ def test_boot_auto_is_l1():
 
     app = App.boot("T")
     assert int(app.level) == 1
+
+
+def test_dispatch_args_dict_unpacks():
+    from ux_compose import App, Component, MorphState, action
+
+    class Cart(Component):
+        id = "cart"
+        n = MorphState(0)
+
+        def render(self):
+            return str(int(self.n or 0))
+
+        @action(caps=())
+        def add(self, sku: str = ""):
+            self.n = int(self.n or 0) + 1
+            return None
+
+    app = App.boot("T", level=1, strict_caps=False)
+    app.add(Cart)
+    ops = app.dispatch("cart.add", args={"sku": "tee"})
+    assert isinstance(ops, list)
+    ops2 = app.dispatch("cart.add", sku="oak")
+    assert isinstance(ops2, list)
+
+
+def test_attach_motion_returns_instances():
+    pytest.importorskip("ux_motion")
+    from ux_compose.wire.boot import attach_motion
+
+    motion, channel = attach_motion()
+    assert not isinstance(motion, type)
+    assert not isinstance(channel, type)
+    assert callable(getattr(motion, "served_files", None))
+    assert list(motion.served_files() or []) is not None
 
 
 def test_adapters_shim_still_imports():

@@ -121,7 +121,8 @@ def build(
     asgi, kind = host_open(name=name, host=host_l, asgi_app=asgi_app)
 
     app = App.boot(name, strict_caps=False, level=boot_level)
-    document = _attach_document(app, document, use_htmx=use_htmx)
+    author_document = document
+    document = _attach_document(app, author_document, use_htmx=use_htmx)
 
     if want_channel and kind == KIND_FASTAPI and asgi is not None:
         try:
@@ -171,6 +172,7 @@ def build(
         kind=kind,
         core=core,
         document=document,
+        wrap=author_document,
         resolve_unit=_resolve,
     )
     if bundle is not None and core.records:

@@ -39,6 +39,21 @@ tour, open [UI.md](UI.md).
 | 8 | [Motion](#8-motion-xor) | Morph-then-Play, no `html=` on the plan |
 | 9 | [Live](#9-go-live) | Channel through `wire/`, Isolation held |
 
+CLI is the lifecycle. Page units never know which phase they are in.
+
+```text
+create-app → author routes/ → dispatch / doctor → uxcompose build
+         → serve (--hmr / --tunnel) → unlock L2/L3 → deploy → doctor
+```
+
+| Phase | Command | You do not |
+|-------|---------|------------|
+| Scaffold | `uxcompose create-app` | hand-write `get()` / `HTMLResponse` |
+| Prove | `app.dispatch` + `uxcompose doctor` | stand up HTTP to test Clock B |
+| CSS | `uxcompose build` | compile in `serve` / `deploy` |
+| Dev | `uxcompose serve app:asgi` | `Document.use` for HMR |
+| Ship | `uxcompose deploy --provider docker` | a second ASGI process |
+
 ---
 
 ## 1. Scaffold

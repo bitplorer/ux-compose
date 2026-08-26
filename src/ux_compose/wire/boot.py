@@ -139,9 +139,25 @@ def attach_channel(
     return ch
 
 
+def _as_runtime(obj: Any) -> Any:
+    """Document.use wants instances (XElement(), Csp.auto(), Motion()).
+
+    Passing the class makes ``document.mount`` call ``served_files()``
+    unbound (``missing self``).
+    """
+    if obj is None:
+        return None
+    if isinstance(obj, type):
+        try:
+            return obj()
+        except TypeError:
+            return obj
+    return obj
+
+
 def attach_motion(document: Any = None) -> tuple[Any, Any]:
     """
-    Return (Motion, MotionChannel) for Document.use(...).
+    Return (Motion, MotionChannel) **instances** for Document.use(...).
     Raises ImportError if ux-motion is absent.
     """
     try:
@@ -150,7 +166,11 @@ def attach_motion(document: Any = None) -> tuple[Any, Any]:
         raise ImportError(
             "ux-motion is not installed. Level 3 requires: pip install ux-motion"
         ) from e
-    return Motion, MotionChannel
+    motion = _as_runtime(Motion)
+    channel = _as_runtime(MotionChannel)
+    if document is not None and hasattr(document, "use"):
+        document.use(motion, channel)
+    return motion, channel
 
 
 def attach_document_runtimes(
@@ -181,8 +201,8 @@ def attach_document_runtimes(
         except ImportError:
             pass
     if motion:
-        Motion, MotionChannel = attach_motion()
-        runtimes.extend([Motion, MotionChannel])
+        motion_rt, channel_rt = attach_motion()
+        runtimes.extend([motion_rt, channel_rt])
     # Channel scripts are typically attached via Channel.boot / Document.use
     if document is not None and hasattr(document, "use"):
         document.use(*runtimes)

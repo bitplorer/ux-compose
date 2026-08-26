@@ -23,6 +23,7 @@ from ux_compose.routing.core import (
     http_path,
     is_json_payload,
     is_stream_payload,
+    apply_html_document,
     module_exports,
     pick_page_type,
 )
@@ -44,6 +45,7 @@ __all__ = [
     "http_path",
     "is_json_payload",
     "is_stream_payload",
+    "apply_html_document",
     "materialize",
     "mount",
 ]

@@ -3,9 +3,10 @@
 Authors never import this. Maintainers always do.
 
     asgi, kind = open(name=..., host=..., asgi_app=...)
-    asgi = bind(asgi=asgi, kind=kind, core=..., document=..., resolve_unit=...)
+    asgi = bind(asgi=asgi, kind=kind, core=..., document=..., wrap=..., resolve_unit=...)
 
-open() creates the process. bind() wires Document (CSP/static) then pages.
+open() creates the process. bind() mounts Document (CSP/static) then pages.
+``wrap=`` is the author HTML shell (None = fragment, no synthesized wrap).
 Channel is attached by build() *before* bind(), once the ASGI object exists.
 """
 from __future__ import annotations
@@ -63,20 +64,35 @@ def open(*, name: str = "App", host: str = "auto", asgi_app: Any = None) -> tupl
     return None, KIND_ASGI
 
 
+_UNSET = object()
+
+
 def bind(
     *,
     asgi: Any,
     kind: str,
     core: DirectoryRoutes,
     document: Any = None,
+    wrap: Any = _UNSET,
     resolve_unit: Optional[Callable] = None,
     mounted: Optional[list] = None,
 ) -> Any:
     """Attach Document runtimes + page routes. Returns the ASGI app.
 
-    FastAPI: document.mount (CSP, SafeStatic) then page routes.
-    DirectoryASGI: document() wrap on the body; CSP middleware is FastAPI-only.
+    ``document`` is mounted (CSP middleware, SafeStatic) on FastAPI.
+    ``wrap`` is the HTML shell for page GET.
+
+    ``build()`` passes the author Document as ``wrap`` and the (possibly
+    synthesized) Document as ``document``. A synthesized Document is
+    mount-only — wrapping GET with a shell the author did not write drops
+    HTML-string fragments (ux-dom treats a positional str as script src).
+
+    Omit ``wrap`` to wrap with ``document`` (other callers). Pass
+    ``wrap=None`` to mount without wrapping.
     """
+    if wrap is _UNSET:
+        wrap = document
+
     if not core.records:
         core.discover()
 
@@ -87,13 +103,13 @@ def bind(
                 mounted.append("document")
         from ux_compose.routing import fastapi as http
 
-        http.bind(asgi, core, document=document, resolve_unit=resolve_unit)
+        http.bind(asgi, core, document=wrap, resolve_unit=resolve_unit)
         return asgi
 
     from ux_compose.routing.asgi import DirectoryASGI
 
     if isinstance(asgi, DirectoryASGI):
-        if document is not None and getattr(asgi, "document", None) is None:
-            asgi.document = document
+        if wrap is not None and getattr(asgi, "document", None) is None:
+            asgi.document = wrap
         return asgi
-    return DirectoryASGI(core, document=document)
+    return DirectoryASGI(core, document=wrap)

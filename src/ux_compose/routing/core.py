@@ -38,6 +38,7 @@ __all__ = [
     "http_path",
     "is_json_payload",
     "is_stream_payload",
+    "apply_html_document",
 ]
 
 
@@ -171,6 +172,43 @@ def is_stream_payload(obj: Any) -> bool:
     ):
         return True
     return False
+
+
+def apply_html_document(document: Any, payload: Any) -> Any:
+    """Put an HTML fragment into the Document shell. Never drop the payload.
+
+    Both hosts call this on the HTML branch only (JSON / stream / Response
+    skip it). Author-provided ``document=`` is the SSoT. A synthesized
+    Document is for ``document.mount`` (CSP / static), not for wrapping.
+
+    HTML strings are not valid ``Document(*args)`` children — ux-dom treats
+    a positional str on ``<body>`` as a script ``src``. Convert via ``raw()``
+    so the fragment lands in the body as markup.
+    """
+    if document is None or not callable(document):
+        return payload
+    child = _document_child(payload)
+    try:
+        if child is None:
+            return document()
+        return document(child)
+    except Exception:
+        return payload
+
+
+def _document_child(payload: Any) -> Any:
+    if payload is None:
+        return None
+    if isinstance(payload, (bytes, bytearray, memoryview)):
+        payload = bytes(payload).decode("utf-8")
+    if isinstance(payload, str):
+        try:
+            from ux_dom.dom.src.utils.dom_util import raw
+
+            return raw(payload)
+        except Exception:
+            return payload
+    return payload
 
 
 def is_renderable_unit(klass: type) -> bool:

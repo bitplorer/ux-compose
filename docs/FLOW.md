@@ -92,11 +92,13 @@ host.open  →  App L1  →  Document  →  Channel.attach(asgi)  →  host.bind
     resolve_unit → render() → payload dispatch
       dict            → JSON (FastAPI encodes)
       generator       → StreamingResponse
-      tree / str      → document(tree) → HTMLResponse
+      tree / str      → apply_html_document(wrap) → HTMLResponse
       Response        → as-is
 
-Payload type picks media type, not Accept. Trees stay buffered (CSP +
-`Content-Length`). `str` is HTML, never JSON, never a stream.
+Author `document=` is the wrap. A synthesized Document is mount-only
+(CSP / static on FastAPI). Payload type picks media type, not Accept.
+Trees stay buffered (CSP + `Content-Length`). `str` is HTML, never JSON,
+never a stream.
 
 Locked (full table in the spec):
 

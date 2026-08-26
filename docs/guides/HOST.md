@@ -27,7 +27,9 @@ app, asgi, bundle = build(
 ## HTML page (default)
 
 `routes/hello.py` → `GET /hello`. `render()` is a fragment. The host wraps
-Document (CSP, shell, stylesheet).
+the **author** Document (CSP, shell, stylesheet). A synthesized Document
+(tests that omit `document=`) is mounted for CSP/static only — it does not
+swallow the fragment.
 
 ```python
 from ux_compose import Component, MorphState, action, div, span, update_with

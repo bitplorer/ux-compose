@@ -57,9 +57,11 @@ wrap trees and pass everything else through. Compose must keep the L1 HTML
 - Extra APIs (`/api/…`, `/act/…`) are FastAPI routes on the process `build()`
   returned, not methods on the page class.
 - Leftover `DirectoryRouter` stays in ux-dom for demosite only.
-- New media types follow the protocol in the spec §9 (predicate + both hosts
+- New media types follow the protocol in the spec §10 (predicate + both hosts
   + test + this ADR's spec page). Conflicts get **ADR 0003**, not a second
   pipeline.
+- GET wrap is the author Document (`wrap=`). Synthesized Document is
+  mount-only. Motion runtimes are instances.
 
 ## Non-goals
 

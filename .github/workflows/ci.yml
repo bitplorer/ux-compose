@@ -34,12 +34,11 @@ jobs:
         run: |
           python -m pip install -U pip setuptools wheel
           pip install pytest
-          pip install "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git"
-          pip install "ux-motion @ git+https://github.com/bitplorer/ux-motion.git"
-          pip install "ux-channel @ git+https://github.com/bitplorer/ux-channel.git#subdirectory=python"
-          pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
+          pip install "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@76adc72ff8e8d2f6a784d8b988b720934bd8a612"
+          pip install "ux-motion @ git+https://github.com/bitplorer/ux-motion.git@67ff3f0c4912b70b7056f8226a6f226b6fe93f60"
+          pip install "ux-channel @ git+https://github.com/bitplorer/ux-channel.git@b6d83376cd4fdf1edabb89502d238912d3fc26ae#subdirectory=python"
+          pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git@25338a6d624b764bb79615de52fca48084ce2c55"
           pip install fastapi uvicorn httpx
-          pip install httpx2 || true
           pip install -e .
       - name: Full suite
         run: python -m pytest tests/ -q

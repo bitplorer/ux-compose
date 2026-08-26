@@ -142,7 +142,7 @@ DOCUMENT_PY = dedent('''\
         from ux_dom.runtime import XElement, Csp
         from ux_dom.dom import link, meta, title
 
-        from settings import DEBUG, OUTPUT_CSS
+        from settings import OUTPUT_CSS
 
         document = Document(
             head=[

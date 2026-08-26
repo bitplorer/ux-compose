@@ -50,6 +50,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Docs:** teaching pages no longer name leftover `uxdom build` / DirectoryRouter /
   `host=batteries` as something to run. Stub cites (`docs/CLI.md`, `docs/DX.md`,
   `docs/TESTING.md`) point at `docs/guides/`. Product path is the only path taught.
+- CI pins ux-behavior / ux-motion / ux-channel / ux-dom to origin/main SHAs;
+  leftover `httpx2` is gone. Teaching is `create-app` + `build()` (`App.mount`
+  is a secondary door). Clock A GET asserts `Content-Security-Policy` when
+  Document mounts Csp.
+
 
 ## [0.1.0] — 2026-08-24
 

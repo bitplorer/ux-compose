@@ -1,6 +1,6 @@
 """Page unit — module stem matches class name (hello.py → Hello).
 
-Default product path used by DirectoryRoutes + mount_surfaces.
+Used by DirectoryRoutes + App.mount (secondary door). Product path is build().
 """
 from __future__ import annotations
 

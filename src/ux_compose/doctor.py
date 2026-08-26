@@ -179,9 +179,9 @@ def _teaching_for_level(level: int, caps: dict) -> list[str]:
         lines.append("Full progressive stack available (L3). Isolation + Caps + Motion are all first-class.")
     if caps.get("directory_routes"):
         lines.append(
-            "Page-unit path available: routes/ + stem match + App.mount / mount_surfaces "
-            "(ux_compose.routing.DirectoryRoutes + thin host adapter via RouterHooks.resolve_unit). "
-            "Scaffold: uxcompose create-app <dir>."
+            "Page-unit path available: uxcompose create-app + build() "
+            "(routes/ + stem match via DirectoryRoutes). "
+            "App.mount / mount_surfaces is a secondary door for tests and surfaces."
         )
     lines.append(
         "Progressive Superpower Contract: code written at Level 1 remains correct and unchanged "
@@ -201,12 +201,12 @@ def doctor(
 
     - Scans for Isolation violations and dual-Document heuristics
     - Reports progressive specialists + DirectoryRoutes (page-unit path)
-    - Emits teaching messages for the next unlock and mount/routes guidance
+    - Emits teaching messages for the next unlock and create-app / build() guidance
     - Optionally records evidence from a sealed SurfaceBundle (surfaces, routes)
     - Fails closed (raises) when fail=True and hard violations found
 
-    ``bundle`` is optional and additive — pass the return value of App.mount /
-    mount_surfaces for route-table evidence without changing scan behaviour.
+    ``bundle`` is optional and additive — pass the return value of build() /
+    App.mount / mount_surfaces for route-table evidence without changing scan behaviour.
     """
     caps = _detect_capabilities()
     level = 0

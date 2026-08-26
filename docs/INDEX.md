@@ -79,7 +79,7 @@ Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 | [guides/PATH.md](guides/PATH.md) | Scaffold → build → serve → HMR → Tailwind → composition → control flow → motion → live |
 | [guides/TAILWIND.md](guides/TAILWIND.md) | Production CSS how-to |
 | [../examples/README.md](../examples/README.md) | Example map |
-| [../examples/page_unit_mount.py](../examples/page_unit_mount.py) | Page-unit mount proof |
+| [../examples/page_unit_mount.py](../examples/page_unit_mount.py) | App.mount secondary-door proof |
 
 ### How-to
 

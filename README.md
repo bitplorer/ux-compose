@@ -106,7 +106,15 @@ print(app.dispatch("cart.add", sku="tee"))
 `render()` returns a **ux-dom tag tree**, not an HTML string.
 Public names are `ux_compose` (`App`, `div`, `button`, …) — not a second `ux.*` namespace.
 
-Default product layout: `routes/` page units + `App.mount` (`examples/page_unit_mount.py`).
+Default product layout: `uxcompose create-app` + `build()` (`routes/` page units).
+
+```python
+from ux_compose.build import build
+from document import document
+app, asgi, bundle = build(PACKAGE, host="auto", live="auto", document=document)
+```
+
+`App.mount` remains a secondary door (tests, surfaces).
 
 Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PATH.md](docs/guides/PATH.md). UI kit: [docs/guides/UI.md](docs/guides/UI.md). Mental model: [docs/START_HERE.md](docs/START_HERE.md).
 
@@ -116,7 +124,7 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 |------|------------------|
 | Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder + app asset layout | DOM serialize / tag trees / package static (ux-dom) |
 | `App` composition, `App.mount`, delivery, HMR + tunnel under serve | Channel transport (wire/ only) |
-| Page-unit mount (`routes/` + `App.mount`); CSS minify via `ux_compose.tailwind` | MorphState / Cap / Plan IR implementations |
+| Page-unit mount (`routes/` + `build()`); CSS minify via `ux_compose.tailwind` | MorphState / Cap / Plan IR implementations |
 
 ## Audience
 

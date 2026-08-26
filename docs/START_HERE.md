@@ -77,11 +77,8 @@ app, asgi, bundle = build(
 app.dispatch("hello.inc")
 ```
 
-Runnable proof:
-
-```bash
-PYTHONPATH=src:. python examples/page_unit_mount.py
-```
+Product path is `uxcompose create-app` then `build()` — not `App.mount`.
+Full-stack Clock A GET: `examples/live_asgi.py`.
 
 ---
 

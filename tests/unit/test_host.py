@@ -235,6 +235,37 @@ def test_author_document_wrap_keeps_fragment(tmp_path: Path):
     assert "<html>" in r.text
 
 
+def test_csp_header_on_html_get(tmp_path: Path):
+    """Clock A GET carries Content-Security-Policy from document.mount (Csp)."""
+    pytest.importorskip("ux_dom")
+    pytest.importorskip("fastapi")
+    from ux_dom import Document
+    from ux_dom.runtime import Csp
+
+    from ux_compose.build import build
+
+    pkg = _pkg(
+        tmp_path,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    def render(self):\n"
+                "        return '<div id=\"hello\">hi</div>'\n"
+            )
+        },
+    )
+    document = Document(head=[], body=[], ensure_csrf_token=False).use(Csp.auto())
+    _app, asgi, _bundle = build(
+        pkg, name="Demo", host="fastapi", live="null", level=1, document=document
+    )
+    r = asgi_get(asgi, "/hello")
+    assert r.status_code == 200
+    headers = {k.lower(): v for k, v in r.headers.items()}
+    assert "content-security-policy" in headers
+    assert headers["content-security-policy"]
+    assert "hello" in r.text
+
+
 def test_build_asgi_degrade(tmp_path: Path):
     pkg = _pkg(
         tmp_path,

@@ -169,7 +169,10 @@ Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs,
 `routing/adapters/` are thin re-export shims. Do not put logic there.
 
 Invisible Strategy: authors import `build` / `App.mount`. They do not import
-`routing.fastapi` / `routing.host`. Maintainers always do.
+`routing.fastapi` / `routing.host`. Maintainers always do. Product examples
+call `build()`; handmade Clock A GET (`@app.get` + `HTMLResponse`) is not
+the product path.
+
 
 ---
 

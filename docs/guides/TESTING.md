@@ -106,6 +106,7 @@ See also: `docs/FLOW.md`, `docs/guides/CLI.md`, `docs/reference/host.md`.
 Clock A (payload law, path law, host bind) is locked in `tests/unit/test_host.py`.
 Tests speak ASGI (`tests/asgi_http.py`) — no Starlette TestClient / httpx2.
 A synthesized Document is mount-only; wrap is the author `document=`.
+`App.mount` passes the same `wrap=` as `build()`.
 `attach_motion()` must return instances. Do not add host behaviour that is
 not covered in `test_host.py`.
 

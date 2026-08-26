@@ -129,7 +129,7 @@ the class are ignored. Path params come from the Request, passed into
 ```text
 shop/
 ├── app.py                 composition root — build() only
-├── document.py            Document SSoT (.use(XElement, Csp) + page())
+├── document.py            Document SSoT (.use(XElement, Csp)); host wraps GET
 ├── settings.py            BASE_DIR, DEBUG, WebAssets
 ├── requirements.txt
 ├── README.md
@@ -161,7 +161,7 @@ Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs,
 | Process order? | `src/ux_compose/routing/host.py` |
 | Path / stem / JSON / stream / wrap? | `src/ux_compose/routing/core.py` |
 | No-Starlette degrade? | `src/ux_compose/routing/asgi.py` |
-| Orchestra (`wrap=` vs `document=`)? | `src/ux_compose/build.py` |
+| Orchestra (`wrap=` vs `document=`)? | `src/ux_compose/build.py`, `surfaces_host.py` |
 | Channel attach? | `src/ux_compose/wire/boot.py` only |
 | Scaffold? | `src/ux_compose/scaffold.py` |
 | Fitness tests? | `tests/unit/test_host.py` |
@@ -258,6 +258,7 @@ Do **not**:
 | Logic in `routing/adapters/` | shims only |
 | Mini HTML builder when `HAS_DOM` is false | invents a sixth product; L1 uses strings |
 | Wrap GET with a synthesized Document | HTML `str` becomes script `src`; fragment vanishes |
+| Scaffold `page()` as the GET wrap | host calls `document(child)`; two wrap stories |
 | `host="batteries"` as a product path | leftover ux-dom `DirectoryRouter` |
 
 If a future need conflicts with the payload law, write **ADR 0003**. Do not

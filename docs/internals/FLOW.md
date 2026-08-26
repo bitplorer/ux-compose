@@ -47,7 +47,7 @@ ux-channel  Intent/Caps behind wire/ only
 
 Allowed: control, runtime, CSP, style. **Not:** HMR process, host strategy, product App.
 
-create-app emits `document.py` (one Document + `page()`) and `settings.py` (`ux_compose.WebAssets`). `build(document=)` attaches that Document.
+create-app emits `document.py` (one Document; host wraps GET) and `settings.py` (`ux_compose.WebAssets`). `build(document=)` attaches that Document.
 
 ---
 

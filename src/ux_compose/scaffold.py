@@ -3,7 +3,7 @@
 Emits the locked product path:
 
 - settings.py          environment SSoT (BASE_DIR, DEBUG, WebAssets)
-- document.py          Document SSoT + .use(XElement, Csp) + page()
+- document.py          Document SSoT + .use(XElement, Csp)
 - app.py               composition root via build(host=, live=, level=, document=)
 - routes/hello.py      page unit (module stem == class name)
 - assets/css/input.css Tailwind tokens + @source
@@ -131,8 +131,8 @@ DOCUMENT_PY = dedent('''\
     """Document SSoT — one HTML shell for every GET.
 
     .use(XElement, Csp) attaches runtimes. HTMX is opt-in via build(use_htmx=True).
-    page() wraps a fragment for HTTP GET. Component.render() stays a fragment
-    (the morph payload) — never put the stylesheet link inside render().
+    The host wraps render() with this Document. Component.render() stays a
+    fragment (the morph payload) — never put the stylesheet link inside render().
     Isolation: this module never imports ux_channel.
     """
     from __future__ import annotations
@@ -155,16 +155,8 @@ DOCUMENT_PY = dedent('''\
             ensure_csrf_token=False,
         ).use(XElement(), Csp.auto())
 
-        def page(*body, page_title: str | None = None):
-            """Wrap a fragment in the single Document shell."""
-            extra_head = [title(page_title)] if page_title else []
-            return document(*body, head=extra_head or None)
-
     except Exception:  # ux-dom not installed — L1 HTML-string fallback still works
         document = None
-
-        def page(*body, page_title: str | None = None):
-            return body[0] if body else None
 ''')
 
 
@@ -262,7 +254,7 @@ README = dedent('''\
     ## Mental model
 
     - `settings.py` — environment (BASE_DIR, DEBUG, WebAssets on ux-compose)
-    - `document.py` — Document SSoT + `.use(XElement, Csp)` + `page()`
+    - `document.py` — Document SSoT + `.use(XElement, Csp)`; host wraps GET
     - `app.py` — composition root: `build(host=, live=, level=, document=)`
     - `routes/hello.py` — page unit (`render()` is a fragment; host wraps Document)
     - `assets/css/input.css` — Tailwind tokens; compile with `uxcompose build`

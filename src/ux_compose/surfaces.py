@@ -405,6 +405,7 @@ def mount_surfaces(
                 fail_closed=fail_closed,
                 host=host,
                 document=getattr(compose_app, "_document", None) if compose_app is not None else None,
+                wrap=getattr(compose_app, "_author_document", None) if compose_app is not None else None,
             )
             if table:
                 bundle.route_table = table

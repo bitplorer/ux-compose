@@ -252,7 +252,7 @@ Proven hosts:
 Do **not** add `link(...)` inside `render()`. `update_with` republishes
 `render()` HTML; the morph target is `#hello`, not the shell.
 
-`uxcompose create-app` GET wraps `render()` with `page()` (Document shell).
+`uxcompose create-app` GET wraps `render()` with the author Document (host.bind `wrap=`).
 The morph payload remains `render()` — never put `link(...)` inside it.
 
 ---
@@ -331,7 +331,7 @@ so workers do not race the compiler. `TailwindStyle` on ux-dom fails closed.
 ```text
 myapp/
   settings.py                    # WebAssets
-  document.py                    # Document + page() + /css/output.css link
+  document.py                    # Document SSoT; host wraps GET + /css/output.css link
   app.py                         # build(document=) + /css mount
   routes/hello.py                # className on the fragment; host wraps Document
   assets/css/input.css           # tokens + @source

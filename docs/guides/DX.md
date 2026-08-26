@@ -50,7 +50,7 @@ Emits the locked product path:
 ```text
 myapp/
 ├── settings.py               # BASE_DIR, DEBUG, WebAssets
-├── document.py               # Document SSoT + .use(XElement, Csp) + page()
+├── document.py               # Document SSoT + .use(XElement, Csp); host wraps GET
 ├── app.py                    # build(host=, live=, level=, document=)
 ├── routes/hello.py           # page unit (stem == class name); render() is a fragment
 ├── assets/css/input.css      # Tailwind tokens + @source

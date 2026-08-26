@@ -37,8 +37,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`raw()`), so a positional str is never treated as a script `src`.
 - `attach_motion()` returns instances (`Motion()`, `MotionChannel()`).
   Passing the class made `document.mount` call `served_files()` unbound.
-- `App.dispatch("x", args={...})` unpacks Channel-style Intent payloads.
-  Clock A tests speak ASGI (no Starlette TestClient / httpx2).
+- `App.mount` / `attach_page_router` pass `wrap=` (author Document) the same
+  way `build()` does. A synthesized Document never wraps GET.
+- `App.dispatch("x", args={...})` unpacks Channel-style Intent payloads
+  (also in ux-behavior `bind_action_args`, which binds the @action function
+  not `BoundAction.__call__(*args)`). Clock A tests speak ASGI (no
+  Starlette TestClient / httpx2).
+- `materialize(route_class=)` / `mount(route_class=)` fail closed.
+- Scaffold no longer emits leftover `page()`. Host wraps `render()` with the
+  author Document. Motion Scene IR becomes `transition.play`.
+- `_is_response` recognizes FileResponse / RedirectResponse / body_iterator.
 - **Docs:** teaching pages no longer name leftover `uxdom build` / DirectoryRouter /
   `host=batteries` as something to run. Stub cites (`docs/CLI.md`, `docs/DX.md`,
   `docs/TESTING.md`) point at `docs/guides/`. Product path is the only path taught.

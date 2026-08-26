@@ -37,6 +37,7 @@ class App:
         self._channel = None
         self._channel_asgi = None
         self._document = None
+        self._author_document = None
         self._motion = False
         self._cek = None
         self._host = "auto"  # Invisible Strategy preference
@@ -92,9 +93,15 @@ class App:
         self._host = (host or "auto").lower().strip()
         return self
 
-    def use_dom(self, document: Any = None) -> "App":
-        """Attach Document (ux-dom). Document SSoT respected."""
+    def use_dom(self, document: Any = None, *, author: bool = True) -> "App":
+        """Attach Document (ux-dom). Document SSoT respected.
+
+        ``author=True`` (default): this Document wraps GET. ``author=False``
+        is a synthesized runtime (CSP / static mount only).
+        """
         self._document = document
+        if author:
+            self._author_document = document
         return self
 
     def use_behavior(self) -> "App":

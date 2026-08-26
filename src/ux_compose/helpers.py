@@ -128,27 +128,59 @@ def _coerce_op(op: Any) -> Any:
     return op
 
 
+def _looks_like_op(op: Any) -> bool:
+    if op is None:
+        return False
+    if _HAS_BEHAVIOR and _Op is not None and isinstance(op, _Op):
+        return True
+    if isinstance(op, dict) and str(op.get("op", "")).endswith("play"):
+        return True
+    if isinstance(op, dict) and op.get("op") in ("morph", "notify", "toast"):
+        return True
+    if type(op).__name__ in {"Scene", "Plan"}:
+        return False
+    if hasattr(op, "ns") and hasattr(op, "name") and hasattr(op, "payload"):
+        return True
+    return False
+
+
+def _as_play(plan: Any) -> Any:
+    return _as_op("transition", "play", {"plan": plan})
+
+
 def _normalize_plan_ops(scene_or_plan: Any) -> List[Any]:
+    """Turn a Scene / Plan / Op into one ``transition.play``.
+
+    Motion IR is data. ``Scene.ops()`` is Channel wire shape — not Behavior
+    Ops. Wrap the compiled plan so @action returns list[Op].
+    """
     if scene_or_plan is None:
         return []
     if isinstance(scene_or_plan, list):
-        return [o for o in (_coerce_op(x) for x in scene_or_plan) if o is not None]
+        out: List[Any] = []
+        for item in scene_or_plan:
+            out.extend(_normalize_plan_ops(item))
+        return out
+    if _looks_like_op(scene_or_plan):
+        if isinstance(scene_or_plan, dict) and str(scene_or_plan.get("op", "")).endswith("play"):
+            return [_as_play(scene_or_plan.get("plan", scene_or_plan))]
+        coerced = _coerce_op(scene_or_plan)
+        return [coerced] if coerced is not None else []
     if isinstance(scene_or_plan, dict):
-        if scene_or_plan.get("op") == "transition.play" or "plan" in scene_or_plan:
-            return [scene_or_plan]
-        # bare plan dict → wrap as transition.play
-        return [{"op": "transition.play", "plan": scene_or_plan}]
-    for attr in ("ops", "plan", "to_ops"):
+        return [_as_play(scene_or_plan.get("plan", scene_or_plan))]
+    compiled = scene_or_plan
+    for attr in ("plan", "to_plan"):
         val = getattr(scene_or_plan, attr, None)
         if callable(val):
             try:
-                return _normalize_plan_ops(val())
+                compiled = val()
+                break
             except Exception:
                 pass
-        elif isinstance(val, list):
-            return _normalize_plan_ops(val)
-    coerced = _coerce_op(scene_or_plan)
-    return [coerced] if coerced is not None else []
+        elif val is not None and val is not scene_or_plan:
+            compiled = val
+            break
+    return [_as_play(compiled)]
 
 
 def update_with(
@@ -188,7 +220,10 @@ def update_with(
         if k not in ("extra_ops",):
             morph_payload[k] = v
 
-    ops: List[Any] = [_as_op("", "morph", morph_payload)]
+    if _HAS_BEHAVIOR and _real_update is not None:
+        ops: List[Any] = [_real_update(tid, morph_payload.get("html", ""))]
+    else:
+        ops = [_as_op("", "morph", morph_payload)]
     ops.extend(_normalize_plan_ops(plan))
     if extra_ops:
         for o in extra_ops:
@@ -201,9 +236,10 @@ def update_with(
 def morph_play(target: str, plan: Any) -> List[Any]:
     """Morph-then-Play: morph target, then append motion plan ops."""
     tid = target if str(target).startswith("#") else f"#{target}"
-    ops: List[Any] = [
-        _as_op("", "morph", {"target": tid, "strategy": "idiomorph"})
-    ]
+    if _HAS_BEHAVIOR and _real_update is not None:
+        ops: List[Any] = [_real_update(tid, "")]
+    else:
+        ops = [_as_op("", "morph", {"target": tid, "strategy": "idiomorph"})]
     ops.extend(_normalize_plan_ops(plan))
     return ops
 

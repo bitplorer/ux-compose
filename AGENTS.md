@@ -85,4 +85,6 @@ on page units. Do not boot Channel in `App.boot("auto")`. New media types
 follow spec §10 (predicate + both hosts + `tests/unit/test_host.py` + the spec
 page in the same change). `build()` wraps GET only with the author Document
 (`wrap=`). `attach_motion()` returns instances, not classes.
+`App.mount` / `attach_page_router` pass the same `wrap=` as `build()`.
+`materialize(route_class=)` fails closed. Scaffold does not emit `page()`.
 

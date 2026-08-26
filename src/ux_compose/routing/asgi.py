@@ -1,17 +1,9 @@
 """Pure ASGI adapter — DirectoryRoutes without FastAPI/Starlette.
 
 Degrade path (host="asgi"), not a peer product. Clock A still holds:
-resolve → render → document() → HTML bytes. CSP middleware is FastAPI-only;
-doctor reports that when Document.mount cannot attach.
-
-Mount under any server::
-
-    from ux_compose.routing import DirectoryRoutes, DirectoryASGI
-
-    core = DirectoryRoutes(PACKAGE, hooks=hooks)
-    core.discover()
-    app = DirectoryASGI(core, document=document)
-    # uvicorn app:app
+resolve → render → payload dispatch. HTML goes through apply_html_document.
+CSP middleware is FastAPI-only; doctor reports that when Document.mount
+cannot attach.
 """
 from __future__ import annotations
 

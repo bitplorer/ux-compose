@@ -7,6 +7,9 @@ Authors never see this module. Host choice happens via::
 
 Preferred path: ``ux_compose.routing.host.open/bind``.
 Leftover ``DirectoryRouter`` (ux-dom batteries) is not a product path.
+
+``wrap=`` is the author HTML shell. ``document=`` is mounted (CSP/static).
+Same split as ``build()``. A synthesized Document never wraps GET.
 """
 from __future__ import annotations
 
@@ -29,6 +32,7 @@ def attach_page_router(
     fail_closed: bool = True,
     host: str = "auto",
     document: Any = None,
+    wrap: Any = None,
 ) -> Optional[list]:
     """Attach filesystem page routes to ``asgi_app``. Returns route_table or None.
 
@@ -52,7 +56,7 @@ def attach_page_router(
         )
 
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks
-    from ux_compose.routing.host import KIND_FASTAPI, bind as host_bind, open as host_open
+    from ux_compose.routing.host import bind as host_bind, open as host_open
 
     hooks = RouterHooks(resolve_unit=_resolve_unit)
     core = DirectoryRoutes(
@@ -66,13 +70,12 @@ def attach_page_router(
         return []
 
     asgi, kind = host_open(name="App", host=host, asgi_app=asgi_app)
-    if kind == KIND_FASTAPI and asgi is not None and hasattr(asgi, "include_router"):
-        host_bind(
-            asgi=asgi,
-            kind=kind,
-            core=core,
-            document=document,
-            resolve_unit=_resolve_unit,
-        )
-        return core.route_table()
-    return core.route_table() if core.records else []
+    host_bind(
+        asgi=asgi,
+        kind=kind,
+        core=core,
+        document=document,
+        wrap=wrap,
+        resolve_unit=_resolve_unit,
+    )
+    return core.route_table()

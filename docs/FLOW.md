@@ -54,7 +54,7 @@ Product path::
 
 Allowed: control, runtime, CSP, style. **Not:** HMR process, product App, host strategy.
 
-create-app emits `document.py` (one Document + `page()`) and `settings.py` (`ux_compose.WebAssets`). `build(document=)` attaches that Document. Dual-Document in product files is a doctor fail.
+create-app emits `document.py` (one Document; host wraps GET) and `settings.py` (`ux_compose.WebAssets`). `build(document=)` attaches that Document. Dual-Document in product files is a doctor fail.
 
 ---
 

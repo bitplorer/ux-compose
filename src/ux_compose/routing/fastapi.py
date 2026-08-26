@@ -4,13 +4,13 @@ The only compose module that imports FastAPI. Authors never import this;
 maintainers open it to answer "what happens on GET /hello?".
 
 Page units have no HTTP verbs. This file:
-  resolve_unit → render() → document() (HTML only) → response
+  resolve_unit → render() → payload dispatch → response
 
 Media type is the payload, not Accept:
-  tree / str / bytes → HTMLResponse (and Document wrap)
+  tree / str / bytes → apply_html_document(wrap) → HTMLResponse
   dict / list-of-dicts → returned as-is (FastAPI JSON-encodes)
   async/sync generator → StreamingResponse
-  Response subclass (JSONResponse, StreamingResponse, …) → pass through
+  Response subclass (JSONResponse, StreamingResponse, FileResponse, …) → pass through
 
 JSON author routes stay JSON: this module does **not** set FastAPI's
 default_response_class. Streaming is a return value, not a route_class.
@@ -27,6 +27,7 @@ from ux_compose.routing.core import (
     is_json_payload,
     is_stream_payload,
 )
+from ux_compose.routing.host import ProductBatteriesRejected
 
 __all__ = ["create", "bind", "page_endpoint", "materialize", "mount"]
 
@@ -157,9 +158,26 @@ def _is_response(obj: Any) -> bool:
     if obj is None:
         return False
     name = type(obj).__name__
-    if name in {"Response", "HTMLResponse", "JSONResponse", "StreamingResponse", "PlainTextResponse"}:
+    if name in {
+        "Response",
+        "HTMLResponse",
+        "JSONResponse",
+        "StreamingResponse",
+        "PlainTextResponse",
+        "FileResponse",
+        "RedirectResponse",
+        "UJSONResponse",
+        "ORJSONResponse",
+    }:
         return True
-    return hasattr(obj, "status_code") and hasattr(obj, "body") and not hasattr(obj, "children")
+    if hasattr(obj, "children") or hasattr(obj, "__render__"):
+        return False
+    if not hasattr(obj, "status_code"):
+        return False
+    return any(
+        hasattr(obj, attr)
+        for attr in ("body", "body_iterator", "content", "path", "headers")
+    )
 
 
 def bind(
@@ -203,7 +221,10 @@ def materialize(
     if router is None:
         router = APIRouter()
     if route_class is not None:
-        router.route_class = route_class
+        raise ProductBatteriesRejected(
+            "route_class= is leftover StreamingRoute. Streaming is a "
+            "return value from render(), not a route class. See docs/reference/host.md."
+        )
     if not core.records:
         core.discover()
     hooks = core.hooks or RouterHooks()
@@ -229,6 +250,11 @@ def mount(
     resolve_unit: Optional[Callable] = None,
 ) -> Any:
     """Compat: discover + include_router."""
+    if route_class is not None:
+        raise ProductBatteriesRejected(
+            "route_class= is leftover StreamingRoute. Streaming is a "
+            "return value from render(), not a route class. See docs/reference/host.md."
+        )
     hooks = core.hooks or RouterHooks()
     resolve = resolve_unit or hooks.resolve_unit
     return bind(

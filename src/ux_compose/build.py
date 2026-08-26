@@ -70,7 +70,7 @@ def _attach_document(app: Any, document: Any, *, use_htmx: bool) -> Any:
             except ImportError:
                 pass
         document = Document(head=[], body=[], ensure_csrf_token=False).use(*runtimes)
-        app.use_dom(document)
+        app.use_dom(document, author=False)
         return document
     except ImportError:
         return None

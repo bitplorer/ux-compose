@@ -329,3 +329,76 @@ def test_adapters_shim_still_imports():
 
     assert callable(materialize) and callable(mount)
     assert DirectoryASGI is not None
+
+
+def test_materialize_route_class_fails_closed():
+    pytest.importorskip("fastapi")
+    from ux_compose.routing.core import DirectoryRoutes
+    from ux_compose.routing.fastapi import materialize
+    from ux_compose.routing.host import ProductBatteriesRejected
+
+    core = DirectoryRoutes.__new__(DirectoryRoutes)
+    core.records = []
+    core.hooks = None
+    with pytest.raises(ProductBatteriesRejected):
+        materialize(core, route_class=object)
+
+
+def test_apply_html_document_real_dom_keeps_markup():
+    pytest.importorskip("ux_dom")
+    from ux_dom import Document
+
+    doc = Document(head=[], body=[], ensure_csrf_token=False)
+    out = apply_html_document(doc, "<div id='hello'>hi</div>")
+    html = str(out)
+    assert "hello" in html
+    assert "hi" in html
+
+
+def test_app_mount_wraps_author_not_synth(tmp_path: Path):
+    pytest.importorskip("fastapi")
+    from fastapi import FastAPI
+
+    from ux_compose import App
+
+    pkg = _pkg(
+        tmp_path,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    def render(self):\n"
+                "        return '<div id=\"hello\">hi</div>'\n"
+            )
+        },
+    )
+    api = FastAPI()
+    app = App.boot("T", level=1)
+
+    def document(child=None):
+        return f"<html>AUTHOR{child}</html>"
+
+    app.use_dom(document)
+    app.mount(pkg, asgi_app=api, base="routes")
+    r = asgi_get(api, "/hello")
+    assert r.status_code == 200
+    assert "AUTHOR" in r.text
+    assert "hello" in r.text
+
+
+def test_is_response_file_and_redirect():
+    pytest.importorskip("starlette")
+    from starlette.responses import FileResponse, RedirectResponse, StreamingResponse
+
+    from ux_compose.routing.fastapi import _as_http_response, _is_response
+
+    redir = RedirectResponse("/x", status_code=302)
+    assert _is_response(redir)
+    assert _as_http_response(redir) is redir
+
+    def gen():
+        yield b"a"
+
+    stream = StreamingResponse(gen(), media_type="text/plain")
+    assert _is_response(stream)
+    assert _as_http_response(stream) is stream
+    assert FileResponse.__name__ == "FileResponse"

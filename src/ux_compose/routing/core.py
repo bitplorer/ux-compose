@@ -35,6 +35,7 @@ __all__ = [
     "pick_page_type",
     "module_exports",
     "http_path",
+    "is_json_payload",
 ]
 
 
@@ -130,6 +131,23 @@ def http_path(*segments: str) -> str:
         else:
             out.append(part)
     return ("/" + "/".join(out)) if out else "/"
+
+
+def is_json_payload(obj: Any) -> bool:
+    """True when the return value is a JSON body, not an HTML tree.
+
+    Payload type picks media type (not Accept):
+      dict / list-of-dicts → JSON (FastAPI encodes)
+      str / bytes / tag / Document / Component → HTML
+      Response subclass → pass through
+    """
+    if isinstance(obj, dict):
+        return True
+    if isinstance(obj, (list, tuple)):
+        if not obj:
+            return True
+        return all(isinstance(x, dict) for x in obj)
+    return False
 
 
 def is_renderable_unit(klass: type) -> bool:

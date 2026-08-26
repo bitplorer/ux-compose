@@ -19,7 +19,7 @@ import re
 from typing import Any, Callable, Optional
 from urllib.parse import unquote
 
-from ux_compose.routing.core import DirectoryRoutes, RouteRecord, RouterHooks
+from ux_compose.routing.core import DirectoryRoutes, RouteRecord, RouterHooks, is_json_payload
 
 __all__ = ["DirectoryASGI", "match_record"]
 
@@ -109,6 +109,15 @@ def _body_bytes(result: Any) -> bytes:
         return str(result).encode("utf-8")
 
 
+def _encode(result: Any) -> tuple[bytes, bytes]:
+    """Return (body, content-type). Payload type picks media type."""
+    if is_json_payload(result):
+        import json
+
+        return json.dumps(result).encode("utf-8"), b"application/json"
+    return _body_bytes(result), b"text/html; charset=utf-8"
+
+
 class DirectoryASGI:
     """Pure ASGI application over :class:`DirectoryRoutes`.
 
@@ -155,15 +164,20 @@ class DirectoryASGI:
         rec, params = hit
         try:
             result = _invoke(rec, self.hooks, params)
-            if self.document is not None and callable(self.document):
+            if (
+                self.document is not None
+                and callable(self.document)
+                and not is_json_payload(result)
+            ):
                 try:
                     result = self.document(result)
                 except Exception:
                     pass
-            body = _body_bytes(result)
+            body, content_type = _encode(result)
             status = 200
         except Exception as exc:
             body = ("Error: %s" % exc).encode("utf-8", "replace")
+            content_type = b"text/plain; charset=utf-8"
             status = 500
 
         await send(
@@ -171,7 +185,7 @@ class DirectoryASGI:
                 "type": "http.response.start",
                 "status": status,
                 "headers": [
-                    (b"content-type", b"text/html; charset=utf-8"),
+                    (b"content-type", content_type),
                     (b"content-length", str(len(body)).encode()),
                 ],
             }

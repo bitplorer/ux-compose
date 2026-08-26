@@ -4,17 +4,21 @@ The only compose module that imports FastAPI. Authors never import this;
 maintainers open it to answer "what happens on GET /hello?".
 
 Page units have no HTTP verbs. This file:
-  resolve_unit → render() → document(tree) → html_response
+  resolve_unit → render() → document() (HTML only) → response
+
+Media type is the payload, not Accept:
+  tree / str / bytes → HTMLResponse (and Document wrap)
+  dict / list-of-dicts → returned as-is (FastAPI JSON-encodes)
+  Response subclass (JSONResponse, StreamingResponse, …) → pass through
 
 JSON author routes stay JSON: this module does **not** set FastAPI's
-default_response_class. HTML is a return value of page_endpoint.
-Streaming is a return value (StreamingResponse), not a route_class.
+default_response_class. Streaming is a return value, not a route_class.
 """
 from __future__ import annotations
 
 from typing import Any, Callable, Optional
 
-from ux_compose.routing.core import DirectoryRoutes, RouterHooks
+from ux_compose.routing.core import DirectoryRoutes, RouterHooks, is_json_payload
 
 __all__ = ["create", "bind", "page_endpoint", "materialize", "mount"]
 
@@ -22,7 +26,7 @@ __all__ = ["create", "bind", "page_endpoint", "materialize", "mount"]
 def create(name: str = "App") -> Any:
     """FastAPI process. Fail closed if FastAPI is missing.
 
-    No default_response_class — page GET returns HTMLResponse explicitly so
+    No default_response_class — page GET wraps HTML explicitly so
     author JSON routes (``@app.get("/api/...")``) stay JSON.
     """
     from fastapi import FastAPI
@@ -76,6 +80,19 @@ def _as_html_response(tree: Any) -> Any:
         return StarletteHTML(content=body)
 
 
+def _as_http_response(payload: Any, *, document: Any = None) -> Any:
+    """Payload type picks media type. Same spirit as ux-dom html_response."""
+    if _is_response(payload) or is_json_payload(payload):
+        return payload
+    tree = payload
+    if document is not None and callable(document):
+        try:
+            tree = document(tree)
+        except Exception:
+            pass
+    return _as_html_response(tree)
+
+
 def page_endpoint(
     rec,
     *,
@@ -99,12 +116,7 @@ def page_endpoint(
             if inst is None:
                 return _as_html_response("")
             tree = _call_render(inst, path_params)
-        if document is not None and callable(document) and not _is_response(tree):
-            try:
-                tree = document(tree)
-            except Exception:
-                pass
-        return _as_html_response(tree)
+        return _as_http_response(tree, document=document)
 
     # from __future__ import annotations stringifies types. FastAPI must see
     # the Request class object or it treats `request` as a body field (422).

@@ -6,7 +6,16 @@ from pathlib import Path
 
 import pytest
 
-from ux_compose.routing.core import DirectoryRoutes, http_path
+from ux_compose.routing.core import DirectoryRoutes, http_path, is_json_payload
+
+
+def test_is_json_payload():
+    assert is_json_payload({"ok": True})
+    assert is_json_payload([{"a": 1}])
+    assert is_json_payload([])
+    assert not is_json_payload("<div>hi</div>")
+    assert not is_json_payload(b"<div>")
+    assert not is_json_payload(None)
 
 
 def test_http_path_law():
@@ -118,6 +127,30 @@ def test_build_json_route_untouched(tmp_path: Path):
     r = TestClient(asgi).get("/api/health")
     assert r.status_code == 200
     assert r.json() == {"ok": True}
+
+
+def test_page_render_dict_is_json(tmp_path: Path):
+    pytest.importorskip("fastapi")
+    pytest.importorskip("httpx")
+
+    pkg = tmp_path / "demo"
+    routes = pkg / "routes"
+    routes.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (routes / "health.py").write_text(
+        "class Health:\n"
+        "    def render(self):\n"
+        "        return {'ok': True, 'n': 1}\n",
+        encoding="utf-8",
+    )
+    from ux_compose.build import build
+    from fastapi.testclient import TestClient
+
+    _app, asgi, _bundle = build(pkg, name="Demo", host="fastapi", live="null", level=1)
+    r = TestClient(asgi).get("/health")
+    assert r.status_code == 200
+    assert "json" in r.headers.get("content-type", "")
+    assert r.json() == {"ok": True, "n": 1}
 
 
 def test_build_asgi_degrade(tmp_path: Path):

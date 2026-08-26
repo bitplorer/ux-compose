@@ -87,7 +87,9 @@ host.open  →  App L1  →  Document  →  Channel.attach(asgi)  →  host.bind
 
 `routing/fastapi.py` owns GET `/hello`:
 
-    resolve_unit → render() → document(tree) → HTMLResponse
+    resolve_unit → render() → [JSON as-is | document(tree) → HTMLResponse]
+
+Media type is the payload, not Accept: `dict` → JSON, tree/str → HTML.
 
 Locked:
 

@@ -30,8 +30,8 @@ class Carousel(Component):
     id = "carousel"
 
     class_card = (
-        "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
-        "border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
+        "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 overflow-x-hidden "
+        "rounded-3xl border border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
     )
     class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
     class_title = "m-0 font-serif text-3xl font-semibold tracking-tight"
@@ -40,8 +40,8 @@ class Carousel(Component):
         "flex min-h-48 flex-col justify-end gap-3 rounded-2xl bg-stone-50 px-6 py-6"
     )
     class_index = "font-serif text-5xl font-medium tracking-tight text-stone-200"
-    class_bar = "flex items-center justify-between gap-3"
-    class_dots = "flex gap-1.5"
+    class_bar = "flex min-w-0 flex-wrap items-center justify-between gap-2"
+    class_dots = "flex min-w-0 flex-wrap justify-center gap-1.5"
     class_dot = (
         "h-2.5 w-2.5 cursor-pointer rounded-full border-0 bg-stone-200 p-0"
     )
@@ -49,8 +49,8 @@ class Carousel(Component):
         "h-2.5 w-6 cursor-pointer rounded-full border-0 bg-stone-800 p-0"
     )
     class_btn_ghost = (
-        "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full "
-        "border border-stone-200 bg-white px-5 text-sm font-medium text-stone-900 "
+        "inline-flex min-h-11 shrink-0 cursor-pointer items-center justify-center rounded-full "
+        "border border-stone-200 bg-white px-4 text-sm font-medium text-stone-900 "
         "hover:bg-stone-100"
     )
 

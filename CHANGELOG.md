@@ -52,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] — 2026-08-26
 
 This is **0.1**. Clock A is the product host for this version, not a rewrite
-ands not a 0.2 line.
+and not a 0.2 line.
 
 ### Added
 

@@ -40,7 +40,7 @@ def _plan(name: str, target: str, *, ms: int = 100):
 class Typeahead(Component):
     """Type. Hits morph. Pick is a name.
 
-    The input carries ``data-channel-action`` + ``data-channel-on="input delay:200"``.
+    The input carries ``data-channel-action`` + ``data-channel-on=\"input delay:200\"``.
     Query is RefState so the typed string survives the morph.
     """
 
@@ -96,7 +96,14 @@ class Typeahead(Component):
         opts = tuple(self.OPTIONS)
         if not q:
             return opts[:6]
-        return tuple(x for x in opts if q in x.lower())[:8]
+        hits = []
+        for x in opts:
+            xl = x.lower()
+            if xl.startswith(q) or any(w.startswith(q) for w in xl.split()):
+                hits.append(x)
+            if len(hits) >= 8:
+                break
+        return tuple(hits)
 
     def render(self):
         q = str(self.query or "")

@@ -1,8 +1,8 @@
 """uxcompose CLI — sole product lifecycle DX.
 
 Hard ownership (SoC + locality):
-  create-app · build · serve · deploy · doctor  →  here only
-  Pure Document tooling stays on uxdom (lint / profile / add / doctor).
+  create-app · build · serve · deploy · doctor · add  →  here only
+  Pure Document tooling stays on uxdom (lint / profile / add ui|component).
   Tailwind *compiler resolution* lives here (``ux_compose.tailwind``).
   ux-dom owns className, the Document ``<link>``, and package static.
   App asset folders live here (``ux_compose.assets.WebAssets``).
@@ -31,6 +31,8 @@ def main(argv: list[str] | None = None) -> int:
         return _deploy(rest)
     if cmd == "doctor":
         return _doctor(rest)
+    if cmd == "add":
+        return _add(rest)
     print(f"unknown command: {cmd}", file=sys.stderr)
     _help()
     return 2
@@ -46,11 +48,75 @@ def _help() -> None:
     print("                 [--tunnel none|ngrok|cloudflare] [--tunnel-token TOKEN]")
     print("  uxcompose deploy [--provider docker|fly|render|railway|vps|checklist] [--force] [--name NAME]")
     print("  uxcompose doctor [paths...] [--no-fail]")
+    print("  uxcompose add [name] [--force] [--page]   # ownable kit copy (shadcn-style)")
+    print("  uxcompose add --list")
     print("")
     print("Product path: create-app → build → serve → deploy")
+    print("Kit copy: uxcompose add login  (drops components/login.py — you own it)")
     print("HMR / tunnel are delivery features of serve (not Document.use).")
     print("CSS minify: ux_compose.tailwind (finder + ensure). App folders: ux_compose.assets.")
-    print("Render-only tooling: uxdom doctor|lint|profile|add")
+    print("Markup kit: uxdom add ui Button. Product Components: uxcompose add login")
+
+
+def _add(argv: list[str]) -> int:
+    import argparse
+    from pathlib import Path
+
+    from ux_compose.kit.catalog import list_components
+    from ux_compose.kit.copy import KitCopyError, copy_component
+
+    p = argparse.ArgumentParser(prog="uxcompose add")
+    p.add_argument(
+        "name",
+        nargs="?",
+        default=None,
+        help="kit component to copy (omit with --list)",
+    )
+    p.add_argument("--list", action="store_true", help="list kit components")
+    p.add_argument("--force", action="store_true", help="overwrite existing copy")
+    p.add_argument(
+        "--page",
+        action="store_true",
+        help="also write routes/{stem}.py so GET /{stem} hosts the card",
+    )
+    p.add_argument(
+        "--root",
+        default=None,
+        help="app root (default: walk up from cwd for app.py + routes/)",
+    )
+    args = p.parse_args(argv)
+
+    if args.list or not args.name:
+        print("uxcompose kit (ownable copies — edit the dropped file)")
+        for it in list_components():
+            extras = []
+            if it.get("css"):
+                extras.append("css")
+            if it.get("page"):
+                extras.append("page")
+            extra = f"  [{', '.join(extras)}]" if extras else ""
+            print(f"  · {it['stem']:<12} {it['description']}{extra}")
+        if not args.name:
+            print("")
+            print("  uxcompose add login")
+            print("  uxcompose add login --page --force")
+        return 0
+
+    try:
+        root = Path(args.root).resolve() if args.root else None
+        written = copy_component(
+            args.name, root=root, force=args.force, as_page=args.page
+        )
+    except KitCopyError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    for label, path in written.items():
+        if path is None:
+            continue
+        print(f"wrote {label}: {path}")
+    print("edit freely — this copy is yours. regenerate: uxcompose add "
+          f"{args.name} --force")
+    return 0
 
 
 def _create_app(argv: list[str]) -> int:

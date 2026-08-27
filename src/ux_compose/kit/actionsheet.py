@@ -1,0 +1,183 @@
+"""Drop-in action sheet — bottom panel, swipe-down to dismiss.
+
+Host seam: override ``ACTIONS`` and ``on_pick(key)``. Destructive keys spend a Cap.
+Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+"""
+
+from __future__ import annotations
+
+from ux_compose import (
+    Component,
+    MorphState,
+    RefState,
+    action,
+    bind,
+    notify,
+    update_with,
+    button,
+    div,
+    h2,
+    p,
+    span,
+)
+
+
+def _plan(name: str, target: str, *, y: float = 28, ms: int = 180):
+    try:
+        from ux_compose import scene, slide
+
+        if scene is None or slide is None:
+            return None
+        return scene(name).enter(target, slide.enter(y=y, ms=ms))
+    except Exception:
+        return None
+
+
+class ActionSheet(Component):
+    """A sheet from the bottom. Presence is MorphState. Pick is a named key.
+
+    Host ``data-channel-on="swipe.vertical"``. Close control accepts
+    ``click swipe.down`` so the synthesizer resolves without extra attrs.
+    """
+
+    id = "actionsheet"
+
+    class_card = (
+        "relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
+        "border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
+    )
+    class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
+    class_title = "m-0 font-serif text-2xl font-semibold tracking-tight"
+    class_lede = "m-0 text-sm leading-relaxed text-stone-500"
+    class_btn_primary = (
+        "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full "
+        "border-0 bg-stone-800 px-5 text-sm font-medium text-stone-50 hover:bg-stone-700"
+    )
+    class_btn_ghost = (
+        "inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-2xl "
+        "border border-stone-200 bg-white px-5 py-3 text-sm font-medium text-stone-900 "
+        "hover:bg-stone-100"
+    )
+    class_btn_danger = (
+        "inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-2xl "
+        "border-0 bg-rose-700 px-5 py-3 text-sm font-medium text-white hover:bg-rose-800"
+    )
+    class_scrim = "fixed inset-0 z-40 cursor-pointer border-0 bg-stone-900/40"
+    class_panel = (
+        "fixed inset-x-0 bottom-0 z-50 flex max-h-[min(28rem,80dvh)] flex-col gap-2 "
+        "rounded-t-3xl border border-stone-200 bg-white px-5 pb-7 pt-4 shadow-xl"
+    )
+    class_handle = "mx-auto mb-2 h-1.5 w-10 rounded-full bg-stone-200"
+    class_choice = "m-0 text-sm text-stone-500"
+    class_sr = "sr-only"
+
+    # (key, label, destructive)
+    ACTIONS = (
+        ("share", "Share this piece", False),
+        ("pin", "Pin to the desk", False),
+        ("archive", "Archive (Cap)", True),
+    )
+
+    open = MorphState(False)
+    picked = RefState("")
+    stamp = MorphState("idle")
+
+    def on_pick(self, key: str) -> str:
+        return key.replace("-", " ")
+
+    def _tick(self):
+        self.stamp = "b" if self.stamp == "a" else "a"
+
+    def render(self):
+        is_open = bool(self.open)
+        picked = str(self.picked or "")
+        overlay = []
+        if is_open:
+            rows = [
+                button(
+                    label,
+                    type="button",
+                    className=self.class_btn_danger if dest else self.class_btn_ghost,
+                    **bind(self.pick if not dest else self.archive, key=key),
+                )
+                for key, label, dest in self.ACTIONS
+            ]
+            overlay = [
+                button(
+                    span("Close", className=self.class_sr),
+                    type="button",
+                    className=self.class_scrim,
+                    aria_label="Close",
+                    **bind(self.close),
+                ),
+                div(
+                    div(className=self.class_handle),
+                    span("Actions", className=self.class_kicker),
+                    h2("What next", className=self.class_title),
+                    *rows,
+                    button(
+                        "Cancel",
+                        type="button",
+                        className=self.class_btn_ghost + " mt-1 text-stone-500",
+                        data_channel_on="click swipe.down",
+                        **bind(self.close),
+                    ),
+                    className=self.class_panel,
+                    role="dialog",
+                    aria_modal="true",
+                    style="touch-action:pan-x;user-select:none;",
+                ),
+            ]
+        return div(
+            span("Sheet · swipe down", className=self.class_kicker),
+            h2("Action sheet", className=self.class_title),
+            p(
+                "Opens from the bottom. Swipe down or Cancel to dismiss.",
+                className=self.class_lede,
+            ),
+            p(f"Last pick · {picked}" if picked else "Nothing picked yet.", className=self.class_choice),
+            button(
+                "Open actions",
+                type="button",
+                className=self.class_btn_primary,
+                **bind(self.open_sheet),
+            ),
+            *overlay,
+            id=self.id,
+            className=self.class_card,
+            data_open="1" if is_open else "0",
+            **({"data_channel_on": "swipe.vertical threshold:48"} if is_open else {}),
+        )
+
+    @action(caps=())
+    def open_sheet(self):
+        self.open = True
+        self._tick()
+        return update_with(self, _plan("sheet-open", f"#{self.id}", y=32, ms=180))
+
+    @action(caps=())
+    def close(self):
+        self.open = False
+        self._tick()
+        return update_with(self, _plan("sheet-close", f"#{self.id}", y=16, ms=140))
+
+    @action(caps=())
+    def pick(self, key: str = ""):
+        keys = {row[0] for row in self.ACTIONS if not row[2]}
+        if key not in keys:
+            return update_with(self)
+        self.picked = key
+        self.open = False
+        self._tick()
+        return update_with(
+            self,
+            _plan("sheet-pick", f"#{self.id}", y=12, ms=120),
+            extra_ops=[notify(self.on_pick(key))],
+        )
+
+    @action(caps=("orders.archive",))
+    def archive(self, key: str = ""):
+        self.picked = key or "archive"
+        self.open = False
+        self._tick()
+        return update_with(self, extra_ops=[notify("archived")])

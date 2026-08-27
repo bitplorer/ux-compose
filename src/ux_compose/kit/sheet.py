@@ -2,6 +2,10 @@
 
 Host seam: override ``title`` / ``body`` defaults, or pass them to ``open_sheet``.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+Live: the root ``id`` is the region. Channel picks it up.
+When open, Host ``swipe.horizontal``. Close accepts ``click swipe.right``
+— same synthesizer as ActionSheet, axis flipped for a right drawer.
 """
 
 from __future__ import annotations
@@ -22,12 +26,16 @@ from ux_compose import (
 
 
 class Sheet(Component):
-    """Drawer from the right. Presence is MorphState. Resting card stays in flow."""
+    """Drawer from the right. Presence is MorphState. Resting card stays in flow.
+
+    Swipe on the open panel is a synthesizer: finger or pointer, same
+    Intent path as Close. Vertical scroll inside the panel stays native.
+    """
 
     id = "sheet"
 
     class_card = (
-        "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
+        "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 overflow-x-hidden rounded-3xl border "
         "border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
     )
     class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
@@ -45,7 +53,7 @@ class Sheet(Component):
     class_scrim = "fixed inset-0 z-40 cursor-pointer border-0 bg-stone-900/40"
     class_panel = (
         "fixed top-0 right-0 z-50 flex h-dvh w-[min(22rem,calc(100vw-1.25rem))] "
-        "flex-col gap-3 border-l border-stone-200 bg-white px-6 py-7 shadow-xl"
+        "touch-pan-y select-none flex-col gap-3 border-l border-stone-200 bg-white px-6 py-7 shadow-xl"
     )
     class_head = "flex items-start justify-between gap-4"
     class_sr = "sr-only"
@@ -74,6 +82,7 @@ class Sheet(Component):
                             "Close",
                             type="button",
                             className=self.class_btn_ghost,
+                            data_channel_on="click swipe.right",
                             **bind(self.close),
                         ),
                         className=self.class_head,
@@ -84,6 +93,7 @@ class Sheet(Component):
                         "Done",
                         type="button",
                         className=self.class_btn_primary + " mt-auto",
+                        data_channel_on="click swipe.right",
                         **bind(self.close),
                     ),
                     className=self.class_panel,
@@ -94,7 +104,7 @@ class Sheet(Component):
         return div(
             span("Edge", className=self.class_kicker),
             h2("Filters", className=self.class_title),
-            p("A sheet is a dialog that arrives from the side.", className=self.class_lede),
+            p("A sheet is a dialog that arrives from the side. Swipe right to dismiss.", className=self.class_lede),
             button(
                 "Open filters",
                 type="button",
@@ -105,6 +115,7 @@ class Sheet(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
+            **({"data_channel_on": "swipe.horizontal threshold:48"} if is_open else {}),
         )
 
     @action(caps=())

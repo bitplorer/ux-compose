@@ -57,15 +57,15 @@ class Calendar(Component):
     id = "calendar"
 
     class_card = (
-        "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
-        "border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
+        "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 overflow-x-hidden "
+        "rounded-3xl border border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
     )
     class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
-    class_title = "m-0 font-serif text-2xl font-semibold tracking-tight"
+    class_title = "m-0 min-w-0 flex-1 text-center font-serif text-2xl font-semibold tracking-tight"
     class_lede = "m-0 text-sm leading-relaxed text-stone-500"
-    class_head = "flex items-center justify-between gap-3"
+    class_head = "flex min-w-0 flex-wrap items-center justify-between gap-2"
     class_btn_ghost = (
-        "inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center "
+        "inline-flex min-h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center "
         "rounded-full border border-stone-200 bg-white px-4 text-sm font-medium "
         "text-stone-900 hover:bg-stone-100"
     )

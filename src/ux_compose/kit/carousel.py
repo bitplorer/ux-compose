@@ -2,6 +2,11 @@
 
 Host seam: override ``SLIDES``. Prev / next compute the neighbor key.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+Live: the root ``id`` is the region. Channel picks it up.
+Host ``swipe.horizontal``. Prev accepts ``click swipe.right``,
+Next accepts ``click swipe.left`` — same synthesizer as PullRefresh,
+no extra JS and no second attribute family.
 """
 
 from __future__ import annotations
@@ -25,6 +30,10 @@ class Carousel(Component):
     """One named slide at a time.
 
     ``SLIDES`` is ``(key, kicker, title, body)``. Override on the copy.
+
+    Swipe on the stage is a synthesizer: finger or pointer, same Intent
+    path as Prev / Next. Dots are named jumps. The pip never changes
+    the slot width, so the cursor does not jump under a click.
     """
 
     id = "carousel"
@@ -37,17 +46,18 @@ class Carousel(Component):
     class_title = "m-0 font-serif text-3xl font-semibold tracking-tight"
     class_lede = "m-0 max-w-sm text-sm leading-relaxed text-stone-500"
     class_stage = (
-        "flex min-h-48 flex-col justify-end gap-3 rounded-2xl bg-stone-50 px-6 py-6"
+        "flex min-h-48 touch-pan-y select-none flex-col justify-end gap-3 "
+        "rounded-2xl bg-stone-50 px-6 py-6"
     )
     class_index = "font-serif text-5xl font-medium tracking-tight text-stone-200"
     class_bar = "flex min-w-0 flex-wrap items-center justify-between gap-2"
-    class_dots = "flex min-w-0 flex-wrap justify-center gap-1.5"
+    class_dots = "flex min-w-0 flex-wrap items-center justify-center"
     class_dot = (
-        "h-2.5 w-2.5 cursor-pointer rounded-full border-0 bg-stone-200 p-0"
+        "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center "
+        "rounded-full border-0 bg-transparent p-0"
     )
-    class_dot_on = (
-        "h-2.5 w-6 cursor-pointer rounded-full border-0 bg-stone-800 p-0"
-    )
+    class_pip = "pointer-events-none block h-2.5 w-2.5 rounded-full bg-stone-200"
+    class_pip_on = "pointer-events-none block h-2.5 w-6 rounded-full bg-stone-800"
     class_btn_ghost = (
         "inline-flex min-h-11 shrink-0 cursor-pointer items-center justify-center rounded-full "
         "border border-stone-200 bg-white px-4 text-sm font-medium text-stone-900 "
@@ -81,8 +91,11 @@ class Carousel(Component):
         dots = [
             button(
                 span(lab, className="sr-only"),
+                span("", className=self.class_pip_on if k == cur else self.class_pip),
                 type="button",
-                className=self.class_dot_on if k == cur else self.class_dot,
+                className=self.class_dot,
+                aria_label=lab,
+                aria_current="true" if k == cur else "false",
                 **bind(self.goto, key=k),
             )
             for k, lab, _t, _b in rows
@@ -96,15 +109,28 @@ class Carousel(Component):
                 className=self.class_stage,
             ),
             div(
-                button("Prev", type="button", className=self.class_btn_ghost, **bind(self.prev)),
-                div(*dots, className=self.class_dots),
-                button("Next", type="button", className=self.class_btn_ghost, **bind(self.next)),
+                button(
+                    "Prev",
+                    type="button",
+                    className=self.class_btn_ghost,
+                    data_channel_on="click swipe.right",
+                    **bind(self.prev),
+                ),
+                div(*dots, className=self.class_dots, role="tablist"),
+                button(
+                    "Next",
+                    type="button",
+                    className=self.class_btn_ghost,
+                    data_channel_on="click swipe.left",
+                    **bind(self.next),
+                ),
                 className=self.class_bar,
             ),
             id=self.id,
             className=self.class_card,
             data_slide=cur,
             data_of=str(n),
+            data_channel_on="swipe.horizontal threshold:48",
         )
 
     @action(caps=())

@@ -30,7 +30,7 @@ class Sidebar(Component):
     id = "sidebar"
 
     class_card = (
-        "relative mx-auto flex w-full max-w-[44rem] overflow-hidden rounded-3xl "
+        "[grid-area:card] self-start relative mx-auto flex w-full max-w-[44rem] overflow-hidden rounded-3xl "
         "border border-stone-200 bg-white text-stone-900 shadow-sm"
     )
     class_rail = (

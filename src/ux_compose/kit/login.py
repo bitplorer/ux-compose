@@ -67,7 +67,7 @@ class Login(Component):
     id = "login"
 
     class_card = (
-        "mx-auto flex w-full max-w-md flex-col rounded-3xl border "
+        "[grid-area:card] self-center mx-auto flex w-full max-w-md flex-col rounded-3xl border "
         "border-stone-200 bg-white p-8 text-stone-900 shadow-sm"
     )
     class_head = "mb-8"

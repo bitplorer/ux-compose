@@ -70,7 +70,7 @@ CATALOG: dict[str, KitEntry] = {
         "module": "ux_compose.kit.sheet",
         "stem": "sheet",
         "exports": ["Sheet"],
-        "description": "Edge panel. Host swipe.horizontal. Close accepts swipe.right.",
+        "description": "Edge panel. Close / Done accept swipe.right. No root swipe.",
         "css": False,
         "page": True,
     },

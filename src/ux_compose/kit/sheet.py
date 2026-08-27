@@ -4,8 +4,10 @@ Host seam: override ``title`` / ``body`` defaults, or pass them to ``open_sheet`
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 Live: the root ``id`` is the region. Channel picks it up.
-When open, Host ``swipe.horizontal``. Close accepts ``click swipe.right``
-— same synthesizer as ActionSheet, axis flipped for a right drawer.
+Swipe lives on Close / Done, not the root — a host-level
+``swipe.horizontal`` on the card swallows clicks the same way
+ActionSheet's root ``swipe.vertical`` did. Close accepts
+``click swipe.right``. Same synthesizer, no extra JS.
 """
 
 from __future__ import annotations
@@ -25,18 +27,39 @@ from ux_compose import (
 )
 
 
+def _open_plan(cid: str = "sheet"):
+    """Enter the overlay after morph inserts it. Selectors only — no html=.
+
+    Presence is a Motion HOF. Same-node chrome (Carousel thumb) is CSS.
+    Close is morph-only: the panel is gone after apply, so an exit recipe
+    in the same Result has nothing to play.
+    """
+    try:
+        from ux_compose import scene, fade, slide
+
+        if scene is None or fade is None or slide is None:
+            return None
+        return (
+            scene("sheet-open")
+            .enter(f"#{cid}-scrim", fade.enter(ms=120))
+            .enter(f"#{cid}-panel", slide.enter(x=28, ms=180))
+        )
+    except Exception:
+        return None
+
+
 class Sheet(Component):
     """Drawer from the right. Presence is MorphState. Resting card stays in flow.
 
-    Swipe on the open panel is a synthesizer: finger or pointer, same
-    Intent path as Close. Vertical scroll inside the panel stays native.
+    The card is not a containing block (no ``relative``, no overflow clip)
+    so ``fixed`` overlay is not trapped. Panel and scrim keep stable ids.
     """
 
     id = "sheet"
 
     class_card = (
-        "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 overflow-x-hidden rounded-3xl border "
-        "border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
+        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 "
+        "rounded-3xl border border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
     )
     class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
     class_title = "m-0 font-serif text-2xl font-semibold tracking-tight"
@@ -71,6 +94,7 @@ class Sheet(Component):
                 button(
                     span("Close", className=self.class_sr),
                     type="button",
+                    id=f"{self.id}-scrim",
                     className=self.class_scrim,
                     aria_label="Close",
                     **bind(self.close),
@@ -81,30 +105,41 @@ class Sheet(Component):
                         button(
                             "Close",
                             type="button",
+                            id=f"{self.id}-dismiss",
                             className=self.class_btn_ghost,
                             data_channel_on="click swipe.right",
                             **bind(self.close),
                         ),
                         className=self.class_head,
                     ),
-                    h2(str(self.title or "Filters"), className=self.class_title),
+                    h2(
+                        str(self.title or "Filters"),
+                        className=self.class_title,
+                        id=f"{self.id}-title",
+                    ),
                     p(str(self.body or ""), className=self.class_lede + " flex-1"),
                     button(
                         "Done",
                         type="button",
+                        id=f"{self.id}-done",
                         className=self.class_btn_primary + " mt-auto",
                         data_channel_on="click swipe.right",
                         **bind(self.close),
                     ),
+                    id=f"{self.id}-panel",
                     className=self.class_panel,
                     role="dialog",
                     aria_modal="true",
+                    aria_labelledby=f"{self.id}-title",
                 ),
             ]
         return div(
             span("Edge", className=self.class_kicker),
             h2("Filters", className=self.class_title),
-            p("A sheet is a dialog that arrives from the side. Swipe right to dismiss.", className=self.class_lede),
+            p(
+                "A sheet is a dialog that arrives from the side. Swipe right on Close to dismiss.",
+                className=self.class_lede,
+            ),
             button(
                 "Open filters",
                 type="button",
@@ -115,7 +150,7 @@ class Sheet(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
-            **({"data_channel_on": "swipe.horizontal threshold:48"} if is_open else {}),
+            data_channel_id=self.id,
         )
 
     @action(caps=())
@@ -126,7 +161,7 @@ class Sheet(Component):
             self.title = title
         if body:
             self.body = body
-        return update_with(self)
+        return update_with(self, _open_plan(self.id))
 
     @action(caps=())
     def close(self):

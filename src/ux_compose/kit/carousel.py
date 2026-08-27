@@ -67,7 +67,7 @@ class Carousel(Component):
     id = "carousel"
 
     class_card = (
-        "[grid-area:card] relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 "
+        "[grid-area:card] relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 self-start "
         "overflow-hidden rounded-3xl border border-stone-200 bg-white p-5 text-stone-900 shadow-sm"
     )
     class_kicker = "relative z-[1] text-xs font-medium uppercase tracking-widest text-stone-400"
@@ -75,7 +75,7 @@ class Carousel(Component):
     class_lede = "relative z-[1] m-0 max-w-sm text-sm leading-relaxed text-stone-500"
     class_stage = (
         "relative flex min-h-56 touch-pan-y select-none flex-col justify-end gap-3 "
-        "overflow-hidden rounded-2xl bg-stone-50 px-16 py-8"
+        "rounded-2xl bg-stone-50 px-16 py-8"
     )
     class_index = (
         "pointer-events-none absolute right-5 top-4 z-0 font-serif text-6xl font-medium "
@@ -143,7 +143,7 @@ class Carousel(Component):
                 type="button",
                 className=self.class_dot,
                 aria_label=lab,
-                aria_current="true" if k == cur else "false",
+                **({"aria_current": "true"} if k == cur else {}),
                 **bind(self.goto, key=k),
             )
             for k, lab, _t, _b in rows
@@ -159,7 +159,7 @@ class Carousel(Component):
                 className=self.class_stage,
                 aria_live="polite",
             ),
-            div(*dots, className=self.class_dots, role="tablist", aria_label="Slides"),
+            div(*dots, className=self.class_dots, role="group", aria_label="Slides"),
             id=self.id,
             className=self.class_card,
             role="region",

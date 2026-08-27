@@ -57,7 +57,7 @@ class Calendar(Component):
     id = "calendar"
 
     class_card = (
-        "relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
+        "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
         "border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
     )
     class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"

@@ -57,6 +57,7 @@ class Dialog(Component):
     The resting card stays in flow; the overlay is presence on top of it.
     The card is not a containing block (no ``relative``, no overflow clip)
     so ``fixed`` overlay is not trapped. Panel and scrim keep stable ids.
+    Centering is a fixed flex chassis so rise can own transform.
     """
 
     id = "dialog"
@@ -78,10 +79,12 @@ class Dialog(Component):
         "border-0 bg-rose-800 px-5 text-sm font-medium text-rose-50 hover:bg-rose-700"
     )
     class_scrim = "fixed inset-0 z-40 cursor-pointer border-0 bg-stone-900/40"
+    class_stage = (
+        "pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4"
+    )
     class_panel = (
-        "fixed left-1/2 top-[46%] z-50 flex w-[min(28rem,calc(100vw-2rem))] "
-        "-translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-3xl "
-        "bg-white px-7 py-6 shadow-xl"
+        "pointer-events-auto flex w-[min(28rem,calc(100vw-2rem))] "
+        "flex-col gap-3 rounded-3xl bg-white px-7 py-6 shadow-xl"
     )
     class_actions = "mt-3 flex justify-end gap-2"
     class_sr = "sr-only"
@@ -122,38 +125,41 @@ class Dialog(Component):
                     **bind(self.cancel),
                 ),
                 div(
-                    h2(
-                        str(self.title or "Confirm"),
-                        className=self.class_title,
-                        id=f"{self.id}-title",
-                    ),
-                    p(
-                        str(self.body or f"Target {who}. This cannot be undone."),
-                        className=self.class_lede,
-                    ),
                     div(
-                        button(
-                            "Keep it",
-                            type="button",
-                            id=f"{self.id}-dismiss",
-                            className=self.class_btn_ghost,
-                            data_channel_on="click swipe.down",
-                            **bind(self.cancel),
+                        h2(
+                            str(self.title or "Confirm"),
+                            className=self.class_title,
+                            id=f"{self.id}-title",
                         ),
-                        button(
-                            "Delete",
-                            type="button",
-                            id=f"{self.id}-confirm",
-                            className=self.class_btn_danger,
-                            **bind(self.confirm),
+                        p(
+                            str(self.body or f"Target {who}. This cannot be undone."),
+                            className=self.class_lede,
                         ),
-                        className=self.class_actions,
+                        div(
+                            button(
+                                "Keep it",
+                                type="button",
+                                id=f"{self.id}-dismiss",
+                                className=self.class_btn_ghost,
+                                data_channel_on="click swipe.down",
+                                **bind(self.cancel),
+                            ),
+                            button(
+                                "Delete",
+                                type="button",
+                                id=f"{self.id}-confirm",
+                                className=self.class_btn_danger,
+                                **bind(self.confirm),
+                            ),
+                            className=self.class_actions,
+                        ),
+                        id=f"{self.id}-panel",
+                        className=self.class_panel,
+                        role="dialog",
+                        aria_modal="true",
+                        aria_labelledby=f"{self.id}-title",
                     ),
-                    id=f"{self.id}-panel",
-                    className=self.class_panel,
-                    role="dialog",
-                    aria_modal="true",
-                    aria_labelledby=f"{self.id}-title",
+                    className=self.class_stage,
                 ),
             ])
         return div(

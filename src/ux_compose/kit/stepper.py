@@ -30,13 +30,13 @@ class Stepper(Component):
     id = "stepper"
 
     class_card = (
-        "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-5 rounded-3xl border "
-        "border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
+        "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-5 overflow-x-hidden "
+        "rounded-3xl border border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
     )
     class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
     class_title = "m-0 font-serif text-2xl font-semibold tracking-tight"
     class_lede = "m-0 text-sm leading-relaxed text-stone-500"
-    class_row = "flex items-center gap-0"
+    class_row = "flex min-w-0 flex-wrap items-center justify-center gap-0"
     class_dot = (
         "flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center "
         "rounded-full border border-stone-200 bg-white text-xs font-semibold "
@@ -52,13 +52,13 @@ class Stepper(Component):
     )
     class_line = "h-px min-w-4 flex-1 bg-stone-200"
     class_panel = "flex flex-col gap-2 rounded-2xl bg-stone-50 px-5 py-5"
-    class_actions = "flex items-center justify-between gap-3"
+    class_actions = "flex min-w-0 flex-wrap items-center justify-between gap-2"
     class_btn_primary = (
-        "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full "
+        "inline-flex min-h-11 shrink-0 cursor-pointer items-center justify-center rounded-full "
         "border-0 bg-stone-800 px-5 text-sm font-medium text-stone-50 hover:bg-stone-700"
     )
     class_btn_ghost = (
-        "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full "
+        "inline-flex min-h-11 shrink-0 cursor-pointer items-center justify-center rounded-full "
         "border border-stone-200 bg-white px-5 text-sm font-medium text-stone-900 "
         "hover:bg-stone-100"
     )

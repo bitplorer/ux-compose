@@ -147,10 +147,10 @@ class Typeahead(Component):
         )
 
     def _take_q(self, q: str = "", **kwargs):
-        if q != "":
-            self.query = str(q)
-        elif kwargs.get("q") is not None:
+        if "q" in kwargs and kwargs["q"] is not None:
             self.query = str(kwargs["q"])
+        else:
+            self.query = str(q)
 
     @action(caps=())
     def query_hits(self, q: str = "", **kwargs):

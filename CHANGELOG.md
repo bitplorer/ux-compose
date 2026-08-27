@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- ActionSheet: swipe lives on the handle, not the root. A host-level
+  `swipe.vertical` captured the pointer and swallowed row clicks (Share /
+  Cancel did nothing). Handle is a 44px hit that accepts
+  `click swipe.down`. Root stamps `data-channel-id`. Card is not `relative`
+  so a host that contains `fixed` overlays does not clip the panel.
 - Carousel chrome: Prev / Next overlay the stage (44px chevrons, left / right),
   dots are the only bottom rail, index is a watermark. Root stamps
   `data-channel-id` so the slot is `#id` and `[data-channel-id]` together.

@@ -9,7 +9,8 @@ Next accepts ``click swipe.left`` — same synthesizer as PullRefresh,
 no extra JS and no second attribute family.
 
 Chrome: Prev / Next sit on the stage (left / right), not in a wrapping
-rail. Dots are the only bottom row. The index is a watermark.
+rail. Dots stay equal slots. One thumb translates across them — the
+active pip coalesces into the next, it does not jump.
 """
 
 from __future__ import annotations
@@ -60,8 +61,9 @@ class Carousel(Component):
     ``SLIDES`` is ``(key, kicker, title, body)``. Override on the copy.
 
     Swipe on the stage is a synthesizer: finger or pointer, same Intent
-    path as Prev / Next. Dots are named jumps. The pip never changes
-    the slot width, so the cursor does not jump under a click.
+    path as Prev / Next. Dots are named jumps. Each pip keeps a fixed
+    slot. The thumb is one node (``{id}-thumb``) whose transform morphs,
+    so the pill slides instead of the active class jumping.
     """
 
     id = "carousel"
@@ -90,14 +92,18 @@ class Carousel(Component):
     )
     class_nav_prev = "left-3"
     class_nav_next = "right-3"
-    class_dots = "flex flex-nowrap items-center justify-center"
+    class_dots_row = "flex justify-center"
+    class_dots = "relative inline-flex flex-nowrap items-center"
+    class_thumb = (
+        "pointer-events-none absolute left-0 top-1/2 z-[1] h-2 w-6 -mt-1 rounded-full "
+        "bg-stone-800 transition-transform duration-300 ease-out motion-reduce:transition-none"
+    )
     class_dot = (
-        "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center "
+        "relative z-0 inline-flex h-11 w-6 shrink-0 cursor-pointer items-center justify-center "
         "rounded-full border-0 bg-transparent p-0 "
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15"
     )
     class_pip = "pointer-events-none block h-2 w-2 rounded-full bg-stone-300"
-    class_pip_on = "pointer-events-none block h-2 w-6 rounded-full bg-stone-800"
     class_sr = "sr-only"
 
     SLIDES = (
@@ -142,7 +148,7 @@ class Carousel(Component):
         dots = [
             button(
                 span(ttl, className=self.class_sr),
-                span("", className=self.class_pip_on if k == cur else self.class_pip),
+                span("", className=self.class_pip),
                 type="button",
                 id=f"{self.id}-dot-{k}",
                 className=self.class_dot,
@@ -170,7 +176,23 @@ class Carousel(Component):
                 self._nav("right", self.next, "Next slide"),
                 className=self.class_stage,
             ),
-            div(*dots, className=self.class_dots, role="group", aria_label="Slides"),
+            div(
+                div(
+                    span(
+                        "",
+                        id=f"{self.id}-thumb",
+                        className=self.class_thumb,
+                        aria_hidden="true",
+                        style=f"transform: translate3d({idx * 1.5}rem,0,0)",
+                    ),
+                    *dots,
+                    className=self.class_dots,
+                    id=f"{self.id}-dots",
+                    role="group",
+                    aria_label="Slides",
+                ),
+                className=self.class_dots_row,
+            ),
             id=self.id,
             className=self.class_card,
             role="region",

@@ -151,7 +151,7 @@ CATALOG: dict[str, KitEntry] = {
         "module": "ux_compose.kit.carousel",
         "stem": "carousel",
         "exports": ["Carousel"],
-        "description": "Named slides. Overlay prev/next on the stage. Host swipe.horizontal.",
+        "description": "Named slides. Overlay prev/next. Sliding pip coalesces on morph.",
         "css": False,
         "page": True,
     },

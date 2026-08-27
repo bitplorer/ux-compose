@@ -31,7 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `click swipe.down`. Root stamps `data-channel-id`. Card is not `relative`
   so a host that contains `fixed` overlays does not clip the panel.
 - Carousel chrome: Prev / Next overlay the stage (44px chevrons, left / right),
-  dots are the only bottom rail, index is a watermark. Root stamps
+  dots are the only bottom rail, index is a watermark. One `#id-thumb` pip
+  translates across equal slots (`transition-transform`), so the active
+  indicator coalesces into the next instead of jumping. Root stamps
   `data-channel-id` so the slot is `#id` and `[data-channel-id]` together.
   No wrapping text bar — that stacked the buttons on a narrow card.
   Copy is the live region (chrome is not). Dots label the slide title.

@@ -99,6 +99,9 @@ def test_carousel_wraps():
         assert 'data-channel-id="carousel"' in html
         assert 'id="carousel-next"' in html
         assert 'id="carousel-dot-oak"' in html
+        assert 'id="carousel-thumb"' in html
+        assert "translate3d(1.5rem" in html
+        assert "transition-transform" in html
         assert "aria-roledescription" in html
     app.dispatch("carousel.goto", key="clay")
     app.dispatch("carousel.next")

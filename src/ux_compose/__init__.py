@@ -1,133 +1,83 @@
-"""
-ux-compose — pure-Python composition root for ux-dom + ux-behavior + ux-motion + ux-channel.
-
-Cold import never pulls the wire. Isolation Law enforced.
-"""
+"""ux-compose — pure-Python composition for progressive HTML."""
 
 from __future__ import annotations
 
 __version__ = "0.1.0"
 
 from ux_compose.component import Component, MorphState, RefState, action
-from ux_compose.helpers import bind, control, notify, update_with, morph_play
 from ux_compose.app import App
-from ux_compose.surfaces import (
-    Surface,
-    SurfaceBundle,
-    SurfaceError,
-    mount_surfaces,
-    scan_surfaces,
-    validate_surfaces,
-)
-from ux_compose.progressive import Level
-from ux_compose.doctor import doctor, DoctorResult
-from ux_compose.build import build
-from ux_compose.assets import WebAssets
-from ux_compose.routing import DirectoryASGI, DirectoryRoutes, RouterHooks
-
-try:
-    from ux_motion import scene, fade, rise  # type: ignore
-except ImportError:  # pragma: no cover
-    scene = fade = rise = None  # type: ignore
-
-from ux_compose.dom import (  # noqa: E402
+from ux_compose.helpers import update_with, notify, control, bind
+from ux_compose.dom import (
     HAS_DOM,
-    a,
-    article,
-    aside,
-    body,
-    button,
-    circle,
     div,
-    footer,
-    form,
+    span,
+    p,
     h1,
     h2,
     h3,
-    head,
-    header,
-    html,
+    button,
+    form,
     input_,
     label,
-    li,
-    link,
-    main,
-    meta,
-    nav,
-    p,
-    path,
-    raw,
-    rect,
-    script,
     section,
-    span,
-    style,
-    svg,
-    title,
+    header,
+    footer,
+    nav,
     ul,
+    li,
+    a,
+    img,
+    table,
+    thead,
+    tbody,
+    tr,
+    th,
+    td,
 )
 
+try:
+    from ux_motion import scene, fade, rise, slide  # type: ignore
+except ImportError:  # pragma: no cover
+    scene = fade = rise = slide = None  # type: ignore
+
 __all__ = [
-    "App",
-    "build",
-    "WebAssets",
-    "DirectoryRoutes",
-    "DirectoryASGI",
-    "RouterHooks",
-    "Surface",
-    "SurfaceBundle",
-    "SurfaceError",
-    "mount_surfaces",
-    "scan_surfaces",
-    "validate_surfaces",
     "Component",
     "MorphState",
     "RefState",
     "action",
-    "bind",
-    "control",
-    "notify",
+    "App",
     "update_with",
-    "morph_play",
-    "Level",
-    "doctor",
-    "DoctorResult",
-    "scene",
-    "fade",
-    "rise",
+    "notify",
+    "control",
+    "bind",
     "HAS_DOM",
-    "raw",
-    "html",
-    "head",
-    "body",
-    "title",
-    "style",
-    "meta",
-    "link",
-    "script",
     "div",
     "span",
+    "p",
     "h1",
     "h2",
     "h3",
-    "p",
-    "a",
     "button",
     "form",
     "input_",
-    "ul",
-    "li",
+    "label",
+    "section",
     "header",
     "footer",
-    "aside",
-    "section",
-    "article",
     "nav",
-    "main",
-    "label",
-    "svg",
-    "path",
-    "rect",
-    "circle",
+    "ul",
+    "li",
+    "a",
+    "img",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "scene",
+    "fade",
+    "rise",
+    "slide",
     "__version__",
 ]

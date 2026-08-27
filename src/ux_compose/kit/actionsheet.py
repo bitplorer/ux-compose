@@ -36,14 +36,15 @@ def _plan(name: str, target: str, *, y: float = 28, ms: int = 180):
 class ActionSheet(Component):
     """A sheet from the bottom. Presence is MorphState. Pick is a named key.
 
-    Host ``data-channel-on="swipe.vertical"``. Close control accepts
-    ``click swipe.down`` so the synthesizer resolves without extra attrs.
+    Swipe lives on the **handle**, not the root. A host-level
+    ``swipe.vertical`` captures the pointer and swallows clicks on the
+    rows. Handle accepts ``click swipe.down``. Rows stay ``click``.
     """
 
     id = "actionsheet"
 
     class_card = (
-        "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
+        "[grid-area:card] self-start mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
         "border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
     )
     class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
@@ -65,9 +66,13 @@ class ActionSheet(Component):
     class_scrim = "fixed inset-0 z-40 cursor-pointer border-0 bg-stone-900/40"
     class_panel = (
         "fixed inset-x-0 bottom-0 z-50 flex max-h-[min(28rem,80dvh)] flex-col gap-2 "
-        "rounded-t-3xl border border-stone-200 bg-white px-5 pb-7 pt-4 shadow-xl"
+        "rounded-t-3xl border border-stone-200 bg-white px-5 pb-7 pt-1 shadow-xl"
     )
-    class_handle = "mx-auto mb-2 h-1.5 w-10 rounded-full bg-stone-200"
+    class_handle_hit = (
+        "mx-auto flex min-h-11 w-full cursor-grab items-center justify-center "
+        "border-0 bg-transparent p-0"
+    )
+    class_handle = "pointer-events-none block h-1.5 w-10 rounded-full bg-stone-300"
     class_choice = "m-0 text-sm text-stone-500"
     class_sr = "sr-only"
 
@@ -111,9 +116,17 @@ class ActionSheet(Component):
                     **bind(self.close),
                 ),
                 div(
-                    div(className=self.class_handle),
+                    button(
+                        span("Dismiss", className=self.class_sr),
+                        div("", className=self.class_handle),
+                        type="button",
+                        className=self.class_handle_hit,
+                        aria_label="Dismiss",
+                        data_channel_on="click swipe.down swipe.vertical threshold:48",
+                        **bind(self.close),
+                    ),
                     span("Actions", className=self.class_kicker),
-                    h2("What next", className=self.class_title),
+                    h2("What next", className=self.class_title, id=f"{self.id}-title"),
                     *rows,
                     button(
                         "Cancel",
@@ -125,6 +138,7 @@ class ActionSheet(Component):
                     className=self.class_panel,
                     role="dialog",
                     aria_modal="true",
+                    aria_labelledby=f"{self.id}-title",
                     style="touch-action:pan-x;user-select:none;",
                 ),
             ]
@@ -132,7 +146,7 @@ class ActionSheet(Component):
             span("Sheet · swipe down", className=self.class_kicker),
             h2("Action sheet", className=self.class_title),
             p(
-                "Opens from the bottom. Swipe down or Cancel to dismiss.",
+                "Opens from the bottom. Swipe the handle or Cancel to dismiss.",
                 className=self.class_lede,
             ),
             p(f"Last pick · {picked}" if picked else "Nothing picked yet.", className=self.class_choice),
@@ -146,7 +160,7 @@ class ActionSheet(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
-            **({"data_channel_on": "swipe.vertical threshold:48"} if is_open else {}),
+            data_channel_id=self.id,
         )
 
     @action(caps=())

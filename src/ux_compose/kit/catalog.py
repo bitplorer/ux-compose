@@ -196,7 +196,7 @@ CATALOG: dict[str, KitEntry] = {
         "module": "ux_compose.kit.actionsheet",
         "stem": "actionsheet",
         "exports": ["ActionSheet"],
-        "description": "Bottom sheet. Swipe down dismisses. Destructive pick is a Cap.",
+        "description": "Bottom sheet. Handle swipe-down dismisses. Rows stay click.",
         "css": False,
         "page": True,
     },

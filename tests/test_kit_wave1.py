@@ -34,6 +34,7 @@ def test_actionsheet_open_pick_close():
     app.dispatch("actionsheet.open_sheet")
     html = _html(app, "actionsheet")
     assert "Share this piece" in html
+    assert "Dismiss" in html
     assert "swipe.vertical" in html
     assert "swipe.down" in html
     app.dispatch("actionsheet.pick", key="share")

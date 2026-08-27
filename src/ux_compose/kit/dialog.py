@@ -2,6 +2,13 @@
 
 Host seam: override ``on_confirm()``. Opening is public. Destroying is authority.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+Live: the root ``id`` is the region. Channel picks it up.
+Swipe lives on Keep it, not the root and not Delete. A host-level
+``swipe.horizontal`` on the card swallows clicks the same way
+ActionSheet's root ``swipe.vertical`` did. Keep it accepts
+``click swipe.down``. Same synthesizer, no extra JS. Delete stays
+click-only — it spends a Cap.
 """
 
 from __future__ import annotations
@@ -22,18 +29,41 @@ from ux_compose import (
 )
 
 
+def _open_plan(cid: str = "dialog"):
+    """Enter the overlay after morph inserts it. Selectors only — no html=.
+
+    Presence is a Motion HOF. Same-node chrome is CSS.
+    Close is morph-only: the panel is gone after apply, so an exit recipe
+    in the same Result has nothing to play.
+    """
+    try:
+        from ux_compose import scene, fade, rise
+
+        if scene is None or fade is None or rise is None:
+            return None
+        return (
+            scene("dialog-open")
+            .enter(f"#{cid}-scrim", fade.enter(ms=120))
+            .enter(f"#{cid}-panel", rise.enter(ms=180))
+        )
+    except Exception:
+        return None
+
+
 class Dialog(Component):
     """Confirm overlay. Target id is silent RefState.
 
     Override ``on_confirm(target)`` in the product. Demo stand-in notifies.
     The resting card stays in flow; the overlay is presence on top of it.
+    The card is not a containing block (no ``relative``, no overflow clip)
+    so ``fixed`` overlay is not trapped. Panel and scrim keep stable ids.
     """
 
     id = "dialog"
 
     class_card = (
-        "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
-        "border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
+        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 "
+        "rounded-3xl border border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
     )
     class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
     class_title = "m-0 font-serif text-2xl font-semibold tracking-tight"
@@ -86,12 +116,17 @@ class Dialog(Component):
                 button(
                     span("Close", className=self.class_sr),
                     type="button",
+                    id=f"{self.id}-scrim",
                     className=self.class_scrim,
                     aria_label="Close",
                     **bind(self.cancel),
                 ),
                 div(
-                    h2(str(self.title or "Confirm"), className=self.class_title),
+                    h2(
+                        str(self.title or "Confirm"),
+                        className=self.class_title,
+                        id=f"{self.id}-title",
+                    ),
                     p(
                         str(self.body or f"Target {who}. This cannot be undone."),
                         className=self.class_lede,
@@ -100,20 +135,25 @@ class Dialog(Component):
                         button(
                             "Keep it",
                             type="button",
+                            id=f"{self.id}-dismiss",
                             className=self.class_btn_ghost,
+                            data_channel_on="click swipe.down",
                             **bind(self.cancel),
                         ),
                         button(
                             "Delete",
                             type="button",
+                            id=f"{self.id}-confirm",
                             className=self.class_btn_danger,
                             **bind(self.confirm),
                         ),
                         className=self.class_actions,
                     ),
+                    id=f"{self.id}-panel",
                     className=self.class_panel,
                     role="dialog",
                     aria_modal="true",
+                    aria_labelledby=f"{self.id}-title",
                 ),
             ])
         return div(
@@ -121,6 +161,7 @@ class Dialog(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if bool(self.open) else "0",
+            data_channel_id=self.id,
         )
 
     @action(caps=())
@@ -131,7 +172,7 @@ class Dialog(Component):
         if body:
             self.body = body
         self.open = True
-        return update_with(self)
+        return update_with(self, _open_plan(self.id))
 
     @action(caps=())
     def cancel(self):

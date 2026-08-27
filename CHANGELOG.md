@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Ownable kit (`uxcompose add`): login, tabs, accordion, dropdown, dialog, sheet,
+  toast, command, table, pagination, combobox, sidebar, breadcrumb, stepper,
+  carousel, calendar, select, otp, plans.
+- Kit Wave 1 (Signal grammar): `actionsheet`, `contextmenu`, `typeahead`, `pullrefresh`.
+  Tailwind `class_*` only. `data-channel-on` for swipe.vertical / longpress / input delay:.
+
 ### Changed
 
 - Carousel / Lightbox / Drawer: `data-channel-on` swipe + directional slide/rise/fade.

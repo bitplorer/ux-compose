@@ -199,10 +199,35 @@ def test_pagination_named_pages():
 def test_pagination_window_slots():
     from ux_compose.kit.pagination import page_slots
 
-    assert page_slots(0, 12, 1) == (0, 1, None, 11)
-    assert page_slots(5, 12, 1) == (0, None, 4, 5, 6, None, 11)
-    assert page_slots(0, 4, 1) == (0, 1, 2, 3)
-    assert page_slots(5, 12, 0) == (0, None, 5, None, 11)
+    assert page_slots(0, 12, 1) == (
+        ("page", 0, "core"),
+        ("page", 1, "core"),
+        ("page", 2, "core"),
+        ("gap", "edge"),
+        ("page", 11, "edge"),
+    )
+    assert page_slots(5, 12, 1) == (
+        ("page", 0, "edge"),
+        ("gap", "edge"),
+        ("page", 4, "core"),
+        ("page", 5, "core"),
+        ("page", 6, "core"),
+        ("gap", "edge"),
+        ("page", 11, "edge"),
+    )
+    assert page_slots(0, 4, 1) == (
+        ("page", 0, "core"),
+        ("page", 1, "core"),
+        ("page", 2, "core"),
+        ("page", 3, "edge"),
+    )
+    assert page_slots(5, 12, 0) == (
+        ("page", 0, "edge"),
+        ("gap", "edge"),
+        ("page", 5, "core"),
+        ("gap", "edge"),
+        ("page", 11, "edge"),
+    )
 
 
 def test_combobox_attach_query_then_pick():

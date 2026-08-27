@@ -2,8 +2,10 @@
 
 Host seam: override ``PAGES`` and ``WINDOW``. Keys are names (``p1``), not ints.
 ``WINDOW`` is how many numbered neighbors sit next to the current page.
-The bar never paints every key — a blog with 40 pages still shows
-first · window · last, with gaps.
+
+The bar never paints every key. Core is a sliding window (always visible).
+First / last + gaps are ``max-sm:hidden`` so they cannot sit on the
+chevrons on a narrow card. Prev goes one named page back, never to p1.
 
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 """
@@ -52,29 +54,36 @@ def _chevron(direction: str):
 
 
 def page_slots(idx: int, n: int, window: int = 1):
-    """First, last, current ± window. A one-page hole fills; wider holes gap.
+    """Sliding core + optional first/last.
 
-    Returns a tuple of ``int`` (0-based index) or ``None`` (ellipsis).
+    Each item is ``("page", i, "core"|"edge")`` or ``("gap", "edge")``.
+    ``edge`` chrome is hidden below ``sm`` so a phone never stacks
+    page 1 on top of Prev.
     """
     if n <= 0:
         return ()
     idx = min(max(idx, 0), n - 1)
     siblings = max(0, int(window or 0))
-    keep = {0, n - 1}
-    for i in range(idx - siblings, idx + siblings + 1):
-        if 0 <= i < n:
-            keep.add(i)
-    ordered = sorted(keep)
+    span = 2 * siblings + 1
+    if n <= span:
+        return tuple(("page", i, "core") for i in range(n))
+    start = min(max(0, idx - siblings), n - span)
+    core = list(range(start, start + span))
     out = []
-    prev = None
-    for i in ordered:
-        if prev is not None and i - prev > 1:
-            if i - prev == 2:
-                out.append(prev + 1)
-            else:
-                out.append(None)
-        out.append(i)
-        prev = i
+    if core[0] > 0:
+        out.append(("page", 0, "edge"))
+        if core[0] == 2:
+            out.append(("page", 1, "edge"))
+        elif core[0] > 2:
+            out.append(("gap", "edge"))
+    for i in core:
+        out.append(("page", i, "core"))
+    if core[-1] < n - 1:
+        if core[-1] == n - 3:
+            out.append(("page", n - 2, "edge"))
+        elif core[-1] < n - 2:
+            out.append(("gap", "edge"))
+        out.append(("page", n - 1, "edge"))
     return tuple(out)
 
 
@@ -98,10 +107,12 @@ class Pagination(Component):
     class_list = "m-0 grid list-none gap-1.5 p-0"
     class_item = "rounded-2xl bg-stone-50 px-4 py-3 text-sm"
     class_bar = "mt-1 flex min-w-0 flex-nowrap items-center gap-1"
-    class_pages = "flex min-w-0 flex-1 flex-nowrap items-center justify-center gap-0.5"
+    class_pages = (
+        "flex min-w-0 flex-1 flex-nowrap items-center justify-center gap-0.5 overflow-hidden"
+    )
     class_nav = (
-        "inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full "
-        "border border-stone-200 bg-white text-stone-900 "
+        "relative z-10 inline-flex size-11 shrink-0 cursor-pointer items-center justify-center "
+        "rounded-full border border-stone-200 bg-white text-stone-900 "
         "hover:bg-stone-100 "
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15 "
         "disabled:cursor-default disabled:opacity-40 disabled:hover:bg-white"
@@ -117,9 +128,15 @@ class Pagination(Component):
         "rounded-full border-0 bg-stone-800 text-sm text-stone-50 "
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/20"
     )
+    class_dot_edge = (
+        "hidden sm:inline-flex size-11 shrink-0 cursor-pointer items-center justify-center "
+        "rounded-full border-0 bg-transparent text-sm text-stone-500 "
+        "hover:bg-stone-100 "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15"
+    )
     class_gap = (
-        "pointer-events-none inline-flex min-h-11 min-w-6 shrink-0 items-center justify-center "
-        "text-sm text-stone-400"
+        "pointer-events-none hidden min-h-11 min-w-6 shrink-0 items-center justify-center "
+        "text-sm text-stone-400 sm:inline-flex"
     )
     class_sr = "sr-only"
 
@@ -163,14 +180,30 @@ class Pagination(Component):
         return keys[0], self._pages()[0][1]
 
     def _nav(self, direction: str, fn, label: str, *, muted: bool):
+        slot = "prev" if direction == "left" else "next"
         return button(
             span(label, className=self.class_sr),
             _chevron(direction),
             type="button",
+            id=f"{self.id}-{slot}",
             className=self.class_nav,
             aria_label=label,
             **({"disabled": True, "aria_disabled": "true"} if muted else {}),
             **({} if muted else bind(fn)),
+        )
+
+    def _page_btn(self, slot: int, cur: str, keys: tuple, *, edge: bool):
+        key = keys[slot]
+        on = key == cur
+        cls = self.class_dot_on if on else (self.class_dot_edge if edge else self.class_dot)
+        return button(
+            str(slot + 1),
+            type="button",
+            id=f"{self.id}-page-{key}",
+            className=cls,
+            aria_label=f"Page {slot + 1}",
+            **({"aria_current": "page"} if on else {}),
+            **bind(self.goto, key=key),
         )
 
     def render(self):
@@ -180,22 +213,12 @@ class Pagination(Component):
         n = len(keys)
         lis = [li(name, className=self.class_item, id=f"{self.id}-item-{i}") for i, name in enumerate(items)]
         dots = []
-        for slot in page_slots(idx, n, self._window()):
-            if slot is None:
+        for kind, *rest in page_slots(idx, n, self._window()):
+            if kind == "gap":
                 dots.append(span("…", className=self.class_gap, aria_hidden="true"))
                 continue
-            key = keys[slot]
-            on = key == cur
-            dots.append(
-                button(
-                    str(slot + 1),
-                    type="button",
-                    className=self.class_dot_on if on else self.class_dot,
-                    aria_label=f"Page {slot + 1}",
-                    **({"aria_current": "page"} if on else {}),
-                    **bind(self.goto, key=key),
-                )
-            )
+            slot, band = rest
+            dots.append(self._page_btn(slot, cur, keys, edge=band == "edge"))
         return div(
             span("Catalog", className=self.class_kicker),
             h2("The shelf", className=self.class_title),
@@ -203,7 +226,13 @@ class Pagination(Component):
             ul(*lis, className=self.class_list),
             div(
                 self._nav("left", self.prev, "Previous page", muted=idx == 0),
-                div(*dots, className=self.class_pages, role="navigation", aria_label="Pages"),
+                div(
+                    *dots,
+                    className=self.class_pages,
+                    id=f"{self.id}-pages",
+                    role="navigation",
+                    aria_label="Pages",
+                ),
                 self._nav("right", self.next, "Next page", muted=idx >= n - 1),
                 className=self.class_bar,
             ),

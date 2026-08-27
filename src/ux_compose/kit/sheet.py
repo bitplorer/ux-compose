@@ -27,9 +27,10 @@ from ux_compose import (
 )
 
 
-def _open_plan():
+def _open_plan(cid: str = "sheet"):
     """Enter the overlay after morph inserts it. Selectors only — no html=.
 
+    Presence is a Motion HOF. Same-node chrome (Carousel thumb) is CSS.
     Close is morph-only: the panel is gone after apply, so an exit recipe
     in the same Result has nothing to play.
     """
@@ -40,8 +41,8 @@ def _open_plan():
             return None
         return (
             scene("sheet-open")
-            .enter("#sheet-scrim", fade.enter(ms=120))
-            .enter("#sheet-panel", slide.enter(x=28, ms=180))
+            .enter(f"#{cid}-scrim", fade.enter(ms=120))
+            .enter(f"#{cid}-panel", slide.enter(x=28, ms=180))
         )
     except Exception:
         return None
@@ -160,7 +161,7 @@ class Sheet(Component):
             self.title = title
         if body:
             self.body = body
-        return update_with(self, _open_plan())
+        return update_with(self, _open_plan(self.id))
 
     @action(caps=())
     def close(self):

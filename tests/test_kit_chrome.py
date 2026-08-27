@@ -180,6 +180,7 @@ def test_pagination_named_pages():
     app = _boot(Pagination, strict_caps=False)
     html = _html(app, "pagination")
     assert "Work shirt" in html
+    assert "…" in html
     app.dispatch("pagination.next")
     html = _html(app, "pagination")
     assert "Throw" in html
@@ -189,6 +190,19 @@ def test_pagination_named_pages():
     app.dispatch("pagination.prev")
     inst = app.behavior.get("pagination")
     assert str(inst.page) == "p3"
+    app.dispatch("pagination.goto", key="p6")
+    html = _html(app, "pagination")
+    assert "Oak tray" in html
+    assert "Page 6 of 12" in html
+
+
+def test_pagination_window_slots():
+    from ux_compose.kit.pagination import page_slots
+
+    assert page_slots(0, 12, 1) == (0, 1, None, 11)
+    assert page_slots(5, 12, 1) == (0, None, 4, 5, 6, None, 11)
+    assert page_slots(0, 4, 1) == (0, 1, 2, 3)
+    assert page_slots(5, 12, 0) == (0, None, 5, None, 11)
 
 
 def test_combobox_attach_query_then_pick():

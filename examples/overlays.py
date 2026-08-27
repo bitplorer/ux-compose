@@ -28,7 +28,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, tick, maybe_plan
+from examples._common import act, tick, maybe_plan, maybe_slide, maybe_fade
 
 
 class Toasts(Component):
@@ -123,7 +123,7 @@ class Confirm(Component):
     def ask(self, id: str = ""):
         self.target = id
         self.open = True
-        return update_with(self)
+        return update_with(self, maybe_plan("confirm-open", f"#{self.id}", ms=140))
 
     @action(caps=())
     def cancel(self):
@@ -148,30 +148,33 @@ class Lightbox(Component):
 
     def render(self):
         i = int(self.index or 0) % len(self.SLIDES)
-        stage = (
-            div(
+        if self.open:
+            stage = div(
                 p(self.SLIDES[i], className="slide-copy"),
                 div(
-                    act("lightbox.prev", "Prev", kind="ghost"),
-                    act("lightbox.next", "Next", kind="ghost"),
+                    act("lightbox.prev", "Prev", kind="ghost", on="click swipe.right"),
+                    act("lightbox.next", "Next", kind="ghost", on="click swipe.left"),
                     act("lightbox.close", "Close", kind="text"),
                     className="row-actions",
                 ),
                 className="slide",
                 id=f"slide-{i}",
+                style="touch-action:pan-y;user-select:none;",
             )
-            if self.open
-            else act("lightbox.open_box", "Open viewer", kind="primary", index="0")
-        )
+        else:
+            stage = act("lightbox.open_box", "Open viewer", kind="primary", index="0")
         kids = (
             header(
-                p("Index is RefState", className="kicker"),
+                p("Swipe when open · Index is RefState", className="kicker"),
                 h2("Lightbox", className="widget-title"),
             ),
             stage,
         )
         if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
+            attrs = {"id": self.id, "className": "widget"}
+            if self.open:
+                attrs["data_channel_on"] = "swipe.horizontal threshold:48"
+            return div(*kids, **attrs)
         return f'<div id="{self.id}"></div>'
 
     @action(caps=())
@@ -179,24 +182,28 @@ class Lightbox(Component):
         self.open = True
         self.index = int(index or 0)
         tick(self)
-        return update_with(self)
+        return update_with(self, maybe_plan("lb-open", f"#{self.id}", ms=140))
 
     @action(caps=())
     def close(self):
         self.open = False
-        return update_with(self)
+        return update_with(self, maybe_fade("lb-close", f"#{self.id}", ms=100))
 
     @action(caps=())
     def next(self):
         self.index = (int(self.index or 0) + 1) % len(self.SLIDES)
         tick(self)
-        return update_with(self)
+        return update_with(
+            self, maybe_slide("lb-next", f"#{self.id}", direction="next", ms=160)
+        )
 
     @action(caps=())
     def prev(self):
         self.index = (int(self.index or 0) - 1) % len(self.SLIDES)
         tick(self)
-        return update_with(self)
+        return update_with(
+            self, maybe_slide("lb-prev", f"#{self.id}", direction="prev", ms=160)
+        )
 
 
 class Palette(Component):

@@ -93,6 +93,13 @@ def test_carousel_wraps():
     assert str(inst.slide) == "oak"
     html = _html(app, "carousel")
     assert "Oak serving board" in html
+    assert "Previous slide" in html
+    assert "Next slide" in html
+    if HAS_DOM:
+        assert 'data-channel-id="carousel"' in html
+        assert 'id="carousel-next"' in html
+        assert 'id="carousel-dot-oak"' in html
+        assert "aria-roledescription" in html
     app.dispatch("carousel.goto", key="clay")
     app.dispatch("carousel.next")
     inst = app.behavior.get("carousel")

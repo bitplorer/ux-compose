@@ -70,13 +70,14 @@ class Carousel(Component):
         "[grid-area:card] relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 self-start "
         "overflow-hidden rounded-3xl border border-stone-200 bg-white p-5 text-stone-900 shadow-sm"
     )
-    class_kicker = "relative z-[1] text-xs font-medium uppercase tracking-widest text-stone-400"
-    class_title = "relative z-[1] m-0 font-serif text-3xl font-semibold tracking-tight"
-    class_lede = "relative z-[1] m-0 max-w-sm text-sm leading-relaxed text-stone-500"
+    class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
+    class_title = "m-0 font-serif text-3xl font-semibold tracking-tight"
+    class_lede = "m-0 max-w-sm text-sm leading-relaxed text-stone-500"
     class_stage = (
-        "relative flex min-h-56 touch-pan-y select-none flex-col justify-end gap-3 "
+        "relative flex min-h-56 touch-pan-y select-none flex-col justify-end "
         "rounded-2xl bg-stone-50 px-16 py-8"
     )
+    class_copy = "relative z-[1] flex flex-col gap-3"
     class_index = (
         "pointer-events-none absolute right-5 top-4 z-0 font-serif text-6xl font-medium "
         "leading-none tracking-tight text-stone-200"
@@ -122,10 +123,12 @@ class Carousel(Component):
     def _nav(self, direction: str, fn, label: str):
         side = self.class_nav_prev if direction == "left" else self.class_nav_next
         signal = "click swipe.right" if direction == "left" else "click swipe.left"
+        slot = "prev" if direction == "left" else "next"
         return button(
             span(label, className=self.class_sr),
             _chevron(direction),
             type="button",
+            id=f"{self.id}-{slot}",
             className=f"{self.class_nav} {side}",
             aria_label=label,
             data_channel_on=signal,
@@ -138,26 +141,34 @@ class Carousel(Component):
         n = len(keys)
         dots = [
             button(
-                span(lab, className=self.class_sr),
+                span(ttl, className=self.class_sr),
                 span("", className=self.class_pip_on if k == cur else self.class_pip),
                 type="button",
+                id=f"{self.id}-dot-{k}",
                 className=self.class_dot,
-                aria_label=lab,
+                aria_label=ttl,
                 **({"aria_current": "true"} if k == cur else {}),
                 **bind(self.goto, key=k),
             )
-            for k, lab, _t, _b in rows
+            for k, _lab, ttl, _b in rows
         ]
         return div(
             div(
-                span(f"{idx + 1:02d}", className=self.class_index),
-                span(kicker, className=self.class_kicker),
-                h2(title, className=self.class_title, id=f"{self.id}-title"),
-                p(body, className=self.class_lede),
+                span(
+                    f"{idx + 1:02d}",
+                    className=self.class_index,
+                    aria_hidden="true",
+                ),
+                div(
+                    span(kicker, className=self.class_kicker),
+                    h2(title, className=self.class_title, id=f"{self.id}-title"),
+                    p(body, className=self.class_lede),
+                    className=self.class_copy,
+                    aria_live="polite",
+                ),
                 self._nav("left", self.prev, "Previous slide"),
                 self._nav("right", self.next, "Next slide"),
                 className=self.class_stage,
-                aria_live="polite",
             ),
             div(*dots, className=self.class_dots, role="group", aria_label="Slides"),
             id=self.id,

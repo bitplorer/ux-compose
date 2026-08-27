@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Dialog: card drops `relative` / overflow so a `fixed` overlay is not remapped
+  or clipped on a narrow stage. Swipe lives on Keep it
+  (`click swipe.down`), not a root swipe and not Delete (Cap). Panel, scrim,
+  dismiss and confirm keep stable ids. Open composes a Motion enter plan
+  (fade scrim, rise panel) — selectors only, no Channel attr, no kit JS.
+  Cancel / confirm are morph-only: after apply the panel is gone.
 - Sheet: card drops `relative` / overflow so a `fixed` overlay is not remapped
   or clipped on a narrow stage. Swipe lives on Close / Done
   (`click swipe.right`), not a root `swipe.horizontal`. Panel, scrim,

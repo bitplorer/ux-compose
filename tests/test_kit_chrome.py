@@ -115,6 +115,35 @@ def test_dialog_on_confirm_seam():
     assert not bool(inst.open)
 
 
+def test_dialog_open_close():
+    # Card is not a containing block. relative + overflow remaps fixed
+    # overlay to the card and clips it on a narrow stage.
+    assert "relative" not in Dialog.class_card
+    assert "overflow" not in Dialog.class_card
+
+    app = _boot(Dialog, strict_caps=False)
+    closed = _html(app, "dialog")
+    assert "swipe.horizontal" not in closed
+    assert 'data-channel-id="dialog"' in closed or "data_channel_id" in closed
+
+    app.dispatch("dialog.ask", id="oak-02")
+    html = _html(app, "dialog")
+    assert "Keep it" in html
+    assert 'data-open="1"' in html
+    assert "Delete the oak board" in html
+    assert 'id="dialog-panel"' in html
+    assert 'id="dialog-scrim"' in html
+    assert 'id="dialog-dismiss"' in html
+    assert 'id="dialog-confirm"' in html
+    assert "swipe.down" in html
+    assert "swipe.horizontal" not in html
+    app.dispatch("dialog.cancel")
+    inst = app.behavior.get("dialog")
+    assert not bool(inst.open)
+    html = _html(app, "dialog")
+    assert "dialog-panel" not in html
+
+
 def test_sheet_open_close():
     # Card is not a containing block. relative + overflow remaps fixed
     # overlay to the card and clips it on a narrow stage.

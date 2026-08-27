@@ -7,6 +7,9 @@ Live: the root ``id`` is the region. Channel picks it up.
 Host ``swipe.horizontal``. Prev accepts ``click swipe.right``,
 Next accepts ``click swipe.left`` — same synthesizer as PullRefresh,
 no extra JS and no second attribute family.
+
+Chrome: Prev / Next sit on the stage (left / right), not in a wrapping
+rail. Dots are the only bottom row. The index is a watermark.
 """
 
 from __future__ import annotations
@@ -22,8 +25,33 @@ from ux_compose import (
     div,
     h2,
     p,
+    path,
     span,
+    svg,
 )
+
+
+def _chevron(direction: str):
+    """24px stroke chevron. ``direction`` is ``left`` or ``right``."""
+    d = "M15 6 9 12l6 6" if direction == "left" else "M9 6l6 6-6 6"
+    return svg(
+        path(
+            d=d,
+            fill="none",
+            stroke="currentColor",
+            **{
+                "stroke-width": "1.75",
+                "stroke-linecap": "round",
+                "stroke-linejoin": "round",
+            },
+        ),
+        **{
+            "viewBox": "0 0 24 24",
+            "aria-hidden": "true",
+            "focusable": "false",
+        },
+        className="pointer-events-none block h-5 w-5",
+    )
 
 
 class Carousel(Component):
@@ -39,30 +67,37 @@ class Carousel(Component):
     id = "carousel"
 
     class_card = (
-        "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 overflow-x-hidden "
-        "rounded-3xl border border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
+        "[grid-area:card] relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 "
+        "overflow-hidden rounded-3xl border border-stone-200 bg-white p-5 text-stone-900 shadow-sm"
     )
-    class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
-    class_title = "m-0 font-serif text-3xl font-semibold tracking-tight"
-    class_lede = "m-0 max-w-sm text-sm leading-relaxed text-stone-500"
+    class_kicker = "relative z-[1] text-xs font-medium uppercase tracking-widest text-stone-400"
+    class_title = "relative z-[1] m-0 font-serif text-3xl font-semibold tracking-tight"
+    class_lede = "relative z-[1] m-0 max-w-sm text-sm leading-relaxed text-stone-500"
     class_stage = (
-        "flex min-h-48 touch-pan-y select-none flex-col justify-end gap-3 "
-        "rounded-2xl bg-stone-50 px-6 py-6"
+        "relative flex min-h-56 touch-pan-y select-none flex-col justify-end gap-3 "
+        "overflow-hidden rounded-2xl bg-stone-50 px-16 py-8"
     )
-    class_index = "font-serif text-5xl font-medium tracking-tight text-stone-200"
-    class_bar = "flex min-w-0 flex-wrap items-center justify-between gap-2"
-    class_dots = "flex min-w-0 flex-wrap items-center justify-center"
+    class_index = (
+        "pointer-events-none absolute right-5 top-4 z-0 font-serif text-6xl font-medium "
+        "leading-none tracking-tight text-stone-200"
+    )
+    class_nav = (
+        "absolute top-1/2 z-10 inline-flex size-11 -translate-y-1/2 cursor-pointer items-center "
+        "justify-center rounded-full border-0 bg-white/90 text-stone-900 shadow-sm "
+        "backdrop-blur-sm hover:bg-white hover:shadow "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/20"
+    )
+    class_nav_prev = "left-3"
+    class_nav_next = "right-3"
+    class_dots = "flex flex-nowrap items-center justify-center"
     class_dot = (
         "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center "
-        "rounded-full border-0 bg-transparent p-0"
+        "rounded-full border-0 bg-transparent p-0 "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15"
     )
-    class_pip = "pointer-events-none block h-2.5 w-2.5 rounded-full bg-stone-200"
-    class_pip_on = "pointer-events-none block h-2.5 w-6 rounded-full bg-stone-800"
-    class_btn_ghost = (
-        "inline-flex min-h-11 shrink-0 cursor-pointer items-center justify-center rounded-full "
-        "border border-stone-200 bg-white px-4 text-sm font-medium text-stone-900 "
-        "hover:bg-stone-100"
-    )
+    class_pip = "pointer-events-none block h-2 w-2 rounded-full bg-stone-300"
+    class_pip_on = "pointer-events-none block h-2 w-6 rounded-full bg-stone-800"
+    class_sr = "sr-only"
 
     SLIDES = (
         ("linen", "Cloth", "Linen work shirt", "Cut to the shoulder. One region morphs."),
@@ -84,13 +119,26 @@ class Carousel(Component):
             cur = keys[0]
         return keys.index(cur), cur, rows, keys
 
+    def _nav(self, direction: str, fn, label: str):
+        side = self.class_nav_prev if direction == "left" else self.class_nav_next
+        signal = "click swipe.right" if direction == "left" else "click swipe.left"
+        return button(
+            span(label, className=self.class_sr),
+            _chevron(direction),
+            type="button",
+            className=f"{self.class_nav} {side}",
+            aria_label=label,
+            data_channel_on=signal,
+            **bind(fn),
+        )
+
     def render(self):
         idx, cur, rows, keys = self._current()
-        key, kicker, title, body = rows[idx]
+        _key, kicker, title, body = rows[idx]
         n = len(keys)
         dots = [
             button(
-                span(lab, className="sr-only"),
+                span(lab, className=self.class_sr),
                 span("", className=self.class_pip_on if k == cur else self.class_pip),
                 type="button",
                 className=self.class_dot,
@@ -104,32 +152,22 @@ class Carousel(Component):
             div(
                 span(f"{idx + 1:02d}", className=self.class_index),
                 span(kicker, className=self.class_kicker),
-                h2(title, className=self.class_title),
+                h2(title, className=self.class_title, id=f"{self.id}-title"),
                 p(body, className=self.class_lede),
+                self._nav("left", self.prev, "Previous slide"),
+                self._nav("right", self.next, "Next slide"),
                 className=self.class_stage,
+                aria_live="polite",
             ),
-            div(
-                button(
-                    "Prev",
-                    type="button",
-                    className=self.class_btn_ghost,
-                    data_channel_on="click swipe.right",
-                    **bind(self.prev),
-                ),
-                div(*dots, className=self.class_dots, role="tablist"),
-                button(
-                    "Next",
-                    type="button",
-                    className=self.class_btn_ghost,
-                    data_channel_on="click swipe.left",
-                    **bind(self.next),
-                ),
-                className=self.class_bar,
-            ),
+            div(*dots, className=self.class_dots, role="tablist", aria_label="Slides"),
             id=self.id,
             className=self.class_card,
+            role="region",
+            aria_roledescription="carousel",
+            aria_labelledby=f"{self.id}-title",
             data_slide=cur,
             data_of=str(n),
+            data_channel_id=self.id,
             data_channel_on="swipe.horizontal threshold:48",
         )
 

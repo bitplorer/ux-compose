@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Carousel chrome: Prev / Next overlay the stage (44px chevrons, left / right),
+  dots are the only bottom rail, index is a watermark. Root stamps
+  `data-channel-id` so the slot is `#id` and `[data-channel-id]` together.
+  No wrapping text bar — that stacked the buttons on a narrow card.
+  Copy is the live region (chrome is not). Dots label the slide title.
+  Prev / next / dots keep stable ids across morph.
 - Carousel / Lightbox / Drawer: `data-channel-on` swipe + directional slide/rise/fade.
 - Accordion open uses `maybe_plan`; Confirm overlay open uses rise.
 - `act(..., on=)` and `maybe_slide` in `examples/_common.py` (already on main).

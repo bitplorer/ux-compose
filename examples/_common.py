@@ -147,14 +147,17 @@ def field(name: str, value: str = "", *, placeholder: str = "", kind: str = "tex
             value=value,
             placeholder=placeholder,
             className="field",
+            autocomplete="off",
         )
     return (
-        f'<input type="{kind}" name="{name}" value="{value}" '
-        f'placeholder="{placeholder}" class="field"/>'
+        f'<input class="field" type="{kind}" name="{name}" '
+        f'value="{value}" placeholder="{placeholder}" autocomplete="off"/>'
     )
 
 
-def status(text: str):
+def status(text: Optional[str], *, kind: str = "note"):
+    if not text:
+        return span("", className="sr") if HAS_DOM else ""
     if HAS_DOM and span is not None:
-        return span(text, className="status")
-    return f'<span class="status">{text}</span>'
+        return span(str(text), className=f"status status-{kind}", role="status")
+    return f'<span class="status status-{kind}" role="status">{text}</span>'

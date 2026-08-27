@@ -79,6 +79,13 @@ def test_typeahead_query_and_pick():
     html = _html(app, "typeahead")
     assert "Oak serving board" in html
     assert "Clay pourer" not in html
+    app.dispatch("typeahead.query_hits", q="l")
+    html = _html(app, "typeahead")
+    assert "Linen work shirt" in html
+    assert "Wool throw" not in html
+    app.dispatch("typeahead.query_hits", q="")
+    html = _html(app, "typeahead")
+    assert "Oak serving board" in html
     app.dispatch("typeahead.pick", key="Oak stool")
     inst = app.behavior.get("typeahead")
     assert str(inst.value) == "Oak stool"

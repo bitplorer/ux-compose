@@ -32,14 +32,14 @@ class Tabs(Component):
     id = "tabs"
 
     class_card = (
-        "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
-        "border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
+        "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 overflow-x-hidden "
+        "rounded-3xl border border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
     )
     class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
     class_title = "m-0 font-serif text-2xl font-semibold tracking-tight"
     class_lede = "m-0 text-sm leading-relaxed text-stone-500"
     class_tablist = (
-        "flex gap-1 overflow-x-auto rounded-full bg-stone-100 p-1"
+        "flex min-w-0 gap-1 overflow-x-auto rounded-full bg-stone-100 p-1"
     )
     class_tab = (
         "min-h-11 flex-1 cursor-pointer whitespace-nowrap rounded-full border-0 "

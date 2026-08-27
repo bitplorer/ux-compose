@@ -25,19 +25,19 @@ from ux_compose import (
 class Plans(Component):
     """Choose one named plan. The selected key is MorphState.
 
-    ``PLANS`` is ``(key, name, price, lede, (feature, …))``. Override on the copy.
+    ``PLANS`` is ``(key, name, price, lede, (feature, …))". Override on the copy.
     """
 
     id = "plans"
 
     class_card = (
-        "[grid-area:card] self-start relative mx-auto flex w-full max-w-[44rem] flex-col gap-4 rounded-3xl border "
+        "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-[44rem] flex-col gap-4 overflow-x-hidden rounded-3xl border "
         "border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
     )
     class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
     class_title = "m-0 font-serif text-2xl font-semibold tracking-tight"
     class_lede = "m-0 text-sm leading-relaxed text-stone-500"
-    class_grid = "grid grid-cols-1 gap-3 sm:grid-cols-3"
+    class_grid = "grid grid-cols-1 gap-3"
     class_plan = (
         "flex min-h-44 cursor-pointer flex-col gap-2 rounded-2xl border "
         "border-stone-200 bg-stone-50 px-5 py-5 text-left text-inherit"

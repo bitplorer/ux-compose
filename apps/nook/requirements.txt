@@ -1,0 +1,5 @@
+ux-compose
+ux-dom
+ux-behavior
+fastapi
+uvicorn[standard]

@@ -62,6 +62,7 @@ def test_contextmenu_longpress_attr_on_trigger_only():
     app.dispatch("contextmenu.open_menu")
     html = _html(app, "contextmenu")
     assert "Rename" in html
+    assert "list-none" in html
     # host must not broadcast longpress to items
     assert html.count("click longpress") == 1
     assert html.count("data-channel-on") == 1 or html.count("data_channel_on") <= 1

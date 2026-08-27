@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- ContextMenu: floating panel (`list-none`, no native ul tab), overlays the
+  canvas, card no longer `overflow-hidden` (that clipped the menu). Rows are
+  `menuitem`. Root stamps `data-channel-id`.
+- Pagination: windowed numbers, not one button per page. Host seam `WINDOW`
+  (neighbors each side, default 1). First · window · last with gaps. Prev/Next
+  are 44px chevrons on one nowrap row. Demo has 12 named pages.
 - ActionSheet: swipe lives on the handle, not the root. A host-level
   `swipe.vertical` captured the pointer and swallowed row clicks (Share /
   Cancel did nothing). Handle is a 44px hit that accepts

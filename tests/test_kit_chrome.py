@@ -116,15 +116,32 @@ def test_dialog_on_confirm_seam():
 
 
 def test_sheet_open_close():
+    # Card is not a containing block. relative + overflow remaps fixed
+    # overlay to the card and clips it on a narrow stage.
+    assert "relative" not in Sheet.class_card
+    assert "overflow" not in Sheet.class_card
+
     app = _boot(Sheet, strict_caps=False)
+    closed = _html(app, "sheet")
+    assert "swipe.horizontal" not in closed
+    assert 'data-channel-id="sheet"' in closed or 'data_channel_id' in closed
+
     app.dispatch("sheet.open_sheet", which="filters")
     html = _html(app, "sheet")
     assert "Done" in html
     assert 'data-open="1"' in html
     assert "Open filters" in html
+    assert 'id="sheet-panel"' in html
+    assert 'id="sheet-scrim"' in html
+    assert 'id="sheet-dismiss"' in html
+    assert 'id="sheet-done"' in html
+    assert "swipe.right" in html
+    assert "swipe.horizontal" not in html
     app.dispatch("sheet.close")
     inst = app.behavior.get("sheet")
     assert not bool(inst.open)
+    html = _html(app, "sheet")
+    assert "sheet-panel" not in html
 
 
 def test_toast_push_dismiss_clear():

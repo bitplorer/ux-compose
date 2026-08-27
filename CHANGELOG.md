@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Sheet: card drops `relative` / overflow so a `fixed` overlay is not remapped
+  or clipped on a narrow stage. Swipe lives on Close / Done
+  (`click swipe.right`), not a root `swipe.horizontal`. Panel, scrim,
+  dismiss and done keep stable ids. Open composes a Motion enter plan
+  (fade scrim, slide panel) — selectors only, no Channel attr, no kit JS.
+  Close is morph-only: after apply the panel is gone.
 - ContextMenu: floating panel (`list-none`, no native ul tab), overlays the
   canvas, card no longer `overflow-hidden` (that clipped the menu). Rows are
   `menuitem`. Root stamps `data-channel-id`.
@@ -46,7 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] — 2026-08-26
 
 This is **0.1**. Clock A is the product host for this version, not a rewrite
-and not a 0.2 line.
+ands not a 0.2 line.
 
 ### Added
 

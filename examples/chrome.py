@@ -27,7 +27,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, maybe_fade
+from examples._common import act, maybe_fade, maybe_plan
 
 TABS = (
     ("cut", "Cut", "The pattern book. Tabs morph one region; they do not remount the page."),
@@ -131,12 +131,16 @@ class Accordion(Component):
     @action(caps=())
     def toggle(self, key: str = ""):
         cur = set(self.open_ids or ())
+        opening = key and key not in cur
         if key in cur:
             cur.remove(key)
         elif key:
             cur.add(key)
         self.open_ids = tuple(sorted(cur))
-        return update_with(self)
+        plan = (
+            maybe_plan("acc-open", f"#acc-{key}", ms=120) if opening and key else None
+        )
+        return update_with(self, plan)
 
 
 class Dropdown(Component):
@@ -203,7 +207,12 @@ class Drawer(Component):
             div(
                 h2("Filters"),
                 p("Drawer content is just render(). Closing morphs it away.", className="lede"),
-                act("drawer.close", "Close", kind="ghost"),
+                act(
+                    "drawer.close",
+                    "Close",
+                    kind="ghost",
+                    on="click swipe.right",
+                ),
                 className="drawer-panel",
             )
             if self.open
@@ -211,31 +220,33 @@ class Drawer(Component):
         )
         kids = (
             header(
-                p("Presence flag", className="kicker"),
+                p("Presence flag · swipe right to close", className="kicker"),
                 h2("Drawer", className="widget-title"),
             ),
             act("drawer.open_drawer", "Open filters", kind="primary"),
             panel,
         )
         if HAS_DOM:
-            return div(
-                *kids,
-                id=self.id,
-                className="widget drawer" + (" is-open" if self.open else ""),
-                data_open="1" if self.open else "0",
-            )
+            attrs = {
+                "id": self.id,
+                "className": "widget drawer" + (" is-open" if self.open else ""),
+                "data_open": "1" if self.open else "0",
+            }
+            if self.open:
+                attrs["data_channel_on"] = "swipe.horizontal threshold:40"
+            return div(*kids, **attrs)
         return f'<div id="{self.id}"></div>'
 
     @action(caps=())
     def open_drawer(self, which: str = "filters"):
         self.open = True
         self.which = which
-        return update_with(self)
+        return update_with(self, maybe_plan("drawer-open", f"#{self.id}", ms=160))
 
     @action(caps=())
     def close(self):
         self.open = False
-        return update_with(self)
+        return update_with(self, maybe_fade("drawer-close", f"#{self.id}", ms=100))
 
 
 def demo() -> None:

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Carousel / Lightbox / Drawer: `data-channel-on` swipe + directional slide/rise/fade.
+- Accordion open uses `maybe_plan`; Confirm overlay open uses rise.
+- `act(..., on=)` and `maybe_slide` in `examples/_common.py` (already on main).
+
+
 ## [0.1.0] — 2026-08-26
 
 This is **0.1**. Clock A is the product host for this version, not a rewrite

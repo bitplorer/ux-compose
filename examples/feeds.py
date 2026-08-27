@@ -36,7 +36,7 @@ from ux_compose import (
     control,
 )
 
-from examples._common import act, field, tick, maybe_plan, status
+from examples._common import act, field, tick, maybe_plan, maybe_slide, status
 
 
 class Carousel(Component):
@@ -65,39 +65,50 @@ class Carousel(Component):
             )
             for k in range(n)
         ]
+        stage = div(
+            p(title, className="widget-title"),
+            p(body, className="lede"),
+            id=f"slide-{sku}",
+            className="tab-panel",
+            style="touch-action:pan-y;user-select:none;-webkit-user-select:none;",
+        )
         kids = (
             header(
-                p("Index silent · keyed slide id", className="kicker"),
+                p("Swipe the panel · or use the buttons", className="kicker"),
                 h2("Carousel", className="widget-title"),
             ),
+            stage,
             div(
-                p(title, className="widget-title"),
-                p(body, className="lede"),
-                id=f"slide-{sku}",
-                className="tab-panel",
-            ),
-            div(
-                act("carousel.prev", "Prev", kind="ghost"),
-                act("carousel.next", "Next", kind="primary"),
+                act("carousel.prev", "Prev", kind="ghost", on="click swipe.right"),
+                act("carousel.next", "Next", kind="primary", on="click swipe.left"),
                 className="row-actions",
             ),
             div(*dots, className="seg"),
         )
         if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
+            return div(
+                *kids,
+                id=self.id,
+                className="widget",
+                data_channel_on="swipe.horizontal threshold:48",
+            )
         return f'<div id="{self.id}">{sku}</div>'
 
     @action(caps=())
     def next(self):
         self.index = (int(self.index or 0) + 1) % len(self.SLIDES)
         tick(self)
-        return update_with(self, maybe_plan("car-next", f"#{self.id}", ms=100))
+        return update_with(
+            self, maybe_slide("car-next", f"#{self.id}", direction="next", ms=180)
+        )
 
     @action(caps=())
     def prev(self):
         self.index = (int(self.index or 0) - 1) % len(self.SLIDES)
         tick(self)
-        return update_with(self)
+        return update_with(
+            self, maybe_slide("car-prev", f"#{self.id}", direction="prev", ms=180)
+        )
 
     @action(caps=())
     def go(self, n: str = "0"):
@@ -106,7 +117,9 @@ class Carousel(Component):
         except ValueError:
             self.index = 0
         tick(self)
-        return update_with(self)
+        return update_with(
+            self, maybe_slide("car-go", f"#{self.id}", direction="next", ms=160)
+        )
 
 
 class Comments(Component):

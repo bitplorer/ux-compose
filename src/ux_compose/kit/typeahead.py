@@ -40,7 +40,7 @@ def _plan(name: str, target: str, *, ms: int = 100):
 class Typeahead(Component):
     """Type. Hits morph. Pick is a name.
 
-    The input carries ``data-channel-action`` + ``data-channel-on=\"input delay:200\"``.
+    The input carries ``data-channel-action`` + ``data-channel-on=\"input delay:300\"``.
     Query is RefState so the typed string survives the morph.
     """
 
@@ -133,7 +133,7 @@ class Typeahead(Component):
             span("Live filter", className=self.class_kicker),
             h2("Typeahead", className=self.class_title),
             p(
-                "Each keystroke is an Intent after delay:200. No Filter button.",
+                "Each keystroke is an Intent after delay:300. No Filter button.",
                 className=self.class_lede,
             ),
             p(f"Picked · {val}" if val else "Nothing picked.", className=self.class_choice),
@@ -145,7 +145,7 @@ class Typeahead(Component):
                 autocomplete="off",
                 className=self.class_input,
                 aria_autocomplete="list",
-                data_channel_on="input delay:200",
+                data_channel_on="input delay:300",
                 **bind(self.query_hits),
             ),
             listing,

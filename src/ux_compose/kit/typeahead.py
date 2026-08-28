@@ -26,22 +26,13 @@ from ux_compose import (
 )
 
 
-def _plan(name: str, target: str, *, ms: int = 100):
-    try:
-        from ux_compose import scene, fade
-
-        if scene is None or fade is None:
-            return None
-        return scene(name).enter(target, fade.enter(ms=ms))
-    except Exception:
-        return None
-
-
 class Typeahead(Component):
     """Type. Hits morph. Pick is a name.
 
     The input carries ``data-channel-action`` + ``data-channel-on=\"input delay:300\"``.
-    Query is RefState so the typed string survives the morph.
+    Live Results morph ``#{id}-hits`` only — the field is not in that HTML, so
+    a pause-fired Result cannot rewrite what is still being typed.
+    Query is RefState so pick / empty-q still know the string.
     """
 
     id = "typeahead"
@@ -105,7 +96,7 @@ class Typeahead(Component):
                 break
         return tuple(hits)
 
-    def render(self):
+    def _listing(self):
         q = str(self.query or "")
         val = str(self.value or "")
         hits = self._hits()
@@ -121,7 +112,7 @@ class Typeahead(Component):
             )
             for i, x in enumerate(hits)
         ]
-        listing = (
+        body = (
             ul(*rows, className=self.class_list, role="listbox")
             if rows
             else p(
@@ -129,26 +120,34 @@ class Typeahead(Component):
                 className=self.class_empty,
             )
         )
+        return div(body, id=f"{self.id}-hits")
+
+    def render(self):
+        q = str(self.query or "")
+        val = str(self.value or "")
         return div(
             span("Live filter", className=self.class_kicker),
             h2("Typeahead", className=self.class_title),
             p(
-                "Each keystroke is an Intent after delay:300. No Filter button.",
+                "The list follows after a 300ms pause. The field keeps what you type.",
                 className=self.class_lede,
             ),
             p(f"Picked · {val}" if val else "Nothing picked.", className=self.class_choice),
             input_(
                 type="search",
+                id=f"{self.id}-q",
                 name="q",
                 value=q,
                 placeholder="Linen, oak, wool…",
                 autocomplete="off",
                 className=self.class_input,
                 aria_autocomplete="list",
+                aria_controls=f"{self.id}-hits",
                 data_channel_on="input delay:300",
+                data_channel_target=f"#{self.id}-hits",
                 **bind(self.query_hits),
             ),
-            listing,
+            self._listing(),
             id=self.id,
             className=self.class_card,
         )
@@ -159,11 +158,23 @@ class Typeahead(Component):
         else:
             self.query = str(q)
 
+    def _hits_slot(self):
+        tree = self._listing()
+        slot_id = f"{self.id}-hits"
+
+        class _Hits:
+            id = slot_id
+
+            def render(self):
+                return tree
+
+        return _Hits()
+
     @action(caps=())
     def query_hits(self, q: str = "", **kwargs):
         self._take_q(q=q, **kwargs)
         self._tick()
-        return update_with(self, _plan("ta-q", f"#{self.id}", ms=80))
+        return update_with(self._hits_slot())
 
     @action(caps=())
     def pick(self, key: str = "", q: str = "", **kwargs):

@@ -19,8 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Typeahead: `input delay:300`. Later `input`/`change` of the same
   control aborts the in-flight Intent (Channel AbortController on
-  `postIntent`) so a slower earlier Result cannot morph after a later
-  keystroke. No kit JS. No companion CSS.
+  `postIntent`). Live Results morph `#typeahead-hits` only — the field
+  (`#typeahead-q`) is not in that HTML, so a pause-fired Result cannot
+  rewrite what is still being typed. Pick still morphs the card so the
+  name can land in the field. No kit JS. No companion CSS.
 
 - Dialog: card drops `relative` / overflow so a `fixed` overlay is not remapped
   or clipped on a narrow stage. Swipe lives on Keep it

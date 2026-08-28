@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Typeahead: `input delay:300`. Later `input`/`change` of the same
+  control aborts the in-flight Intent (Channel AbortController on
+  `postIntent`) so a slower earlier Result cannot morph after a later
+  keystroke. No kit JS. No companion CSS.
+
 - Dialog: card drops `relative` / overflow so a `fixed` overlay is not remapped
   or clipped on a narrow stage. Swipe lives on Keep it
   (`click swipe.down`), not a root swipe and not Delete (Cap). Panel, scrim,

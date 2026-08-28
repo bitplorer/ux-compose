@@ -76,10 +76,27 @@ def test_contextmenu_longpress_attr_on_trigger_only():
     assert not bool(inst.open)
 
 
+def _morph_html(ops) -> str:
+    chunks = []
+    for op in ops or []:
+        if isinstance(op, dict):
+            chunks.append(str(op.get("html") or ""))
+            chunks.append(str(op.get("target") or ""))
+            continue
+        payload = getattr(op, "payload", None)
+        if isinstance(payload, dict):
+            chunks.append(str(payload.get("html") or ""))
+            chunks.append(str(payload.get("target") or ""))
+        chunks.append(str(op))
+    return "\n".join(chunks)
+
+
 def test_typeahead_query_and_pick():
     app = _boot(Typeahead, strict_caps=False)
     html = _html(app, "typeahead")
     assert "input delay:300" in html
+    assert 'id="typeahead-q"' in html
+    assert 'id="typeahead-hits"' in html
     assert "Linen work shirt" in html
     app.dispatch("typeahead.query_hits", q="oak")
     html = _html(app, "typeahead")
@@ -95,6 +112,23 @@ def test_typeahead_query_and_pick():
     app.dispatch("typeahead.pick", key="Oak stool")
     inst = app.behavior.get("typeahead")
     assert str(inst.value) == "Oak stool"
+
+
+def test_typeahead_live_morphs_hits_not_field():
+    """A pause-fired Result must not resend the focused field."""
+    app = _boot(Typeahead, strict_caps=False)
+    inst = app.behavior.get("typeahead")
+    ops = inst.query_hits(q="oak")
+    blob = _morph_html(ops)
+    assert "typeahead-hits" in blob
+    assert "typeahead-q" not in blob
+    assert 'name="q"' not in blob
+    assert "Oak serving board" in blob
+    ops = inst.query_hits(q="Ln")
+    blob = _morph_html(ops)
+    assert "typeahead-hits" in blob
+    assert "No pieces match" in blob
+    assert 'name="q"' not in blob
 
 
 def test_pullrefresh_grows_then_catches():

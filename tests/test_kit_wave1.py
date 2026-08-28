@@ -79,7 +79,7 @@ def test_contextmenu_longpress_attr_on_trigger_only():
 def test_typeahead_query_and_pick():
     app = _boot(Typeahead, strict_caps=False)
     html = _html(app, "typeahead")
-    assert "input delay:200" in html
+    assert "input delay:300" in html
     assert "Linen work shirt" in html
     app.dispatch("typeahead.query_hits", q="oak")
     html = _html(app, "typeahead")

@@ -32,6 +32,18 @@ from ux_compose.kit.actionsheet import ActionSheet
 from ux_compose.kit.contextmenu import ContextMenu
 from ux_compose.kit.typeahead import Typeahead
 from ux_compose.kit.pullrefresh import PullRefresh
+from ux_compose.kit.rating import Rating
+from ux_compose.kit.kanban import Kanban
+from ux_compose.kit.timeline import Timeline
+from ux_compose.kit.kpi import Kpi
+from ux_compose.kit.slider import Slider
+from ux_compose.kit.lightbox import Lightbox
+from ux_compose.kit.wishlist import Wishlist
+from ux_compose.kit.progress import Progress
+from ux_compose.kit.empty import Empty
+from ux_compose.kit.presence import Presence
+from ux_compose.kit.chips import Chips
+from ux_compose.kit.skeleton import Skeleton
 
 __all__ = [
     "AuthDecision",
@@ -58,4 +70,16 @@ __all__ = [
     "ContextMenu",
     "Typeahead",
     "PullRefresh",
+    "Rating",
+    "Kanban",
+    "Timeline",
+    "Kpi",
+    "Slider",
+    "Lightbox",
+    "Wishlist",
+    "Progress",
+    "Empty",
+    "Presence",
+    "Chips",
+    "Skeleton",
 ]

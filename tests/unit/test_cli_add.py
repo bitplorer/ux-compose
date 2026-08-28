@@ -55,6 +55,18 @@ def test_catalog_has_login():
         "contextmenu",
         "typeahead",
         "pullrefresh",
+        "rating",
+        "kanban",
+        "timeline",
+        "kpi",
+        "slider",
+        "lightbox",
+        "wishlist",
+        "progress",
+        "empty",
+        "presence",
+        "chips",
+        "skeleton",
     ):
         assert stem in CATALOG
         assert CATALOG[stem]["css"] is False

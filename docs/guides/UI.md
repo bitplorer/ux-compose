@@ -43,9 +43,10 @@ print(app.dispatch("tabs.select", tab="make"))
 - [Confirm modal](#confirm-modal)
 - [Counter (live-safe)](#counter-live-safe)
 - [Cart](#cart)
+- [Ownable kit](#ownable-kit)
 
 Accordion, signup form, toasts, motion box, and Card kit: [SNIPPETS.md](SNIPPETS.md)
-and repo `examples/`.
+and repo `examples/`. Ownable copies: [Ownable kit](#ownable-kit).
 
 ---
 
@@ -347,6 +348,67 @@ class Cart(Component):
     def checkout(self):
         return [notify("Checkout started")]
 ```
+
+---
+
+## Ownable kit
+
+The library holds the source of truth. `uxcompose add` copies a Component
+into the app so you can edit it. Tests, the Atelier, and agents may import
+from `ux_compose.kit`; product apps own the file after `add`.
+
+```bash
+uxcompose add --list
+uxcompose add rating
+uxcompose add kanban --page
+```
+
+Play the promoted widgets in the Atelier of Patterns (`apps/atelier_studio`):
+`/p/rating`, `/p/kanban`, `/p/timeline`, `/p/kpi`, `/p/slider`, `/p/lightbox`,
+`/p/wishlist`, `/p/progress`, `/p/empty-retry`, `/p/presence`, `/p/chips`,
+`/p/skeleton`.
+
+| Add | Class | Encoding |
+|-----|--------|----------|
+| `login` | Login | Reveal MorphState · secrets RefState · submit Cap |
+| `tabs` | Tabs | One named key MorphState |
+| `accordion` | Accordion | Open ids as a MorphState tuple |
+| `dropdown` | Dropdown | Open + value MorphState |
+| `dialog` | Dialog | Open MorphState · confirm Cap |
+| `sheet` | Sheet | Edge presence · swipe on Close / Done |
+| `toast` | Toast | Items RefState + stamp |
+| `command` | Command | Query MorphState |
+| `table` | Table | Sort key MorphState · selection RefState · archive Cap |
+| `pagination` | Pagination | Opaque page keys |
+| `combobox` | Combobox | Query + value MorphState |
+| `sidebar` | Sidebar | Active key MorphState |
+| `breadcrumb` | Breadcrumb | Named crumbs |
+| `stepper` | Stepper | Named steps · finish Cap |
+| `carousel` | Carousel | Named slides |
+| `calendar` | Calendar | Named month · day key |
+| `select` | Select | Grouped named value |
+| `otp` | Otp | Digits RefState · verify Cap |
+| `plans` | Plans | Named plan MorphState |
+| `actionsheet` | ActionSheet | Open MorphState · archive Cap |
+| `contextmenu` | ContextMenu | Open MorphState |
+| `typeahead` | Typeahead | Query MorphState · hits morph only |
+| `pullrefresh` | PullRefresh | Phase MorphState · swipe.down |
+| `rating` | Rating | Named stars MorphState |
+| `kanban` | Kanban | Lane ids RefState + stamp · archive Cap |
+| `timeline` | Timeline | Named filter MorphState · events RefState |
+| `kpi` | Kpi | Magnitudes RefState + stamp · reset Cap |
+| `slider` | Slider | Percent RefState · band MorphState |
+| `lightbox` | Lightbox | Open + named slide MorphState |
+| `wishlist` | Wishlist | Ids RefState + stamp |
+| `progress` | Progress | Pct RefState · phase/band MorphState |
+| `empty` | Empty | Phase empty\|loading\|error\|ready MorphState |
+| `presence` | Presence | Self MorphState · peers RefState |
+| `chips` | Chips | Tag set RefState + stamp |
+| `skeleton` | Skeleton | Loading MorphState |
+
+Each widget is one `Component`. Tailwind lives on `class_*` strings. Motion
+(`scene` / `rise` / `fade`) is additive — if ux-motion is missing, the morph
+still lands. Host seams are `ITEMS` / `on_*()` overrides on the copy.
 
 ---
 

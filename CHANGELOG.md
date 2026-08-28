@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   carousel, calendar, select, otp, plans.
 - Kit Wave 1 (Signal grammar): `actionsheet`, `contextmenu`, `typeahead`, `pullrefresh`.
   Tailwind `class_*` only. `data-channel-on` for swipe.vertical / longpress / input delay:.
+- Kit Wave 2 (product surfaces): `rating`, `kanban`, `timeline`, `kpi`, `slider`,
+  `lightbox`, `wishlist`, `progress`, `empty`, `presence`, `chips`, `skeleton`.
+  Named MorphState / silent RefState. Caps on `kanban.archive` and `kpi.reset`.
+  Overlay lightbox has no containing-block card. Motion is additive. Play in
+  Atelier `/p/rating` … `/p/skeleton`.
 
 ### Changed
 

@@ -73,6 +73,8 @@ REFUSE = {
     "comments.moderate",
     "calendar.book",
     "settings.wipe",
+    "kpi.reset",
+    "kanban.archive",
 }
 # Host routing keys — never forwarded into @action kwargs.
 HOST_KEYS = {"action", "submit", "slug", "target"}
@@ -220,6 +222,8 @@ def _shell(*main_kids: Any, flash: str = "") -> str:
                     href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap",
                 ),
                 link(rel="stylesheet", href="/static/css/atelier.css"),
+                script("tailwind.config = {corePlugins:{preflight:false}}"),
+                script(src="https://cdn.tailwindcss.com"),
                 script(src="/static/idiomorph.min.js"),
                 script(src="/ux-pkg/ux-motion/static/ux-motion-player.js"),
             ),

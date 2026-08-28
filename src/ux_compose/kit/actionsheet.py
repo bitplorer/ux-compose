@@ -2,6 +2,12 @@
 
 Host seam: override ``ACTIONS`` and ``on_pick(key)``. Destructive keys spend a Cap.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+Live: the root ``id`` is the region. Channel picks it up.
+Swipe lives on the handle and Cancel, not the root. A host-level
+``swipe.vertical`` captures the pointer and swallows clicks on the
+rows. Handle accepts ``click swipe.down swipe.vertical``. Rows stay
+``click``. Same synthesizer, no extra JS.
 """
 
 from __future__ import annotations
@@ -22,13 +28,23 @@ from ux_compose import (
 )
 
 
-def _plan(name: str, target: str, *, y: float = 28, ms: int = 180):
-    try:
-        from ux_compose import scene, slide
+def _open_plan(cid: str = "actionsheet"):
+    """Enter the overlay after morph inserts it. Selectors only — no html=.
 
-        if scene is None or slide is None:
+    Presence is a Motion HOF. Same-node chrome is CSS.
+    Close is morph-only: the panel is gone after apply, so an exit recipe
+    in the same Result has nothing to play.
+    """
+    try:
+        from ux_compose import scene, fade, slide
+
+        if scene is None or fade is None or slide is None:
             return None
-        return scene(name).enter(target, slide.enter(y=y, ms=ms))
+        return (
+            scene("actionsheet-open")
+            .enter(f"#{cid}-scrim", fade.enter(ms=120))
+            .enter(f"#{cid}-panel", slide.enter(y=32, ms=180))
+        )
     except Exception:
         return None
 
@@ -36,9 +52,11 @@ def _plan(name: str, target: str, *, y: float = 28, ms: int = 180):
 class ActionSheet(Component):
     """A sheet from the bottom. Presence is MorphState. Pick is a named key.
 
-    Swipe lives on the **handle**, not the root. A host-level
+    Swipe lives on the **handle** and Cancel, not the root. A host-level
     ``swipe.vertical`` captures the pointer and swallows clicks on the
     rows. Handle accepts ``click swipe.down``. Rows stay ``click``.
+    The card is not a containing block (no ``relative``, no overflow clip)
+    so ``fixed`` overlay is not trapped. Panel and scrim keep stable ids.
     """
 
     id = "actionsheet"
@@ -65,8 +83,8 @@ class ActionSheet(Component):
     )
     class_scrim = "fixed inset-0 z-40 cursor-pointer border-0 bg-stone-900/40"
     class_panel = (
-        "fixed inset-x-0 bottom-0 z-50 flex max-h-[min(28rem,80dvh)] flex-col gap-2 "
-        "rounded-t-3xl border border-stone-200 bg-white px-5 pb-7 pt-1 shadow-xl"
+        "fixed inset-x-0 bottom-0 z-50 flex max-h-[min(28rem,80dvh)] touch-pan-x select-none "
+        "flex-col gap-2 rounded-t-3xl border border-stone-200 bg-white px-5 pb-7 pt-1 shadow-xl"
     )
     class_handle_hit = (
         "mx-auto flex min-h-11 w-full cursor-grab items-center justify-center "
@@ -111,6 +129,7 @@ class ActionSheet(Component):
                 button(
                     span("Close", className=self.class_sr),
                     type="button",
+                    id=f"{self.id}-scrim",
                     className=self.class_scrim,
                     aria_label="Close",
                     **bind(self.close),
@@ -120,6 +139,7 @@ class ActionSheet(Component):
                         span("Dismiss", className=self.class_sr),
                         div("", className=self.class_handle),
                         type="button",
+                        id=f"{self.id}-dismiss",
                         className=self.class_handle_hit,
                         aria_label="Dismiss",
                         data_channel_on="click swipe.down swipe.vertical threshold:48",
@@ -131,15 +151,16 @@ class ActionSheet(Component):
                     button(
                         "Cancel",
                         type="button",
+                        id=f"{self.id}-cancel",
                         className=self.class_btn_ghost + " mt-1 text-stone-500",
                         data_channel_on="click swipe.down",
                         **bind(self.close),
                     ),
+                    id=f"{self.id}-panel",
                     className=self.class_panel,
                     role="dialog",
                     aria_modal="true",
                     aria_labelledby=f"{self.id}-title",
-                    style="touch-action:pan-x;user-select:none;",
                 ),
             ]
         return div(
@@ -167,13 +188,13 @@ class ActionSheet(Component):
     def open_sheet(self):
         self.open = True
         self._tick()
-        return update_with(self, _plan("sheet-open", f"#{self.id}", y=32, ms=180))
+        return update_with(self, _open_plan(self.id))
 
     @action(caps=())
     def close(self):
         self.open = False
         self._tick()
-        return update_with(self, _plan("sheet-close", f"#{self.id}", y=16, ms=140))
+        return update_with(self)
 
     @action(caps=())
     def pick(self, key: str = ""):
@@ -183,11 +204,7 @@ class ActionSheet(Component):
         self.picked = key
         self.open = False
         self._tick()
-        return update_with(
-            self,
-            _plan("sheet-pick", f"#{self.id}", y=12, ms=120),
-            extra_ops=[notify(self.on_pick(key))],
-        )
+        return update_with(self, extra_ops=[notify(self.on_pick(key))])
 
     @action(caps=("orders.archive",))
     def archive(self, key: str = ""):

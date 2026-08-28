@@ -37,15 +37,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   last + gaps are `max-sm:hidden` so page 1 cannot sit on Prev on a phone.
   Prev is one named page back (p6 → p5), disabled on the first page. 44px
   chevrons on one nowrap row. Demo has 12 named pages.
-- ActionSheet: swipe lives on the handle, not the root. A host-level
-  `swipe.vertical` captured the pointer and swallowed row clicks (Share /
-  Cancel did nothing). Handle is a 44px hit that accepts
-  `click swipe.down`. Root stamps `data-channel-id`. Card is not `relative`
-  so a host that contains `fixed` overlays does not clip the panel.
-- Carousel chrome: Prev / Next overlay the stage (44px chevrons, left / right),
-  dots are the only bottom rail, index is a watermark. One `#id-thumb` pip
-  translates across equal slots (`transition-transform`), so the active
-  indicator coalesces into the next instead of jumping. Root stamps
+- ActionSheet: 3-door. Card drops `relative` / overflow so a `fixed`
+  overlay is not remapped or clipped. Swipe lives on the handle and
+  Cancel (`click swipe.down`), not a root `swipe.vertical` (that swallowed
+  row clicks). Panel, scrim, dismiss and cancel keep stable ids. Open
+  composes a Motion enter plan (fade scrim, slide panel) — selectors
+  only, no Channel attr, no kit JS. Close / pick are morph-only: after
+  apply the panel is gone.
+- Carousel chrome: Prev / Next overlay the stage (44px chevrons, left / right).
+  Dots overlay a locked `h-72` stage so unequal title wrap cannot
+  translate the rail. One `#id-thumb` pip translates across equal slots
+  (`transition-transform` / `translate3d`), so the active indicator
+  coalesces into the next instead of jumping. Root stamps
   `data-channel-id` so the slot is `#id` and `[data-channel-id]` together.
   No wrapping text bar — that stacked the buttons on a narrow card.
   Copy is the live region (chrome is not). Dots label the slide title.

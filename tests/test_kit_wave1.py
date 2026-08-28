@@ -37,6 +37,10 @@ def test_actionsheet_open_pick_close():
     assert "Dismiss" in html
     assert "swipe.vertical" in html
     assert "swipe.down" in html
+    assert 'id="actionsheet-panel"' in html
+    assert 'id="actionsheet-scrim"' in html
+    assert 'id="actionsheet-dismiss"' in html
+    assert "relative" not in ActionSheet.class_card
     app.dispatch("actionsheet.pick", key="share")
     inst = app.behavior.get("actionsheet")
     assert str(inst.picked) == "share"

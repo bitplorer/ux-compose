@@ -1,4 +1,4 @@
-"""Drop-in kit chrome: tabs, accordion, dropdown, dialog, sheet, toast,
+"""Drop-in kit chrome: tabs, accordion, dropdown, dialog, sheet, actionsheet, toast,
 command, table, pagination, combobox. Public verbs, Caps, attach-on-morph.
 """
 from __future__ import annotations
@@ -14,6 +14,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from ux_compose import App, HAS_DOM
 from ux_compose.kit import (
     Accordion,
+    ActionSheet,
     Combobox,
     Command,
     Dialog,
@@ -137,6 +138,7 @@ def test_dialog_open_close():
     assert 'id="dialog-confirm"' in html
     assert "swipe.down" in html
     assert "swipe.horizontal" not in html
+    assert "translate" not in Dialog.class_panel
     app.dispatch("dialog.cancel")
     inst = app.behavior.get("dialog")
     assert not bool(inst.open)
@@ -171,6 +173,34 @@ def test_sheet_open_close():
     assert not bool(inst.open)
     html = _html(app, "sheet")
     assert "sheet-panel" not in html
+
+
+def test_actionsheet_open_close():
+    # Card is not a containing block. relative + overflow remaps fixed
+    # overlay to the card and clips it on a narrow stage.
+    assert "relative" not in ActionSheet.class_card
+    assert "overflow" not in ActionSheet.class_card
+
+    app = _boot(ActionSheet, strict_caps=False)
+    closed = _html(app, "actionsheet")
+    assert "swipe.vertical" not in closed
+    assert 'data-channel-id="actionsheet"' in closed or "data_channel_id" in closed
+
+    app.dispatch("actionsheet.open_sheet")
+    html = _html(app, "actionsheet")
+    assert "Share this piece" in html
+    assert 'data-open="1"' in html
+    assert 'id="actionsheet-panel"' in html
+    assert 'id="actionsheet-scrim"' in html
+    assert 'id="actionsheet-dismiss"' in html
+    assert 'id="actionsheet-cancel"' in html
+    assert "swipe.down" in html
+    assert html.count("swipe.vertical") == 1
+    app.dispatch("actionsheet.close")
+    inst = app.behavior.get("actionsheet")
+    assert not bool(inst.open)
+    html = _html(app, "actionsheet")
+    assert "actionsheet-panel" not in html
 
 
 def test_toast_push_dismiss_clear():

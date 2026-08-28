@@ -225,6 +225,7 @@ def _shell(*main_kids: Any, flash: str = "") -> str:
                 script("tailwind.config = {corePlugins:{preflight:false}}"),
                 script(src="https://cdn.tailwindcss.com"),
                 script(src="/static/idiomorph.min.js"),
+                script(src="/static/atelier.js"),
                 script(src="/ux-pkg/ux-motion/static/ux-motion-player.js"),
             ),
             body(
@@ -403,6 +404,13 @@ def build_asgi():
         if not _IDIOMORPH.is_file():
             return Response(status_code=404)
         return FileResponse(_IDIOMORPH, media_type="application/javascript")
+
+    @asgi.get("/static/atelier.js")
+    def atelier_js():
+        js = _STATIC / "atelier.js"
+        if not js.is_file():
+            return Response(status_code=404)
+        return FileResponse(js, media_type="application/javascript")
 
     @asgi.get("/static/css/atelier.css")
     def atelier_css():

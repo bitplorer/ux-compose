@@ -103,6 +103,10 @@ def test_carousel_wraps():
         assert "translate3d(1.5rem" in html
         assert "transition-transform" in html
         assert "aria-roledescription" in html
+        assert "h-72" in Carousel.class_stage
+        assert "min-h-" not in Carousel.class_stage
+        assert "absolute" in Carousel.class_dots_row
+        assert "inset-x-0" in html
     app.dispatch("carousel.goto", key="clay")
     app.dispatch("carousel.next")
     inst = app.behavior.get("carousel")

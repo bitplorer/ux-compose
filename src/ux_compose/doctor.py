@@ -158,10 +158,262 @@ def scan_dual_document(paths: Iterable[str | Path]) -> list[str]:
 
 
 def _skip_kit_scan(path: Path) -> bool:
-    sp = _norm(p) if False else _norm(path)
+    sp = _norm(path)
     if "site-packages" in sp:
         return True
     for token in _KIT_IMPORT_SKIP:
         if token in sp:
             return True
     return False
+
+
+def scan_kit_product_imports(paths: Iterable[str | Path]) -> list[str]:
+    """Teaching: product trees copy the kit, they do not import it.
+
+    Tests, ``src/ux_compose/``, and ``examples/`` are allowed. Residuals are
+    not Isolation violations — doctor stays green, the message teaches.
+    """
+    diagnostics: list[str] = []
+    for raw in paths:
+        p = Path(raw)
+        if not p.exists() or p.suffix != ".py":
+            continue
+        if _skip_kit_scan(p):
+            continue
+        try:
+            src = p.read_text(encoding="utf-8")
+            tree = ast.parse(src, filename=str(p))
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            mod = node.module or ""
+            if mod == "ux_compose.kit" or mod.startswith("ux_compose.kit."):
+                names = ", ".join(a.name for a in node.names)
+                diagnostics.append(
+                    f"residual in {p}: `from {mod} import {names}`. "
+                    f"One catalog rule — `uxcompose add` copies the widget into "
+                    f"your tree. The library kit stays the source of truth; the "
+                    f"copy is yours to edit. Tests and the Atelier may still import."
+                )
+    return diagnostics
+
+
+def scan_leftover_aliases(paths: Iterable[str | Path]) -> list[str]:
+    """Teaching: leftover aliases still exist so old tests pass. Do not invent them."""
+    diagnostics: list[str] = []
+    for raw in paths:
+        p = Path(raw)
+        if not p.exists() or p.suffix != ".py":
+            continue
+        sp = _norm(p)
+        if "/tests/" in sp or "/src/ux_compose/" in sp or "site-packages" in sp:
+            continue
+        try:
+            src = p.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        for token in _LEFTOVER_TOKENS:
+            if token in src:
+                diagnostics.append(
+                    f"residual in {p}: leftover `{token}`. Clock A product host "
+                    f"is FastAPI (`host=\"auto\"|\"fastapi\"`). DirectoryASGI is "
+                    f"the no-Starlette degrade. Do not invent a second pipeline."
+                )
+                break
+    return diagnostics
+
+
+@dataclass
+class DoctorResult:
+    ok: bool = True
+    level_available: int = 0
+    diagnostics: List[str] = field(default_factory=list)
+    capabilities: dict = field(default_factory=dict)
+    teaching: List[str] = field(default_factory=list)
+    surfaces: List[str] = field(default_factory=list)
+    routes: List[str] = field(default_factory=list)
+
+    def raise_if_failed(self):
+        if not self.ok:
+            raise IsolationViolation("\n".join(self.diagnostics))
+
+
+def _detect_capabilities() -> dict:
+    from ux_compose.dx.probe import probe
+
+    pr = probe()
+    caps = {
+        "ux_dom": pr.has_dom,
+        "ux_behavior": pr.has_behavior,
+        "ux_motion": pr.has_motion,
+        "ux_channel": pr.has_channel,
+        "directory_routes": True,
+    }
+    return caps
+
+
+def _teaching_for_level(level: int, caps: dict) -> list[str]:
+    """Progressive unlock teaching messages."""
+    lines = []
+    if level < 1:
+        lines.append(
+            "You are at Level 0 (static). To unlock offline interactive Components + MorphState + @action: "
+            "pip install ux-behavior  then  App.boot(...).use_behavior()"
+        )
+    if level < 2 and caps.get("ux_behavior"):
+        lines.append(
+            "You are at Level 1 (offline interactive). To unlock live Caps + morph over the wire: "
+            "pip install ux-channel  then  app.use_channel(asgi_app=...)"
+        )
+    if level < 3 and caps.get("ux_channel"):
+        lines.append(
+            "You are at Level 2 (live). To unlock choreographed presence + Scenes: "
+            "pip install ux-motion  then  app.use_motion()"
+        )
+    if level >= 3:
+        lines.append("Full progressive stack available (L3). Isolation + Caps + Motion are all first-class.")
+    if caps.get("directory_routes"):
+        lines.append(
+            "Product path: uxcompose create-app + build() "
+            "(routes/ + stem match via DirectoryRoutes). "
+            "App.mount is a library mount for tests and surfaces — not a second product."
+        )
+    lines.append(
+        "One catalog: uxcompose add copies a kit widget into your tree. "
+        "Do not `from ux_compose.kit import` in product apps."
+    )
+    lines.append(
+        "Progressive Superpower Contract: code written at Level 1 remains correct and unchanged "
+        "when you unlock higher levels. Zero rewrite."
+    )
+    try:
+        from ux_compose.degrade import format_report
+
+        for row in format_report():
+            lines.append(row)
+    except Exception:
+        pass
+    return lines
+
+
+def doctor(
+    paths: Optional[Iterable[str | Path]] = None,
+    *,
+    fail: bool = True,
+    bundle: Any = None,
+) -> DoctorResult:
+    """
+    Run the protective coach.
+
+    - Scans for Isolation violations and dual-Document heuristics
+    - Teaches kit-import and leftover-alias residuals (not fail-closed)
+    - Reports progressive specialists + DirectoryRoutes (page-unit path)
+    - Emits teaching messages for the next unlock and create-app / build() guidance
+    - Optionally records evidence from a sealed SurfaceBundle (surfaces, routes)
+    - Fails closed (raises) when fail=True and hard violations found
+
+    ``bundle`` is optional and additive — pass the return value of build() /
+    App.mount / mount_surfaces for route-table evidence without changing scan behaviour.
+    """
+    caps = _detect_capabilities()
+    level = 0
+    if caps.get("ux_behavior"):
+        level = 1
+    if caps.get("ux_channel"):
+        level = 2
+    if caps.get("ux_motion"):
+        level = 3
+
+    diagnostics: list[str] = []
+    expanded: list[Path] = []
+    if paths:
+        for p in paths:
+            pp = Path(p)
+            if pp.is_dir():
+                expanded.extend(pp.rglob("*.py"))
+            elif pp.suffix == ".py":
+                expanded.append(pp)
+        diagnostics.extend(scan_isolation(expanded))
+        diagnostics.extend(scan_dual_document(expanded))
+        diagnostics.extend(scan_kit_product_imports(expanded))
+        diagnostics.extend(scan_leftover_aliases(expanded))
+
+    teaching = _teaching_for_level(level, caps)
+
+    surface_ids: list[str] = []
+    route_paths: list[str] = []
+    if bundle is not None:
+        surfaces_map = getattr(bundle, "surfaces", None) or {}
+        if isinstance(surfaces_map, dict):
+            surface_ids = sorted(str(k) for k in surfaces_map.keys())
+        table = getattr(bundle, "route_table", None) or []
+        if isinstance(table, list):
+            for rec in table:
+                if isinstance(rec, dict) and rec.get("path"):
+                    route_paths.append(str(rec["path"]))
+        errs = getattr(bundle, "errors", None) or []
+        if errs:
+            for e in errs:
+                diagnostics.append(f"surface bundle: {e}")
+        if not getattr(bundle, "sealed", True):
+            diagnostics.append("surface bundle is not sealed — mount may be incomplete")
+
+    hard = [
+        d
+        for d in diagnostics
+        if "violation" in d.lower() or "dual-document risk" in d.lower()
+    ]
+    result = DoctorResult(
+        ok=len(hard) == 0,
+        level_available=level,
+        diagnostics=diagnostics,
+        capabilities=caps,
+        teaching=teaching,
+        surfaces=surface_ids,
+        routes=route_paths,
+    )
+    if fail and not result.ok:
+        result.raise_if_failed()
+    return result
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="ux-compose doctor — protective coach for Isolation, Document SSoT, and progressive unlock"
+    )
+    parser.add_argument("paths", nargs="*", help="Python files or dirs to scan (default: .)")
+    parser.add_argument("--no-fail", action="store_true", help="Report only, do not raise on violations")
+    args = parser.parse_args(argv)
+    paths = args.paths or ["."]
+    res = doctor(paths, fail=False)
+
+    print("ux-compose doctor — protective coach")
+    print(f"  Progressive level available: L{res.level_available}")
+    print("  Capabilities:")
+    for k, v in res.capabilities.items():
+        print(f"    {'✓' if v else '·'} {k}")
+    if res.teaching:
+        print("  Next unlock guidance:")
+        for t in res.teaching:
+            print(f"    → {t}")
+    if res.surfaces:
+        print(f"  Surfaces: {', '.join(res.surfaces)}")
+    if res.routes:
+        print(f"  Routes: {', '.join(res.routes)}")
+    if res.diagnostics:
+        print("  Diagnostics:")
+        for d in res.diagnostics:
+            print(f"    - {d}")
+        hard = any("violation" in d.lower() or "dual-document risk" in d.lower() for d in res.diagnostics)
+        return 0 if args.no_fail or not hard else 1
+    if not res.ok:
+        return 0 if args.no_fail else 1
+    print("  Isolation: OK — product autonomy and offline progressive path protected.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

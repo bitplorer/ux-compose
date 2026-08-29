@@ -19,7 +19,7 @@ Author  →  ux_compose (this package root)
               ├─ author helpers   act tick field status maybe_*
               ├─ composition      App Component MorphState @action helpers
               ├─ product host     create-app → build() → serve     ← product door
-              ├─ library mount    App.mount / mount_surfaces       ← tests / surfaces
+              ├─ scan step        App.mount  (called by build())   ← tests / surfaces
               ├─ catalog          ux_compose.kit  +  uxcompose add ← one catalog
               └─ wire/            only importer of channel / CEK   ← Isolation door
 
@@ -73,9 +73,15 @@ uxcompose serve app:asgi
 media type (ADR 0002). DirectoryASGI is the no-Starlette **degrade**, not
 a peer product.
 
-`App.mount` remains. It is a **library mount** for tests, surfaces, and
-agents. Teaching pages call the product path `create-app` → `build()` and
-do not present `App.mount` as a second product.
+`build()` calls `App.mount` internally. One implementation, two callers:
+
+| Caller | Why |
+|--------|-----|
+| `build()` | Product path — host, CSS, HMR, Document wrap. |
+| `App.mount(...)` | Tests, surfaces, agents that do not need the host. |
+
+Mount is the **scan step**, not a second product. Deleting it would drop
+capability. Teaching pages call `create-app` → `build()`.
 
 ---
 
@@ -92,43 +98,79 @@ Product code does **not** `from ux_compose.kit import …`.
 Tests, the Atelier studio, and agents still may — doctor teaches the
 rule rather than deleting the import path.
 
-`OverlayChrome` (`kit/overlay.py`) is the shared overlay primitive
-(stable scrim / panel / dismiss ids, swipe on dismiss not the root,
-selectors-only open plan). Widgets adopt it later. Markup of Dialog /
-Sheet / ActionSheet is unchanged this cut.
+### OverlayChrome — edge overlays
+
+`OverlayChrome` (`kit/overlay.py`) owns stable scrim / panel / dismiss
+ids, dismiss grammar, handle grammar, shipped enter distances, and the
+selectors-only open plan. **Dialog, Sheet, and ActionSheet take chrome
+from this primitive.** Markup and Tailwind `class_*` stay on the widget.
+
+| Widget | kind | edge | swipe |
+|--------|------|------|-------|
+| Dialog | `dialog` | center | dismiss: `click swipe.down` |
+| Sheet | `sheet` | right | dismiss: `click swipe.right` |
+| ActionSheet | `actionsheet` | bottom | handle: `click swipe.down swipe.vertical threshold:48`; cancel: `click swipe.down` |
+
+Shipped enter distances live on the primitive (`EDGE_SLIDE`): right
+`x=28`, bottom `y=32`. Swipe lives on dismiss / handle, never the root
+(root `swipe.*` swallows row clicks).
+
+Anchored popovers (Dropdown, ContextMenu, Combobox, Select) and the
+Command palette are a **different family**. They do not copy OverlayChrome
+ids. Command's panel owns `translate-x` in Tailwind; OverlayChrome `rise`
+would collide with that transform. Do not force one primitive onto two
+interaction families.
 
 ---
 
-## Degrade is visible
+## Degrade is visible and per-App
 
 Level 1 code stays correct when Channel / Motion / CEK are absent. That
 contract is frozen.
 
-Silence was the defect. `ux_compose.degrade.note` records why a higher
-level did not attach. `doctor` prints the list. Return values of
-`use_channel` / `use_motion` / `use_cek` do not change.
+Silence was the defect. Each `App` owns a `DegradeBus`. `note()` writes
+the active bus and dual-writes a process bus so `doctor` always has a
+process-wide audit. Two Apps in one process do not leak. Return values
+of `use_channel` / `use_motion` / `use_cek` do not change.
 
 ```python
-from ux_compose import degrades
+from ux_compose import App, degrades
 app = App.boot("Shop", level=2)   # degrades to L1 if channel is missing
-degrades()                        # evidence, not an exception
+app.degrade_events                # this App
+degrades()                        # active bus (process-wide when unbound)
 ```
 
 ---
 
-## Residuals expire by teaching
+## Leftovers that expire by teaching
 
 These names still exist so 0.1 tests and old snippets do not break.
-Doctor flags them in product trees. Do not invent new ones.
+**That is the design**, not unfinished work. Deleting them is a
+capability drop. Doctor flags them in product trees. Do not invent new
+ones. A future major version may drop them; this tree teaches.
 
-| Residual | Prefer |
+| Leftover | Prefer |
 |----------|--------|
 | `from ux_compose.kit import` in an app | `uxcompose add` |
-| `host="batteries"` / `DirectoryRouter` | `host="auto"` + Clock A FastAPI |
+| `host="batteries"` / `use_host("batteries")` / `DirectoryRouter` | `host="auto"` + Clock A FastAPI |
 | `serve="webassets"` as a product name | `serve="dual_copy"` escape hatch |
-| `App.mount` taught as the product path | `build()` |
+| Teaching `App.mount` as the product path | `build()` (mount is its scan step) |
 | quantity `MorphState` | `RefState` + `tick()` / `stamp` |
 | root `swipe.*` on an overlay card | swipe on dismiss (`OverlayChrome`) |
+
+---
+
+## Git operations (not architecture)
+
+Remote `feat/*`, `kit/*`, `docs/*`, `dx/*` branches are git-ops. They
+are not a second product and not a hole in this tree. Living lines:
+
+- `main`
+- `release/0.1.0`
+- `architecture/clarity-one-door` (this cut)
+
+An ops pass retires the rest. A composition PR does not mass-delete
+them (that would destroy `release/0.1.0` and unmerged kit experiments).
 
 ---
 

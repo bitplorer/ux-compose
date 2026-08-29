@@ -66,8 +66,6 @@ class App:
         auto = isinstance(level, str) and str(level).lower() == "auto"
         if auto:
             app.use_behavior()
-            # Channel/Motion attach in build() once the ASGI process exists,
-            # or via explicit use_channel / use_motion (tests, headless).
             return app
         lv = max(0, min(3, int(level)))
         if lv >= 1:
@@ -142,7 +140,6 @@ class App:
                 return self
             behavior = self._behavior
             if behavior is not None and getattr(behavior, "_wire", None) is not None:
-                # Headless boot landed first — allow attach() to Channel.boot(asgi)
                 behavior._wire = None
             self._channel = None
         self.use_behavior()
@@ -304,8 +301,8 @@ class App:
         """Offline-first dispatch. Same surface for tests, agents, and live.
 
         Channel Intent uses ``args=dict``. L1 uses ``**kwargs``. One door:
-        ``dispatch(\"cart.add\", sku=\"tee\")`` and
-        ``dispatch(\"cart.add\", args={\"sku\": \"tee\"})`` are the same call.
+        ``dispatch("cart.add", sku="tee")`` and
+        ``dispatch("cart.add", args={"sku": "tee"})`` are the same call.
         """
         self.use_behavior()
         kwargs = _unpack_action_kwargs(kwargs)

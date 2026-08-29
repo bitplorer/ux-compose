@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import parse_qs
 
 from ux_compose.build import build
 
@@ -12,6 +13,7 @@ from .runtime import bind_app
 from .seams import ALL, hydrate
 
 PACKAGE = Path(__file__).resolve().parent
+STATIC = PACKAGE / "static"
 
 app, asgi, bundle = build(
     PACKAGE,
@@ -23,5 +25,44 @@ app, asgi, bundle = build(
 app.add(*ALL)
 hydrate(app)
 bind_app(app)
+
+if asgi is not None and callable(getattr(asgi, "post", None)):
+    try:
+        from fastapi.staticfiles import StaticFiles
+
+        asgi.mount("/static", StaticFiles(directory=str(STATIC)), name="floor_static")
+    except Exception:
+        pass
+
+    from fastapi import Request
+
+    @asgi.post("/act/{name}")
+    async def act(name: str, request: Request):
+        raw = await request.body()
+        parsed = parse_qs(raw.decode("utf-8", "replace"))
+        args = {k: (v[0] if v else "") for k, v in parsed.items()}
+        app.dispatch(name, **args)
+        cid = (name or "").split(".", 1)[0]
+        inst = None
+        try:
+            inst = app.behavior.get(cid)
+        except Exception:
+            inst = None
+        html = ""
+        if inst is not None:
+            try:
+                html = inst.__render__(pretty=False)
+            except Exception:
+                html = str(inst.render())
+        ledger_html = ""
+        try:
+            from ux_compose.helpers import _serialize_tree
+
+            from apps.floor.chrome import ledger
+
+            ledger_html = _serialize_tree(ledger())
+        except Exception:
+            ledger_html = ""
+        return {"id": cid, "html": html, "ledger": ledger_html}
 
 __all__ = ["app", "asgi", "bundle", "HOUSE"]

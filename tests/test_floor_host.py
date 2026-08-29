@@ -117,6 +117,30 @@ def test_timeline_and_chips_from_host():
     assert "flax" not in HOUSE.tags
 
 
+def test_act_route_writes_host_and_returns_card():
+    from apps.floor.app import asgi
+
+    if asgi is None or not callable(getattr(asgi, "post", None)):
+        return
+    try:
+        from fastapi.testclient import TestClient
+    except ImportError:
+        return
+    HOUSE.reset()
+    from apps.floor.app import app
+    from apps.floor.seams import hydrate
+
+    hydrate(app)
+    client = TestClient(asgi)
+    res = client.post("/act/rating.set", data={"value": "five"})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["id"] == "rating"
+    assert "Five" in body["html"]
+    assert HOUSE.rating == "five"
+    assert "rate" in body["ledger"]
+
+
 def test_index_page_composes_host_cards():
     app = _boot()
     page = app.behavior.get("index")

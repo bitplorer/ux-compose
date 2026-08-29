@@ -21,6 +21,7 @@ try:
                 "theme:{fontFamily:{serif:['Fraunces','Georgia','serif']}}}"
             ),
             script(src="https://cdn.tailwindcss.com"),
+            script(src="/static/floor.js"),
         ],
         body=[],
         ensure_csrf_token=False,

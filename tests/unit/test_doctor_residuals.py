@@ -38,11 +38,23 @@ def test_kit_import_in_tests_is_silent():
         assert scan_kit_product_imports([tests]) == []
 
 
-def test_leftover_batteries_is_residual():
+def test_leftover_batteries_keyword_is_residual():
     with tempfile.TemporaryDirectory() as td:
         product = Path(td) / "app.py"
         product.write_text(
-            "app.use_host(\"batteries\")\n",
+            'build(PACKAGE, host="batteries")\n',
+            encoding="utf-8",
+        )
+        diags = scan_leftover_aliases([product])
+        assert diags
+        assert any("batteries" in d for d in diags)
+
+
+def test_leftover_use_host_batteries_is_residual():
+    with tempfile.TemporaryDirectory() as td:
+        product = Path(td) / "app.py"
+        product.write_text(
+            'app.use_host("batteries")\n',
             encoding="utf-8",
         )
         diags = scan_leftover_aliases([product])

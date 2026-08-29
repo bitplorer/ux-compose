@@ -48,3 +48,13 @@ def test_author_helpers_are_public_and_match_common():
 
     assert ux.act is common_act
     assert ux.tick is common_tick
+
+
+def test_common_keeps_scene_rise_names():
+    """Atelier examples import scene/rise from _common. None is a legal degrade."""
+    from examples import _common
+
+    assert hasattr(_common, "scene")
+    assert hasattr(_common, "rise")
+    assert hasattr(_common, "fade")
+    assert hasattr(_common, "slide")

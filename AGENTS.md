@@ -2,9 +2,11 @@
 
 Orientation for humans and agents continuing this package.
 
-**First-time:** [START_HERE.md](START_HERE.md). **Map:** [docs/INDEX.md](docs/INDEX.md).
+**First-time:** [START_HERE.md](START_HERE.md). **Shape:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+**Map:** [docs/INDEX.md](docs/INDEX.md).
 
-Read [docs/FLOW.md](docs/FLOW.md) (ownership SSoT) then [START_HERE.md](START_HERE.md)
+Read [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (doors + catalog) then
+[docs/FLOW.md](docs/FLOW.md) (ownership SSoT) then [START_HERE.md](START_HERE.md)
 then [docs/INDEX.md](docs/INDEX.md). Public names: `src/ux_compose/__init__.py` `__all__`.
 
 ## Layer ownership (hard cut)
@@ -26,11 +28,14 @@ Do not invent a sixth product. `ux-app` is retired.
 ## Author-facing surface (do not invent names)
 
 From `__all__`: `App`, `Component`, `MorphState`, `RefState`, `action`, `bind`,
-`control`, `notify`, `update_with`, `morph_play`, `Level`, `doctor`,
-`Surface` / `mount_surfaces`, and DOM tags (`div`, `h1`, `button`, …).
+`control`, `notify`, `update_with`, `morph_play`, `act`, `tick`, `field`,
+`status`, `maybe_plan`, `maybe_fade`, `maybe_slide`, `DegradeEvent`, `degrades`,
+`Level`, `doctor`, `Surface` / `mount_surfaces`, and DOM tags (`div`, `h1`,
+`button`, …).
 
 There is **no** public `ux.div` / `when` / `forall` / `Page` on this package.
 Do not document them. Tags are imported from `ux_compose`.
+`examples/_common.py` re-exports the same author helpers — do not fork it.
 
 ## What not to invent
 
@@ -42,6 +47,7 @@ Do not document them. Tags are imported from `ux_compose`.
 - A copy of Channel codecs, Document serialize, or motion IR in this tree
 - Dual product paths
 - A second HTTP pipeline, FastAPI HTML `default_response_class`, `StreamingRoute`, or HTTP verbs on page units (see Product host below)
+- `from ux_compose.kit import` in a product app (`uxcompose add` copies)
 
 ## CLI spine
 
@@ -55,6 +61,7 @@ uxcompose doctor .
 
 Pure-dom: `uxdom doctor | lint | profile | add`.
 Product CSS: `uxcompose build` (`ux_compose.tailwind` finds / ensures the CLI).
+Ownable kit: `uxcompose add --list` then `uxcompose add dialog`.
 
 ## Tests
 
@@ -71,12 +78,15 @@ lock the hard-cut (no product CLI dual path).
 
 Cold import never pulls the wire. `App.use_channel(asgi_app=…)` is the live door.
 `app.use_motion()` is the motion door. Level 1 code remains correct at L2/L3.
+Attach step-downs are recorded on `degrades()` — degrade still does not raise.
 
 ## Product host (Clock A)
 
 Read [docs/reference/host.md](docs/reference/host.md) **before** changing
 `routing/`, `build.py`, `scaffold.py`, or `wire/boot.py`. Decision:
 [docs/adr/0002-product-host.md](docs/adr/0002-product-host.md).
+Shape: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
+[docs/adr/0004-clarity-and-residuals.md](docs/adr/0004-clarity-and-residuals.md).
 
 Do not invent a second HTTP pipeline. Payload type picks media type (`dict` →
 JSON, generator → stream, tree/`str` → HTML). Do not set FastAPI
@@ -88,5 +98,5 @@ page in the same change). `build()` wraps GET only with the author Document
 `App.mount` / `attach_page_router` pass the same `wrap=` as `build()`.
 `materialize(route_class=)` fails closed. Scaffold does not emit `page()`.
 Examples (`examples/live_asgi.py`) use `build()` for Clock A GET — not a
-handmade `@app.get` + `HTMLResponse`. `App.mount` is a secondary door.
-
+handmade `@app.get` + `HTMLResponse`. `App.mount` is a library mount for
+tests and surfaces, not a second product.

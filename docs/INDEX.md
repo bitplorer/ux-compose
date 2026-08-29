@@ -1,6 +1,7 @@
 # ux-compose documentation index
 
 **Start:** [../START_HERE.md](../START_HERE.md) · mental model: [START_HERE.md](START_HERE.md)
+**Shape:** [ARCHITECTURE.md](ARCHITECTURE.md)
 **Ownership SSoT:** [FLOW.md](FLOW.md)
 **Docs landing:** [README.md](README.md)
 
@@ -17,7 +18,7 @@ This layer owns composition + product CLI (`uxcompose`).
 | `docs/adr/` | ADR | Decisions (or an index of them) | Mixed how-to |
 
 Specialized folders (`security/`, `ship/`, `design/`, `tutorial/`, `patterns/`, `archive/`) stay.
-`docs/INDEX.md` is the map. Do not add a second competing map.
+`docs/INDEX.md` is the map. `docs/ARCHITECTURE.md` is the shape. Do not add a second competing map.
 
 It does **not** reimplement ux-dom / ux-channel / ux-behavior / ux-motion.
 
@@ -54,6 +55,7 @@ Full cookbook: [guides/SNIPPETS.md](guides/SNIPPETS.md) · product path: [guides
 | You are… | Start (≤ 2 clicks from repo root) |
 |----------|-----------------------------------|
 | **First time** | [../START_HERE.md](../START_HERE.md) · [guides/PATH.md](guides/PATH.md) |
+| **Shape / doors / catalog** | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | **Ownership / boundaries** | [FLOW.md](FLOW.md) |
 | **CLI surface** | [guides/CLI.md](guides/CLI.md) |
 | **Pick-and-use UI** | [guides/UI.md](guides/UI.md) |
@@ -61,9 +63,9 @@ Full cookbook: [guides/SNIPPETS.md](guides/SNIPPETS.md) · product path: [guides
 | **Maintainer / agent** | [../AGENTS.md](../AGENTS.md) · [reference/host.md](reference/host.md) · [../CONTRIBUTING.md](../CONTRIBUTING.md) |
 
 ```text
-New user:     START_HERE → FLOW (ownership) → README quick start → examples/
-Builder:      FLOW → CLI → DX → examples/README → TESTING
-Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
+New user:     START_HERE → ARCHITECTURE → FLOW (ownership) → README quick start → examples/
+Builder:      ARCHITECTURE → FLOW → CLI → DX → examples/README → TESTING
+Maintainer:   ARCHITECTURE · FLOW · reference/host · resilience/MATRIX · AGENTS
 ```
 
 ---
@@ -79,7 +81,7 @@ Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 | [guides/PATH.md](guides/PATH.md) | Scaffold → build → serve → HMR → Tailwind → composition → control flow → motion → live |
 | [guides/TAILWIND.md](guides/TAILWIND.md) | Production CSS how-to |
 | [../examples/README.md](../examples/README.md) | Example map |
-| [../examples/page_unit_mount.py](../examples/page_unit_mount.py) | App.mount secondary-door proof |
+| [../examples/page_unit_mount.py](../examples/page_unit_mount.py) | App.mount library-mount proof |
 
 ### How-to
 
@@ -88,7 +90,7 @@ Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 | [guides/PATH.md](guides/PATH.md) | End-to-end product path (also tutorial) |
 | [guides/HOST.md](guides/HOST.md) | HTML / JSON / stream recipes |
 | [guides/TAILWIND.md](guides/TAILWIND.md) | Production Tailwind: minify, link, mount, deploy |
-| [guides/UI.md](guides/UI.md) | Pick-and-use Components |
+| [guides/UI.md](guides/UI.md) | Pick-and-use Components (kit catalog + atelier) |
 | [guides/SNIPPETS.md](guides/SNIPPETS.md) | Copy-paste App / Cart / levels / XOR / path / UI |
 | [guides/README.md](guides/README.md) | How-to slot |
 | [guides/CLI.md](guides/CLI.md) | Product vs pure-dom CLI |
@@ -110,12 +112,14 @@ Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 
 | Doc | Topic |
 |-----|--------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Shape: rings, one door, one catalog, residuals |
 | [FLOW.md](FLOW.md) | Ownership law (authoritative) |
 | [internals/FLOW.md](internals/FLOW.md) | Same contract in the explanation slot |
-| [internals/c4.md](internals/c4.md) | C4-style context |
+| [internals/c4.md](internals/c4.md) | C4 rings + hexagonal wire port |
 | [adr/README.md](adr/README.md) | ADR slot |
 | [adr/0001-ownership.md](adr/0001-ownership.md) | Render vs product lifecycle |
 | [adr/0002-product-host.md](adr/0002-product-host.md) | Product FastAPI host (Clock A) |
+| [adr/0004-clarity-and-residuals.md](adr/0004-clarity-and-residuals.md) | One door, one catalog, residuals expire |
 | [examples/README.md](examples/README.md) | Example slot |
 | [../CRITIC.md](../CRITIC.md) | Critic notes |
 
@@ -128,7 +132,7 @@ Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 | Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder + app asset layout (`WebAssets`) | DOM serialize / tag trees / package static (ux-dom) |
 | App composition, host strategy, delivery | Channel transport (wire/ only) |
 | HMR + tunnel under `uxcompose serve` | Pure-dom tooling (`uxdom doctor` / lint / profile / add) |
-| Page-unit mount (`App.mount` + `routes/`) | Behavior units (ux-behavior) |
+| Page-unit mount (`App.mount` + `routes/`) as a library mount | Behavior units (ux-behavior) |
 
 **Author rule:** Render? → **ux-dom**. Product lifecycle? → **ux-compose** only.
 

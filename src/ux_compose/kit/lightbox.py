@@ -65,10 +65,17 @@ def _open_plan(cid: str = "lightbox"):
 
 
 _WASH = {
-    "linen": "bg-gradient-to-br from-stone-200 via-amber-100 to-stone-400",
-    "oak": "bg-gradient-to-br from-amber-800 via-stone-700 to-stone-900",
-    "wool": "bg-gradient-to-br from-stone-400 via-stone-600 to-stone-800",
-    "clay": "bg-gradient-to-br from-rose-300 via-amber-200 to-stone-500",
+    "linen": "bg-gradient-to-br from-[#e8dcc8] via-[#c9b89a] to-[#8a7354]",
+    "oak": "bg-gradient-to-br from-[#c4a574] via-[#8b6914] to-[#3d2914]",
+    "wool": "bg-gradient-to-br from-[#d4c4b0] via-[#9a8470] to-[#5c4033]",
+    "clay": "bg-gradient-to-br from-[#c9a882] via-[#a67c52] to-[#6b4423]",
+}
+
+_INK = {
+    "linen": "text-[#3d2914]",
+    "oak": "text-[#faf6f0]",
+    "wool": "text-[#faf6f0]",
+    "clay": "text-[#faf6f0]",
 }
 
 
@@ -82,38 +89,67 @@ class Lightbox(Component):
     id = "lightbox"
 
     class_card = (
-        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 "
-        "rounded-[1.75rem] border border-stone-200/90 bg-white p-6 text-stone-900 "
-        "shadow-[0_1px_0_rgba(22,21,19,0.04),0_24px_48px_-28px_rgba(22,21,19,0.4)] "
-        "dark:border-stone-700 dark:bg-stone-950 dark:text-stone-50 dark:shadow-none"
+        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-6 "
+        "rounded-[1.85rem] border border-stone-900/[0.07] bg-[#fdfcf8] p-7 text-stone-900 "
+        "shadow-[0_0_0_1px_rgba(22,21,19,0.03),0_1px_2px_rgba(22,21,19,0.04),0_28px_56px_-24px_rgba(22,21,19,0.2)] "
+        "dark:border-white/10 dark:bg-[#141311] dark:text-stone-50 dark:shadow-none"
     )
     class_kicker = (
-        "text-xs font-medium uppercase tracking-[0.2em] text-stone-500 "
+        "text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-stone-400 "
+        "dark:text-stone-500"
+    )
+    class_title = (
+        "m-0 font-serif text-[1.85rem] font-semibold leading-[1.12] tracking-[-0.03em]"
+    )
+    class_lede = (
+        "m-0 max-w-[38ch] text-[0.9375rem] leading-relaxed text-stone-500 "
         "dark:text-stone-400"
     )
-    class_title = "m-0 font-serif text-3xl font-semibold tracking-tight"
-    class_lede = "m-0 text-sm leading-relaxed text-stone-600 dark:text-stone-400"
-    class_thumbs = "grid grid-cols-2 gap-2"
-    class_thumb = (
-        "flex min-h-28 cursor-pointer flex-col justify-end overflow-hidden rounded-2xl "
-        "border-0 px-4 py-3 text-left text-stone-50 shadow-inner transition "
-        "hover:-translate-y-0.5 hover:shadow active:scale-[0.99] "
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/20"
+    class_hero = (
+        "flex min-h-[17.5rem] cursor-pointer flex-col justify-end rounded-[1.4rem] "
+        "border-0 px-6 py-6 text-left transition duration-300 "
+        "hover:brightness-[1.03] active:scale-[0.995] "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/20 "
+        "motion-reduce:transition-none"
     )
-    class_thumb_kicker = "text-xs uppercase tracking-widest text-white/70"
-    class_thumb_title = "m-0 font-serif text-lg font-medium tracking-tight"
-    class_scrim = "fixed inset-0 z-40 cursor-pointer border-0 bg-stone-900/70"
+    class_hero_idx = "font-mono text-[0.7rem] tracking-[0.18em] opacity-70"
+    class_hero_title = (
+        "m-0 mt-2 font-serif text-[1.65rem] font-light leading-none tracking-[-0.02em]"
+    )
+    class_hero_body = "m-0 mt-2 max-w-[22ch] text-[0.8rem] leading-snug opacity-80"
+    class_thumbs = "grid grid-cols-4 gap-2.5"
+    class_thumb = (
+        "flex min-h-16 cursor-pointer flex-col justify-end rounded-[1.05rem] border-0 "
+        "px-2.5 py-2 text-left transition-all duration-200 "
+        "hover:brightness-[1.04] active:scale-[0.98] "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/20 "
+        "motion-reduce:transition-none"
+    )
+    class_thumb_on = (
+        "ring-[3px] ring-stone-900 ring-offset-2 ring-offset-[#fdfcf8] "
+        "dark:ring-stone-100 dark:ring-offset-[#141311]"
+    )
+    class_thumb_off = "opacity-[0.72] hover:opacity-100"
+    class_thumb_kicker = "font-mono text-[0.62rem] tracking-[0.14em] opacity-75"
+    class_thumb_title = "m-0 mt-0.5 text-[0.72rem] font-medium leading-tight"
+    class_scrim = (
+        "fixed inset-0 z-40 cursor-pointer border-0 bg-stone-950/80 backdrop-blur-[2px]"
+    )
     class_stage = (
-        "pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4"
+        "pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-5"
     )
     class_panel = (
         "pointer-events-auto relative flex w-[min(36rem,calc(100vw-2rem))] "
-        "flex-col overflow-hidden rounded-[1.75rem] bg-stone-950 text-stone-50 shadow-2xl"
+        "flex-col overflow-hidden rounded-[1.6rem] bg-[#f7f4ee] text-stone-900 "
+        "shadow-[0_40px_100px_-20px_rgba(0,0,0,0.55)]"
     )
-    class_wash = "relative flex h-64 flex-col justify-end px-6 pb-6 pt-16"
-    class_panel_kicker = "text-xs uppercase tracking-widest text-white/70"
-    class_panel_title = "m-0 font-serif text-3xl font-semibold tracking-tight"
-    class_panel_body = "m-0 mt-2 max-w-sm text-sm leading-relaxed text-white/80"
+    class_wash = "relative flex h-80 flex-col justify-end px-7 pb-7 pt-16"
+    class_panel_idx = "font-mono text-[0.68rem] tracking-[0.2em] opacity-70"
+    class_panel_kicker = "text-[0.6875rem] font-medium uppercase tracking-[0.22em] opacity-70"
+    class_panel_title = (
+        "m-0 mt-1 font-serif text-[2.15rem] font-light tracking-[-0.03em]"
+    )
+    class_panel_body = "m-0 mt-2 max-w-sm text-[0.95rem] leading-relaxed opacity-85"
     class_nav = (
         "absolute top-1/2 z-10 inline-flex size-11 -translate-y-1/2 cursor-pointer "
         "items-center justify-center rounded-full border-0 bg-white/90 text-stone-900 "
@@ -124,16 +160,17 @@ class Lightbox(Component):
     class_nav_next = "right-3"
     class_close = (
         "absolute right-3 top-3 z-10 inline-flex size-11 cursor-pointer items-center "
-        "justify-center rounded-full border-0 bg-stone-900/50 text-sm font-medium "
-        "text-stone-50 hover:bg-stone-900/70 "
+        "justify-center rounded-full border-0 bg-white/85 text-sm font-medium "
+        "text-stone-800 shadow-sm backdrop-blur-sm hover:bg-white "
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
     )
     class_sr = "sr-only"
     class_btn_primary = (
         "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full "
-        "border-0 bg-stone-800 px-5 text-sm font-medium text-stone-50 "
-        "hover:bg-stone-700 active:scale-[0.98] "
-        "dark:bg-stone-200 dark:text-stone-900 dark:hover:bg-white"
+        "border-0 bg-stone-900 px-5 text-sm font-medium text-stone-50 "
+        "transition hover:bg-stone-800 active:scale-[0.98] "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15 "
+        "dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
     )
 
     SLIDES = (
@@ -163,23 +200,50 @@ class Lightbox(Component):
     def _wash(self, key: str) -> str:
         return _WASH.get(key, "bg-stone-800")
 
+    def _ink(self, key: str) -> str:
+        return _INK.get(key, "text-stone-50")
+
+    def _idx(self, i: int, n: int) -> str:
+        return f"{i + 1:02d}  /  {n:02d}"
+
     def _resting(self):
+        idx, cur, rows, _keys = self._current()
+        n = len(rows)
+        _k, kicker, title, body = rows[idx]
         thumbs = []
-        for key, kicker, title, _body in self._slides():
+        for i, (key, _kick, t, _body) in enumerate(rows):
+            on = key == cur
             thumbs.append(
                 button(
-                    span(kicker, className=self.class_thumb_kicker),
-                    span(title, className=self.class_thumb_title),
+                    span(f"{i + 1:02d}", className=self.class_thumb_kicker),
+                    span(t.split()[0], className=self.class_thumb_title),
                     type="button",
                     id=f"{self.id}-thumb-{key}",
-                    className=f"{self.class_thumb} {self._wash(key)}",
+                    className=(
+                        f"{self.class_thumb} {self._wash(key)} {self._ink(key)} "
+                        f"{self.class_thumb_on if on else self.class_thumb_off}"
+                    ),
+                    aria_current="true" if on else "false",
                     **bind(self.open_box, key=key),
                 )
             )
         return [
             span("Viewer", className=self.class_kicker),
             h2("See the piece", className=self.class_title),
-            p("The slide is a name. Swipe when the overlay is open.", className=self.class_lede),
+            p(
+                "The slide is a name. Swipe when the overlay is open.",
+                className=self.class_lede,
+            ),
+            button(
+                span(self._idx(idx, n), className=self.class_hero_idx),
+                span(kicker, className=self.class_kicker),
+                h2(title, className=self.class_hero_title),
+                p(body, className=self.class_hero_body),
+                type="button",
+                id=f"{self.id}-hero",
+                className=f"{self.class_hero} {self._wash(cur)} {self._ink(cur)}",
+                **bind(self.open_box, key=cur),
+            ),
             div(*thumbs, className=self.class_thumbs),
             button(
                 "Open viewer",
@@ -193,6 +257,7 @@ class Lightbox(Component):
         kids = list(self._resting())
         if bool(self.open):
             idx, cur, rows, _keys = self._current()
+            n = len(rows)
             _k, kicker, title, body = rows[idx]
             kids.extend(
                 [
@@ -235,10 +300,15 @@ class Lightbox(Component):
                                 **bind(self.next),
                             ),
                             div(
+                                span(self._idx(idx, n), className=self.class_panel_idx),
                                 span(kicker, className=self.class_panel_kicker),
-                                h2(title, className=self.class_panel_title, id=f"{self.id}-title"),
+                                h2(
+                                    title,
+                                    className=self.class_panel_title,
+                                    id=f"{self.id}-title",
+                                ),
                                 p(body, className=self.class_panel_body),
-                                className=f"{self.class_wash} {self._wash(cur)}",
+                                className=f"{self.class_wash} {self._wash(cur)} {self._ink(cur)}",
                                 id=f"{self.id}-wash",
                             ),
                             id=f"{self.id}-panel",
@@ -273,7 +343,9 @@ class Lightbox(Component):
         elif str(self.slide or "") not in keys:
             self.slide = keys[0]
         self.open = True
-        return update_with(self, _open_plan(self.id), extra_ops=[notify(self.on_open(str(self.slide)))])
+        return update_with(
+            self, _open_plan(self.id), extra_ops=[notify(self.on_open(str(self.slide)))]
+        )
 
     @action(caps=())
     def close(self):

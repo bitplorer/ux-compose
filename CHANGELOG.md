@@ -22,6 +22,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Wave-2 kit chrome: paper card (`bg-[#fdfcf8]`, `rounded-[1.85rem]`, layered
+  shadow) on rating, kanban, timeline, kpi, slider, lightbox, wishlist,
+  progress, empty, presence, chips, skeleton. Inner composition is distinct
+  per unit (gold rating well, lane-color kanban rails, KPI ink tile, slider
+  thumb, lightbox hero + film-strip ring, filled wishlist heart, pulsing
+  progress dot, phase wells, overlapping presence stack, material chip
+  tokens, skeleton that matches the ready card). Overlay lightbox card still
+  has no `relative` / overflow. Encoding, ids, Caps, and action names
+  unchanged.
+
 - Typeahead: `input delay:300`. Later `input`/`change` of the same
   control aborts the in-flight Intent (Channel AbortController on
   `postIntent`). Live Results morph `#typeahead-hits` only — the field

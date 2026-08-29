@@ -42,56 +42,79 @@ class Empty(Component):
     id = "empty"
 
     class_card = (
-        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-5 "
-        "overflow-x-hidden rounded-[1.75rem] border border-stone-200/90 bg-white p-6 text-stone-900 "
-        "shadow-[0_1px_0_rgba(22,21,19,0.04),0_24px_48px_-28px_rgba(22,21,19,0.4)] "
-        "dark:border-stone-700 dark:bg-stone-950 dark:text-stone-50 dark:shadow-none"
+        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-6 "
+        "overflow-x-hidden rounded-[1.85rem] border border-stone-900/[0.07] bg-[#fdfcf8] p-7 text-stone-900 "
+        "shadow-[0_0_0_1px_rgba(22,21,19,0.03),0_1px_2px_rgba(22,21,19,0.04),0_28px_56px_-24px_rgba(22,21,19,0.2)] "
+        "dark:border-white/10 dark:bg-[#141311] dark:text-stone-50 dark:shadow-none"
     )
     class_kicker = (
-        "text-xs font-medium uppercase tracking-[0.2em] text-stone-500 "
+        "text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-stone-400 "
+        "dark:text-stone-500"
+    )
+    class_title = (
+        "m-0 font-serif text-[1.85rem] font-semibold leading-[1.12] tracking-[-0.03em]"
+    )
+    class_lede = (
+        "m-0 max-w-[32ch] text-[0.9375rem] leading-relaxed text-stone-500 "
         "dark:text-stone-400"
     )
-    class_title = "m-0 font-serif text-3xl font-semibold tracking-tight"
-    class_lede = "m-0 text-sm leading-relaxed text-stone-600 dark:text-stone-400"
     class_body = "flex flex-col gap-4"
     class_well = (
-        "flex flex-col items-center gap-2 rounded-2xl bg-stone-50 px-6 py-10 text-center "
-        "dark:bg-stone-900"
+        "flex min-h-[13.5rem] flex-col items-center justify-center gap-3 "
+        "rounded-[1.4rem] bg-white/35 px-6 py-8 text-center dark:bg-white/[0.03]"
+    )
+    class_well_load = (
+        "flex min-h-[13.5rem] flex-col items-center justify-center gap-3 "
+        "rounded-[1.4rem] bg-amber-50/50 px-6 py-8 text-center dark:bg-amber-950/20"
     )
     class_well_error = (
-        "flex flex-col items-center gap-2 rounded-2xl bg-rose-50 px-6 py-10 text-center "
-        "dark:bg-rose-950/40"
+        "flex min-h-[13.5rem] flex-col items-center justify-center gap-3 "
+        "rounded-[1.4rem] bg-rose-50/80 px-6 py-8 text-center dark:bg-rose-950/25"
+    )
+    class_well_ready = (
+        "flex min-h-[13.5rem] flex-col items-center justify-center gap-3 "
+        "rounded-[1.4rem] bg-emerald-50/50 px-6 py-8 text-center dark:bg-emerald-950/15"
     )
     class_mark = (
-        "font-serif text-5xl font-medium leading-none tracking-tight text-stone-300 "
-        "dark:text-stone-700"
+        "flex h-16 w-16 items-center justify-center rounded-full "
+        "border border-dashed border-stone-300 font-serif text-3xl font-light "
+        "text-stone-300 dark:border-stone-600 dark:text-stone-600"
     )
     class_mark_error = (
-        "font-serif text-5xl font-medium leading-none tracking-tight text-rose-300 "
-        "dark:text-rose-800"
+        "flex h-12 w-12 items-center justify-center rounded-full bg-rose-600 "
+        "font-serif text-[1.35rem] font-light text-white"
     )
-    class_skel = "flex flex-col gap-2"
-    class_bar = (
-        "h-3 rounded-full bg-stone-200 animate-pulse dark:bg-stone-800"
+    class_spin = (
+        "h-10 w-10 rounded-full border-2 border-stone-200 border-t-stone-800 "
+        "animate-spin dark:border-stone-700 dark:border-t-stone-100"
     )
-    class_ready = (
-        "flex flex-col gap-2 rounded-2xl bg-emerald-50 px-5 py-5 "
-        "dark:bg-emerald-950/40"
+    class_skel = "flex w-full max-w-[16rem] flex-col gap-2"
+    class_bar = "h-3 rounded-full bg-stone-200/90 animate-pulse dark:bg-stone-800"
+    class_bar_lg = (
+        "h-16 rounded-[1.05rem] bg-stone-200/90 animate-pulse dark:bg-stone-800"
     )
+    class_swatch_row = "mb-1 grid w-full max-w-[16rem] grid-cols-4 gap-2"
+    class_swatch = "h-10 rounded-lg"
     class_actions = "flex min-w-0 flex-wrap items-center justify-center gap-2"
     class_btn_primary = (
         "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full "
-        "border-0 bg-stone-800 px-5 text-sm font-medium text-stone-50 "
-        "hover:bg-stone-700 active:scale-[0.98] "
+        "border-0 bg-stone-900 px-5 text-sm font-medium text-stone-50 "
+        "transition hover:bg-stone-800 active:scale-[0.98] "
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15 "
-        "dark:bg-stone-200 dark:text-stone-900 dark:hover:bg-white"
+        "dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-white"
+    )
+    class_btn_danger = (
+        "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full "
+        "border-0 bg-rose-600 px-5 text-sm font-medium text-white "
+        "transition hover:bg-rose-700 active:scale-[0.98] "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-800/25"
     )
     class_btn_ghost = (
         "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full "
-        "border border-stone-200 bg-white px-5 text-sm font-medium text-stone-900 "
-        "hover:bg-stone-100 active:scale-[0.98] "
+        "border-0 bg-transparent px-4 text-sm font-medium text-stone-500 "
+        "transition hover:text-stone-800 active:scale-[0.98] "
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15 "
-        "dark:border-stone-700 dark:bg-stone-950 dark:text-stone-50 dark:hover:bg-stone-900"
+        "dark:text-stone-400 dark:hover:text-stone-50"
     )
 
     phase = MorphState("empty")
@@ -108,17 +131,31 @@ class Empty(Component):
         if phase == "loading":
             return [
                 div(
-                    div("", className=f"{self.class_bar} w-3/4", id=f"{self.id}-s1"),
-                    div("", className=f"{self.class_bar} w-full", id=f"{self.id}-s2"),
-                    div("", className=f"{self.class_bar} w-1/2", id=f"{self.id}-s3"),
-                    className=self.class_skel,
+                    span("", className=self.class_spin, aria_hidden="true"),
+                    div(
+                        div("", className=self.class_bar_lg, id=f"{self.id}-s1"),
+                        div("", className=f"{self.class_bar} w-full", id=f"{self.id}-s2"),
+                        div("", className=f"{self.class_bar} w-1/2", id=f"{self.id}-s3"),
+                        className=self.class_skel,
+                    ),
+                    p("Fetching the table…", className=self.class_lede),
+                    className=self.class_well_load,
                     aria_busy="true",
                     aria_label="Loading the table",
                 ),
-                p("Fetching the table…", className=self.class_lede),
                 div(
-                    button("Simulate fail", type="button", className=self.class_btn_ghost, **bind(self.fail)),
-                    button("Simulate ready", type="button", className=self.class_btn_primary, **bind(self.ready)),
+                    button(
+                        "Simulate fail",
+                        type="button",
+                        className=self.class_btn_ghost,
+                        **bind(self.fail),
+                    ),
+                    button(
+                        "Simulate ready",
+                        type="button",
+                        className=self.class_btn_primary,
+                        **bind(self.ready),
+                    ),
                     className=self.class_actions,
                 ),
             ]
@@ -127,33 +164,70 @@ class Empty(Component):
                 div(
                     span("!", className=self.class_mark_error, aria_hidden="true"),
                     h2("The table could not be reached", className=self.class_title),
-                    p("Retry is public. A billed refetch would take a Cap.", className=self.class_lede),
+                    p(
+                        "Retry is public. A billed refetch would take a Cap.",
+                        className=self.class_lede,
+                    ),
                     className=self.class_well_error,
                     role="alert",
                 ),
-                button("Retry", type="button", className=self.class_btn_primary, **bind(self.load)),
+                button(
+                    "Retry",
+                    type="button",
+                    className=self.class_btn_danger,
+                    **bind(self.load),
+                ),
             ]
         if phase == "ready":
+            washes = (
+                "bg-gradient-to-br from-[#e8dcc8] to-[#c9b89a]",
+                "bg-gradient-to-br from-[#c4a574] to-[#8b6914]",
+                "bg-gradient-to-br from-[#d4c4b0] to-[#9a8470]",
+                "bg-gradient-to-br from-[#c9a882] to-[#a67c52]",
+            )
             return [
                 div(
+                    div(
+                        *(
+                            span("", className=f"{self.class_swatch} {wash}", aria_hidden="true")
+                            for wash in washes
+                        ),
+                        className=self.class_swatch_row,
+                    ),
                     span("Ready", className=self.class_kicker),
                     h2("Four objects", className=self.class_title),
                     p(
-                        str(self.body or "Linen, oak, wool, clay. Quiet pieces for a working house."),
+                        str(
+                            self.body
+                            or "Linen, oak, wool, clay. Quiet pieces for a working house."
+                        ),
                         className=self.class_lede,
                     ),
-                    className=self.class_ready,
+                    className=self.class_well_ready,
                 ),
-                button("Clear", type="button", className=self.class_btn_ghost, **bind(self.reset)),
+                button(
+                    "Clear",
+                    type="button",
+                    className=self.class_btn_ghost,
+                    **bind(self.reset),
+                ),
             ]
         return [
             div(
                 span("—", className=self.class_mark, aria_hidden="true"),
                 h2("The shelf is quiet", className=self.class_title),
-                p("Empty is a first-class row. Load the table when you like.", className=self.class_lede),
+                p(
+                    "Empty is a first-class row. Load the table when you like.",
+                    className=self.class_lede,
+                ),
                 className=self.class_well,
             ),
-            button("Load the table", type="button", className=self.class_btn_primary, **bind(self.load)),
+            button(
+                "Load the table",
+                type="button",
+                className=self.class_btn_primary,
+                **bind(self.load),
+            ),
         ]
 
     def render(self):

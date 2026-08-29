@@ -30,7 +30,7 @@ def _star(filled: bool):
             fill="currentColor" if filled else "none",
             stroke="currentColor",
             **{
-                "stroke-width": "1.6",
+                "stroke-width": "1.45",
                 "stroke-linejoin": "round",
                 "stroke-linecap": "round",
             },
@@ -40,7 +40,7 @@ def _star(filled: bool):
             "aria-hidden": "true",
             "focusable": "false",
         },
-        className="pointer-events-none block h-7 w-7",
+        className="pointer-events-none block h-6 w-6 drop-shadow-sm",
     )
 
 
@@ -64,40 +64,56 @@ class Rating(Component):
     id = "rating"
 
     class_card = (
-        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-5 "
-        "rounded-[1.75rem] border border-stone-200/90 bg-white p-6 text-stone-900 "
-        "shadow-[0_1px_0_rgba(22,21,19,0.04),0_24px_48px_-28px_rgba(22,21,19,0.4)] "
-        "dark:border-stone-700 dark:bg-stone-950 dark:text-stone-50 dark:shadow-none"
+        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-6 "
+        "rounded-[1.85rem] border border-stone-900/[0.07] bg-[#fdfcf8] p-7 text-stone-900 "
+        "shadow-[0_0_0_1px_rgba(22,21,19,0.03),0_1px_2px_rgba(22,21,19,0.04),0_28px_56px_-24px_rgba(22,21,19,0.2)] "
+        "dark:border-white/10 dark:bg-[#141311] dark:text-stone-50 dark:shadow-none"
     )
     class_kicker = (
-        "text-xs font-medium uppercase tracking-[0.2em] text-stone-500 "
-        "dark:text-stone-400"
+        "text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-stone-400 "
+        "dark:text-stone-500"
     )
-    class_title = "m-0 font-serif text-3xl font-semibold tracking-tight"
-    class_lede = "m-0 text-sm leading-relaxed text-stone-600 dark:text-stone-400"
+    class_title = (
+        "m-0 font-serif text-[1.85rem] font-semibold leading-[1.12] tracking-[-0.03em]"
+    )
+    class_lede = "m-0 max-w-[34ch] text-[0.9375rem] leading-relaxed text-stone-500 dark:text-stone-400"
     class_face = (
-        "flex flex-col gap-3 rounded-2xl bg-stone-900 px-5 py-6 text-stone-50 "
-        "dark:bg-stone-100 dark:text-stone-900"
+        "relative overflow-hidden rounded-[1.35rem] bg-gradient-to-br "
+        "from-amber-50 via-[#fdfcf8] to-stone-100 px-6 py-7 "
+        "ring-1 ring-amber-900/10 "
+        "dark:from-amber-950/40 dark:via-[#141311] dark:to-stone-900 dark:ring-amber-500/15"
     )
-    class_mark = (
-        "font-serif text-6xl font-medium leading-none tracking-tight text-amber-200 "
-        "dark:text-amber-800"
+    class_ghost = (
+        "pointer-events-none absolute -right-1 -top-3 font-serif text-[7.5rem] font-medium "
+        "leading-none tracking-tight text-amber-900/[0.08] dark:text-amber-100/[0.08]"
     )
-    class_caption = "m-0 text-sm text-stone-300 dark:text-stone-600"
-    class_row = "flex items-center gap-1"
+    class_word = (
+        "relative m-0 font-serif text-5xl font-semibold leading-none tracking-[-0.04em] "
+        "text-stone-900 dark:text-stone-50"
+    )
+    class_caption = (
+        "relative m-0 mt-2 text-[0.8125rem] text-stone-500 dark:text-stone-400"
+    )
+    class_row = (
+        "relative mt-6 inline-flex items-center gap-0.5 rounded-full bg-white/80 p-1 "
+        "shadow-[inset_0_0_0_1px_rgba(22,21,19,0.06)] "
+        "dark:bg-stone-900/70 dark:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+    )
     class_star = (
         "inline-flex size-11 cursor-pointer items-center justify-center rounded-full "
-        "border-0 bg-transparent p-0 text-stone-300 transition "
-        "hover:text-amber-200 hover:scale-105 active:scale-95 "
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50 "
-        "dark:text-stone-400 dark:hover:text-amber-700 dark:focus-visible:ring-amber-800/40"
+        "border-0 bg-transparent p-0 text-stone-300 transition duration-200 "
+        "hover:text-amber-400 hover:scale-110 active:scale-95 "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700/35 "
+        "motion-reduce:transition-none motion-reduce:hover:scale-100 "
+        "dark:text-stone-600 dark:hover:text-amber-300"
     )
     class_star_on = (
         "inline-flex size-11 cursor-pointer items-center justify-center rounded-full "
-        "border-0 bg-transparent p-0 text-amber-300 transition "
-        "hover:text-amber-200 hover:scale-105 active:scale-95 "
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200/50 "
-        "dark:text-amber-700 dark:hover:text-amber-600"
+        "border-0 bg-transparent p-0 text-amber-700 transition duration-200 "
+        "hover:text-amber-600 hover:scale-110 active:scale-95 "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700/35 "
+        "motion-reduce:transition-none motion-reduce:hover:scale-100 "
+        "dark:text-amber-400 dark:hover:text-amber-300"
     )
     class_sr = "sr-only"
 
@@ -150,7 +166,8 @@ class Rating(Component):
             h2("How does it sit?", className=self.class_title),
             p("Names survive the session plane. Ints do not.", className=self.class_lede),
             div(
-                span(str(idx + 1), className=self.class_mark, aria_hidden="true"),
+                span(str(idx + 1), className=self.class_ghost, aria_hidden="true"),
+                p(label, className=self.class_word),
                 p(f"{label} · of {len(rows)}", className=self.class_caption),
                 div(
                     *buttons,

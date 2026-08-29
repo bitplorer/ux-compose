@@ -35,6 +35,13 @@ def _move_plan(cid: str, sku: str):
         return None
 
 
+_LANE_RAIL = {
+    "cut": "border-l-[3px] border-l-amber-600 dark:border-l-amber-400",
+    "make": "border-l-[3px] border-l-sky-700 dark:border-l-sky-400",
+    "keep": "border-l-[3px] border-l-emerald-700 dark:border-l-emerald-400",
+}
+
+
 class Kanban(Component):
     """Three columns of piece ids. Membership is RefState. Stamp dirties.
 
@@ -45,48 +52,60 @@ class Kanban(Component):
     id = "kanban"
 
     class_card = (
-        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-[44rem] flex-col gap-5 "
-        "overflow-x-hidden rounded-[1.75rem] border border-stone-200/90 bg-white p-6 text-stone-900 "
-        "shadow-[0_1px_0_rgba(22,21,19,0.04),0_24px_48px_-28px_rgba(22,21,19,0.4)] "
-        "dark:border-stone-700 dark:bg-stone-950 dark:text-stone-50 dark:shadow-none"
+        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-[44rem] flex-col gap-6 "
+        "overflow-x-hidden rounded-[1.85rem] border border-stone-900/[0.07] bg-[#fdfcf8] p-7 text-stone-900 "
+        "shadow-[0_0_0_1px_rgba(22,21,19,0.03),0_1px_2px_rgba(22,21,19,0.04),0_28px_56px_-24px_rgba(22,21,19,0.2)] "
+        "dark:border-white/10 dark:bg-[#141311] dark:text-stone-50 dark:shadow-none"
     )
     class_kicker = (
-        "text-xs font-medium uppercase tracking-[0.2em] text-stone-500 "
-        "dark:text-stone-400"
+        "text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-stone-400 "
+        "dark:text-stone-500"
     )
-    class_title = "m-0 font-serif text-3xl font-semibold tracking-tight"
-    class_lede = "m-0 text-sm leading-relaxed text-stone-600 dark:text-stone-400"
+    class_title = (
+        "m-0 font-serif text-[1.85rem] font-semibold leading-[1.12] tracking-[-0.03em]"
+    )
+    class_lede = "m-0 max-w-[40ch] text-[0.9375rem] leading-relaxed text-stone-500 dark:text-stone-400"
     class_board = "flex min-w-0 gap-3 overflow-x-auto pb-1"
     class_lane = (
-        "flex min-w-[9.5rem] flex-1 flex-col gap-2 rounded-2xl bg-stone-50 p-3 "
-        "dark:bg-stone-900"
+        "flex min-h-[14rem] min-w-[10rem] flex-1 flex-col gap-2.5 rounded-2xl "
+        "bg-white/70 p-3 ring-1 ring-stone-900/[0.06] "
+        "dark:bg-stone-900/50 dark:ring-white/10"
     )
-    class_lane_head = "flex items-baseline justify-between gap-2 px-1"
-    class_lane_name = "m-0 font-serif text-lg font-medium tracking-tight"
+    class_lane_head = "flex items-start justify-between gap-2 px-1 pb-1"
+    class_lane_name = "m-0 font-serif text-[1.05rem] font-medium tracking-tight"
     class_count = (
-        "inline-flex min-h-7 min-w-7 items-center justify-center rounded-full "
-        "bg-stone-900 px-2 text-xs font-semibold tabular-nums text-stone-50 "
+        "inline-flex h-6 min-w-6 items-center justify-center rounded-full "
+        "bg-stone-900/90 px-1.5 text-[0.6875rem] font-semibold tabular-nums text-stone-50 "
         "dark:bg-stone-100 dark:text-stone-900"
     )
     class_piece = (
-        "flex flex-col gap-1 rounded-xl border border-stone-200/80 bg-white px-3 py-3 "
-        "shadow-sm transition hover:-translate-y-0.5 hover:shadow "
-        "dark:border-stone-700 dark:bg-stone-950"
+        "flex flex-col gap-1 rounded-xl bg-[#fdfcf8] px-3.5 py-3 "
+        "shadow-[0_0_0_1px_rgba(22,21,19,0.06),0_1px_2px_rgba(22,21,19,0.04)] "
+        "transition duration-200 hover:-translate-y-0.5 hover:shadow-md "
+        "motion-reduce:transition-none motion-reduce:hover:translate-y-0 "
+        "dark:bg-[#1a1916] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
     )
     class_piece_title = "m-0 text-sm font-semibold tracking-tight"
-    class_piece_lede = "m-0 text-xs leading-relaxed text-stone-500 dark:text-stone-400"
-    class_actions = "mt-1 flex flex-wrap items-center gap-2"
+    class_piece_lede = "m-0 text-[0.8125rem] leading-relaxed text-stone-500 dark:text-stone-400"
+    class_actions = "mt-2 flex flex-wrap items-center gap-1"
     class_btn_text = (
-        "min-h-11 cursor-pointer rounded-full border-0 bg-transparent px-1 "
-        "text-xs font-semibold uppercase tracking-widest text-stone-500 "
-        "hover:text-stone-900 dark:text-stone-400 dark:hover:text-stone-50 "
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15"
+        "inline-flex min-h-11 cursor-pointer items-center rounded-full border-0 "
+        "bg-stone-900/[0.04] px-3 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] "
+        "text-stone-600 hover:bg-stone-900/[0.08] hover:text-stone-900 "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15 "
+        "dark:bg-white/5 dark:text-stone-300 dark:hover:bg-white/10 dark:hover:text-stone-50"
     )
     class_btn_danger = (
-        "min-h-11 cursor-pointer rounded-full border-0 bg-transparent px-1 "
-        "text-xs font-semibold uppercase tracking-widest text-rose-800 "
-        "hover:text-rose-700 dark:text-rose-300 "
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-800/20"
+        "inline-flex min-h-11 cursor-pointer items-center rounded-full border-0 "
+        "bg-transparent px-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] "
+        "text-rose-800/80 hover:bg-rose-50 hover:text-rose-800 "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-800/20 "
+        "dark:text-rose-300 dark:hover:bg-rose-950/40"
+    )
+    class_empty = (
+        "mt-1 flex flex-1 items-center justify-center rounded-lg border border-dashed "
+        "border-stone-300/80 px-2 py-6 text-center text-[0.75rem] text-stone-400 "
+        "dark:border-stone-700 dark:text-stone-500"
     )
 
     LANES = (
@@ -162,6 +181,9 @@ class Kanban(Component):
                         className=self.class_piece,
                     )
                 )
+            if not cards:
+                cards.append(p("Nothing here", className=self.class_empty))
+            rail = _LANE_RAIL.get(key, "")
             lanes.append(
                 div(
                     div(
@@ -174,7 +196,7 @@ class Kanban(Component):
                     ),
                     *cards,
                     id=f"{self.id}-lane-{key}",
-                    className=self.class_lane,
+                    className=f"{self.class_lane} {rail}",
                     data_lane=key,
                 )
             )

@@ -33,6 +33,14 @@ _WIDTH = {
     100: "w-full",
 }
 
+_THUMB = {
+    0: "left-0",
+    25: "left-1/4",
+    50: "left-1/2",
+    75: "left-3/4",
+    100: "left-full",
+}
+
 
 def _band_of(n: int) -> str:
     if n <= 0:
@@ -53,43 +61,56 @@ class Slider(Component):
     id = "slider"
 
     class_card = (
-        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-5 "
-        "overflow-x-hidden rounded-[1.75rem] border border-stone-200/90 bg-white p-6 text-stone-900 "
-        "shadow-[0_1px_0_rgba(22,21,19,0.04),0_24px_48px_-28px_rgba(22,21,19,0.4)] "
-        "dark:border-stone-700 dark:bg-stone-950 dark:text-stone-50 dark:shadow-none"
+        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-6 "
+        "overflow-x-hidden rounded-[1.85rem] border border-stone-900/[0.07] bg-[#fdfcf8] p-7 text-stone-900 "
+        "shadow-[0_0_0_1px_rgba(22,21,19,0.03),0_1px_2px_rgba(22,21,19,0.04),0_28px_56px_-24px_rgba(22,21,19,0.2)] "
+        "dark:border-white/10 dark:bg-[#141311] dark:text-stone-50 dark:shadow-none"
     )
     class_kicker = (
-        "text-xs font-medium uppercase tracking-[0.2em] text-stone-500 "
-        "dark:text-stone-400"
+        "text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-stone-400 "
+        "dark:text-stone-500"
     )
-    class_title = "m-0 font-serif text-3xl font-semibold tracking-tight"
-    class_lede = "m-0 text-sm leading-relaxed text-stone-600 dark:text-stone-400"
-    class_face = (
-        "flex items-end justify-between gap-4 rounded-2xl bg-stone-900 px-5 py-5 "
-        "text-stone-50 dark:bg-stone-100 dark:text-stone-900"
+    class_title = (
+        "m-0 font-serif text-[1.85rem] font-semibold leading-[1.12] tracking-[-0.03em]"
     )
-    class_num = "m-0 font-serif text-5xl font-semibold leading-none tracking-tight tabular-nums"
+    class_lede = "m-0 max-w-[34ch] text-[0.9375rem] leading-relaxed text-stone-500 dark:text-stone-400"
+    class_face = "flex items-end justify-between gap-4"
+    class_num = (
+        "m-0 font-serif text-[3.25rem] font-semibold leading-none tracking-[-0.05em] tabular-nums"
+    )
     class_band = (
-        "inline-flex min-h-7 items-center rounded-full bg-white/10 px-3 text-xs "
-        "font-semibold uppercase tracking-widest text-stone-200 "
-        "dark:bg-stone-900/10 dark:text-stone-700"
+        "mb-1 inline-flex min-h-7 items-center rounded-full bg-stone-900 px-3 "
+        "text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-stone-50 "
+        "dark:bg-stone-100 dark:text-stone-900"
     )
-    class_track = "h-2 overflow-hidden rounded-full bg-stone-200 dark:bg-stone-800"
-    class_fill = "h-full rounded-full bg-stone-900 transition-[width] duration-300 ease-out dark:bg-stone-100"
-    class_seg = "flex min-w-0 flex-wrap gap-1"
+    class_track_wrap = "relative mt-1 px-0.5"
+    class_track = "h-1.5 overflow-hidden rounded-full bg-stone-200 dark:bg-stone-800"
+    class_fill = (
+        "h-full rounded-full bg-stone-900 transition-[width] duration-300 ease-out "
+        "motion-reduce:transition-none dark:bg-stone-100"
+    )
+    class_thumb = (
+        "pointer-events-none absolute top-1/2 z-[1] h-4 w-4 -translate-x-1/2 -translate-y-1/2 "
+        "rounded-full bg-white shadow-[0_0_0_1px_rgba(22,21,19,0.12),0_2px_6px_rgba(22,21,19,0.18)] "
+        "transition-[left] duration-300 ease-out motion-reduce:transition-none "
+        "dark:bg-stone-50"
+    )
+    class_ticks = "mt-3 flex justify-between px-0.5"
+    class_tick = "h-1.5 w-px bg-stone-300 dark:bg-stone-700"
+    class_seg = "mt-2 flex min-w-0 gap-1"
     class_step = (
-        "min-h-11 min-w-11 flex-1 cursor-pointer rounded-full border border-stone-200 "
-        "bg-white px-3 text-sm font-medium tabular-nums text-stone-600 "
-        "hover:bg-stone-100 active:scale-[0.98] "
+        "min-h-11 min-w-0 flex-1 cursor-pointer rounded-full border-0 "
+        "bg-transparent px-2 text-[0.8125rem] font-medium tabular-nums text-stone-500 "
+        "transition hover:bg-white hover:text-stone-900 active:scale-[0.98] "
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15 "
-        "dark:border-stone-700 dark:bg-stone-950 dark:text-stone-300 dark:hover:bg-stone-900"
+        "dark:text-stone-400 dark:hover:bg-stone-900 dark:hover:text-stone-50"
     )
     class_step_on = (
-        "min-h-11 min-w-11 flex-1 cursor-pointer rounded-full border-0 "
-        "bg-stone-800 px-3 text-sm font-semibold tabular-nums text-stone-50 "
+        "min-h-11 min-w-0 flex-1 cursor-pointer rounded-full border-0 "
+        "bg-stone-900 px-2 text-[0.8125rem] font-semibold tabular-nums text-stone-50 "
         "active:scale-[0.98] "
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15 "
-        "dark:bg-stone-200 dark:text-stone-900"
+        "dark:bg-stone-100 dark:text-stone-900"
     )
 
     STEPS = (0, 25, 50, 75, 100)
@@ -117,6 +138,7 @@ class Slider(Component):
         n = self._n()
         band = str(self.band or _band_of(n))
         width = _WIDTH.get(n, "w-1/2")
+        thumb = _THUMB.get(n, "left-1/2")
         segs = [
             button(
                 str(step),
@@ -128,6 +150,7 @@ class Slider(Component):
             )
             for step in self._steps()
         ]
+        ticks = [span("", className=self.class_tick, aria_hidden="true") for _ in self._steps()]
         return div(
             span("Fill", className=self.class_kicker),
             h2("Hold the pour", className=self.class_title),
@@ -139,14 +162,19 @@ class Slider(Component):
                 className=self.class_face,
             ),
             div(
-                div("", className=f"{self.class_fill} {width}", id=f"{self.id}-fill"),
-                className=self.class_track,
-                role="meter",
-                aria_valuemin="0",
-                aria_valuemax="100",
-                aria_valuenow=str(n),
-                aria_label="Fill",
+                div(
+                    div("", className=f"{self.class_fill} {width}", id=f"{self.id}-fill"),
+                    className=self.class_track,
+                    role="meter",
+                    aria_valuemin="0",
+                    aria_valuemax="100",
+                    aria_valuenow=str(n),
+                    aria_label="Fill",
+                ),
+                span("", className=f"{self.class_thumb} {thumb}", aria_hidden="true"),
+                className=self.class_track_wrap,
             ),
+            div(*ticks, className=self.class_ticks, aria_hidden="true"),
             div(*segs, className=self.class_seg, role="group", aria_label="Fill steps"),
             id=self.id,
             className=self.class_card,

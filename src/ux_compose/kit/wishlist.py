@@ -42,7 +42,7 @@ def _heart(on: bool):
             "aria-hidden": "true",
             "focusable": "false",
         },
-        className="pointer-events-none block h-5 w-5",
+        className="pointer-events-none block h-4 w-4",
     )
 
 
@@ -66,49 +66,65 @@ class Wishlist(Component):
     id = "wishlist"
 
     class_card = (
-        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-5 "
-        "overflow-x-hidden rounded-[1.75rem] border border-stone-200/90 bg-white p-6 text-stone-900 "
-        "shadow-[0_1px_0_rgba(22,21,19,0.04),0_24px_48px_-28px_rgba(22,21,19,0.4)] "
-        "dark:border-stone-700 dark:bg-stone-950 dark:text-stone-50 dark:shadow-none"
+        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-6 "
+        "overflow-x-hidden rounded-[1.85rem] border border-stone-900/[0.07] bg-[#fdfcf8] p-7 text-stone-900 "
+        "shadow-[0_0_0_1px_rgba(22,21,19,0.03),0_1px_2px_rgba(22,21,19,0.04),0_28px_56px_-24px_rgba(22,21,19,0.2)] "
+        "dark:border-white/10 dark:bg-[#141311] dark:text-stone-50 dark:shadow-none"
     )
     class_kicker = (
-        "text-xs font-medium uppercase tracking-[0.2em] text-stone-500 "
+        "text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-stone-400 "
+        "dark:text-stone-500"
+    )
+    class_title = (
+        "m-0 font-serif text-[1.85rem] font-semibold leading-[1.12] tracking-[-0.03em]"
+    )
+    class_lede = (
+        "m-0 max-w-[36ch] text-[0.9375rem] leading-relaxed text-stone-500 "
         "dark:text-stone-400"
     )
-    class_title = "m-0 font-serif text-3xl font-semibold tracking-tight"
-    class_lede = "m-0 text-sm leading-relaxed text-stone-600 dark:text-stone-400"
     class_head = "flex items-end justify-between gap-4"
     class_count = (
-        "inline-flex min-h-11 items-center rounded-full bg-stone-900 px-4 "
-        "text-sm font-semibold tabular-nums text-stone-50 "
+        "inline-flex min-h-7 shrink-0 items-center rounded-full bg-stone-900 px-3 "
+        "text-[0.7rem] font-medium tracking-wide text-stone-50 "
         "dark:bg-stone-100 dark:text-stone-900"
     )
-    class_list = "flex flex-col gap-2"
+    class_list = "flex flex-col"
     class_row = (
-        "flex items-center gap-4 rounded-2xl border border-stone-200/80 bg-stone-50 px-4 py-3 "
-        "dark:border-stone-800 dark:bg-stone-900"
+        "flex items-center gap-3.5 rounded-[1.2rem] px-3 py-3 "
+        "transition-colors duration-200 hover:bg-stone-900/[0.03] "
+        "dark:hover:bg-white/[0.04]"
     )
     class_row_on = (
-        "flex items-center gap-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 "
-        "dark:border-rose-900 dark:bg-rose-950/40"
+        "flex items-center gap-3.5 rounded-[1.2rem] px-3 py-3 "
+        "bg-rose-50/70 transition-colors duration-200 "
+        "dark:bg-rose-950/25"
     )
-    class_swatch = "h-12 w-12 shrink-0 rounded-xl"
+    class_swatch = "h-12 w-12 shrink-0 rounded-[1rem]"
     class_meta = "flex min-w-0 flex-1 flex-col gap-0.5"
-    class_name = "m-0 font-serif text-lg font-medium tracking-tight"
-    class_price = "m-0 text-sm tabular-nums text-stone-500 dark:text-stone-400"
+    class_name = (
+        "m-0 font-serif text-[1.08rem] font-light tracking-[-0.02em] "
+        "text-stone-800 dark:text-stone-100"
+    )
+    class_price = (
+        "w-12 shrink-0 text-right font-mono text-[0.82rem] tabular-nums text-stone-500 "
+        "dark:text-stone-400"
+    )
     class_heart = (
         "inline-flex size-11 shrink-0 cursor-pointer items-center justify-center "
-        "rounded-full border-0 bg-transparent p-0 text-stone-400 transition "
-        "hover:text-rose-700 hover:scale-105 active:scale-95 "
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-800/25 "
+        "rounded-full border border-stone-900/10 bg-white/70 p-0 text-stone-400 "
+        "transition duration-200 hover:border-rose-300 hover:text-rose-500 "
+        "active:scale-95 focus-visible:outline-none "
+        "focus-visible:ring-2 focus-visible:ring-rose-800/25 "
+        "motion-reduce:transition-none dark:border-white/10 dark:bg-white/5 "
         "dark:text-stone-500 dark:hover:text-rose-300"
     )
     class_heart_on = (
         "inline-flex size-11 shrink-0 cursor-pointer items-center justify-center "
-        "rounded-full border-0 bg-transparent p-0 text-rose-800 transition "
-        "hover:text-rose-700 hover:scale-105 active:scale-95 "
+        "rounded-full border-0 bg-rose-600 p-0 text-white "
+        "shadow-[0_8px_20px_-8px_rgba(225,29,72,0.7)] transition duration-200 "
+        "hover:bg-rose-500 active:scale-95 "
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-800/25 "
-        "dark:text-rose-300"
+        "motion-reduce:transition-none dark:bg-rose-500"
     )
     class_sr = "sr-only"
 
@@ -119,10 +135,10 @@ class Wishlist(Component):
         ("clay", "Earth", "Clay pourer", "38"),
     )
     WASH = {
-        "linen": "bg-gradient-to-br from-stone-200 to-amber-100",
-        "oak": "bg-gradient-to-br from-amber-800 to-stone-900",
-        "wool": "bg-gradient-to-br from-stone-400 to-stone-700",
-        "clay": "bg-gradient-to-br from-rose-300 to-amber-200",
+        "linen": "bg-gradient-to-br from-[#e8dcc8] to-[#c9b89a]",
+        "oak": "bg-gradient-to-br from-[#c4a574] to-[#8b6914]",
+        "wool": "bg-gradient-to-br from-[#d4c4b0] to-[#9a8470]",
+        "clay": "bg-gradient-to-br from-[#c9a882] to-[#a67c52]",
     }
 
     ids = RefState(("linen",))
@@ -150,9 +166,9 @@ class Wishlist(Component):
                     div(
                         span(kind, className=self.class_kicker),
                         h3(title, className=self.class_name),
-                        p(f"${price}", className=self.class_price),
                         className=self.class_meta,
                     ),
+                    span(f"${price}", className=self.class_price),
                     button(
                         span("Saved" if on else "Save", className=self.class_sr),
                         _heart(on),

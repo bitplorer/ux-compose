@@ -33,9 +33,9 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 |------|---------|------|
 | Capability baseline | **HOLD** | Every 0.1.0 `__all__` name remains. `App.mount`, `control`, kit widgets, leftover aliases stay. |
 | Mental model | **HOLD** | Isolation, L0–L3, Clock A, import-not-copy untouched. |
-| One author door | **PASS** | `author.py` + package `__all__`. `_common` is a re-export. |
-| One product door | **PASS** | Taught path is `create-app` → `build()` → `serve`. Mount is a library door. |
-| One catalog | **PASS** | Kit is source. `uxcompose add` copies. examples/ is Atelier. |
+| One author door | **PASS** | `author.py` + package `__all__`. `_common` re-exports helpers **and** `scene`/`rise`/`fade`/`slide`. |
+| One product door | **PASS** | Taught path is `create-app` → `build()` → `serve`. Mount is a library door. START_HERE no longer lists `App.mount` as a product verb. |
+| One catalog | **PASS** | Kit is source. `uxcompose add` copies. examples/ is Atelier. `guides/UI.md` points at kit, not examples, as SSoT. |
 | Degrade visibility | **PASS** | `note()` on attach ImportError. Does not raise. |
 | Overlay primitive | **ADDITIVE** | Widgets not rewritten this cut on purpose. |
 | ADR numbering | **PASS** | 0004 for clarity. 0003 reserved by 0002. |
@@ -46,6 +46,13 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 2. `degrade._EVENTS` is process-global. Fine for 0.1 doctor evidence. Per-App lists are a later increment.
 3. `App.mount` still exists and still works. Teaching calls it a library mount. Deleting it would be a capability drop.
 4. Thirty-plus feature branches on the remote are operational clutter, not an architecture hole. Do not delete without an explicit ops pass.
+
+### Review holes found on PR #31 (cleared this cut)
+
+1. `examples/_common.py` dropped `scene` / `rise` — Atelier `lists.py` still imports them. Restored as optional re-exports (None is legal). Locked by `test_common_keeps_scene_rise_names`.
+2. Leftover scan looked for `host="batteries"` (keyword) but the test wrote `use_host("batteries")` (call). Those are different substrings. Scan now matches both. Unused `import sys` in doctor removed.
+3. `App.dispatch` docstring had escaped quotes. Restored.
+4. `START_HERE.md` stack line listed `App.mount` as a product verb. `guides/UI.md` still named `examples/` as catalog SSoT. Teaching pages now point at ARCHITECTURE.md.
 
 ### Soft notes (non-kill)
 

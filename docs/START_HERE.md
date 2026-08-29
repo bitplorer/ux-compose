@@ -2,9 +2,10 @@
 
 **Canonical 5-minute path (CLI + Cart):** [../START_HERE.md](../START_HERE.md).
 This page is the ownership / install map, not a second golden path.
+**Shape:** [ARCHITECTURE.md](ARCHITECTURE.md).
 **Map:** [INDEX.md](INDEX.md).
 **Cookbook:** [guides/SNIPPETS.md](guides/SNIPPETS.md) — App, Cart, levels, bind, surfaces, build(), XOR.
-**Product path:** [guides/PATH.md](guides/PATH.md). **UI kit:** [guides/UI.md](guides/UI.md).
+**Product path:** [guides/PATH.md](PATH.md). **UI kit:** [guides/UI.md](UI.md).
 
 ---
 
@@ -20,6 +21,8 @@ ux-motion    → presence / transition plans
 ux-compose   → create-app · build · serve · deploy
                DirectoryRoutes · WebAssets · Tailwind · App · HMR
 ```
+
+`App.mount` is a library mount, not a product verb. Shape: [ARCHITECTURE.md](ARCHITECTURE.md).
 
 Full map: [FLOW.md](FLOW.md).
 
@@ -115,6 +118,7 @@ HMR is `uxcompose serve`, not a Document API.
 
 | Goal | Doc |
 |------|-----|
+| Shape / doors / catalog | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | Ownership law (authoritative) | [FLOW.md](FLOW.md) |
 | CLI reference | [guides/CLI.md](guides/CLI.md) |
 | DX principles | [guides/DX.md](guides/DX.md) |

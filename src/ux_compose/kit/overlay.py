@@ -1,9 +1,9 @@
 """Shared overlay chrome — ids, edge, swipe-on-dismiss, open plan.
 
-Additive primitive. Dialog / Sheet / ActionSheet keep their current markup
-this cut; they adopt OverlayChrome later. The defect this exists to stop is
-copy-pasted scrim/panel/dismiss ids plus a root swipe token that swallows
-row clicks.
+Dialog / Sheet / ActionSheet take ids, dismiss grammar, and open plan
+from this primitive. Markup and Tailwind stay on the widget. The defect
+this exists to stop is copy-pasted scrim/panel/dismiss ids plus a root
+swipe token that swallows row clicks.
 
 Isolation Law: this module never imports ux_channel or CEK.
 """
@@ -28,6 +28,20 @@ EDGE_SWIPE = {
     "left": "click swipe.left",
     "bottom": "click swipe.down",
     "top": "click swipe.up",
+}
+
+# Handle (ActionSheet) adds vertical so row clicks survive. Dismiss does not.
+HANDLE_SWIPE = {
+    "bottom": "click swipe.down swipe.vertical threshold:48",
+    "top": "click swipe.up swipe.vertical threshold:48",
+}
+
+# Shipped enter distances. Right sheet x=28; bottom actionsheet y=32.
+EDGE_SLIDE = {
+    "right": {"x": 28.0},
+    "left": {"x": -28.0},
+    "bottom": {"y": 32.0},
+    "top": {"y": -32.0},
 }
 
 
@@ -69,6 +83,10 @@ class OverlayChrome:
         """
         return EDGE_SWIPE.get(self.edge, "click swipe.down")
 
+    def swipe_on_handle(self) -> str:
+        """Handle grammar. Bottom sheets add vertical so row clicks survive."""
+        return HANDLE_SWIPE.get(self.edge, self.swipe_on_dismiss())
+
     def open_plan(self, *, fade_ms: int = 120, enter_ms: int = 180) -> Any:
         """Motion enter plan, or None when ux-motion is absent."""
         try:
@@ -84,8 +102,9 @@ class OverlayChrome:
             if self.edge == "center" and rise is not None:
                 return plan.enter(f"#{self.panel_id}", rise.enter(ms=enter_ms))
             if slide is not None:
-                x = 28.0 if self.edge == "right" else -28.0 if self.edge == "left" else 0.0
-                y = 28.0 if self.edge == "bottom" else -28.0 if self.edge == "top" else 0.0
+                delta = EDGE_SLIDE.get(self.edge) or {}
+                x = float(delta.get("x", 0.0))
+                y = float(delta.get("y", 0.0))
                 if y:
                     return plan.enter(
                         f"#{self.panel_id}", slide.enter(x=x, y=y, ms=enter_ms)

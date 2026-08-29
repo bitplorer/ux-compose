@@ -34,18 +34,27 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 | Capability baseline | **HOLD** | Every 0.1.0 `__all__` name remains. `App.mount`, `control`, kit widgets, leftover aliases stay. |
 | Mental model | **HOLD** | Isolation, L0–L3, Clock A, import-not-copy untouched. |
 | One author door | **PASS** | `author.py` + package `__all__`. `_common` re-exports helpers **and** `scene`/`rise`/`fade`/`slide`. |
-| One product door | **PASS** | Taught path is `create-app` → `build()` → `serve`. Mount is a library door. START_HERE no longer lists `App.mount` as a product verb. |
+| One product door | **PASS** | Taught path is `create-app` → `build()` → `serve`. Mount is the scan step inside `build()` — same implementation. |
 | One catalog | **PASS** | Kit is source. `uxcompose add` copies. examples/ is Atelier. `guides/UI.md` points at kit, not examples, as SSoT. |
-| Degrade visibility | **PASS** | `note()` on attach ImportError. Does not raise. |
-| Overlay primitive | **ADDITIVE** | Widgets not rewritten this cut on purpose. |
+| Degrade visibility | **PASS** | Per-App `DegradeBus` + process dual-write. Two Apps do not leak. Does not raise. |
+| Overlay primitive | **PASS** | Dialog / Sheet / ActionSheet take ids, swipe, open plan from `OverlayChrome`. Tailwind unchanged. |
 | ADR numbering | **PASS** | 0004 for clarity. 0003 reserved by 0002. |
 
-### Residual disagreement (do not hide)
+### How frozen constraints were resolved (not parked)
 
-1. Dialog / Sheet / ActionSheet still copy-paste overlay ids. Adopting `OverlayChrome` later is the expire path — doing it now would touch widget markup and risk a visual regression.
-2. `degrade._EVENTS` is process-global. Fine for 0.1 doctor evidence. Per-App lists are a later increment.
-3. `App.mount` still exists and still works. Teaching calls it a library mount. Deleting it would be a capability drop.
-4. Thirty-plus feature branches on the remote are operational clutter, not an architecture hole. Do not delete without an explicit ops pass.
+The freeze is Isolation, L0–L3, Clock A, import-not-copy, and no capability
+drop. Each former residual was resolved *inside* that freeze.
+
+| Former residual | Resolution given the freeze |
+|-----------------|-----------------------------|
+| Dialog / Sheet / ActionSheet copy-pasted overlay ids | Widgets take chrome from `OverlayChrome`. Ids, swipe, enter distances unchanged — Tailwind / tree stay on the widget (visual-safe). Handle grammar and `y=32` live on the primitive. |
+| `degrade._EVENTS` process-global leaked across Apps | Per-App `DegradeBus` + `ContextVar`. Dual-write to process bus so doctor still sees process-wide evidence. Module `note()` / `degrades()` / `clear()` stay. |
+| `App.mount` looked like a second product | Teaching + docstring: it is the scan step `build()` already calls. Same implementation. Not deleted. |
+| Leftover aliases (`host=batteries`, `DirectoryRouter`) | Doctor teaches both keyword and call forms. Deleting them fails 0.1 tests = capability drop. Teaching **is** the expire path. |
+| 30+ remote feature branches | Git-ops, not architecture. Living lines: `main`, `release/0.1.0`, `architecture/clarity-one-door`. A composition PR does not mass-delete. |
+| Command / Dropdown / ContextMenu vs OverlayChrome | Different interaction family. Command owns `translate-x` in Tailwind; OverlayChrome `rise` would collide. Named boundary, not a hole. |
+
+Nothing in that table is deferred work. Each row is the designed state.
 
 ### Review holes found on PR #31 (cleared this cut)
 

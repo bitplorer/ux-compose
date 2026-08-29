@@ -363,14 +363,11 @@ uxcompose add rating
 uxcompose add kanban --page
 ```
 
-Play the promoted widgets in the Atelier of Patterns (`apps/atelier_studio`):
-`/p/rating`, `/p/kanban`, `/p/timeline`, `/p/kpi`, `/p/slider`, `/p/lightbox`,
-`/p/wishlist`, `/p/progress`, `/p/empty-retry`, `/p/presence`, `/p/chips`,
-`/p/skeleton`.
+Play the kit in **Lumen** (`apps/lumen`): `/`, `/folio`, `/chase`, `/stone`, `/gate`.
+Seams are `_slides` / `_items` / `on_*` on a subclass — not `render(attrs=)`.
+Channel morphs the card. There is no app JavaScript.
 
-Feed them from a Host in the Floor (`apps/floor`): `/`, `/shelf`, `/bench`,
-`/visit`, `/door`. Seams are `_slides` / `_items` / `on_*` on a subclass —
-not `render(attrs=)`. The ledger is the proof.
+The Atelier (`apps/atelier_studio`) and Floor (`apps/floor`) are historical demos.
 
 | Add | Class | Encoding |
 |-----|--------|----------|

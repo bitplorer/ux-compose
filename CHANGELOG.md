@@ -10,19 +10,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Architecture shape document: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-  Rings, one author door, one product door, one catalog, residuals-by-teaching.
+  Rings, one author door, one product door, one catalog, leftovers-by-teaching.
   Decision: [`docs/adr/0004-clarity-and-residuals.md`](docs/adr/0004-clarity-and-residuals.md).
   ADR 0003 stays reserved for a Clock A media-type conflict.
 - Official author helpers (`act`, `tick`, `field`, `status`, `maybe_plan`,
   `maybe_fade`, `maybe_slide`) in `ux_compose.author`, re-exported from the
-  package root. `examples/_common.py` re-exports the same objects.
-- Visible degrade bus (`DegradeEvent`, `degrades()`, `note()`). Attach
-  methods still do not raise when a specialist is absent; doctor prints why.
-- `OverlayChrome` / `overlay()` kit primitive (stable scrim / panel / dismiss
-  ids, swipe on dismiss not the root, selectors-only open plan). Dialog /
-  Sheet / ActionSheet markup is unchanged this cut.
-- Doctor residual scans: kit-import in product trees, leftover aliases.
-  Teaching only — not fail-closed.
+  package root. `examples/_common.py` re-exports the same objects **and**
+  keeps `scene` / `rise` / `fade` / `slide` (None when ux-motion is absent)
+  so Atelier imports do not break.
+- Visible degrade bus (`DegradeEvent`, `DegradeBus`, `degrades()`, `note()`).
+  Evidence is per-App. Dual-write keeps a process bus for doctor. Two Apps
+  in one process do not leak. Attach methods still do not raise.
+- `OverlayChrome` / `overlay()` kit primitive. Dialog, Sheet, and ActionSheet
+  take ids, dismiss/handle grammar, and the open plan from it. Handle grammar
+  (`swipe.vertical threshold:48`) and shipped enter distances (right `x=28`,
+  bottom `y=32`) live on the primitive. Markup and Tailwind stay on the widget.
+- Doctor residual scans: kit-import in product trees, leftover aliases
+  (`host="batteries"`, `use_host("batteries")`, `DirectoryRouter`,
+  `serve="webassets"`). Teaching only — not fail-closed.
 - Ownable kit (`uxcompose add`): login, tabs, accordion, dropdown, dialog, sheet,
   toast, command, table, pagination, combobox, sidebar, breadcrumb, stepper,
   carousel, calendar, select, otp, plans.
@@ -32,7 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Public `__all__` gained author helpers and degrade names. Every 0.1.0 name
-  remains. `App.mount` is documented as a library mount, not a second product.
+  remains. `App.mount` is the scan step inside `build()` — same implementation,
+  two callers (product vs tests/surfaces).
 - Typeahead: `input delay:300`. Later `input`/`change` of the same
   control aborts the in-flight Intent (Channel AbortController on
   `postIntent`). Live Results morph `#typeahead-hits` only — the field
@@ -46,12 +52,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dismiss and confirm keep stable ids. Open composes a Motion enter plan
   (fade scrim, rise panel) — selectors only, no Channel attr, no kit JS.
   Cancel / confirm are morph-only: after apply the panel is gone.
+  Chrome comes from `OverlayChrome`.
 - Sheet: card drops `relative` / overflow so a `fixed` overlay is not remapped
   or clipped on a narrow stage. Swipe lives on Close / Done
   (`click swipe.right`), not a root `swipe.horizontal`. Panel, scrim,
   dismiss and done keep stable ids. Open composes a Motion enter plan
   (fade scrim, slide panel) — selectors only, no Channel attr, no kit JS.
-  Close is morph-only: after apply the panel is gone.
+  Close is morph-only: after apply the panel is gone. Chrome comes from
+  `OverlayChrome`.
 - ContextMenu: floating panel (`list-none`, no native ul tab), overlays the
   canvas, card no longer `overflow-hidden` (that clipped the menu). Rows are
   `menuitem`. Root stamps `data-channel-id`.
@@ -64,9 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   overlay is not remapped or clipped. Swipe lives on the handle and
   Cancel (`click swipe.down`), not a root `swipe.vertical` (that swallowed
   row clicks). Panel, scrim, dismiss and cancel keep stable ids. Open
-  composes a Motion enter plan (fade scrim, slide panel) — selectors
+  composes a Motion enter plan (fade scrim, slide panel y=32) — selectors
   only, no Channel attr, no kit JS. Close / pick are morph-only: after
-  apply the panel is gone.
+  apply the panel is gone. Chrome comes from `OverlayChrome`.
 - Carousel chrome: Prev / Next overlay the stage (44px chevrons, left / right).
   Dots overlay a locked `h-72` stage so unequal title wrap cannot
   translate the rail. One `#id-thumb` pip translates across equal slots

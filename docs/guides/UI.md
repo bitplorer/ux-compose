@@ -2,14 +2,19 @@
 
 > **Diátaxis:** how-to · **Layer:** ux-compose
 > Path: [PATH.md](PATH.md) · Map: [../INDEX.md](../INDEX.md)
-> Source of truth for these shapes: repo `examples/` (foundation, chrome, modal, forms, overlays, cart, motion_xor).
+> **Catalog SSoT:** `ux_compose.kit` + `uxcompose add` (the copy is yours).
+> **Atelier:** repo `examples/` — teaching, not a second catalog.
+> Shape: [../ARCHITECTURE.md](../ARCHITECTURE.md).
 
-Each widget is **one `Component`**. Copy the class into `routes/{stem}.py`
-(stem == class name) or `app.add(TheClass)`. The same class is valid at L1
-(offline `dispatch`) and L3 (`use_channel` + `use_motion`). Zero rewrite.
+Each widget is **one `Component`**. Product trees own a copy after
+`uxcompose add <name>` into `routes/{stem}.py` (stem == class name) or
+`app.add(TheClass)`. Do not `from ux_compose.kit import` in a product app.
+The same class is valid at L1 (offline `dispatch`) and L3 (`use_channel` +
+`use_motion`). Zero rewrite.
 
 Public names only: `Component`, `MorphState`, `RefState`, `action`, `control`,
-`bind`, `notify`, `update_with`, `div`, `button`, `span`, … from `ux_compose`.
+`bind`, `notify`, `update_with`, `act`, `tick`, `div`, `button`, `span`, …
+from `ux_compose`.
 
 **State rule used throughout**
 
@@ -45,7 +50,7 @@ print(app.dispatch("tabs.select", tab="make"))
 - [Cart](#cart)
 
 Accordion, signup form, toasts, motion box, and Card kit: [SNIPPETS.md](SNIPPETS.md)
-and repo `examples/`.
+and the Atelier (`examples/`). Ownable copies: `uxcompose add --list`.
 
 ---
 
@@ -356,3 +361,7 @@ The Atelier of Patterns (`examples/`) is the long form of this catalog:
 chrome, overlays, forms, lists, feeds, navigation, commerce, systems.
 See [../../examples/README.md](../../examples/README.md). Play them with
 `apps/atelier_studio`.
+
+The ownable kit lives in `src/ux_compose/kit/`. Copy into a product tree
+with `uxcompose add dialog` (and `uxcompose add --list`). Product apps do
+not `from ux_compose.kit import …`.

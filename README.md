@@ -104,7 +104,7 @@ print(app.dispatch("cart.add", sku="tee"))
 ```
 
 `render()` returns a **ux-dom tag tree**, not an HTML string.
-Public names are `ux_compose` (`App`, `div`, `button`, …) — not a second `ux.*` namespace.
+Public names are `ux_compose` (`App`, `div`, `button`, `act`, …) — not a second `ux.*` namespace.
 
 Default product layout: `uxcompose create-app` + `build()` (`routes/` page units).
 
@@ -114,16 +114,16 @@ from document import document
 app, asgi, bundle = build(PACKAGE, host="auto", live="auto", document=document)
 ```
 
-`App.mount` remains a secondary door (tests, surfaces).
+`App.mount` is a library mount for tests and surfaces, not a second product.
 
-Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PATH.md](docs/guides/PATH.md). UI kit: [docs/guides/UI.md](docs/guides/UI.md). Mental model: [docs/START_HERE.md](docs/START_HERE.md).
+Five-minute path: [START_HERE.md](START_HERE.md). Shape: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Product path: [docs/guides/PATH.md](docs/guides/PATH.md). UI kit: [docs/guides/UI.md](docs/guides/UI.md). Mental model: [docs/START_HERE.md](docs/START_HERE.md).
 
 ## Ownership
 
 | Owns | Does **not** own |
 |------|------------------|
 | Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder + app asset layout | DOM serialize / tag trees / package static (ux-dom) |
-| `App` composition, `App.mount`, delivery, HMR + tunnel under serve | Channel transport (wire/ only) |
+| `App` composition, library `App.mount`, delivery, HMR + tunnel under serve | Channel transport (wire/ only) |
 | Page-unit mount (`routes/` + `build()`); CSS minify via `ux_compose.tailwind` | MorphState / Cap / Plan IR implementations |
 
 ## Audience
@@ -131,6 +131,7 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 | You are… | Start |
 |----------|--------|
 | **New** | [START_HERE.md](START_HERE.md) · [docs/guides/PATH.md](docs/guides/PATH.md) |
+| **Shape / doors / catalog** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
 | **Pick-and-use UI** | [docs/guides/UI.md](docs/guides/UI.md) |
 | **Ownership / boundaries** | [docs/FLOW.md](docs/FLOW.md) |
 | **CLI** | [docs/guides/CLI.md](docs/guides/CLI.md) |
@@ -158,13 +159,13 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 - Authors do not import `ux_channel` outside compose `wire/`
 - Do not reimplement specialists in this repo
 
-Full law: [docs/FLOW.md](docs/FLOW.md). Examples: [examples/README.md](examples/README.md).
+Full law: [docs/FLOW.md](docs/FLOW.md). Shape: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Examples: [examples/README.md](examples/README.md).
 
 **Notes:** ux-dom requires Python ≥3.14 (L1 offline can run 3.11+). Optional CEK: `app.use_cek(mode="adapt")`. Headless `use_channel()` boots Channel without HTTP for mint/submit tests.
 
 ## Documentation
 
-Family contract: [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md). Map: [docs/INDEX.md](docs/INDEX.md).
+Family contract: [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md). Map: [docs/INDEX.md](docs/INDEX.md). Shape: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 Canonical CLI / DX / testing pages live under `docs/guides/`. Root files such as `docs/CLI.md` are **Moved stubs** — do not cite them.
 
@@ -173,7 +174,7 @@ Canonical CLI / DX / testing pages live under `docs/guides/`. Root files such as
 | Tutorial | [START_HERE.md](START_HERE.md) · [docs/START_HERE.md](docs/START_HERE.md) · [docs/guides/PATH.md](docs/guides/PATH.md) |
 | How-to | [docs/guides/UI.md](docs/guides/UI.md) · [docs/guides/SNIPPETS.md](docs/guides/SNIPPETS.md) · [docs/guides/CLI.md](docs/guides/CLI.md) · [docs/guides/serve-hmr-tunnel.md](docs/guides/serve-hmr-tunnel.md) · [docs/guides/TESTING.md](docs/guides/TESTING.md) |
 | Reference | [docs/reference/README.md](docs/reference/README.md) |
-| Explanation | [docs/FLOW.md](docs/FLOW.md) · [docs/internals/FLOW.md](docs/internals/FLOW.md) · [docs/adr/0001-ownership.md](docs/adr/0001-ownership.md) |
+| Explanation | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/FLOW.md](docs/FLOW.md) · [docs/internals/FLOW.md](docs/internals/FLOW.md) · [docs/adr/0004-clarity-and-residuals.md](docs/adr/0004-clarity-and-residuals.md) |
 
 ## API
 
@@ -183,6 +184,8 @@ Public names are `ux_compose.__all__` (re-exported specialists + compose’s own
 |--------|------|
 | `App` | Composition root: `boot`, `add`, `mount`, `use_channel`, `use_motion`, `dispatch` |
 | `Component`, `MorphState`, `RefState`, `action`, `bind`, `control`, `notify`, `update_with` | Behavior surface (via ux-behavior) |
+| `act`, `tick`, `field`, `status`, `maybe_plan`, `maybe_fade`, `maybe_slide` | Author helpers (also re-exported from `examples/_common`) |
+| `DegradeEvent`, `degrades` | Visible attach step-downs (never raised) |
 | `div`, `h1`, `button`, … | Tag constructors (via ux-dom, when installed) |
 | `scene`, `fade`, `rise`, `morph_play` | Motion surface (via ux-motion, when installed) |
 | `Surface`, `mount_surfaces`, `scan_surfaces` | Surface bundles |

@@ -2,6 +2,8 @@
 ux-compose — pure-Python composition root for ux-dom + ux-behavior + ux-motion + ux-channel.
 
 Cold import never pulls the wire. Isolation Law enforced.
+
+Public author surface is this package root. See docs/ARCHITECTURE.md.
 """
 
 from __future__ import annotations
@@ -24,6 +26,16 @@ from ux_compose.doctor import doctor, DoctorResult
 from ux_compose.build import build
 from ux_compose.assets import WebAssets
 from ux_compose.routing import DirectoryASGI, DirectoryRoutes, RouterHooks
+from ux_compose.author import (
+    act,
+    field,
+    maybe_fade,
+    maybe_plan,
+    maybe_slide,
+    status,
+    tick,
+)
+from ux_compose.degrade import DegradeEvent, degrades
 
 try:
     from ux_motion import scene, fade, rise, slide  # type: ignore
@@ -89,6 +101,15 @@ __all__ = [
     "notify",
     "update_with",
     "morph_play",
+    "act",
+    "tick",
+    "field",
+    "status",
+    "maybe_plan",
+    "maybe_fade",
+    "maybe_slide",
+    "DegradeEvent",
+    "degrades",
     "Level",
     "doctor",
     "DoctorResult",

@@ -78,7 +78,8 @@ lock the hard-cut (no product CLI dual path).
 
 Cold import never pulls the wire. `App.use_channel(asgi_app=…)` is the live door.
 `app.use_motion()` is the motion door. Level 1 code remains correct at L2/L3.
-Attach step-downs are recorded on `degrades()` — degrade still does not raise.
+Attach step-downs are recorded per-App (`app.degrade_events`) and on the
+process bus (`degrades()`) — degrade still does not raise.
 
 ## Product host (Clock A)
 
@@ -95,8 +96,8 @@ on page units. Do not boot Channel in `App.boot("auto")`. New media types
 follow spec §10 (predicate + both hosts + `tests/unit/test_host.py` + the spec
 page in the same change). `build()` wraps GET only with the author Document
 (`wrap=`). `attach_motion()` returns instances, not classes.
-`App.mount` / `attach_page_router` pass the same `wrap=` as `build()`.
+`App.mount` is the scan step inside `build()` — one implementation, two
+callers. `App.mount` / `attach_page_router` pass the same `wrap=` as `build()`.
 `materialize(route_class=)` fails closed. Scaffold does not emit `page()`.
 Examples (`examples/live_asgi.py`) use `build()` for Clock A GET — not a
-handmade `@app.get` + `HTMLResponse`. `App.mount` is a library mount for
-tests and surfaces, not a second product.
+handmade `@app.get` + `HTMLResponse`.

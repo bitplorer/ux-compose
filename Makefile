@@ -5,7 +5,7 @@ PY314 ?= /tmp/ux314venv/bin/python
 PY312 ?= /tmp/ux312venv/bin/python
 VENV  ?= /tmp/ux314venv
 
-.PHONY: test test-matrix coverage test314 test312 venv314 specialists examples doctor shop studio pulse
+.PHONY: test test-matrix coverage test314 test312 venv314 specialists examples doctor shop studio pulse floor lumen
 
 venv314:
 	python3.14 -m venv --without-pip $(VENV) || true
@@ -68,3 +68,10 @@ studio:
 
 pulse:
 	PYTHONPATH=src:. python -m uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080
+
+floor:
+	PYTHONPATH=src:. $(PY314) -m uvicorn apps.floor.app:asgi --host 0.0.0.0 --port 8081
+
+lumen:
+	cd apps/lumen && PYTHONPATH=$(CURDIR)/src:$(CURDIR) $(PY314) -m ux_compose.cli build --skip-import
+	PYTHONPATH=src:. $(PY314) -m uvicorn apps.lumen.app:asgi --host 0.0.0.0 --port 8082

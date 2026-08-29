@@ -85,7 +85,7 @@ def catalog_page():
                 input_(
                     id="catalog-filter",
                     type="search",
-                    placeholder="Filter patterns — counter, checkout, otp…",
+                    placeholder="Filter patterns — rating, kanban, lightbox…",
                     autocomplete="off",
                     aria_label="Filter patterns",
                 ),

@@ -69,6 +69,9 @@ def test_each_pattern_renders_and_public_dispatch():
         ("wishlist.toggle", {"sku": "oak"}),
         ("progress.bump", {}),
         ("calendar.pick", {"n": "21"}),
+        ("rating.set", {"value": "five"}),
+        ("kanban.move", {"sku": "linen-01", "to": "make"}),
+        ("empty.load", {}),
     ):
         ops = app.dispatch(action, **kwargs)
         assert isinstance(ops, list)

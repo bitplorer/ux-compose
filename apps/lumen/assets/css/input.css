@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@source "../../**/*.{py,html}";
+@source "../../../../src/ux_compose/kit/**/*.py";
+
+@theme {
+  --font-serif: "Iowan Old Style", Palatino, Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --bg: #12110f;
+    --fg: #f3efe6;
+    --accent: #c4a574;
+    --font-display: var(--font-serif);
+    --font-body: var(--font-sans);
+  }
+
+  html {
+    background: var(--bg);
+    color: var(--fg);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+}

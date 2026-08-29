@@ -73,6 +73,8 @@ REFUSE = {
     "comments.moderate",
     "calendar.book",
     "settings.wipe",
+    "kpi.reset",
+    "kanban.archive",
 }
 # Host routing keys — never forwarded into @action kwargs.
 HOST_KEYS = {"action", "submit", "slug", "target"}
@@ -220,7 +222,10 @@ def _shell(*main_kids: Any, flash: str = "") -> str:
                     href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap",
                 ),
                 link(rel="stylesheet", href="/static/css/atelier.css"),
+                script("tailwind.config = {corePlugins:{preflight:false}}"),
+                script(src="https://cdn.tailwindcss.com"),
                 script(src="/static/idiomorph.min.js"),
+                script(src="/static/atelier.js"),
                 script(src="/ux-pkg/ux-motion/static/ux-motion-player.js"),
             ),
             body(
@@ -399,6 +404,13 @@ def build_asgi():
         if not _IDIOMORPH.is_file():
             return Response(status_code=404)
         return FileResponse(_IDIOMORPH, media_type="application/javascript")
+
+    @asgi.get("/static/atelier.js")
+    def atelier_js():
+        js = _STATIC / "atelier.js"
+        if not js.is_file():
+            return Response(status_code=404)
+        return FileResponse(js, media_type="application/javascript")
 
     @asgi.get("/static/css/atelier.css")
     def atelier_css():

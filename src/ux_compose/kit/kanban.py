@@ -1,0 +1,234 @@
+"""Drop-in kanban — three named lanes, ids silent.
+
+Host seam: override ``CARDS`` / ``LANES`` and ``on_move`` / ``on_archive``.
+Moving is public. Archiving spends a Cap.
+Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+"""
+
+from __future__ import annotations
+
+from ux_compose import (
+    Component,
+    MorphState,
+    RefState,
+    action,
+    bind,
+    notify,
+    update_with,
+    button,
+    div,
+    h2,
+    h3,
+    p,
+    span,
+)
+
+
+def _move_plan(cid: str, sku: str):
+    try:
+        from ux_compose import scene, rise
+
+        if scene is None or rise is None:
+            return None
+        return scene("kanban-move").enter(f"#{cid}-card-{sku}", rise.enter(ms=140))
+    except Exception:
+        return None
+
+
+_LANE_RAIL = {
+    "cut": "border-l-[3px] border-l-amber-600 dark:border-l-amber-400",
+    "make": "border-l-[3px] border-l-sky-700 dark:border-l-sky-400",
+    "keep": "border-l-[3px] border-l-emerald-700 dark:border-l-emerald-400",
+}
+
+
+class Kanban(Component):
+    """Three columns of piece ids. Membership is RefState. Stamp dirties.
+
+    ``LANES`` is ``(key, label, kicker)``. ``CARDS`` is ``(sku, title, lede)``.
+    Lane fields ``cut`` / ``make`` / ``keep`` hold id tuples.
+    """
+
+    id = "kanban"
+
+    class_card = (
+        "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-[44rem] flex-col gap-6 "
+        "overflow-x-hidden rounded-[1.85rem] border border-stone-900/[0.07] bg-[#fdfcf8] p-7 text-stone-900 "
+        "shadow-[0_0_0_1px_rgba(22,21,19,0.03),0_1px_2px_rgba(22,21,19,0.04),0_28px_56px_-24px_rgba(22,21,19,0.2)] "
+        "dark:border-white/10 dark:bg-[#141311] dark:text-stone-50 dark:shadow-none"
+    )
+    class_kicker = (
+        "text-[0.6875rem] font-medium uppercase tracking-[0.22em] text-stone-400 "
+        "dark:text-stone-500"
+    )
+    class_title = (
+        "m-0 font-serif text-[1.85rem] font-semibold leading-[1.12] tracking-[-0.03em]"
+    )
+    class_lede = "m-0 max-w-[40ch] text-[0.9375rem] leading-relaxed text-stone-500 dark:text-stone-400"
+    class_board = "flex min-w-0 gap-3 overflow-x-auto pb-1"
+    class_lane = (
+        "flex min-h-[14rem] min-w-[10rem] flex-1 flex-col gap-2.5 rounded-2xl "
+        "bg-white/70 p-3 ring-1 ring-stone-900/[0.06] "
+        "dark:bg-stone-900/50 dark:ring-white/10"
+    )
+    class_lane_head = "flex items-start justify-between gap-2 px-1 pb-1"
+    class_lane_name = "m-0 font-serif text-[1.05rem] font-medium tracking-tight"
+    class_count = (
+        "inline-flex h-6 min-w-6 items-center justify-center rounded-full "
+        "bg-stone-900/90 px-1.5 text-[0.6875rem] font-semibold tabular-nums text-stone-50 "
+        "dark:bg-stone-100 dark:text-stone-900"
+    )
+    class_piece = (
+        "flex flex-col gap-1 rounded-xl bg-[#fdfcf8] px-3.5 py-3 "
+        "shadow-[0_0_0_1px_rgba(22,21,19,0.06),0_1px_2px_rgba(22,21,19,0.04)] "
+        "transition duration-200 hover:-translate-y-0.5 hover:shadow-md "
+        "motion-reduce:transition-none motion-reduce:hover:translate-y-0 "
+        "dark:bg-[#1a1916] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.08)]"
+    )
+    class_piece_title = "m-0 text-sm font-semibold tracking-tight"
+    class_piece_lede = "m-0 text-[0.8125rem] leading-relaxed text-stone-500 dark:text-stone-400"
+    class_actions = "mt-2 flex flex-wrap items-center gap-1"
+    class_btn_text = (
+        "inline-flex min-h-11 cursor-pointer items-center rounded-full border-0 "
+        "bg-stone-900/[0.04] px-3 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] "
+        "text-stone-600 hover:bg-stone-900/[0.08] hover:text-stone-900 "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-900/15 "
+        "dark:bg-white/5 dark:text-stone-300 dark:hover:bg-white/10 dark:hover:text-stone-50"
+    )
+    class_btn_danger = (
+        "inline-flex min-h-11 cursor-pointer items-center rounded-full border-0 "
+        "bg-transparent px-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] "
+        "text-rose-800/80 hover:bg-rose-50 hover:text-rose-800 "
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-800/20 "
+        "dark:text-rose-300 dark:hover:bg-rose-950/40"
+    )
+    class_empty = (
+        "mt-1 flex flex-1 items-center justify-center rounded-lg border border-dashed "
+        "border-stone-300/80 px-2 py-6 text-center text-[0.75rem] text-stone-400 "
+        "dark:border-stone-700 dark:text-stone-500"
+    )
+
+    LANES = (
+        ("cut", "Cut", "Marked"),
+        ("make", "Make", "On the bench"),
+        ("keep", "Keep", "Held"),
+    )
+    CARDS = (
+        ("linen-01", "Work shirt", "Cut to the shoulder."),
+        ("oak-02", "Serving board", "Wax, then rest."),
+        ("wool-03", "Throw", "Winter weight."),
+        ("clay-04", "Pourer", "Brush, never soak."),
+    )
+
+    cut = RefState(("linen-01", "clay-04"))
+    make = RefState(("oak-02",))
+    keep = RefState(("wool-03",))
+    stamp = MorphState("idle")
+
+    def on_move(self, sku: str, to: str) -> str:
+        """Host seam. Return toast copy."""
+        return f"{sku} → {to}"
+
+    def on_archive(self, sku: str) -> str:
+        """Host seam. Called after the Cap spent."""
+        return f"archived {sku}"
+
+    def _tick(self):
+        self.stamp = "b" if self.stamp == "a" else "a"
+
+    def _lanes(self):
+        return tuple(self.LANES)
+
+    def _cards(self):
+        return {row[0]: row for row in self.CARDS}
+
+    def _col(self, name: str):
+        return list(getattr(self, name) or ())
+
+    def _lane_keys(self):
+        return tuple(row[0] for row in self._lanes())
+
+    def render(self):
+        catalog = self._cards()
+        keys = self._lane_keys()
+        lanes = []
+        for key, label, kicker in self._lanes():
+            skus = self._col(key)
+            cards = []
+            nxt = keys[(keys.index(key) + 1) % len(keys)] if keys else key
+            for sku in skus:
+                _sku, title, lede = catalog.get(sku, (sku, sku, ""))
+                cards.append(
+                    div(
+                        h3(title, className=self.class_piece_title),
+                        p(lede, className=self.class_piece_lede),
+                        div(
+                            button(
+                                f"To {nxt}",
+                                type="button",
+                                className=self.class_btn_text,
+                                **bind(self.move, sku=sku, to=nxt),
+                            ),
+                            button(
+                                "Archive",
+                                type="button",
+                                className=self.class_btn_danger,
+                                **bind(self.archive, sku=sku),
+                            ),
+                            className=self.class_actions,
+                        ),
+                        id=f"{self.id}-card-{sku}",
+                        className=self.class_piece,
+                    )
+                )
+            if not cards:
+                cards.append(p("Nothing here", className=self.class_empty))
+            rail = _LANE_RAIL.get(key, "")
+            lanes.append(
+                div(
+                    div(
+                        div(
+                            span(kicker, className=self.class_kicker),
+                            h3(label, className=self.class_lane_name),
+                        ),
+                        span(str(len(skus)), className=self.class_count),
+                        className=self.class_lane_head,
+                    ),
+                    *cards,
+                    id=f"{self.id}-lane-{key}",
+                    className=f"{self.class_lane} {rail}",
+                    data_lane=key,
+                )
+            )
+        return div(
+            span("Board", className=self.class_kicker),
+            h2("What is open", className=self.class_title),
+            p("Ids stay silent. Moving is public. Archive spends a Cap.", className=self.class_lede),
+            div(*lanes, className=self.class_board, role="list"),
+            id=self.id,
+            className=self.class_card,
+            data_stamp=str(self.stamp or "idle"),
+        )
+
+    @action(caps=())
+    def move(self, sku: str = "", to: str = "make"):
+        keys = self._lane_keys()
+        if to not in keys or not sku:
+            return update_with(self)
+        for col in keys:
+            setattr(self, col, tuple(x for x in self._col(col) if x != sku))
+        setattr(self, to, tuple(self._col(to) + [sku]))
+        self._tick()
+        return update_with(
+            self,
+            _move_plan(self.id, sku),
+            extra_ops=[notify(self.on_move(sku, to))],
+        )
+
+    @action(caps=("items.archive",))
+    def archive(self, sku: str = ""):
+        keys = self._lane_keys()
+        for col in keys:
+            setattr(self, col, tuple(x for x in self._col(col) if x != sku))
+        self._tick()
+        return update_with(self, extra_ops=[notify(self.on_archive(sku))])

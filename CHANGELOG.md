@@ -14,8 +14,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   carousel, calendar, select, otp, plans.
 - Kit Wave 1 (Signal grammar): `actionsheet`, `contextmenu`, `typeahead`, `pullrefresh`.
   Tailwind `class_*` only. `data-channel-on` for swipe.vertical / longpress / input delay:.
+- Kit Wave 2 (product surfaces): `rating`, `kanban`, `timeline`, `kpi`, `slider`,
+  `lightbox`, `wishlist`, `progress`, `empty`, `presence`, `chips`, `skeleton`.
+  Named MorphState / silent RefState. Caps on `kanban.archive` and `kpi.reset`.
+  Overlay lightbox has no containing-block card. Motion is additive. Play in
+  Atelier `/p/rating` … `/p/skeleton`.
+- Floor app (`apps/floor`): Host-seam house. One `House` book feeds every kit
+  Component (walnut / flax / merino — not the kit stand-in). Clicks write the
+  ledger. Clock A `build()`. Polish stays on `ux_compose.kit`. `make floor`.
+  Bound fields (Typeahead, OTP, Login, Combobox) stay focusable: click does
+  not remorph the card. Live filter morphs `#{id}-hits` only.
 
 ### Changed
+
+- Wave-2 kit chrome: paper card (`bg-[#fdfcf8]`, `rounded-[1.85rem]`, layered
+  shadow) on rating, kanban, timeline, kpi, slider, lightbox, wishlist,
+  progress, empty, presence, chips, skeleton. Inner composition is distinct
+  per unit (gold rating well, lane-color kanban rails, KPI ink tile, slider
+  thumb, lightbox hero + film-strip ring, filled wishlist heart, pulsing
+  progress dot, phase wells, overlapping presence stack, material chip
+  tokens, skeleton that matches the ready card). Overlay lightbox card still
+  has no `relative` / overflow. Encoding, ids, Caps, and action names
+  unchanged.
 
 - Typeahead: `input delay:300`. Later `input`/`change` of the same
   control aborts the in-flight Intent (Channel AbortController on

@@ -304,6 +304,7 @@ class Login(Component):
             input_(
                 type=input_type,
                 name=name,
+                id=f"{self.id}-{name}",
                 value=value,
                 placeholder=placeholder,
                 autocomplete=autocomplete,

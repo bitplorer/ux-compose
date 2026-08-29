@@ -146,6 +146,7 @@ class Combobox(Component):
                     input_(
                         type="search",
                         name="q",
+                        id=f"{self.id}-q",
                         value=q,
                         placeholder="Filter pieces",
                         autocomplete="off",

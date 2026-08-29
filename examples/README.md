@@ -36,5 +36,6 @@ The live-safe form is what the studio uses.
 | Commerce | `cart.py` `systems.py` `commerce_more.py` | Cart, quantity stepper, rating, wishlist, coupon (Cap), checkout (Cap), stock band, compare |
 | Live Caps | `live_caps.py` | Fail-closed offline, mint vs refuse live |
 | Motion | `motion_xor.py` | XOR, Morph-then-Play, `scene.share` |
-| Systems | `systems.py` `ops.py` | Chat, inbox, tree, skeleton, consent, locale, chips, inline edit, calendar (Cap), progress, copy, settings (Cap), offline, presence, KPI, shortcuts |
+| Systems | `systems.py` `ops.py` | Chat, inbox, tree, consent, locale, inline edit, calendar (Cap), copy, settings (Cap), offline, shortcuts. Promoted to kit: skeleton, chips, rating, progress, presence, KPI |
+| Kit (ownable) | `src/ux_compose/kit/` | `uxcompose add` copies. Wave 2: rating, kanban, timeline, kpi, slider, lightbox, wishlist, progress, empty, presence, chips, skeleton |
 | Host | `document_boot.py` `live_asgi.py` `cart_document.py` `page_unit_mount.py` | Document SSoT, `build()` Clock A GET, Isolation door; `App.mount` secondary |

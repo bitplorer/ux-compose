@@ -1,7 +1,8 @@
 """Pattern catalog — 99% use-case map.
 
-Isolation-safe. Importing this module loads example Components only
+Isolation-safe. Importing this module loads example and kit Components
 (no Document, no Channel). The studio host registers every class once.
+Ownable kit copies are the source of truth for promoted widgets.
 """
 from __future__ import annotations
 
@@ -10,47 +11,52 @@ from typing import Any
 from examples.foundation import Counter, Toggle, Planes
 from examples.chrome import Tabs, Accordion, Dropdown, Drawer
 from examples.shell import AppShell, Breadcrumbs, BottomNav, Popover, OverflowMenu
-from examples.overlays import Toasts, Confirm, Lightbox, Palette, Banner
+from examples.overlays import Toasts, Confirm, Palette, Banner
 from examples.forms import SignupForm, Wizard, Search
 from examples.fields import (
     ChoiceGroup,
     Combobox,
     DateField,
     FileDrop,
-    SliderField,
     OtpGate,
     PasswordField,
     Autosave,
     LimitedNote,
 )
 from examples.lists import Shelf, OptimisticList, Pages, UndoSnack
-from examples.feeds import Carousel, Comments, Timeline, EmptyRetry, ReorderList, ActivityFeed
+from examples.feeds import Carousel, Comments, ReorderList, ActivityFeed
 from examples.navigation import ShopView, MasterDetail
-from examples.table_board import DataTable, Kanban
+from examples.table_board import DataTable
 from examples.systems import (
     Chat,
     NotifyCenter,
     Tree,
-    Skeleton,
     Consent,
     Theme,
     Stepper,
-    Rating,
-    Chips,
     InlineEdit,
 )
-from examples.commerce_more import Wishlist, Coupon, CheckoutFlow, StockBadge, CompareTray
+from examples.commerce_more import Coupon, CheckoutFlow, StockBadge, CompareTray
 from examples.ops import (
     Calendar,
-    ProgressMeter,
     CopyClip,
     Settings,
     OfflineBanner,
-    Presence,
-    KpiStrip,
     Shortcuts,
 )
 from examples.motion_xor import MotionBox, ShareSeat
+from ux_compose.kit.rating import Rating
+from ux_compose.kit.kanban import Kanban
+from ux_compose.kit.timeline import Timeline
+from ux_compose.kit.kpi import Kpi
+from ux_compose.kit.slider import Slider
+from ux_compose.kit.lightbox import Lightbox
+from ux_compose.kit.wishlist import Wishlist
+from ux_compose.kit.progress import Progress
+from ux_compose.kit.empty import Empty
+from ux_compose.kit.presence import Presence
+from ux_compose.kit.chips import Chips
+from ux_compose.kit.skeleton import Skeleton
 from examples.live_caps import LiveOrder
 from examples.modal import ConfirmModal as DemoModal
 
@@ -270,12 +276,14 @@ PATTERNS: list[dict[str, Any]] = [
         "lightbox",
         "Overlays",
         "Lightbox",
-        "Index as RefState",
-        "Media viewer. Index is a magnitude — not MorphState.",
-        ("Ops-as-data",),
-        "open/close qualitative; prev/next tick the stamp. Slides are Host data.",
+        "Ownable kit · named slides",
+        "Media viewer. The slide is a name, not an index.",
+        ("Ops-as-data", "Morph-then-Play"),
+        "open is MorphState. slide is a named key (same as kit Carousel). "
+        "Swipe lives on Prev / Next. Overlay is presence — the card is not a containing block. "
+        "Copy with uxcompose add lightbox.",
         Lightbox,
-        file="examples/overlays.py",
+        file="src/ux_compose/kit/lightbox.py",
     ),
     _p(
         "palette",
@@ -387,13 +395,13 @@ PATTERNS: list[dict[str, Any]] = [
         "slider",
         "Forms",
         "Slider",
-        "Magnitude in RefState",
-        "Percent is silent. Named band (empty/low/mid/full) is derived.",
+        "Ownable kit · magnitude silent · band named",
+        "Percent is silent. Named band (empty/low/mid/full) is MorphState.",
         ("Ops-as-data",),
-        "Never MorphState(40). Studio uses stepped buttons because native range "
-        "still posts a quantity — the action writes RefState, not MorphState.",
-        SliderField,
-        file="examples/fields.py",
+        "Never MorphState(40). Stepped buttons post n as an action arg — the action "
+        "writes RefState, not MorphState. Copy with uxcompose add slider.",
+        Slider,
+        file="src/ux_compose/kit/slider.py",
     ),
     _p(
         "otp",
@@ -505,12 +513,13 @@ PATTERNS: list[dict[str, Any]] = [
         "kanban",
         "Collections",
         "Kanban",
-        "Three columns, one stamp",
-        "Moving a card is public. Archiving would take a Cap.",
-        ("Ops-as-data",),
-        "Each column is a RefState tuple of ids. move rewrites membership and ticks.",
+        "Ownable kit · three lanes · archive Cap",
+        "Moving a card is public. Archiving spends items.archive.",
+        ("Ops-as-data", "Cap Law"),
+        "Each column is a RefState tuple of ids. move rewrites membership and ticks. "
+        "Copy with uxcompose add kanban.",
         Kanban,
-        file="examples/table_board.py",
+        file="src/ux_compose/kit/kanban.py",
     ),
     _p(
         "carousel",
@@ -540,24 +549,25 @@ PATTERNS: list[dict[str, Any]] = [
         "timeline",
         "Collections",
         "Timeline",
-        "Named filter · events silent",
+        "Ownable kit · named filter · events silent",
         "Ordered history. Filter is a lane name, not an index.",
         ("Ops-as-data",),
-        "Same encoding as a filtered shelf. Empty lane is a first-class row.",
+        "Same encoding as a filtered shelf. Empty lane is a first-class row. "
+        "Copy with uxcompose add timeline.",
         Timeline,
-        file="examples/feeds.py",
+        file="src/ux_compose/kit/timeline.py",
     ),
     _p(
         "empty-retry",
         "Collections",
         "Empty / error / retry",
-        "Named phase, never a blank stage",
+        "Ownable kit · named phase",
         "empty | loading | error | ready are part of the design.",
         ("Ops-as-data",),
         "phase MorphState. Body RefState. Retry is public; a billed refetch would "
-        "take a Cap. Skeleton chrome reuses .skel from the systems unit.",
-        EmptyRetry,
-        file="examples/feeds.py",
+        "take a Cap. Copy with uxcompose add empty.",
+        Empty,
+        file="src/ux_compose/kit/empty.py",
     ),
     _p(
         "reorder",
@@ -634,24 +644,24 @@ PATTERNS: list[dict[str, Any]] = [
         "rating",
         "Commerce",
         "Star rating",
-        "Named, not numeric",
+        "Ownable kit · named, not numeric",
         "one|two|three|four|five — qualitative MorphState.",
         ("Ops-as-data",),
-        "Ints on MorphState fail live. Names survive.",
+        "Ints on MorphState fail live. Names survive. Copy with uxcompose add rating.",
         Rating,
-        file="examples/systems.py",
+        file="src/ux_compose/kit/rating.py",
     ),
     _p(
         "wishlist",
         "Commerce",
         "Wishlist",
-        "Ids silent · heart public",
+        "Ownable kit · ids silent · heart public",
         "Saving is not placing. Heart/unheart is public.",
         ("Ops-as-data",),
-        "ids RefState + stamp. Checkout remains a Cap on the cart unit. Same "
-        "shape as a multi-select of catalog keys.",
+        "ids RefState + stamp. Checkout remains a Cap on the cart unit. "
+        "Copy with uxcompose add wishlist.",
         Wishlist,
-        file="examples/commerce_more.py",
+        file="src/ux_compose/kit/wishlist.py",
     ),
     _p(
         "coupon",
@@ -773,12 +783,13 @@ PATTERNS: list[dict[str, Any]] = [
         "skeleton",
         "Systems",
         "Skeleton / loading",
-        "Loading MorphState",
+        "Ownable kit · loading MorphState",
         "Empty, loading, ready are part of the design.",
-        ("Ops-as-data",),
-        "loading=True paints the gate. arrive swaps body in. Reload returns to the gate.",
+        ("Ops-as-data", "Morph-then-Play"),
+        "loading=True paints the gate. arrive swaps body in. Reload returns to the gate. "
+        "Copy with uxcompose add skeleton.",
         Skeleton,
-        file="examples/systems.py",
+        file="src/ux_compose/kit/skeleton.py",
     ),
     _p(
         "consent",
@@ -806,12 +817,13 @@ PATTERNS: list[dict[str, Any]] = [
         "chips",
         "Systems",
         "Chips / tags",
-        "Tag set as RefState",
+        "Ownable kit · tag set as RefState",
         "Add/remove names. Stamp dirties the unit.",
         ("Ops-as-data",),
-        "Same encoding as a multi-select. Domain tags stay Host-owned.",
+        "Same encoding as a multi-select. Domain tags stay Host-owned. "
+        "Copy with uxcompose add chips.",
         Chips,
-        file="examples/systems.py",
+        file="src/ux_compose/kit/chips.py",
     ),
     _p(
         "inline",
@@ -840,13 +852,14 @@ PATTERNS: list[dict[str, Any]] = [
         "progress",
         "Systems",
         "Progress",
-        "Pct silent · phase named",
+        "Ownable kit · pct silent · phase named",
         "idle / run / done. Percent is a magnitude.",
         ("Ops-as-data",),
         "Bar width is a derived band class (empty/low/mid/full), not an inline "
-        "quantity on MorphState. bump writes RefState and ticks.",
-        ProgressMeter,
-        file="examples/ops.py",
+        "quantity on MorphState. bump writes RefState and ticks. "
+        "Copy with uxcompose add progress.",
+        Progress,
+        file="src/ux_compose/kit/progress.py",
     ),
     _p(
         "copy",
@@ -888,25 +901,25 @@ PATTERNS: list[dict[str, Any]] = [
         "presence",
         "Systems",
         "Presence",
-        "Self named · peers silent",
-        "here / away. Peer list is RefState.",
+        "Ownable kit · self named · peers silent",
+        "here / away / focus. Peer list is RefState.",
         ("Ops-as-data",),
-        "Self status is qualitative. Counts of peers would be derived, never "
-        "MorphState(int). Typing belongs on the chat unit.",
+        "Self status is qualitative. Counts of peers are derived, never "
+        "MorphState(int). Copy with uxcompose add presence.",
         Presence,
-        file="examples/ops.py",
+        file="src/ux_compose/kit/presence.py",
     ),
     _p(
         "kpi",
         "Systems",
         "KPI strip",
-        "Magnitudes silent · stamp dirties",
+        "Ownable kit · magnitudes silent · stamp dirties",
         "Dashboard numbers from Host DB, never from the session plane.",
-        ("Ops-as-data",),
-        "bag / held / placed are RefState. A real dashboard sources them from "
-        "the Host. tick_up simulates a sale landing.",
-        KpiStrip,
-        file="examples/ops.py",
+        ("Ops-as-data", "Cap Law"),
+        "bag / held / placed are RefState. tick_up simulates a sale. "
+        "reset spends admin.reset. Copy with uxcompose add kpi.",
+        Kpi,
+        file="src/ux_compose/kit/kpi.py",
     ),
     _p(
         "shortcuts",

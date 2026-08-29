@@ -18,7 +18,8 @@ If code and this page disagree, **code wins**.
    client JS inside Python strings. Never `style(raw(CSS))`.
 3. The Document **links** the generated file. It does not inline it.
 4. Production compiles with `--minify`. Dev watches. Those flags are XOR.
-5. `cdn.tailwindcss.com` is not the product path (`apps/pulse` is a demo).
+5. `cdn.tailwindcss.com` is not the product path. Compile with `uxcompose build`
+   (`apps/lumen` is the showcase).
 
 `uxcompose create-app` stamps Tailwind `className` on Hello **and** emits
 `assets/css/input.css`, a Document stylesheet link (`/css/output.css`), and

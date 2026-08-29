@@ -25,7 +25,9 @@ PYTHONPATH=src:. pytest tests/regression -q   # hard-cut ownership
 See [docs/guides/TESTING.md](docs/guides/TESTING.md) for the full matrix (unit, integration,
 regression, concurrency, load, property, security).
 
-Live showcase: `apps/pulse` via `uxcompose serve apps.pulse.server:app`.
+Live showcase: **Lumen** (`apps/lumen`) via `make lumen` or
+`uxcompose serve apps.lumen.app:asgi --port 8082`. Pulse / Floor / Atelier remain
+as historical demos; do not extend them.
 
 ## Ownership (do not regress)
 

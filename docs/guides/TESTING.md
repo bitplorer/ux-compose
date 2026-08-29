@@ -5,31 +5,30 @@
 
 ## Live full-featured app
 
-**Pulse** (`apps/pulse`) is the locked product-path showcase:
+**Lumen** (`apps/lumen`) is the product-path showcase:
 
-- Page units under `routes/` (home, shop, lab, settings)
-- `App.mount` + progressive L0–L3
-- Document shell when ux-dom present
-- `/api/health`, `/api/doctor`, POST `/action/{name}`
+- Clock A `build(document=)` — page units under `routes/`
+- Kit seams: Host catalog, not stand-in copy
+- Document `.use(XElement, Channel scripts, Csp)` — no app JavaScript
+- `GET /health` JSON on the FastAPI process
+- Tailwind via `uxcompose build` → `/css/output.css`
 
 ```bash
-# install specialists as needed
-pip install -e ".[dev]" fastapi uvicorn ux-dom ux-behavior
-
-PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080
-#   uxcompose serve apps.pulse.server:app --no-reload --hmr
-#   uxcompose serve apps.pulse.server:app --tunnel ngrok
+pip install -e ".[dev]" fastapi uvicorn ux-dom ux-behavior ux-channel ux-motion
+cd apps/lumen && PYTHONPATH=../..:../../src uxcompose build
+PYTHONPATH=src:. uxcompose serve apps.lumen.app:asgi --host 0.0.0.0 --port 8082
 ```
 
 Smoke:
 
 ```bash
-curl -s localhost:8080/api/health
-curl -s localhost:8080/api/doctor
-curl -s localhost:8080/
+curl -s localhost:8082/health
+curl -s localhost:8082/
 ```
 
-Also: `apps/atelier_shop`, `apps/atelier_studio` (Makefile `shop` / `studio`).
+Historical demos (`apps/pulse`, `apps/floor`, `apps/atelier_*`, `apps/nook`) stay for
+existing tests. Do not add product path there. Floor still proves Host seams in
+`tests/test_floor_host.py`; Lumen is `tests/test_lumen_host.py`.
 
 ---
 
@@ -74,7 +73,8 @@ Makefile:
 make test
 make test-matrix
 make coverage
-make pulse   # live serve Pulse
+make lumen   # live serve Lumen
+make pulse   # historical Pulse demo
 ```
 
 ---

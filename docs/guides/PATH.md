@@ -16,7 +16,7 @@ motion — without inventing APIs.
 4. Ownership: compose owns create-app / build / serve / deploy / HMR / tunnel. ux-dom renders. ux-behavior owns `@action`.
 5. Progressive Superpower: L1 code stays correct at L2/L3. Zero rewrite of the Component.
 6. Tailwind is `className` on tag trees. CSS lives in `assets/css`, never inside Python strings.
-7. HMR is `uxcompose serve --no-reload --hmr`, not `Document.use`.
+7. HMR is `uxcompose serve`, not `Document.use`.
 8. If code and this page disagree, **code wins**.
 
 ---
@@ -198,7 +198,7 @@ uxcompose serve app:asgi
 # defaults: --host 0.0.0.0 --port 8080 --reload
 ```
 
-Process reload is uvicorn. That is not browser HMR.
+Process reload is uvicorn. Browser HMR is the live-reload client. Serve runs both.
 
 Prove the unit without HTTP:
 
@@ -218,28 +218,27 @@ print(int(app.level), app.level.label)   # 1 offline interactive
 
 HMR and tunnel are **delivery features of `serve`**. They are not Document APIs.
 
-Browser WebSocket HMR needs a concrete ASGI object, so turn process-reload off:
-
 ```bash
-uxcompose serve app:asgi --no-reload --hmr
-# watches . and routes
-# WebSocket /__uxcompose/hmr  →  {type: reload}
+uxcompose serve app:asgi
+# process reload on *.py + browser live-reload client
+# WebSocket /__uxcompose/hmr — worker death → page reload
 
-uxcompose serve app:asgi --no-reload --hmr --watch assets --watch routes
+uxcompose serve app:asgi --watch assets --watch routes
+uxcompose serve app:asgi --no-hmr
+uxcompose serve app:asgi --no-reload
 ```
 
-Optional client stub (dev shells that do not go through `attach_hmr`):
+`--reload` (uvicorn workers) and `--hmr` (browser client) are different clocks.
+Both default on. `attach_hmr` runs inside the worker via `asgi_factory`.
+
+Optional client tag for shells that skip `attach_hmr`:
 
 ```python
-from ux_compose.hmr import client_script_tag, attach_hmr, HMR_PATH
+from ux_compose.hmr import client_script_tag, HMR_PATH
 
-# attach_hmr(asgi_app, watch_paths=[".", "routes"])
 # html = "... " + client_script_tag()
 print(HMR_PATH)   # /__uxcompose/hmr
 ```
-
-`--reload` (uvicorn workers) and `--hmr` (browser WS) are different clocks.
-`serve --hmr` without `--no-reload` prints that and uses process reload only.
 
 Public URL after health is green:
 
@@ -540,7 +539,7 @@ print(int(app.level), app.level.label)
 Serve the FastAPI app the same way:
 
 ```bash
-uxcompose serve app:asgi --no-reload --hmr
+uxcompose serve app:asgi
 ```
 
 `App.submit_intent(action, cap=..., mint=False)` is the live door. Tests stay on

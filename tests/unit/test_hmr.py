@@ -1,4 +1,4 @@
-"""Unit: Dev HMR client, inject, no in-process hub."""
+"""Unit: Dev HMR client, HTML insert, no in-process hub."""
 from __future__ import annotations
 
 import ast
@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ux_compose.hmr import CLIENT_JS, HMR_PATH, client_script_tag, inject_html
+from ux_compose.hmr import CLIENT_JS, HMR_PATH, client_script_tag, insert_hmr_client
 
 
 def test_hmr_path():
@@ -23,9 +23,9 @@ def test_client_script_contains_path():
 
 
 def test_client_reloads_on_reconnect():
-    assert "isReconnect" in CLIENT_JS
+    assert "function reloadPage" in CLIENT_JS
+    assert "waitUntilWorkerServes(reloadPage)" in CLIENT_JS
     assert "location.reload()" in CLIENT_JS
-    assert "waitAlive" in CLIENT_JS
     assert "close(1000)" in CLIENT_JS
     assert 'new URL("__uxcompose/hmr", location.href)' in CLIENT_JS
 
@@ -36,15 +36,22 @@ def test_no_hub_or_watcher():
     names = {n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
     classes = {n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)}
     assert "start_watcher" not in names
+    assert "inject_html" not in names
     assert "HmrHub" not in classes
 
 
-def test_inject_before_last_body():
+def test_insert_hmr_client_before_last_body():
     script = b"<script data-uxcompose-hmr>X</script>"
-    body = b"<html><body>hi</body></html>"
-    out = inject_html(body, script)
+    page = b"<html><body>hi</body></html>"
+    out = insert_hmr_client(page, script)
     assert out == b"<html><body>hi<script data-uxcompose-hmr>X</script></body></html>"
-    assert inject_html(out, script) == out
+    assert insert_hmr_client(out, script) == out
+
+
+def test_insert_hmr_client_skips_without_body():
+    script = b"<script data-uxcompose-hmr>X</script>"
+    page = b"<html>no close"
+    assert insert_hmr_client(page, script) == page
 
 
 def test_cli_serve_does_not_xor():
@@ -52,4 +59,5 @@ def test_cli_serve_does_not_xor():
     assert "needs --no-reload" not in src
     assert "hmr:asgi_factory" in src
     assert "hmr and not reload" not in src
-    assert "factory=True" in src
+    assert 'run_kw["factory"]' in src
+    assert "False if args.no_hmr else True" in src

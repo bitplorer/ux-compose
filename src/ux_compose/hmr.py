@@ -8,7 +8,7 @@ Two clocks, both on:
   browser HMR      this module
                    WebSocket at ``/__uxcompose/hmr``
                    reconnect after worker death → health → location.reload()
-                   HTML inject of the client (dev middleware)
+                   live-reload client inserted into HTML (dev middleware)
 
 A page unit is a Python class in the worker. This is live reload, not
 module-graph swap. This module does not watch files.
@@ -25,23 +25,29 @@ BODY_CLOSE = b"</body>"
 APP_ENV = "UXCOMPOSE_APP"
 
 # First open is silent. Unclean close (worker died) reconnects, waits until
-# this URL is 200, then reloads. close(1000) on beforeunload is a user
+# this URL is 200, then reloadPage(). close(1000) on beforeunload is a user
 # navigation — do not bounce.
 CLIENT_JS = r"""
 (function () {
   if (window.__UXCOMPOSE_HMR__) return;
   window.__UXCOMPOSE_HMR__ = true;
+
   function wsUrl() {
     var u = new URL("__uxcompose/hmr", location.href);
     u.protocol = location.protocol === "https:" ? "wss:" : "ws:";
     return u.toString();
   }
-  function waitAlive(done) {
+
+  function reloadPage() {
+    location.reload();
+  }
+
+  function waitUntilWorkerServes(onReady) {
     var n = 0;
     var tick = function () {
       fetch(location.href, { cache: "no-store", credentials: "same-origin" })
         .then(function (r) {
-          if (r.ok) done();
+          if (r.ok) onReady();
           else retry();
         })
         .catch(retry);
@@ -53,6 +59,7 @@ CLIENT_JS = r"""
     };
     tick();
   }
+
   var current;
   function connect(isReconnect) {
     var ws;
@@ -63,9 +70,7 @@ CLIENT_JS = r"""
     }
     current = ws;
     ws.onopen = function () {
-      if (isReconnect) {
-        waitAlive(function () { location.reload(); });
-      }
+      if (isReconnect) waitUntilWorkerServes(reloadPage);
     };
     ws.onclose = function (ev) {
       if (ev.code === 1000) return;
@@ -75,6 +80,7 @@ CLIENT_JS = r"""
       try { ws.close(); } catch (e) {}
     };
   }
+
   window.addEventListener("beforeunload", function () {
     try { if (current) current.close(1000); } catch (e) {}
   });
@@ -84,6 +90,7 @@ CLIENT_JS = r"""
 
 
 def client_script_tag() -> str:
+    """HTML tag that boots the live-reload client. Prefer attach_hmr."""
     return f'<script {HMR_ATTR.decode("ascii")}>\n{CLIENT_JS}\n</script>'
 
 
@@ -91,17 +98,23 @@ def is_html_content_type(value: bytes) -> bool:
     return b"text/html" in value.lower()
 
 
-def inject_html(body: bytes, script_html: bytes) -> bytes:
-    """Insert the client once, before the last </body>. Pure. Idempotent."""
-    if HMR_ATTR in body:
-        return body
-    idx = body.lower().rfind(BODY_CLOSE)
+def insert_hmr_client(page: bytes, script: bytes) -> bytes:
+    """Put the live-reload client into an HTML page, once, before </body>.
+
+    This is not a general HTML injector. It is how the browser finds
+    ``/__uxcompose/hmr``. Idempotent if ``data-uxcompose-hmr`` is already there.
+    Pages without ``</body>`` are left unchanged.
+    """
+    if HMR_ATTR in page:
+        return page
+    idx = page.lower().rfind(BODY_CLOSE)
     if idx < 0:
-        return body
-    return body[:idx] + script_html + body[idx:]
+        return page
+    return page[:idx] + script + page[idx:]
 
 
-def load_asgi_ref(app_ref: str) -> Any:
+def load_asgi(app_ref: str) -> Any:
+    """Import ``module:attr`` (the uvicorn target)."""
     if ":" not in app_ref:
         raise ValueError(f"ASGI path must be module:attr, got {app_ref!r}")
     mod_name, attr = app_ref.split(":", 1)
@@ -114,7 +127,7 @@ def load_asgi_ref(app_ref: str) -> Any:
 def asgi_factory() -> Any:
     """uvicorn factory: attach on every worker so --reload remounts the WS."""
     spec = os.environ.get(APP_ENV, "app:asgi")
-    return attach_hmr(load_asgi_ref(spec))
+    return attach_hmr(load_asgi(spec))
 
 
 def _has_route(asgi_app: Any, path: str) -> bool:
@@ -138,7 +151,7 @@ def _patch_ws_annotation(endpoint: Callable) -> None:
     endpoint.__annotations__ = annotations
 
 
-def bind_hmr_socket(asgi_app: Any, *, path: str = HMR_PATH) -> bool:
+def _bind_hmr_socket(asgi_app: Any, *, path: str = HMR_PATH) -> bool:
     if _has_route(asgi_app, path):
         return True
 
@@ -164,8 +177,8 @@ def bind_hmr_socket(asgi_app: Any, *, path: str = HMR_PATH) -> bool:
     return False
 
 
-class HmrInjectMiddleware:
-    """Dev HTML inject. Seat is serve, not Document.use."""
+class HmrClientMiddleware:
+    """Insert the live-reload client into HTML responses. Dev, not Document.use."""
 
     def __init__(self, app: Any, script_html: str) -> None:
         self.app = app
@@ -176,10 +189,11 @@ class HmrInjectMiddleware:
             await self.app(scope, receive, send)
             return
 
-        state = {"html": False}
+        state: dict[str, Any] = {"html": False, "buf": []}
 
         async def send_wrapper(message):
-            if message["type"] == "http.response.start":
+            kind = message["type"]
+            if kind == "http.response.start":
                 headers = []
                 html = False
                 for key, value in message.get("headers", []):
@@ -190,9 +204,12 @@ class HmrInjectMiddleware:
                     headers.append((key, value))
                 state["html"] = html
                 message = {**message, "headers": headers}
-            elif message["type"] == "http.response.body" and state["html"]:
-                body = message.get("body", b"")
-                message = {**message, "body": inject_html(body, self.script)}
+            elif kind == "http.response.body" and state["html"]:
+                state["buf"].append(message.get("body", b""))
+                if message.get("more_body"):
+                    return
+                body = insert_hmr_client(b"".join(state["buf"]), self.script)
+                message = {**message, "body": body, "more_body": False}
             await send(message)
 
         await self.app(scope, receive, send_wrapper)
@@ -200,8 +217,9 @@ class HmrInjectMiddleware:
 
 def attach_hmr(asgi_app: Any, *, path: str = HMR_PATH) -> Any:
     """Mount browser HMR. No file watcher. uvicorn --reload owns ``*.py``."""
-    bind_hmr_socket(asgi_app, path=path)
-    return HmrInjectMiddleware(asgi_app, client_script_tag())
+    if not _bind_hmr_socket(asgi_app, path=path):
+        return asgi_app
+    return HmrClientMiddleware(asgi_app, client_script_tag())
 
 
 __all__ = [
@@ -209,8 +227,8 @@ __all__ = [
     "HMR_PATH",
     "CLIENT_JS",
     "client_script_tag",
-    "inject_html",
-    "load_asgi_ref",
+    "insert_hmr_client",
+    "load_asgi",
     "asgi_factory",
     "attach_hmr",
 ]

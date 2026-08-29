@@ -164,13 +164,6 @@ def _build(argv: list[str]) -> int:
     return 0 if report.ok else 1
 
 
-def _load_asgi(app_ref: str):
-    """Import ``module:attr`` ASGI app object."""
-    from ux_compose.hmr import load_asgi_ref
-
-    return load_asgi_ref(app_ref)
-
-
 def _serve(argv: list[str]) -> int:
     import argparse
 

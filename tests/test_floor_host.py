@@ -141,6 +141,57 @@ def test_act_route_writes_host_and_returns_card():
     assert "rate" in body["ledger"]
 
 
+def test_typeahead_slot_morph_keeps_field():
+    from apps.floor.app import asgi
+
+    if asgi is None or not callable(getattr(asgi, "post", None)):
+        return
+    try:
+        from fastapi.testclient import TestClient
+    except ImportError:
+        return
+    HOUSE.reset()
+    from apps.floor.app import app
+    from apps.floor.seams import hydrate
+
+    hydrate(app)
+    client = TestClient(asgi)
+    res = client.post(
+        "/act/typeahead.query_hits",
+        data={"q": "Wal", "_target": "typeahead-hits"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["id"] == "typeahead-hits"
+    assert "Walnut mallet" in body["html"]
+    assert "typeahead-q" not in body["html"]
+
+
+def test_otp_verify_from_form_digits():
+    from apps.floor.app import asgi
+
+    if asgi is None or not callable(getattr(asgi, "post", None)):
+        return
+    try:
+        from fastapi.testclient import TestClient
+    except ImportError:
+        return
+    HOUSE.reset()
+    from apps.floor.app import app
+    from apps.floor.seams import hydrate
+
+    hydrate(app)
+    silent = TestClient(asgi).post(
+        "/act/otp.set_field",
+        data={"field": "code", "code": "246810", "_swap": "none"},
+    )
+    assert silent.status_code == 200
+    assert silent.json().get("swap") == "none"
+    res = TestClient(asgi).post("/act/otp.verify", data={"code": "246810"})
+    assert res.status_code == 200
+    assert "Code accepted" in res.json()["html"]
+
+
 def test_index_page_composes_host_cards():
     app = _boot()
     page = app.behavior.get("index")

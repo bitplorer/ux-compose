@@ -41,6 +41,8 @@ if asgi is not None and callable(getattr(asgi, "post", None)):
         raw = await request.body()
         parsed = parse_qs(raw.decode("utf-8", "replace"))
         args = {k: (v[0] if v else "") for k, v in parsed.items()}
+        target = str(args.pop("_target", "") or "").lstrip("#")
+        swap = str(args.pop("_swap", "") or "")
         app.dispatch(name, **args)
         cid = (name or "").split(".", 1)[0]
         inst = None
@@ -48,12 +50,6 @@ if asgi is not None and callable(getattr(asgi, "post", None)):
             inst = app.behavior.get(cid)
         except Exception:
             inst = None
-        html = ""
-        if inst is not None:
-            try:
-                html = inst.__render__(pretty=False)
-            except Exception:
-                html = str(inst.render())
         ledger_html = ""
         try:
             from ux_compose.helpers import _serialize_tree
@@ -63,6 +59,23 @@ if asgi is not None and callable(getattr(asgi, "post", None)):
             ledger_html = _serialize_tree(ledger())
         except Exception:
             ledger_html = ""
-        return {"id": cid, "html": html, "ledger": ledger_html}
+        if swap == "none":
+            return {"id": cid, "html": "", "ledger": ledger_html, "swap": "none"}
+        html = ""
+        out_id = target or cid
+        if inst is not None and target and hasattr(inst, "_listing"):
+            tree = inst._listing()
+            try:
+                from ux_compose.helpers import _serialize_tree
+
+                html = _serialize_tree(tree)
+            except Exception:
+                html = str(tree)
+        elif inst is not None:
+            try:
+                html = inst.__render__(pretty=False)
+            except Exception:
+                html = str(inst.render())
+        return {"id": out_id, "html": html, "ledger": ledger_html}
 
 __all__ = ["app", "asgi", "bundle", "HOUSE"]

@@ -123,6 +123,7 @@ class Otp(Component):
                 input_(
                     type="text",
                     name="code",
+                    id=f"{self.id}-code",
                     value=code,
                     maxlength="6",
                     inputmode="numeric",

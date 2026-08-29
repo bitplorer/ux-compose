@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Floor app (`apps/floor`): Host-seam house. One `House` book feeds every kit
   Component (walnut / flax / merino — not the kit stand-in). Clicks write the
   ledger. Clock A `build()`. Polish stays on `ux_compose.kit`. `make floor`.
+  Bound fields (Typeahead, OTP, Login, Combobox) stay focusable: click does
+  not remorph the card. Live filter morphs `#{id}-hits` only.
 
 ### Changed
 

@@ -4,10 +4,8 @@ Host seam: override ``ACTIONS`` and ``on_pick(key)``. Destructive keys spend a C
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 Live: the root ``id`` is the region. Channel picks it up.
-Swipe lives on the handle and Cancel, not the root. A host-level
-``swipe.vertical`` captures the pointer and swallows clicks on the
-rows. Handle accepts ``click swipe.down swipe.vertical``. Rows stay
-``click``. Same synthesizer, no extra JS.
+Swipe lives on the handle and Cancel, not the root. OverlayChrome
+owns scrim/panel/dismiss ids, handle/dismiss grammar, and the open plan.
 """
 
 from __future__ import annotations
@@ -26,27 +24,7 @@ from ux_compose import (
     p,
     span,
 )
-
-
-def _open_plan(cid: str = "actionsheet"):
-    """Enter the overlay after morph inserts it. Selectors only — no html=.
-
-    Presence is a Motion HOF. Same-node chrome is CSS.
-    Close is morph-only: the panel is gone after apply, so an exit recipe
-    in the same Result has nothing to play.
-    """
-    try:
-        from ux_compose import scene, fade, slide
-
-        if scene is None or fade is None or slide is None:
-            return None
-        return (
-            scene("actionsheet-open")
-            .enter(f"#{cid}-scrim", fade.enter(ms=120))
-            .enter(f"#{cid}-panel", slide.enter(y=32, ms=180))
-        )
-    except Exception:
-        return None
+from ux_compose.kit.overlay import overlay
 
 
 class ActionSheet(Component):
@@ -105,6 +83,9 @@ class ActionSheet(Component):
     picked = RefState("")
     stamp = MorphState("idle")
 
+    def _chrome(self):
+        return overlay(self.id, kind="actionsheet")
+
     def on_pick(self, key: str) -> str:
         return key.replace("-", " ")
 
@@ -114,8 +95,9 @@ class ActionSheet(Component):
     def render(self):
         is_open = bool(self.open)
         picked = str(self.picked or "")
-        overlay = []
+        overlay_nodes = []
         if is_open:
+            ch = self._chrome()
             rows = [
                 button(
                     label,
@@ -125,11 +107,11 @@ class ActionSheet(Component):
                 )
                 for key, label, dest in self.ACTIONS
             ]
-            overlay = [
+            overlay_nodes = [
                 button(
                     span("Close", className=self.class_sr),
                     type="button",
-                    id=f"{self.id}-scrim",
+                    id=ch.scrim_id,
                     className=self.class_scrim,
                     aria_label="Close",
                     **bind(self.close),
@@ -139,10 +121,10 @@ class ActionSheet(Component):
                         span("Dismiss", className=self.class_sr),
                         div("", className=self.class_handle),
                         type="button",
-                        id=f"{self.id}-dismiss",
+                        id=ch.dismiss_id,
                         className=self.class_handle_hit,
                         aria_label="Dismiss",
-                        data_channel_on="click swipe.down swipe.vertical threshold:48",
+                        data_channel_on=ch.swipe_on_handle(),
                         **bind(self.close),
                     ),
                     span("Actions", className=self.class_kicker),
@@ -153,10 +135,10 @@ class ActionSheet(Component):
                         type="button",
                         id=f"{self.id}-cancel",
                         className=self.class_btn_ghost + " mt-1 text-stone-500",
-                        data_channel_on="click swipe.down",
+                        data_channel_on=ch.swipe_on_dismiss(),
                         **bind(self.close),
                     ),
-                    id=f"{self.id}-panel",
+                    id=ch.panel_id,
                     className=self.class_panel,
                     role="dialog",
                     aria_modal="true",
@@ -177,7 +159,7 @@ class ActionSheet(Component):
                 className=self.class_btn_primary,
                 **bind(self.open_sheet),
             ),
-            *overlay,
+            *overlay_nodes,
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
@@ -188,7 +170,7 @@ class ActionSheet(Component):
     def open_sheet(self):
         self.open = True
         self._tick()
-        return update_with(self, _open_plan(self.id))
+        return update_with(self, self._chrome().open_plan())
 
     @action(caps=())
     def close(self):

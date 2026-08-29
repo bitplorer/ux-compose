@@ -4,10 +4,8 @@ Host seam: override ``title`` / ``body`` defaults, or pass them to ``open_sheet`
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 Live: the root ``id`` is the region. Channel picks it up.
-Swipe lives on Close / Done, not the root — a host-level
-``swipe.horizontal`` on the card swallows clicks the same way
-ActionSheet's root ``swipe.vertical`` did. Close accepts
-``click swipe.right``. Same synthesizer, no extra JS.
+Swipe lives on Close / Done, not the root. OverlayChrome owns
+scrim/panel/dismiss ids, dismiss grammar, and the open plan.
 """
 
 from __future__ import annotations
@@ -25,27 +23,7 @@ from ux_compose import (
     p,
     span,
 )
-
-
-def _open_plan(cid: str = "sheet"):
-    """Enter the overlay after morph inserts it. Selectors only — no html=.
-
-    Presence is a Motion HOF. Same-node chrome (Carousel thumb) is CSS.
-    Close is morph-only: the panel is gone after apply, so an exit recipe
-    in the same Result has nothing to play.
-    """
-    try:
-        from ux_compose import scene, fade, slide
-
-        if scene is None or fade is None or slide is None:
-            return None
-        return (
-            scene("sheet-open")
-            .enter(f"#{cid}-scrim", fade.enter(ms=120))
-            .enter(f"#{cid}-panel", slide.enter(x=28, ms=180))
-        )
-    except Exception:
-        return None
+from ux_compose.kit.overlay import overlay
 
 
 class Sheet(Component):
@@ -86,15 +64,20 @@ class Sheet(Component):
     body = RefState("Narrow the catalog. Closing morphs the panel away.")
     which = RefState("filters")
 
+    def _chrome(self):
+        return overlay(self.id, kind="sheet")
+
     def render(self):
         is_open = bool(self.open)
-        overlay = []
+        overlay_nodes = []
         if is_open:
-            overlay = [
+            ch = self._chrome()
+            swipe = ch.swipe_on_dismiss()
+            overlay_nodes = [
                 button(
                     span("Close", className=self.class_sr),
                     type="button",
-                    id=f"{self.id}-scrim",
+                    id=ch.scrim_id,
                     className=self.class_scrim,
                     aria_label="Close",
                     **bind(self.close),
@@ -105,9 +88,9 @@ class Sheet(Component):
                         button(
                             "Close",
                             type="button",
-                            id=f"{self.id}-dismiss",
+                            id=ch.dismiss_id,
                             className=self.class_btn_ghost,
-                            data_channel_on="click swipe.right",
+                            data_channel_on=swipe,
                             **bind(self.close),
                         ),
                         className=self.class_head,
@@ -123,10 +106,10 @@ class Sheet(Component):
                         type="button",
                         id=f"{self.id}-done",
                         className=self.class_btn_primary + " mt-auto",
-                        data_channel_on="click swipe.right",
+                        data_channel_on=swipe,
                         **bind(self.close),
                     ),
-                    id=f"{self.id}-panel",
+                    id=ch.panel_id,
                     className=self.class_panel,
                     role="dialog",
                     aria_modal="true",
@@ -146,7 +129,7 @@ class Sheet(Component):
                 className=self.class_btn_primary,
                 **bind(self.open_sheet, which="filters"),
             ),
-            *overlay,
+            *overlay_nodes,
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
@@ -161,7 +144,7 @@ class Sheet(Component):
             self.title = title
         if body:
             self.body = body
-        return update_with(self, _open_plan(self.id))
+        return update_with(self, self._chrome().open_plan())
 
     @action(caps=())
     def close(self):

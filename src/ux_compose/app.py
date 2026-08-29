@@ -6,6 +6,7 @@ offline dispatch, and (via wire/) optional Channel + Motion attachment.
 Never invents Document, Caps, or Plan IR.
 
 Host choice is Invisible Strategy (see docs/FLOW.md).
+Shape: docs/ARCHITECTURE.md. Degrades are recorded, never raised.
 """
 
 from __future__ import annotations
@@ -13,6 +14,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Type
 
 from ux_compose.component import Component
+from ux_compose.degrade import note
 from ux_compose.progressive import Level
 
 
@@ -73,13 +75,13 @@ class App:
         if lv >= 2:
             try:
                 app.use_channel()
-            except Exception:
-                pass
+            except Exception as exc:
+                note("boot.use_channel", "L2", exc, level_kept=int(app._level))
         if lv >= 3:
             try:
                 app.use_motion()
-            except Exception:
-                pass
+            except Exception as exc:
+                note("boot.use_motion", "L3", exc, level_kept=int(app._level))
         return app
 
     def use_host(self, host: str = "fastapi") -> "App":
@@ -115,9 +117,10 @@ class App:
             try:
                 import ux_motion  # noqa: F401
                 self._register_motion_stamp()
-            except ImportError:
-                pass
-        except ImportError:
+            except ImportError as exc:
+                note("use_behavior.motion_stamp", "L3", exc, level_kept=int(self._level))
+        except ImportError as exc:
+            note("use_behavior", "ux-behavior", exc, level_kept=1)
             self._behavior = _LocalBehavior(self)
             self._level = max(self._level, Level.L1)
         return self
@@ -149,8 +152,8 @@ class App:
             self._channel = ch
             self._channel_asgi = asgi
             self._level = max(self._level, Level.L2)
-        except ImportError:
-            pass
+        except ImportError as exc:
+            note("use_channel", "L2", exc, level_kept=int(self._level))
         return self
 
     def use_motion(self) -> "App":
@@ -163,8 +166,8 @@ class App:
             if self._document is not None and hasattr(self._document, "use"):
                 self._document.use(Motion, MotionChannel)
             self._register_motion_stamp()
-        except ImportError:
-            pass
+        except ImportError as exc:
+            note("use_motion", "L3", exc, level_kept=int(self._level))
         return self
 
     def use_cek(self, *, mode: str = "adapt") -> "App":
@@ -174,9 +177,10 @@ class App:
         try:
             from ux_compose.wire.cek import attach_cek
             self._cek = attach_cek(self._channel, mode=mode)
-        except ImportError:
+        except ImportError as exc:
             if mode == "require":
                 raise
+            note("use_cek", "cek_host", exc, level_kept=int(self._level))
             self._cek = None
         return self
 
@@ -232,8 +236,8 @@ class App:
                     ("transition", "rewind"),
                 ),
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            note("motion_stamp", "transition.play", exc, level_kept=int(self._level))
 
     def add(self, *components: Type[Component]) -> "App":
         """Manual / dynamic registration (preserved). Prefer mount() for route trees."""
@@ -247,8 +251,8 @@ class App:
             try:
                 from ux_compose.wire.caps import bridge_actions
                 bridge_actions(self._behavior, self._channel)
-            except Exception:
-                pass
+            except Exception as exc:
+                note("add.bridge_actions", "caps", exc, level_kept=int(self._level))
         return self
 
     def mount(
@@ -266,6 +270,9 @@ class App:
         host: str | None = None,
     ):
         """Scan routes, register units on Behavior, optionally bind page routes.
+
+        Library mount for tests and surfaces. Product path is
+        ``uxcompose create-app`` then ``build()`` — see docs/ARCHITECTURE.md.
 
         When ``asgi_app`` is provided, wires ``RouterHooks.resolve_unit`` so
         synthetic page GETs receive live Behavior instances (page-unit path).
@@ -297,8 +304,8 @@ class App:
         """Offline-first dispatch. Same surface for tests, agents, and live.
 
         Channel Intent uses ``args=dict``. L1 uses ``**kwargs``. One door:
-        ``dispatch("cart.add", sku="tee")`` and
-        ``dispatch("cart.add", args={"sku": "tee"})`` are the same call.
+        ``dispatch(\"cart.add\", sku=\"tee\")`` and
+        ``dispatch(\"cart.add\", args={\"sku\": \"tee\"})`` are the same call.
         """
         self.use_behavior()
         kwargs = _unpack_action_kwargs(kwargs)

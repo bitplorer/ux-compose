@@ -3,6 +3,7 @@ Doctor — protective coach for ux-compose.
 
 Enforces Isolation Law, dual-Document risks, and reports progressive capabilities.
 Messages teach the laws and frame failures as protection of product autonomy.
+Residuals (kit import in product trees, leftover aliases) are teaching, not kill.
 """
 from __future__ import annotations
 
@@ -12,7 +13,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, List, Optional
 
-__all__ = ["doctor", "DoctorResult", "IsolationViolation", "scan_isolation"]
+__all__ = [
+    "doctor",
+    "DoctorResult",
+    "IsolationViolation",
+    "scan_isolation",
+    "scan_kit_product_imports",
+    "scan_leftover_aliases",
+]
 
 
 class IsolationViolation(Exception):
@@ -26,6 +34,26 @@ FORBIDDEN_IMPORTS = {
     "cek_surface",
     "MotionChannel",
 }
+
+# Paths where `from ux_compose.kit import` is legitimate.
+_KIT_IMPORT_SKIP = (
+    "/tests/",
+    "/src/ux_compose/",
+    "/examples/",
+)
+
+# Leftover names that still exist so old tests do not break — teach, do not delete.
+_LEFTOVER_TOKENS = (
+    'host="batteries"',
+    "host='batteries'",
+    "DirectoryRouter",
+    "serve=\"webassets\"",
+    "serve='webassets'",
+)
+
+
+def _norm(path: Path | str) -> str:
+    return str(path).replace("\\", "/")
 
 
 def _is_forbidden(name: str) -> bool:
@@ -44,7 +72,7 @@ def scan_isolation(paths: Iterable[str | Path]) -> list[str]:
         p = Path(raw)
         if not p.exists() or p.suffix != ".py":
             continue
-        sp = str(p).replace("\\\\", "/")
+        sp = _norm(p)
         if "ux_compose/wire" in sp:
             continue  # legitimate door
         try:
@@ -97,7 +125,7 @@ def scan_dual_document(paths: Iterable[str | Path]) -> list[str]:
         p = Path(raw)
         if not p.exists() or p.suffix != ".py":
             continue
-        sp = str(p).replace("\\", "/")
+        sp = _norm(p)
         if "/tests/" in sp or sp.endswith("/tests") or "site-packages" in sp:
             continue
         try:
@@ -124,6 +152,74 @@ def scan_dual_document(paths: Iterable[str | Path]) -> list[str]:
             f"Document constructed at boot and passed/used throughout. "
             f"(examples/ may legitimately show multiple patterns — scan product packages only.)"
         )
+    return diagnostics
+
+
+def _skip_kit_scan(path: Path) -> bool:
+    sp = _norm(path)
+    if "site-packages" in sp:
+        return True
+    for token in _KIT_IMPORT_SKIP:
+        if token in sp:
+            return True
+    return False
+
+
+def scan_kit_product_imports(paths: Iterable[str | Path]) -> list[str]:
+    """Teaching: product trees copy the kit, they do not import it.
+
+    Tests, ``src/ux_compose/``, and ``examples/`` are allowed. Residuals are
+    not Isolation violations — doctor stays green, the message teaches.
+    """
+    diagnostics: list[str] = []
+    for raw in paths:
+        p = Path(raw)
+        if not p.exists() or p.suffix != ".py":
+            continue
+        if _skip_kit_scan(p):
+            continue
+        try:
+            src = p.read_text(encoding="utf-8")
+            tree = ast.parse(src, filename=str(p))
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom):
+                continue
+            mod = node.module or ""
+            if mod == "ux_compose.kit" or mod.startswith("ux_compose.kit."):
+                names = ", ".join(a.name for a in node.names)
+                diagnostics.append(
+                    f"residual in {p}: `from {mod} import {names}`. "
+                    f"One catalog rule — `uxcompose add` copies the widget into "
+                    f"your tree. The library kit stays the source of truth; the "
+                    f"copy is yours to edit. Tests and the Atelier may still import."
+                )
+    return diagnostics
+
+
+def scan_leftover_aliases(paths: Iterable[str | Path]) -> list[str]:
+    """Teaching: leftover aliases still exist so old tests pass. Do not invent them."""
+    diagnostics: list[str] = []
+    for raw in paths:
+        p = Path(raw)
+        if not p.exists() or p.suffix != ".py":
+            continue
+        sp = _norm(p)
+        if "/tests/" in sp or "/src/ux_compose/" in sp or "site-packages" in sp:
+            continue
+        try:
+            src = p.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        for token in _LEFTOVER_TOKENS:
+            if token in src:
+                diagnostics.append(
+                    f"residual in {p}: leftover `{token}`. Clock A product host "
+                    f"is FastAPI (`host=\"auto\"|\"fastapi\"`). DirectoryASGI is "
+                    f"the no-Starlette degrade. Do not invent a second pipeline."
+                )
+                break
     return diagnostics
 
 
@@ -179,14 +275,25 @@ def _teaching_for_level(level: int, caps: dict) -> list[str]:
         lines.append("Full progressive stack available (L3). Isolation + Caps + Motion are all first-class.")
     if caps.get("directory_routes"):
         lines.append(
-            "Page-unit path available: uxcompose create-app + build() "
+            "Product path: uxcompose create-app + build() "
             "(routes/ + stem match via DirectoryRoutes). "
-            "App.mount / mount_surfaces is a secondary door for tests and surfaces."
+            "App.mount is a library mount for tests and surfaces — not a second product."
         )
+    lines.append(
+        "One catalog: uxcompose add copies a kit widget into your tree. "
+        "Do not `from ux_compose.kit import` in product apps."
+    )
     lines.append(
         "Progressive Superpower Contract: code written at Level 1 remains correct and unchanged "
         "when you unlock higher levels. Zero rewrite."
     )
+    try:
+        from ux_compose.degrade import format_report
+
+        for row in format_report():
+            lines.append(row)
+    except Exception:
+        pass
     return lines
 
 
@@ -200,6 +307,7 @@ def doctor(
     Run the protective coach.
 
     - Scans for Isolation violations and dual-Document heuristics
+    - Teaches kit-import and leftover-alias residuals (not fail-closed)
     - Reports progressive specialists + DirectoryRoutes (page-unit path)
     - Emits teaching messages for the next unlock and create-app / build() guidance
     - Optionally records evidence from a sealed SurfaceBundle (surfaces, routes)
@@ -228,6 +336,8 @@ def doctor(
                 expanded.append(pp)
         diagnostics.extend(scan_isolation(expanded))
         diagnostics.extend(scan_dual_document(expanded))
+        diagnostics.extend(scan_kit_product_imports(expanded))
+        diagnostics.extend(scan_leftover_aliases(expanded))
 
     teaching = _teaching_for_level(level, caps)
 
@@ -249,8 +359,13 @@ def doctor(
         if not getattr(bundle, "sealed", True):
             diagnostics.append("surface bundle is not sealed — mount may be incomplete")
 
+    hard = [
+        d
+        for d in diagnostics
+        if "violation" in d.lower() or "dual-document risk" in d.lower()
+    ]
     result = DoctorResult(
-        ok=len([d for d in diagnostics if "violation" in d.lower() or "risk" in d.lower()]) == 0,
+        ok=len(hard) == 0,
         level_available=level,
         diagnostics=diagnostics,
         capabilities=caps,
@@ -292,7 +407,8 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("  Diagnostics:")
         for d in res.diagnostics:
             print(f"    - {d}")
-        return 0 if args.no_fail else 1
+        hard = any("violation" in d.lower() or "dual-document risk" in d.lower() for d in res.diagnostics)
+        return 0 if args.no_fail or not hard else 1
     if not res.ok:
         return 0 if args.no_fail else 1
     print("  Isolation: OK — product autonomy and offline progressive path protected.")

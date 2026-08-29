@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Architecture shape document: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+  Rings, one author door, one product door, one catalog, residuals-by-teaching.
+  Decision: [`docs/adr/0004-clarity-and-residuals.md`](docs/adr/0004-clarity-and-residuals.md).
+  ADR 0003 stays reserved for a Clock A media-type conflict.
+- Official author helpers (`act`, `tick`, `field`, `status`, `maybe_plan`,
+  `maybe_fade`, `maybe_slide`) in `ux_compose.author`, re-exported from the
+  package root. `examples/_common.py` re-exports the same objects.
+- Visible degrade bus (`DegradeEvent`, `degrades()`, `note()`). Attach
+  methods still do not raise when a specialist is absent; doctor prints why.
+- `OverlayChrome` / `overlay()` kit primitive (stable scrim / panel / dismiss
+  ids, swipe on dismiss not the root, selectors-only open plan). Dialog /
+  Sheet / ActionSheet markup is unchanged this cut.
+- Doctor residual scans: kit-import in product trees, leftover aliases.
+  Teaching only — not fail-closed.
 - Ownable kit (`uxcompose add`): login, tabs, accordion, dropdown, dialog, sheet,
   toast, command, table, pagination, combobox, sidebar, breadcrumb, stepper,
   carousel, calendar, select, otp, plans.
@@ -17,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Public `__all__` gained author helpers and degrade names. Every 0.1.0 name
+  remains. `App.mount` is documented as a library mount, not a second product.
 - Typeahead: `input delay:300`. Later `input`/`change` of the same
   control aborts the in-flight Intent (Channel AbortController on
   `postIntent`). Live Results morph `#typeahead-hits` only — the field
@@ -62,7 +78,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Prev / next / dots keep stable ids across morph.
 - Carousel / Lightbox / Drawer: `data-channel-on` swipe + directional slide/rise/fade.
 - Accordion open uses `maybe_plan`; Confirm overlay open uses rise.
-- `act(..., on=)` and `maybe_slide` in `examples/_common.py` (already on main).
+- `act(..., on=)` and `maybe_slide` live in `ux_compose.author` (examples
+  still import them from `examples/_common`).
 
 
 ## [0.1.0] — 2026-08-26
@@ -122,6 +139,6 @@ and not a 0.2 line.
   `docs/TESTING.md`) point at `docs/guides/`. Product path is the only path taught.
 - CI pins ux-behavior / ux-motion / ux-channel / ux-dom to origin/main SHAs;
   leftover `httpx2` is gone. Teaching is `create-app` + `build()` (`App.mount`
-  is a secondary door). Clock A GET asserts `Content-Security-Policy` when
+  is a library mount). Clock A GET asserts `Content-Security-Policy` when
   Document mounts Csp.
 - Product path is `create-app → build → serve → deploy`. `uxdom build` does not compile CSS.

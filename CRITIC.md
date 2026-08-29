@@ -27,7 +27,27 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 - GitHub Actions CI matrix (3.12 offline + 3.14 full stack)
 - create-app scaffold emits settings.py + document.py + assets/css/input.css + progressive L1–L3 app (`build(document=)`)
 
-## Soft notes (non-kill)
+## Clarity cut (2026-08-29) — council / critic
+
+| Gate | Verdict | Note |
+|------|---------|------|
+| Capability baseline | **HOLD** | Every 0.1.0 `__all__` name remains. `App.mount`, `control`, kit widgets, leftover aliases stay. |
+| Mental model | **HOLD** | Isolation, L0–L3, Clock A, import-not-copy untouched. |
+| One author door | **PASS** | `author.py` + package `__all__`. `_common` is a re-export. |
+| One product door | **PASS** | Taught path is `create-app` → `build()` → `serve`. Mount is a library door. |
+| One catalog | **PASS** | Kit is source. `uxcompose add` copies. examples/ is Atelier. |
+| Degrade visibility | **PASS** | `note()` on attach ImportError. Does not raise. |
+| Overlay primitive | **ADDITIVE** | Widgets not rewritten this cut on purpose. |
+| ADR numbering | **PASS** | 0004 for clarity. 0003 reserved by 0002. |
+
+### Residual disagreement (do not hide)
+
+1. Dialog / Sheet / ActionSheet still copy-paste overlay ids. Adopting `OverlayChrome` later is the expire path — doing it now would touch widget markup and risk a visual regression.
+2. `degrade._EVENTS` is process-global. Fine for 0.1 doctor evidence. Per-App lists are a later increment.
+3. `App.mount` still exists and still works. Teaching calls it a library mount. Deleting it would be a capability drop.
+4. Thirty-plus feature branches on the remote are operational clutter, not an architecture hole. Do not delete without an explicit ops pass.
+
+### Soft notes (non-kill)
 
 1. **ux-dom requires Python ≥3.14** — documented; L1 offline works on 3.11+.
 2. **Doctor dual-Document** when scanning `examples/` may still list multiple educational Document() calls — product packages construct one Document at boot (`apps/atelier_shop`).
@@ -36,3 +56,5 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 ## Recommendation
 
 **Ship 0.1.0** under the frozen mental model. Live Cap + Isolation-safe FastAPI attach + one product app now exist. Do not reopen the mental model.
+
+Clarity cut (ADR 0004) is the follow-on that stops confusion from growing. Merge when the architecture tests on `architecture/clarity-one-door` are green.

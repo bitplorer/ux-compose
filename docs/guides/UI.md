@@ -368,6 +368,10 @@ Play the promoted widgets in the Atelier of Patterns (`apps/atelier_studio`):
 `/p/wishlist`, `/p/progress`, `/p/empty-retry`, `/p/presence`, `/p/chips`,
 `/p/skeleton`.
 
+Feed them from a Host in the Floor (`apps/floor`): `/`, `/shelf`, `/bench`,
+`/visit`, `/door`. Seams are `_slides` / `_items` / `on_*` on a subclass —
+not `render(attrs=)`. The ledger is the proof.
+
 | Add | Class | Encoding |
 |-----|--------|----------|
 | `login` | Login | Reveal MorphState · secrets RefState · submit Cap |

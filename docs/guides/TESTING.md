@@ -29,7 +29,8 @@ curl -s localhost:8080/api/doctor
 curl -s localhost:8080/
 ```
 
-Also: `apps/atelier_shop`, `apps/atelier_studio` (Makefile `shop` / `studio`).
+Also: `apps/atelier_shop`, `apps/atelier_studio`, `apps/floor` (Makefile `shop` / `studio` / `floor`).
+Floor proves Host seams: kit cards read `HOUSE`, not the stand-in copy.
 
 ---
 

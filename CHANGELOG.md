@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Named MorphState / silent RefState. Caps on `kanban.archive` and `kpi.reset`.
   Overlay lightbox has no containing-block card. Motion is additive. Play in
   Atelier `/p/rating` … `/p/skeleton`.
+- Floor app (`apps/floor`): Host-seam house. One `House` book feeds every kit
+  Component (walnut / flax / merino — not the kit stand-in). Clicks write the
+  ledger. Clock A `build()`. Polish stays on `ux_compose.kit`. `make floor`.
 
 ### Changed
 

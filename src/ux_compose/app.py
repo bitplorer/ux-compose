@@ -6,7 +6,7 @@ offline dispatch, and (via wire/) optional Channel + Motion attachment.
 Never invents Document, Caps, or Plan IR.
 
 Host choice is Invisible Strategy (see docs/FLOW.md).
-Shape: docs/ARCHITECTURE.md. Degrades are recorded, never raised.
+Shape: docs/ARCHITECTURE.md. Degrades are recorded per-App, never raised.
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Type
 
 from ux_compose.component import Component
-from ux_compose.degrade import note
+from ux_compose.degrade import DegradeBus, note, using
 from ux_compose.progressive import Level
 
 
@@ -43,6 +43,17 @@ class App:
         self._motion = False
         self._cek = None
         self._host = "auto"  # Invisible Strategy preference
+        self._degrade = DegradeBus()
+
+    def _note(self, door: str, wanted: str, reason: Any, *, level_kept: int | None = None):
+        kept = int(self._level) if level_kept is None else level_kept
+        with using(self._degrade):
+            return note(door, wanted, reason, level_kept=kept)
+
+    @property
+    def degrade_events(self):
+        """This App's attach evidence. Process-wide list is degrade.degrades()."""
+        return self._degrade.snapshot()
 
     @classmethod
     def boot(
@@ -74,12 +85,12 @@ class App:
             try:
                 app.use_channel()
             except Exception as exc:
-                note("boot.use_channel", "L2", exc, level_kept=int(app._level))
+                app._note("boot.use_channel", "L2", exc)
         if lv >= 3:
             try:
                 app.use_motion()
             except Exception as exc:
-                note("boot.use_motion", "L3", exc, level_kept=int(app._level))
+                app._note("boot.use_motion", "L3", exc)
         return app
 
     def use_host(self, host: str = "fastapi") -> "App":
@@ -116,9 +127,9 @@ class App:
                 import ux_motion  # noqa: F401
                 self._register_motion_stamp()
             except ImportError as exc:
-                note("use_behavior.motion_stamp", "L3", exc, level_kept=int(self._level))
+                self._note("use_behavior.motion_stamp", "L3", exc)
         except ImportError as exc:
-            note("use_behavior", "ux-behavior", exc, level_kept=1)
+            self._note("use_behavior", "ux-behavior", exc, level_kept=1)
             self._behavior = _LocalBehavior(self)
             self._level = max(self._level, Level.L1)
         return self
@@ -150,7 +161,7 @@ class App:
             self._channel_asgi = asgi
             self._level = max(self._level, Level.L2)
         except ImportError as exc:
-            note("use_channel", "L2", exc, level_kept=int(self._level))
+            self._note("use_channel", "L2", exc)
         return self
 
     def use_motion(self) -> "App":
@@ -164,7 +175,7 @@ class App:
                 self._document.use(Motion, MotionChannel)
             self._register_motion_stamp()
         except ImportError as exc:
-            note("use_motion", "L3", exc, level_kept=int(self._level))
+            self._note("use_motion", "L3", exc)
         return self
 
     def use_cek(self, *, mode: str = "adapt") -> "App":
@@ -177,7 +188,7 @@ class App:
         except ImportError as exc:
             if mode == "require":
                 raise
-            note("use_cek", "cek_host", exc, level_kept=int(self._level))
+            self._note("use_cek", "cek_host", exc)
             self._cek = None
         return self
 
@@ -234,7 +245,7 @@ class App:
                 ),
             )
         except Exception as exc:
-            note("motion_stamp", "transition.play", exc, level_kept=int(self._level))
+            self._note("motion_stamp", "transition.play", exc)
 
     def add(self, *components: Type[Component]) -> "App":
         """Manual / dynamic registration (preserved). Prefer mount() for route trees."""
@@ -249,7 +260,7 @@ class App:
                 from ux_compose.wire.caps import bridge_actions
                 bridge_actions(self._behavior, self._channel)
             except Exception as exc:
-                note("add.bridge_actions", "caps", exc, level_kept=int(self._level))
+                self._note("add.bridge_actions", "caps", exc)
         return self
 
     def mount(
@@ -266,10 +277,10 @@ class App:
         package_name=None,
         host: str | None = None,
     ):
-        """Scan routes, register units on Behavior, optionally bind page routes.
+        """Scan step inside ``build()``. Same implementation — not a second product.
 
-        Library mount for tests and surfaces. Product path is
-        ``uxcompose create-app`` then ``build()`` — see docs/ARCHITECTURE.md.
+        Tests and surfaces may call mount when they do not need host / CSS / HMR.
+        Product path is ``uxcompose create-app`` then ``build()``.
 
         When ``asgi_app`` is provided, wires ``RouterHooks.resolve_unit`` so
         synthetic page GETs receive live Behavior instances (page-unit path).

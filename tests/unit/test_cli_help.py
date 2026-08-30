@@ -18,6 +18,8 @@ def test_help_lists_serve_modes():
     src = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
     assert "uxcompose serve dev" in src
     assert "uxcompose serve prod" in src
+    assert "uxcompose serve restart-channel" in src
+    assert "--reload-channel" not in src
     assert "--no-css-watch" not in src
     assert "--no-hmr" not in src
     assert "def _start_tailwind_watch" in src
@@ -39,6 +41,7 @@ def test_serve_without_mode_exits_2(capsys):
     text = err.out + err.err
     assert "serve dev" in text
     assert "serve prod" in text
+    assert "restart-channel" in text
 
 
 def test_serve_prod_rejects_clock_flags(capsys):
@@ -50,3 +53,20 @@ def test_serve_prod_rejects_clock_flags(capsys):
 
 def test_unknown_command():
     assert main(["not-a-real-cmd"]) == 2
+
+
+def test_restart_channel_without_pidfile_fails_closed(capsys, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    code = main(["serve", "restart-channel"])
+    captured = capsys.readouterr()
+    text = captured.out + captured.err
+    assert code == 1
+    assert "no running serve dev" in text
+    assert "--reload-channel" not in text
+
+
+def test_restart_channel_rejects_flags(capsys):
+    assert main(["serve", "restart-channel", "--reload-channel"]) == 2
+    captured = capsys.readouterr()
+    text = captured.out + captured.err
+    assert "does not accept" in text

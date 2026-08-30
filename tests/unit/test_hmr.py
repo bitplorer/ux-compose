@@ -72,11 +72,12 @@ def test_insert_hmr_client_skips_without_body():
 
 def test_cli_serve_does_not_xor():
     src = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
+    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
     assert "needs --no-reload" not in src
-    assert "hmr:asgi_factory" in src
     assert "hmr and not reload" not in src
-    assert 'run_kw["factory"]' in src
     assert "run_serve_dev" in src
+    assert "--one-process" not in src
+    assert "hmr:asgi_factory" in serve
 
 
 def test_cli_css_watch_is_sibling_not_hmr_watcher():

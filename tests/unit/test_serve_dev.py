@@ -42,9 +42,11 @@ def test_channel_prefix_is_narrow():
 
 def test_cli_has_no_dead_names():
     cli = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
+    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
     assert "devstack" not in cli
     assert "glue_factory" not in cli
-    assert "hmr:asgi_factory" in cli
+    assert "--one-process" not in cli
+    assert "hmr:asgi_factory" in serve
 
 
 def test_hmr_module_does_not_spawn_watchers():

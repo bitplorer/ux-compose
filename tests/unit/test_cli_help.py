@@ -22,7 +22,15 @@ def test_help_lists_serve_modes():
     assert "--no-hmr" not in src
     assert "def _start_tailwind_watch" in src
     assert "run_serve_dev" in src
-    assert "--one-process" in src
+    assert "--one-process" not in src
+    assert "def _missing_serve_dev_extras" in src
+
+
+def test_serve_dev_rejects_one_process(capsys):
+    assert main(["serve", "dev", "--one-process"]) == 2
+    captured = capsys.readouterr()
+    text = captured.out + captured.err
+    assert "does not accept" in text
 
 
 def test_serve_without_mode_exits_2(capsys):

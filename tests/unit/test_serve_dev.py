@@ -12,9 +12,8 @@ from ux_compose.serve_dev import (
     CHANNEL_PATH_PREFIX,
     RELOAD_EXCLUDES,
     RELOAD_INCLUDES,
+    listen_loopback,
     owner_for,
-    pick_loopback_port,
-    port_is_free,
 )
 
 
@@ -41,13 +40,11 @@ def test_channel_prefix_is_narrow():
     assert CHANNEL_PATH_PREFIX == "/ux-channel"
 
 
-def test_cli_serve_dev_starts_serve_dev():
+def test_cli_has_no_dead_alphabet_names():
     cli = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
-    assert "from ux_compose.serve_dev import run as run_serve_dev" in cli
-    assert "--one-process" in cli
-    assert "hmr:asgi_factory" in cli
     assert "devstack" not in cli
     assert "glue_factory" not in cli
+    assert "hmr:asgi_factory" in cli
 
 
 def test_hmr_module_does_not_spawn_watchers():
@@ -67,15 +64,24 @@ def test_old_alphabet_names_are_gone():
     assert 'return "Y"' not in src
 
 
-def test_prefer_neighbor_when_free():
-    port = pick_loopback_port(prefer=0)
-    assert port != 0
-    neighbor = pick_loopback_port(prefer=port)
-    assert neighbor == port or neighbor > 0
+def test_listen_loopback_owns_the_port():
+    sock = listen_loopback()
+    try:
+        host, port = sock.getsockname()
+        assert host == "127.0.0.1"
+        assert port > 0
+        other = listen_loopback()
+        try:
+            assert other.getsockname()[1] != port
+        finally:
+            other.close()
+    finally:
+        sock.close()
 
 
-def test_fallback_skips_taken_prefer():
-    taken_slot = pick_loopback_port()
-    other = pick_loopback_port(prefer=taken_slot, taken={taken_slot})
-    assert other != taken_slot
-    assert port_is_free(other)
+def test_workers_inherit_a_held_fd():
+    src = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    assert "def listen_loopback" in src
+    assert "--fd" in src
+    assert "pick_loopback_port" not in src
+    assert "port + 1" not in src

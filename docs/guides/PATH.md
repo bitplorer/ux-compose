@@ -16,7 +16,7 @@ motion — without inventing APIs.
 4. Ownership: compose owns create-app / build / serve / deploy / HMR / tunnel. ux-dom renders. ux-behavior owns `@action`.
 5. Progressive Superpower: L1 code stays correct at L2/L3. Zero rewrite of the Component.
 6. Tailwind is `className` on tag trees. CSS lives in `assets/css`, never inside Python strings.
-7. HMR is `uxcompose serve`, not `Document.use`.
+7. HMR is `uxcompose serve dev`, not `Document.use`.
 8. If code and this page disagree, **code wins**.
 
 ---
@@ -42,8 +42,8 @@ tour, open [UI.md](UI.md).
 CLI is the lifecycle. Page units never know which phase they are in.
 
 ```text
-create-app → author routes/ → dispatch / doctor → uxcompose build
-         → serve (--hmr / --tunnel) → unlock L2/L3 → deploy → doctor
+create-app → author routes/ → serve dev → dispatch / doctor
+         → build → unlock L2/L3 → deploy → doctor
 ```
 
 | Phase | Command | You do not |
@@ -51,7 +51,7 @@ create-app → author routes/ → dispatch / doctor → uxcompose build
 | Scaffold | `uxcompose create-app` | hand-write `get()` / `HTMLResponse` |
 | Prove | `app.dispatch` + `uxcompose doctor` | stand up HTTP to test Clock B |
 | CSS | `uxcompose build` | compile in `serve` / `deploy` |
-| Dev | `uxcompose serve app:asgi` | `Document.use` for HMR |
+| Dev | `uxcompose serve dev` | `Document.use` for HMR |
 | Ship | `uxcompose deploy --provider docker` | a second ASGI process |
 
 ---
@@ -91,9 +91,9 @@ intentional. `--host auto` prefers FastAPI if installed, else a pure ASGI adapte
 Next:
 
 ```bash
-uxcompose build
-uxcompose serve app:asgi
+uxcompose serve dev
 uxcompose doctor . --no-fail
+uxcompose build
 ```
 
 ---
@@ -146,8 +146,8 @@ class Hello(Component):
             )
         attr_str = " ".join(f'{k}="{v}"' for k, v in attrs.items())
         return (
-            f'\u003cdiv id="hello"\u003e\u003cspan\u003e{n}\u003c/span\u003e'
-            f"\u003cbutton {attr_str}\u003e+1\u003c/button\u003e\u003c/div\u003e"
+            f'<div id="hello"><span>{n}</span>'
+            f"<button {attr_str}>+1</button></div>"
         )
 
     @action(caps=())
@@ -194,11 +194,12 @@ HTMX is **never** auto-attached. Pass `use_htmx=True` (or `Document.use(Htmx())`
 to opt in.
 
 ```bash
-uxcompose serve app:asgi
-# defaults: --host 0.0.0.0 --port 8080 --reload
+uxcompose serve dev
+# origin + ui + channel on --host 0.0.0.0 --port 8080
 ```
 
-Process reload is uvicorn. Browser HMR is the live-reload client. Serve runs both.
+Process reload is the ui worker. Browser HMR is the live-reload client.
+Channel stays in its own process. See [serve-hmr-tunnel.md](serve-hmr-tunnel.md).
 
 Prove the unit without HTTP:
 
@@ -219,17 +220,17 @@ print(int(app.level), app.level.label)   # 1 offline interactive
 HMR and tunnel are **delivery features of `serve`**. They are not Document APIs.
 
 ```bash
-uxcompose serve app:asgi
-# process reload on *.py + browser live-reload client
-# WebSocket /__uxcompose/hmr — worker death → page reload
+uxcompose serve dev
+# origin + ui (reload *.py) + channel (stable)
+# WebSocket /__uxcompose/hmr — ui death → page reload
+# sibling Tailwind --watch + HEAD /css/output.css
 
-uxcompose serve app:asgi --watch assets --watch routes
-uxcompose serve app:asgi --no-hmr
-uxcompose serve app:asgi --no-reload
+uxcompose serve dev --reload-dir routes
+uxcompose serve prod
 ```
 
-`--reload` (uvicorn workers) and `--hmr` (browser client) are different clocks.
-Both default on. `attach_hmr` runs inside the worker via `asgi_factory`.
+Clocks live on `serve dev`. There is no `--hmr` / `--no-reload` / `--css-watch`.
+`attach_hmr` runs inside the ui worker via `asgi_factory`.
 
 Optional client tag for shells that skip `attach_hmr`:
 
@@ -243,8 +244,8 @@ print(HMR_PATH)   # /__uxcompose/hmr
 Public URL after health is green:
 
 ```bash
-uxcompose serve app:asgi --tunnel ngrok
-uxcompose serve app:asgi --tunnel cloudflare --tunnel-token "$TOKEN"
+uxcompose serve dev --tunnel ngrok
+uxcompose serve dev --tunnel cloudflare --tunnel-token "$TOKEN"
 ```
 
 ---
@@ -257,46 +258,12 @@ uxcompose serve app:asgi --tunnel cloudflare --tunnel-token "$TOKEN"
 2. Tokens + `@layer components` live in `assets/css/input.css`.
 3. Tailwind scans **this app** (`app.py`, `routes/**/*.py`) via `@source` in
    `assets/css/input.css`. `create-app` does not emit `tailwind.config.js`.
-   The globs `apps/**` / `examples/**` / `src/**` in this *library* repo's
-   `tailwind.config.js` are for compose demos, not product apps.
 4. Build CSS; the Document **links** the file.
 
 ```bash
 uxcompose build
 # writes assets/static/file/css/output.css (minified)
-# product CSS watch lives on uxcompose build --watch
-```
-
-Scaffold Hello already uses Tailwind utilities on `div` / `button` / `span`.
-That is the product path: same classes FastAPI authors put on templates, but
-the tree is Python and serializes with `__render__`.
-
-Tokens (from `assets/css/input.css`) — evolve these, do not invent a second palette
-in Python:
-
-```css
-:root {
-  --bg: #f3efe6;
-  --surface: #fffdf8;
-  --fg: #161513;
-  --accent: #2f3b38;
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Source Sans 3", system-ui, sans-serif;
-}
-```
-
-Copy-in markup kit (optional, still render-only — no Ops):
-
-```python
-from ux_dom.ui import Button, Card, CardHeader, CardTitle, CardContent
-from ux_compose import control
-
-card = Card(
-    CardHeader(CardTitle("Cart")),
-    CardContent(
-        Button("Add tee", type="button", variant="default", **control("cart.add", sku="tee")),
-    ),
-)
+# live CSS watch lives on serve dev, not build --watch
 ```
 
 ---
@@ -304,7 +271,7 @@ card = Card(
 ## 6. Composition root
 
 `build()` is one place to set **host** and **live**. Authors never implement
-adapters (Invisible Strategy).
+adapters.
 
 ```python
 from pathlib import Path
@@ -313,50 +280,21 @@ from ux_compose import build
 app, asgi, bundle = build(
     Path(__file__).parent,
     name="Shop",
-    host="auto",    # auto | fastapi | asgi
-    live="auto",    # auto | channel | null
-    level="auto",   # auto | 0..3
+    host="auto",
+    live="auto",
+    level="auto",
     base="routes",
 )
-print(app.name, int(app.level), app.level.label)
-print(list(bundle.surfaces) if bundle else None)
 ```
 
-Equivalent progressive unlock, same Component:
+| Level | You get |
+|-------|---------|
+| 0 | Document + static Components + DirectoryRoutes |
+| 1 | + Behavior + MorphState + `@action` |
+| 2 | + Channel + Caps + `control()` |
+| 3 | + Motion / Scenes |
 
-```python
-from ux_compose import App, Level
-
-app = App.boot("Shop", level=1)     # MorphState + @action, offline
-print(int(app.level), app.level.label)
-
-app.use_host("fastapi")             # auto | fastapi | starlette | asgi
-# app.use_channel(asgi_app=api)     # Level 2 — Isolation-safe (wire/ import)
-# app.use_motion()                  # Level 3 — Morph-then-Play
-# app.use_cek(mode="adapt")         # optional; mode="require" raises if missing
-
-assert Level.L1.value == 1
-```
-
-| Level | You get | You still do not |
-|-------|---------|------------------|
-| 0 | Document + static Components + DirectoryRoutes | Dispatch |
-| 1 | + Behavior + MorphState + `@action` | Caps, signed Intent |
-| 2 | + Channel + Caps + `control()` | Motion IR |
-| 3 | + Motion / Scenes | A second Cart class |
-
-If you rewrite the Cart to “go live”, you have violated the contract. Attach
-Channel; do not fork the component.
-
-Isolation Law: product modules never `import ux_channel`. Cold import of
-`ux_compose` does not load the wire.
-
-```python
-from ux_compose import doctor
-
-report = doctor(".", fail=False)
-print(report.ok, report.capabilities, report.level_available)
-```
+Isolation Law: product modules never `import ux_channel`.
 
 ```bash
 uxcompose doctor . --no-fail
@@ -366,190 +304,31 @@ uxcompose doctor . --no-fail
 
 ## 7. Control flow
 
-A click is not a client store update. The browser posts an **action name + args**.
-The server runs `@action`, returns Ops, the runtime applies them.
+A click posts an action name + args. The server runs `@action` and returns Ops.
 
-```text
-button / form  --control()/bind()--\u003e  data-ux-action + data-ux-arg-*
-        |
-        v
-   dispatch("hello.inc")           # L1, tests, agents
-   submit_intent(...)              # L2, signed Intent + Cap
-        |
-        v
-   @action  mutates Morph/Ref  →  list[Op] | None
-        |
-        v
-   morph #hello  ·  notify  ·  optional transition.play
-```
-
-**Return algebra (hard)**
-
-1. `return None` — auto-morph dirty MorphState units.
-2. `return list[Op]` — exact Ops; auto-morph suppressed.
-3. Prefer `update_with(self, plan, extra_ops=[notify(...)])`.
-   Morph HTML is live `render()`. The Plan has no `html=` (XOR).
-
-**`bind` vs `control`**
-
-```python
-from ux_compose import bind, control
-
-# preferred: symbol-safe, fails closed on unknown kwargs
-button("+ tee", type="button", **bind(self.add, sku="tee"))
-button("+ tee", type="button", **self.add.ui(sku="tee"))
-
-# stringly escape hatch (progressive HTML you do not have a method object for)
-button("+ hat", type="button", **control("cart.add", sku="hat"))
-```
-
-**Caps — the authority clock**
-
-```python
-from ux_compose import App, Component, action, notify
-
-class Cart(Component):
-    id = "cart"
-
-    @action(caps=())                 # public
-    def add(self, sku: str = ""):
-        return [notify(f"Added {sku}")]
-
-    @action(caps=("orders.place",))  # live Cap, or AuthorityError offline
-    def checkout(self):
-        return [notify("Checkout")]
-
-app = App.boot("Shop", strict_caps=True, level=1)
-app.add(Cart)
-app.dispatch("cart.add", sku="tee")      # ok
-# app.dispatch("cart.checkout")          # fail closed offline
-```
-
-Chrome (tabs, accordion, open/close) is public. Spending money, deleting, or
-changing identity takes a Cap.
-
-**Live-safe quantities.** Channel's session plane refuses *quantity* MorphState
-(ints, numeric strings). Teach this form so L2 is zero rewrite:
-
-```python
-from ux_compose import MorphState, RefState
-
-n = RefState(0)             # magnitude / list / money
-stamp = MorphState("idle")  # qualitative dirty tick so the unit still morphs
-```
-
-Boolean / named-step MorphState is qualitative and legal on the session plane.
-
-**Drive from the backend.** The browser is not the store. Tests, agents, and
-HTTP handlers call the **same door** (`dispatch`). Live Caps use `submit_intent`.
-
-```python
-from fastapi import FastAPI, Form
-from fastapi.responses import JSONResponse
-from ux_compose import App
-from routes.hello import Hello
-
-api = FastAPI()
-ux = App.boot("Shop", level=1)
-ux.add(Hello)
-
-@api.post("/act/{name}")
-def act(name: str, sku: str = Form("")):
-    ops = ux.dispatch(name, sku=sku)    # same door as tests and agents
-    return JSONResponse({"ops": [str(o) for o in ops]})
-
-# no HTTP required
-print(ux.dispatch("hello.inc"))
-```
+Prefer `update_with(self, plan, extra_ops=[notify(...)])`.
+Prefer `bind(self.add, sku="tee")` over stringly `control`.
 
 `App.submit_intent(action, cap=..., mint=False)` is the live door. Tests stay
-on `dispatch`. `Behavior.trust()` / compose does not grow a production bypass.
+on `dispatch`.
 
 ---
 
 ## 8. Motion XOR
 
-Laws:
-
 - **XOR** — `morph(target)` XOR `scene.enter(target, html=...)`. Never both.
 - **Morph-then-Play** — morph Op first; `transition.play` follows.
-- **Isolation** — Plan comes from `ux_compose.scene` (re-export), never `ux_channel`.
-
-Do:
-
-```python
-from ux_compose import action, update_with, notify, scene, rise
-
-@action(caps=())
-def add(self, sku: str = ""):
-    self.count = int(self.count) + 1
-    plan = scene("cart-pop").enter(f"#{self.id}", rise.enter(ms=160))
-    return update_with(self, plan, extra_ops=[notify(f"Added {sku}")])
-```
-
-Don't:
-
-```python
-# illegal — html= on the same target as the morph
-return scene("pop").enter("#cart", rise.enter(ms=160), html=self.render())
-```
-
-Without ux-motion, `scene` is `None` and the same action still morphs.
-That is the Progressive Superpower.
-
-Shared-element (FLIP) uses a continuity id, still no `html=` on the plan:
-
-```python
-from ux_compose import scene
-
-plan = (
-    scene("pdp")
-    .share("hero", leave="#from-linen", arrive="#to-linen")
-)
-```
+- Plan comes from `ux_compose.scene`, never `ux_channel`.
 
 ---
 
 ## 9. Go live
 
-Channel attaches **only** through compose `wire/`. Product modules do not import
-`ux_channel`. Prefer `build(live="auto")` so Channel binds on the real ASGI
-process. Handmade `HTMLResponse` / `Hello.get` is leftover — see
-[HOST.md](HOST.md) and [reference/host.md](../reference/host.md).
-
-```python
-from pathlib import Path
-from ux_compose.build import build
-from document import document
-
-app, asgi, bundle = build(
-    Path(__file__).parent,
-    host="auto",
-    live="auto",     # Channel when ux-channel is installed
-    document=document,
-)
-# extra APIs on the same process:
-# @asgi.get("/api/health")
-# def health():
-#     return {"ok": True}
-
-print(int(app.level), app.level.label)
-```
-
-Serve the FastAPI app the same way:
+Channel attaches only through compose `wire/`. Prefer `build(live="auto")`.
 
 ```bash
-uxcompose serve app:asgi
-```
-
-`App.submit_intent(action, cap=..., mint=False)` is the live door. Tests stay on
-`dispatch`. `Behavior.trust()` / compose does not grow a production bypass.
-
-Deploy:
-
-```bash
+uxcompose serve dev
 uxcompose deploy --provider docker
-uxcompose deploy --provider fly|render|railway|vps|checklist
 ```
 
 ---
@@ -558,9 +337,9 @@ uxcompose deploy --provider fly|render|railway|vps|checklist
 
 | Goal | Go |
 |------|----|
+| Serve / HMR | [serve-hmr-tunnel.md](serve-hmr-tunnel.md) · [../internals/hmr.md](../internals/hmr.md) |
+| CLI | [CLI.md](CLI.md) |
+| Production CSS | [TAILWIND.md](TAILWIND.md) |
 | Pick-and-use widgets | [UI.md](UI.md) |
-| Public-API index | [SNIPPETS.md](SNIPPETS.md) |
-| CLI surface | [CLI.md](CLI.md) · [serve-hmr-tunnel.md](serve-hmr-tunnel.md) |
 | Ownership law | [../FLOW.md](../FLOW.md) |
-| Example map (99% of product UI) | [../../examples/README.md](../../examples/README.md) |
 | 5-minute door | [../../START_HERE.md](../../START_HERE.md) |

@@ -40,12 +40,14 @@ uxcompose doctor [path ...] [--no-fail]
 uxcompose create-app <dir> [--name NAME] [--level auto|0-3] [--host auto|fastapi|asgi]
 uxcompose serve dev  [app:asgi] [--host 0.0.0.0] [--port 8080] [--reload-dir PATH ...] [--tunnel ngrok|cloudflare]
 uxcompose serve prod [app:asgi] [--host 0.0.0.0] [--port 8080]
+uxcompose serve restart-channel
 uxcompose build [--no-minify]
 uxcompose deploy [--provider docker|fly|render|railway|vps|checklist]
 ```
 
 There is no `--hmr`, `--reload`, `--css-watch`, or `--one-process`.
-Modes choose clocks. Missing origin extras fail closed:
+Modes choose clocks. `restart-channel` is a one-shot action, not a clock.
+Missing origin extras fail closed:
 `pip install 'ux-compose[serve]'`.
 
 ### create-app

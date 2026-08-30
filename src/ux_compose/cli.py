@@ -7,9 +7,10 @@ Hard ownership (SoC + locality):
   ux-dom owns className, the Document ``<link>``, and package static.
   App asset folders live here (``ux_compose.assets.WebAssets``).
 
-serve is two modes, not a flag soup:
-  ``uxcompose serve dev``   origin + ui worker + channel worker + CSS watch
-  ``uxcompose serve prod``  clocks hard off (local prod-like run)
+serve is two run modes plus one action, not a flag soup:
+  ``uxcompose serve dev``              origin + ui worker + channel worker + CSS watch
+  ``uxcompose serve prod``             clocks hard off (local prod-like run)
+  ``uxcompose serve restart-channel``  one-shot Channel RAM drop in a running serve dev
 deploy still starts raw uvicorn — it does not call serve.
 """
 from __future__ import annotations
@@ -49,6 +50,7 @@ def _help() -> None:
     print("  uxcompose serve dev  [app:asgi] [--host 0.0.0.0] [--port 8080]")
     print("                      [--reload-dir PATH ...] [--tunnel none|ngrok|cloudflare]")
     print("  uxcompose serve prod [app:asgi] [--host 0.0.0.0] [--port 8080]")
+    print("  uxcompose serve restart-channel   # one-shot Channel RAM drop (running serve dev)")
     print("  uxcompose build [--no-minify] [--skip-tailwind] [--skip-import] [--app app:asgi]")
     print("  uxcompose deploy [--provider docker|fly|render|railway|vps|checklist] [--force] [--name NAME]")
     print("  uxcompose doctor [paths...] [--no-fail]")
@@ -58,6 +60,7 @@ def _help() -> None:
     print("Product path: create-app → serve dev → build → deploy")
     print("  serve dev  = origin + ui reload + channel + CSS watch")
     print("  serve prod = clocks hard off (does not replace deploy)")
+    print("  restart-channel = drop Channel RAM once; next *.py save still leaves Channel up")
     print("Kit copy: uxcompose add login  (drops components/login.py — you own it)")
     print("HMR / tunnel are delivery features of serve dev (not Document.use).")
     print("CSS minify: uxcompose build (ux_compose.tailwind). App folders: ux_compose.assets.")
@@ -241,6 +244,8 @@ _SERVE_MODES = {
     "development": "dev",
     "prod": "prod",
     "production": "prod",
+    "restart-channel": "restart-channel",
+    "restart_channel": "restart-channel",
 }
 
 
@@ -250,9 +255,11 @@ def _serve_help() -> None:
     print("  uxcompose serve dev  [app:asgi] [--host 0.0.0.0] [--port 8080]")
     print("                      [--reload-dir PATH ...] [--tunnel none|ngrok|cloudflare]")
     print("  uxcompose serve prod [app:asgi] [--host 0.0.0.0] [--port 8080]")
+    print("  uxcompose serve restart-channel")
     print("")
-    print("  dev  origin + ui worker + channel worker + CSS watch")
-    print("  prod clocks hard off (local prod-like run; deploy still uses uvicorn)")
+    print("  dev              origin + ui worker + channel worker + CSS watch")
+    print("  prod             clocks hard off (local prod-like run; deploy still uses uvicorn)")
+    print("  restart-channel  one-shot: drop Channel RAM in a running serve dev")
 
 
 def _serve(argv: list[str]) -> int:
@@ -264,13 +271,31 @@ def _serve(argv: list[str]) -> int:
     raw = argv[0].lower()
     if raw not in _SERVE_MODES:
         print(
-            f"unknown serve mode {argv[0]!r} — use 'dev' or 'prod'",
+            f"unknown serve mode {argv[0]!r} — use 'dev', 'prod', or 'restart-channel'",
             file=sys.stderr,
         )
         _serve_help()
         return 2
     mode = _SERVE_MODES[raw]
     rest = argv[1:]
+
+    if mode == "restart-channel":
+        if rest and rest[0] in ("-h", "--help"):
+            print("uxcompose serve restart-channel")
+            print("  one-shot Channel RAM drop for a running serve dev in this directory")
+            print("  does not change the next *.py save")
+            return 0
+        if rest:
+            print(
+                "serve restart-channel does not accept "
+                + " ".join(rest)
+                + " — it is a one-shot action, not a flag",
+                file=sys.stderr,
+            )
+            return 2
+        from ux_compose.serve_restart import restart_channel
+
+        return restart_channel()
 
     p = argparse.ArgumentParser(prog=f"uxcompose serve {mode}", add_help=True)
     p.add_argument("app", nargs="?", default="app:asgi")

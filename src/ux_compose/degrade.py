@@ -1,10 +1,11 @@
 """Visible progressive degrade — silence was the defect, not degrade itself.
 
 Level 1 code must keep working when Channel / Motion / CEK are absent.
-That contract is frozen. Evidence is per-App. A process bus is the
+That contract is frozen. Evidence is per-App. A process log is the
 fallback when no App is bound (doctor, tests, import-time).
 
-Public surface is additive. Attach methods still do not raise.
+Public author names are DegradeEvent and degrades(). DegradeLog is the
+internal notebook one App owns. Attach methods still do not raise.
 """
 from __future__ import annotations
 
@@ -24,8 +25,8 @@ class DegradeEvent:
     level_kept: int = 1
 
 
-class DegradeBus:
-    """One App's attach evidence."""
+class DegradeLog:
+    """One App's attach evidence. Not a message bus."""
 
     def __init__(self) -> None:
         self._events: list[DegradeEvent] = []
@@ -57,20 +58,20 @@ class DegradeBus:
         self._events.append(event)
 
 
-_PROCESS = DegradeBus()
-_ACTIVE: ContextVar[DegradeBus] = ContextVar("ux_compose_degrade", default=_PROCESS)
+_PROCESS = DegradeLog()
+_ACTIVE: ContextVar[DegradeLog] = ContextVar("ux_compose_degrade", default=_PROCESS)
 
 
-def current() -> DegradeBus:
+def current() -> DegradeLog:
     return _ACTIVE.get()
 
 
 @contextmanager
-def using(bus: DegradeBus) -> Iterator[DegradeBus]:
-    """Bind this bus as the active evidence list for the block."""
-    token: Token = _ACTIVE.set(bus)
+def using(log: DegradeLog) -> Iterator[DegradeLog]:
+    """Bind this log as the active evidence list for the block."""
+    token: Token = _ACTIVE.set(log)
     try:
-        yield bus
+        yield log
     finally:
         _ACTIVE.reset(token)
 
@@ -84,26 +85,26 @@ def note(
 ) -> DegradeEvent:
     """Record a degrade. Never raises. Safe to call from except blocks.
 
-    Writes the active bus. Dual-writes the process bus so doctor always
+    Writes the active log. Dual-writes the process log so doctor always
     has a process-wide audit even when an App is bound.
     """
-    bus = current()
-    event = bus.note(door, wanted, reason, level_kept=level_kept)
-    if bus is not _PROCESS:
+    log = current()
+    event = log.note(door, wanted, reason, level_kept=level_kept)
+    if log is not _PROCESS:
         _PROCESS._append(event)
     return event
 
 
 def degrades() -> tuple[DegradeEvent, ...]:
-    """Snapshot of the active bus (process bus when no App is bound)."""
+    """Snapshot of the active log (process log when no App is bound)."""
     return current().snapshot()
 
 
 def clear() -> None:
     """Test helper — do not call from product code."""
-    bus = current()
-    bus.clear()
-    if bus is not _PROCESS:
+    log = current()
+    log.clear()
+    if log is not _PROCESS:
         _PROCESS.clear()
 
 
@@ -117,7 +118,7 @@ def format_report(events: Optional[List[DegradeEvent]] = None) -> list[str]:
 
 __all__ = [
     "DegradeEvent",
-    "DegradeBus",
+    "DegradeLog",
     "note",
     "degrades",
     "clear",

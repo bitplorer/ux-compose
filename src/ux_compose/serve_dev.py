@@ -14,7 +14,9 @@ fourth server — it is a compiler next to these three.
 ``host`` is already ``--host`` / ``host=fastapi``. Do not reuse it.
 
 Both workers import ``app:asgi``. origin only forwards. A ui reload
-does not wipe Channel RAM.
+does not wipe Channel RAM. ``serve restart-channel`` is a one-shot
+SIGUSR1 to the origin pidfile — it respawns Channel on the same fd.
+It is not a sticky flag and does not change the next ``*.py`` save.
 
 httpx re-issues HTTP from origin to a worker. Starlette is origin's
 ASGI app. websockets forwards HMR and Channel sockets. None of these
@@ -31,6 +33,8 @@ import threading
 import time
 from typing import Callable, Literal
 from urllib.parse import urlsplit
+
+from ux_compose.serve_restart import clear_pid, write_pid
 
 Worker = Literal["ui", "channel"]
 
@@ -214,11 +218,24 @@ def listen_loopback() -> socket.socket:
     return sock
 
 
-def _watch_workers(ui: subprocess.Popen, channel: subprocess.Popen) -> None:
-    """If a worker dies after bind, stop the origin process too."""
+def _watch_workers(
+    ui: subprocess.Popen,
+    channel_holder: list,
+    restarting: threading.Event,
+) -> None:
+    """If a worker dies after bind, stop the origin process too.
+
+    A planned Channel restart sets ``restarting`` so this loop does not
+    take the origin down while the worker is being replaced.
+    """
     while True:
         time.sleep(0.4)
-        if ui.poll() is not None or channel.poll() is not None:
+        if restarting.is_set():
+            continue
+        channel = channel_holder[0] if channel_holder else None
+        ui_dead = ui.poll() is not None
+        ch_dead = channel is None or channel.poll() is not None
+        if ui_dead or ch_dead:
             print(
                 "serve-dev: a worker exited — stopping the origin process",
                 file=sys.stderr,
@@ -270,9 +287,43 @@ def run(
     for directory in reload_dirs:
         ui_cmd.extend(["--reload-dir", directory])
 
-    channel_proc = ui_proc = None
+    channel_holder: list = [None]
+    ui_proc = None
+    restarting = threading.Event()
+    pid_written = False
+
+    def _respawn_channel() -> None:
+        restarting.set()
+        try:
+            _stop(channel_holder[0])
+            channel_holder[0] = _spawn(
+                channel_cmd, cwd=root, pass_fds=(channel_sock.fileno(),)
+            )
+            deadline = time.time() + 8
+            while time.time() < deadline:
+                proc = channel_holder[0]
+                if proc.poll() is not None:
+                    print(
+                        f"serve-dev: channel worker exited {proc.returncode} on restart",
+                        file=sys.stderr,
+                    )
+                    return
+                if _port_open(channel_port):
+                    print(f"serve-dev: channel worker restarted {channel_url}")
+                    return
+                time.sleep(0.15)
+            print("serve-dev: channel worker did not bind after restart", file=sys.stderr)
+        finally:
+            time.sleep(0.2)
+            restarting.clear()
+
+    def _on_restart_signal(signum, frame) -> None:
+        threading.Thread(
+            target=_respawn_channel, name="serve-dev-restart-channel", daemon=True
+        ).start()
+
     try:
-        channel_proc = _spawn(
+        channel_holder[0] = _spawn(
             channel_cmd, cwd=root, pass_fds=(channel_sock.fileno(),)
         )
         ui_proc = _spawn(
@@ -282,11 +333,13 @@ def run(
             pass_fds=(ui_sock.fileno(),),
         )
         ui_sock.close()
-        channel_sock.close()
         deadline = time.time() + 12
         while time.time() < deadline:
-            if channel_proc.poll() is not None:
-                print(f"serve-dev: channel worker exited {channel_proc.returncode}", file=sys.stderr)
+            if channel_holder[0].poll() is not None:
+                print(
+                    f"serve-dev: channel worker exited {channel_holder[0].returncode}",
+                    file=sys.stderr,
+                )
                 return 1
             if ui_proc.poll() is not None:
                 print(f"serve-dev: ui worker exited {ui_proc.returncode}", file=sys.stderr)
@@ -310,9 +363,14 @@ def run(
                 "(pip install watchfiles)",
                 file=sys.stderr,
             )
+        usr1 = getattr(signal, "SIGUSR1", None)
+        if usr1 is not None:
+            signal.signal(usr1, _on_restart_signal)
+        write_pid(root)
+        pid_written = True
         threading.Thread(
             target=_watch_workers,
-            args=(ui_proc, channel_proc),
+            args=(ui_proc, channel_holder, restarting),
             name="serve-dev-workers",
             daemon=True,
         ).start()
@@ -327,6 +385,12 @@ def run(
     except KeyboardInterrupt:
         return 0
     finally:
+        if pid_written:
+            clear_pid(root)
         _stop(ui_proc)
-        _stop(channel_proc)
+        _stop(channel_holder[0])
         _stop(css_watcher)
+        try:
+            channel_sock.close()
+        except OSError:
+            pass

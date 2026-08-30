@@ -16,7 +16,8 @@ def test_help_exits_zero():
 
 def test_help_lists_css_watch_clock():
     src = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
-    assert "--no-css-watch" in src
+    assert "--css-watch" in src
+    assert "--no-css-watch" not in src
     assert "def _start_tailwind_watch" in src
 
 

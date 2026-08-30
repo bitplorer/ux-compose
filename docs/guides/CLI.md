@@ -38,9 +38,11 @@ Product apps use `uxcompose build` for CSS. ux-dom does not compile CSS.
 See `docs/FLOW.md`.
 
 `uxcompose serve` process-reloads `*.py` (uvicorn) and attaches browser
-HMR: worker death → client reconnects → page reload. A sibling Tailwind
-`--watch` writes `output.css`; the client HEAD-polls `/css/output.css` and
-swaps the sheet. `--no-reload` / `--no-hmr` / `--no-css-watch` turn a clock
-off; all three stay on by default. `uxcompose deploy` does not run Tailwind;
-run `uxcompose build` first so `output.css` is on disk. Full how-to:
-[TAILWIND.md](TAILWIND.md).
+HMR: worker death → client reconnects → page reload. It serves whatever
+`output.css` is already on disk. Pass `--css-watch` to spawn a sibling
+Tailwind `--watch` that rewrites that file (unminified, dev only). The
+client HEAD-polls `/css/output.css` and swaps the sheet when the file
+changes. `--no-reload` / `--no-hmr` turn those clocks off; `--css-watch`
+turns the CSS writer on. Default serve does not write CSS.
+`uxcompose deploy` does not run Tailwind; run `uxcompose build` first so
+`output.css` is on disk. Full how-to: [TAILWIND.md](TAILWIND.md).

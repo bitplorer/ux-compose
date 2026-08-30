@@ -30,12 +30,18 @@ def test_client_script_contains_path():
     assert "WebSocket" in CLIENT_JS
 
 
-def test_client_reloads_on_reconnect():
-    assert "function reloadPage" in CLIENT_JS
-    assert "waitUntilWorkerServes(reloadPage)" in CLIENT_JS
+def test_client_morphs_on_reconnect():
+    assert "function softReload" in CLIENT_JS
+    assert "function morphLive" in CLIENT_JS
+    assert "function hardReload" in CLIENT_JS
+    assert "waitUntilWorkerServes(softReload)" in CLIENT_JS
     assert "location.reload()" in CLIENT_JS
+    assert "DOMParser" in CLIENT_JS
+    assert "Idiomorph" in CLIENT_JS
+    assert "hmr-no-target" in CLIENT_JS
     assert "close(1000)" in CLIENT_JS
     assert 'new URL("__uxcompose/hmr", location.href)' in CLIENT_JS
+    assert "reloadPage" not in CLIENT_JS
 
 
 def test_client_polls_css_and_swaps_sheet():

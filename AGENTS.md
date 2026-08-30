@@ -38,10 +38,29 @@ Do not document them. Tags are imported from `ux_compose`.
 - Tailwind compiler on ux-dom (`ux_compose.tailwind` + `uxcompose build` own it)
 - App asset layout / `WebAssets` on ux-dom (`ux_compose.assets` owns it)
 - HMR as a `Document.use` product API
+- A file watcher, `HmrHub`, or Tailwind `Popen` inside `hmr.py`
+- `--hmr` requiring `--no-reload` (the old XOR). Both clocks default on
+- Process-reloading the worker because `input.css` changed
+- A second Tailwind `--watch` next to serve's sibling (two writers on `output.css`)
 - Product code importing `ux_channel` outside compose `wire/`
 - A copy of Channel codecs, Document serialize, or motion IR in this tree
 - Dual product paths
 - A second HTTP pipeline, FastAPI HTML `default_response_class`, `StreamingRoute`, or HTTP verbs on page units (see Product host below)
+
+## Dev clocks under `uxcompose serve`
+
+Do not collapse these. The stale design is an in-process hub + watcher.
+
+| Clock | Owner | Signal |
+|-------|-------|--------|
+| Process reload | `cli.py` → uvicorn `--reload` on `*.py` | new worker, cold import |
+| Browser live-reload | `hmr.py` WebSocket `/__uxcompose/hmr` | worker death → GET 200 → `location.reload()` |
+| CSS | `cli.py` sibling Tailwind `--watch` + client HEAD `/css/output.css` | stylesheet swap. Worker stays alive |
+
+`--no-reload` / `--no-hmr` / `--no-css-watch` turn a clock off. HTML insert
+is `HmrClientMiddleware`, not `Document.use`. `assets.py` `_StaticDirASGI`
+must emit `ETag` / `Last-Modified` so the HEAD poll has a validator. How-to:
+[docs/guides/serve-hmr-tunnel.md](docs/guides/serve-hmr-tunnel.md).
 
 ## CLI spine
 
@@ -89,4 +108,3 @@ page in the same change). `build()` wraps GET only with the author Document
 `materialize(route_class=)` fails closed. Scaffold does not emit `page()`.
 Examples (`examples/live_asgi.py`) use `build()` for Clock A GET — not a
 handmade `@app.get` + `HTMLResponse`. `App.mount` is a secondary door.
-

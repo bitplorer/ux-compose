@@ -12,8 +12,9 @@ Product path::
 
     uxcompose create-app myapp
     cd myapp
+    uxcompose serve dev      # clocks on; sibling Tailwind --watch
     uxcompose build          # minify → assets/static/file/css/output.css
-    uxcompose serve app:asgi
+    uxcompose serve prod     # clocks off; disk CSS
     uxcompose deploy --provider docker
 """
 from __future__ import annotations
@@ -149,7 +150,7 @@ def run_product_build(
                 env["UXDOM_TAILWIND_OWNED"] = "1"
                 if watch and not use_minify:
                     print(
-                        f"uxcompose build --watch  ({hit.source})\n"
+                        f"tailwind --watch  ({hit.source})\n"
                         f"  in  {input_css.relative_to(root)}\n"
                         f"  out {output_css.relative_to(root)}\n"
                         "  Ctrl-C to stop",
@@ -248,7 +249,7 @@ def format_product_build_report(report: ProductBuildReport) -> str:
     lines.append("=" * 48)
     lines.append("BUILD OK" if report.ok else "BUILD FAILED")
     if report.ok:
-        lines.append("Next: uxcompose serve app:asgi")
+        lines.append("Next: uxcompose serve prod")
         if report.output_css:
             lines.append(
                 f"CSS linked as /css/output.css "

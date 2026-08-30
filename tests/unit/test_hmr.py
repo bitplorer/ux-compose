@@ -61,3 +61,11 @@ def test_cli_serve_does_not_xor():
     assert "hmr and not reload" not in src
     assert 'run_kw["factory"]' in src
     assert "False if args.no_hmr else True" in src
+
+
+def test_docs_do_not_teach_css_mtime_hmr():
+    tw = (ROOT / "docs" / "guides" / "TAILWIND.md").read_text(encoding="utf-8")
+    assert "watches `.css`" not in tw
+    assert "reloads on `.css` mtime" not in tw
+    cli = (ROOT / "docs" / "guides" / "CLI.md").read_text(encoding="utf-8")
+    assert "watches `.css`" not in cli

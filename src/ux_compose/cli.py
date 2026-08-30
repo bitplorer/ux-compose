@@ -229,6 +229,11 @@ def _serve(argv: list[str]) -> int:
         run_target: str = "ux_compose.hmr:asgi_factory"
         run_kw["factory"] = True
         print(f"HMR: websocket /__uxcompose/hmr (factory, reload={reload})")
+        if not reload:
+            print(
+                "HMR: process reload is off — .py saves will not load a new page class",
+                file=sys.stderr,
+            )
     else:
         run_target = args.app
 

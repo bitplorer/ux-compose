@@ -7,5 +7,6 @@
 |-----|-------|
 | [0001-ownership.md](0001-ownership.md) | Render vs product lifecycle |
 | [0002-product-host.md](0002-product-host.md) | Product FastAPI host (Clock A) |
+| [0005-serve-dev-split.md](0005-serve-dev-split.md) | serve dev isolates Channel from ui reload |
 
 Spec: [../reference/host.md](../reference/host.md). Ownership SSoT remains [../FLOW.md](../FLOW.md).

@@ -37,9 +37,12 @@ uxdom add component Card
 Product apps use `uxcompose build` for CSS. ux-dom does not compile CSS.
 See `docs/FLOW.md`.
 
-`uxcompose serve dev` turns every clock on: process reload (`*.py`),
-browser HMR, sibling Tailwind `--watch`. `uxcompose serve prod` turns
-every clock off and serves whatever `output.css` is on disk. There is
-no `--hmr` / `--css-watch` flag to forget. `uxcompose serve` without a
-mode exits 2. `uxcompose build` is the one-shot minify. Deploy runs
-raw uvicorn, not `serve`. Full how-to: [TAILWIND.md](TAILWIND.md).
+`uxcompose serve dev` is origin + ui + channel, clocks on.
+`uxcompose serve prod` is one process, clocks off, disk CSS.
+Missing origin extras fail closed (`pip install 'ux-compose[serve]'`).
+There is no `--one-process` / `--hmr` / `--css-watch` flag.
+`uxcompose serve` without a mode exits 2. `uxcompose build` is the
+one-shot minify. Deploy runs raw uvicorn, not `serve`.
+Architecture: [../internals/hmr.md](../internals/hmr.md).
+Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md).
+CSS how-to: [TAILWIND.md](TAILWIND.md).

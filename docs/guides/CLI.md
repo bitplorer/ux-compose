@@ -13,8 +13,8 @@
 ```bash
 uxcompose create-app myapp --host auto --level auto
 cd myapp
+uxcompose serve dev
 uxcompose build
-uxcompose serve app:asgi --port 8080
 uxcompose deploy --provider docker
 uxcompose doctor .
 ```
@@ -37,12 +37,9 @@ uxdom add component Card
 Product apps use `uxcompose build` for CSS. ux-dom does not compile CSS.
 See `docs/FLOW.md`.
 
-`uxcompose serve` process-reloads `*.py` (uvicorn) and attaches browser
-HMR: worker death → client reconnects → page reload. It serves whatever
-`output.css` is already on disk. Pass `--css-watch` to spawn a sibling
-Tailwind `--watch` that rewrites that file (unminified, dev only). The
-client HEAD-polls `/css/output.css` and swaps the sheet when the file
-changes. `--no-reload` / `--no-hmr` turn those clocks off; `--css-watch`
-turns the CSS writer on. Default serve does not write CSS.
-`uxcompose deploy` does not run Tailwind; run `uxcompose build` first so
-`output.css` is on disk. Full how-to: [TAILWIND.md](TAILWIND.md).
+`uxcompose serve dev` turns every clock on: process reload (`*.py`),
+browser HMR, sibling Tailwind `--watch`. `uxcompose serve prod` turns
+every clock off and serves whatever `output.css` is on disk. There is
+no `--hmr` / `--css-watch` flag to forget. `uxcompose serve` without a
+mode exits 2. `uxcompose build` is the one-shot minify. Deploy runs
+raw uvicorn, not `serve`. Full how-to: [TAILWIND.md](TAILWIND.md).

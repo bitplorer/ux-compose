@@ -39,6 +39,7 @@ See `docs/FLOW.md`.
 
 `uxcompose serve dev` is origin + ui + channel, clocks on.
 `uxcompose serve prod` is one process, clocks off, disk CSS.
+`uxcompose serve restart-channel` drops Channel RAM once in a running `serve dev`.
 Missing origin extras fail closed (`pip install 'ux-compose[serve]'`).
 There is no `--one-process` / `--hmr` / `--css-watch` flag.
 `uxcompose serve` without a mode exits 2. `uxcompose build` is the

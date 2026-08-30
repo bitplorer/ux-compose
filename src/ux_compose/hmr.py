@@ -8,6 +8,7 @@ Two clocks in this module, both on:
   browser HMR      WebSocket at ``/__uxcompose/hmr``
                    reconnect after worker death → health → morph page units
                    location.reload() only if morph fails
+                   banner if the ui worker stays down; keep polling
                    live-reload client inserted into HTML (dev middleware)
 
 CSS is not a file watcher here. ``uxcompose serve`` may start a sibling
@@ -48,6 +49,45 @@ CLIENT_JS = r"""
     location.reload();
   }
 
+  function showFail(msg) {
+    var el = document.getElementById("uxcompose-hmr-fail");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "uxcompose-hmr-fail";
+      el.setAttribute("role", "status");
+      el.style.cssText = "position:fixed;z-index:2147483647;left:0;right:0;bottom:0;padding:10px 14px;background:#1c1917;color:#fafaf9;font:13px/1.4 ui-sans-serif,system-ui,sans-serif";
+      document.documentElement.appendChild(el);
+    }
+    el.textContent = msg;
+  }
+
+  function hideFail() {
+    var el = document.getElementById("uxcompose-hmr-fail");
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  function snapshotUi() {
+    var a = document.activeElement;
+    return {
+      id: a && a.id ? a.id : "",
+      start: a && typeof a.selectionStart === "number" ? a.selectionStart : null,
+      end: a && typeof a.selectionEnd === "number" ? a.selectionEnd : null,
+      x: window.scrollX || 0,
+      y: window.scrollY || 0
+    };
+  }
+
+  function restoreUi(s) {
+    try { window.scrollTo(s.x, s.y); } catch (e) {}
+    if (!s.id) return;
+    var el = document.getElementById(s.id);
+    if (!el) return;
+    try { el.focus(); } catch (e) {}
+    if (s.start != null && typeof el.setSelectionRange === "function") {
+      try { el.setSelectionRange(s.start, s.end); } catch (e) {}
+    }
+  }
+
   function morphLive(html) {
     var doc = new DOMParser().parseFromString(html, "text/html");
     if (!doc || !doc.body) throw new Error("hmr-parse");
@@ -71,6 +111,7 @@ CLIENT_JS = r"""
   }
 
   function softReload() {
+    var snap = snapshotUi();
     fetch(location.href, { cache: "no-store", credentials: "same-origin" })
       .then(function (r) {
         if (!r.ok) throw new Error("hmr-http");
@@ -78,7 +119,10 @@ CLIENT_JS = r"""
         if (ct.indexOf("text/html") === -1) throw new Error("hmr-type");
         return r.text();
       })
-      .then(function (html) { morphLive(html); })
+      .then(function (html) {
+        morphLive(html);
+        restoreUi(snap);
+      })
       .catch(hardReload);
   }
 
@@ -87,14 +131,14 @@ CLIENT_JS = r"""
     var tick = function () {
       fetch(location.href, { cache: "no-store", credentials: "same-origin" })
         .then(function (r) {
-          if (r.ok) onReady();
+          if (r.ok) { hideFail(); onReady(); }
           else retry();
         })
         .catch(retry);
     };
     var retry = function () {
       n += 1;
-      if (n > 80) return;
+      if (n === 20) showFail("uxcompose: waiting for ui worker");
       setTimeout(tick, 100);
     };
     tick();
@@ -170,7 +214,9 @@ CLIENT_JS = r"""
 
 def client_script_tag() -> str:
     """HTML tag that boots the live-reload client. Prefer attach_hmr."""
-    return f'<script {HMR_ATTR.decode("ascii")}>\n{CLIENT_JS}\n</script>'
+    return f'<script {HMR_ATTR.decode("ascii")}>
+{CLIENT_JS}
+</script>'
 
 
 def is_html_content_type(value: bytes) -> bool:

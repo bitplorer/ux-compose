@@ -65,8 +65,8 @@ Product path:
 ```bash
 uxcompose create-app myapp --level 1
 cd myapp
+uxcompose serve dev
 uxcompose build
-uxcompose serve app:asgi --port 8080
 uxcompose deploy --provider docker
 uxcompose doctor .
 ```
@@ -154,7 +154,7 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 
 - Product lifecycle CLI is **`uxcompose` only**
 - Channel attach is `App.use_channel(asgi_app=…)` — Isolation-safe
-- HMR / tunnel are delivery under `uxcompose serve`, not Document APIs
+- HMR / tunnel are delivery under `uxcompose serve dev`, not Document APIs
 - Authors do not import `ux_channel` outside compose `wire/`
 - Do not reimplement specialists in this repo
 
@@ -173,7 +173,7 @@ Canonical CLI / DX / testing pages live under `docs/guides/`. Root files such as
 | Tutorial | [START_HERE.md](START_HERE.md) · [docs/START_HERE.md](docs/START_HERE.md) · [docs/guides/PATH.md](docs/guides/PATH.md) |
 | How-to | [docs/guides/UI.md](docs/guides/UI.md) · [docs/guides/SNIPPETS.md](docs/guides/SNIPPETS.md) · [docs/guides/CLI.md](docs/guides/CLI.md) · [docs/guides/serve-hmr-tunnel.md](docs/guides/serve-hmr-tunnel.md) · [docs/guides/TESTING.md](docs/guides/TESTING.md) |
 | Reference | [docs/reference/README.md](docs/reference/README.md) |
-| Explanation | [docs/FLOW.md](docs/FLOW.md) · [docs/internals/FLOW.md](docs/internals/FLOW.md) · [docs/adr/0001-ownership.md](docs/adr/0001-ownership.md) |
+| Explanation | [docs/FLOW.md](docs/FLOW.md) · [docs/internals/hmr.md](docs/internals/hmr.md) · [docs/adr/0005-serve-dev-split.md](docs/adr/0005-serve-dev-split.md) |
 
 ## API
 

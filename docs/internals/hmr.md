@@ -13,10 +13,11 @@ matching nodes. `location.reload()` is only the fallback.
 ## Product surface
 
 ```bash
-uxcompose serve dev      # origin + ui + channel + CSS watch
-uxcompose serve prod     # one process, clocks off
-uxcompose build          # one-shot minify
-uxcompose deploy         # raw uvicorn — does not call serve
+uxcompose serve dev               # origin + ui + channel + CSS watch
+uxcompose serve prod              # one process, clocks off
+uxcompose serve restart-channel   # one-shot Channel RAM drop
+uxcompose build                   # one-shot minify
+uxcompose deploy                  # raw uvicorn — does not call serve
 ```
 
 `uxcompose serve` with no mode prints help and exits 2.
@@ -63,6 +64,15 @@ process. Channel still runs — it just shares the one process.
 
 `serve prod` is a local prod-like check. It is not deploy.
 `uxcompose deploy` starts raw uvicorn and never calls `serve`.
+
+## `serve restart-channel` — one shot
+
+Not a fourth clock. The origin writes `.uxcompose-serve-dev.pid`.
+The command sends `SIGUSR1`. Origin respawns only the channel
+worker on the held `--fd`. Ui and origin stay up.
+
+Missing or stale pidfile → exit 1. Extra flags → exit 2.
+The next `*.py` save still leaves Channel up.
 
 ## Three clocks (`serve dev` only)
 
@@ -114,31 +124,31 @@ Tailwind missing: CSS watch is skipped, the three processes still run.
 
 ```text
 *.py save
-    │
+    |
     v
-ui reloader sees *.py ── ui worker dies
-    │                        new worker cold-imports the page class
+ui reloader sees *.py -- ui worker dies
+    |                        new worker cold-imports the page class
     v
 HMR WebSocket /__uxcompose/hmr drops
-    │
+    |
     v
 client reconnects, waits until GET location.href is 200
-    │
+    |
     v
 softReload() fetches the same URL (HTML, cache: no-store)
-    │
-    +── parse / type / HTTP fail ──────────────+
-    v                                              │
+    |
+    +-- parse / type / HTTP fail --------------+
+    v                                              |
 morphLive(html)                                    v
-    │                                   hardReload() = location.reload()
-    +─ Idiomorph on window? ─ yes ─ Idiomorph.morph(body, next body)
-    │ no
+    |                                   hardReload() = location.reload()
+    +- Idiomorph on window? - yes - Idiomorph.morph(body, next body)
+    | no
     v
 replace live nodes whose [id] exists in the new HTML
     (skip html, body, data-uxcompose-hmr)
-    │
-    +─ zero ids matched ─────────────────+
-    v                                              │
+    |
+    +- zero ids matched -----------------+
+    v                                              |
 document stays          channel worker untouched   v
 scroll / focus outside  /ux-channel stays          hardReload()
 the replaced unit stay
@@ -151,17 +161,17 @@ Client functions in `src/ux_compose/hmr.py`: `softReload`,
 
 ```text
 className or input.css save
-    │
+    |
     v
 Tailwind --watch rewrites output.css
-    │
+    |
     ui reloader ignores *.css / assets/*
     v
 client HEAD /css/output.css sees a new ETag
-    │
+    |
     v
 swapStylesheets() — new <link>, old node removed on load
-    │
+    |
     v
 no process dies, no morph, no location.reload()
 ```
@@ -216,9 +226,10 @@ That path does not morph and does not reload.
 
 | File | Owns |
 |------|------|
-| `src/ux_compose/serve_dev.py` | origin, `worker_for`, held sockets, supervisor |
+| `src/ux_compose/serve_dev.py` | origin, `worker_for`, held sockets, supervisor, SIGUSR1 |
+| `src/ux_compose/serve_restart.py` | pidfile + one-shot `SIGUSR1` |
 | `src/ux_compose/hmr.py` | client JS (`softReload` / `morphLive` / `hardReload`), HMR WS, HTML insert |
-| `src/ux_compose/cli.py` | `serve dev` / `serve prod`, sibling Tailwind, extras check |
+| `src/ux_compose/cli.py` | `serve dev` / `serve prod` / `serve restart-channel`, sibling Tailwind, extras check |
 | `src/ux_compose/assets.py` | HEAD + ETag for `/css` |
 | `pyproject.toml` extra `serve` | `httpx`, `starlette`, `websockets`, `watchfiles` |
 | `docs/adr/0005-serve-dev-split.md` | the decision |

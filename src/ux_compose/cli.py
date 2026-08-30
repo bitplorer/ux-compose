@@ -8,7 +8,7 @@ Hard ownership (SoC + locality):
   App asset folders live here (``ux_compose.assets.WebAssets``).
 
 serve is two modes, not a flag soup:
-  ``uxcompose serve dev``   reload + HMR + sibling Tailwind --watch
+  ``uxcompose serve dev``   origin + ui worker + channel worker + CSS watch
   ``uxcompose serve prod``  clocks hard off (local prod-like run)
 deploy still starts raw uvicorn — it does not call serve.
 """
@@ -56,7 +56,7 @@ def _help() -> None:
     print("  uxcompose add --list")
     print("")
     print("Product path: create-app → serve dev → build → deploy")
-    print("  serve dev  = reload + HMR + CSS watch (no clock flags to forget)")
+    print("  serve dev  = origin + ui reload + channel + CSS watch")
     print("  serve prod = clocks hard off (does not replace deploy)")
     print("Kit copy: uxcompose add login  (drops components/login.py — you own it)")
     print("HMR / tunnel are delivery features of serve dev (not Document.use).")
@@ -200,11 +200,14 @@ def _start_tailwind_watch(*, cwd: str | None = None):
         minify=False,
         watch=True,
     )
+    cmd = [("--watch=always" if part == "--watch" else part) for part in cmd]
     env = os.environ.copy()
     env["PYTHONPATH"] = os.pathsep.join([str(root), env.get("PYTHONPATH", "")])
     env["UXDOM_TAILWIND_OWNED"] = "1"
     try:
-        proc = subprocess.Popen(cmd, cwd=str(root), env=env)
+        proc = subprocess.Popen(
+            cmd, cwd=str(root), env=env, stdin=subprocess.DEVNULL
+        )
     except OSError as exc:
         print(f"CSS: sibling --watch spawn failed: {exc}", file=sys.stderr)
         return None
@@ -237,7 +240,7 @@ def _serve_help() -> None:
     print("                      [--reload-dir PATH ...] [--tunnel none|ngrok|cloudflare]")
     print("  uxcompose serve prod [app:asgi] [--host 0.0.0.0] [--port 8080]")
     print("")
-    print("  dev  reload + HMR + sibling Tailwind --watch")
+    print("  dev  origin + ui worker + channel worker + CSS watch")
     print("  prod clocks hard off (local prod-like run; deploy still uses uvicorn)")
 
 
@@ -278,6 +281,11 @@ def _serve(argv: list[str]) -> int:
         p.add_argument("--tunnel-token", default=None)
         p.add_argument("--health-path", default="/")
         p.add_argument("--health-timeout", type=float, default=30.0)
+        p.add_argument(
+            "--one-process",
+            action="store_true",
+            help="Fail-safe: one uvicorn. Channel dies when ui reloads.",
+        )
     args, unknown = p.parse_known_args(rest)
     if unknown:
         print(
@@ -316,25 +324,6 @@ def _serve(argv: list[str]) -> int:
     tunnel_handle = None
     css_proc = _start_tailwind_watch() if css_watch else None
 
-    run_kw: dict = {
-        "host": args.host,
-        "port": args.port,
-    }
-    if reload:
-        run_kw["reload"] = True
-        run_kw["reload_dirs"] = reload_dirs
-        run_kw["reload_includes"] = ["*.py"]
-
-    if hmr:
-        from ux_compose.hmr import APP_ENV
-
-        os.environ[APP_ENV] = args.app
-        run_target: str = "ux_compose.hmr:asgi_factory"
-        run_kw["factory"] = True
-        print(f"HMR: websocket /__uxcompose/hmr (factory, reload={reload})")
-    else:
-        run_target = args.app
-
     def _tunnel_worker() -> None:
         nonlocal tunnel_handle
         try:
@@ -351,6 +340,48 @@ def _serve(argv: list[str]) -> int:
                 print(f"tunnel[{tunnel_handle.provider}]: {tunnel_handle.public_url}")
         except Exception as exc:
             print(f"tunnel failed: {exc}", file=sys.stderr)
+
+    run_kw: dict = {
+        "host": args.host,
+        "port": args.port,
+    }
+    if mode == "dev" and not getattr(args, "one_process", False):
+        from ux_compose.serve_dev import run as run_serve_dev
+
+        print(
+            f"uxcompose serve dev {args.app} http://{args.host}:{args.port} "
+            f"origin+ui+channel css_watch={css_proc is not None} tunnel={provider}"
+        )
+        if provider != "none":
+            threading.Thread(target=_tunnel_worker, name="uxcompose-tunnel", daemon=True).start()
+        try:
+            return run_serve_dev(
+                app_ref=args.app,
+                host=args.host,
+                port=args.port,
+                reload_dirs=reload_dirs,
+                start_css_watcher=None,
+            )
+        finally:
+            _stop_proc(css_proc)
+            if tunnel_handle is not None:
+                tunnel_handle.close()
+
+    if reload:
+        run_kw["reload"] = True
+        run_kw["reload_dirs"] = reload_dirs
+        run_kw["reload_includes"] = ["*.py"]
+        run_kw["reload_excludes"] = ["*.css", "assets/*"]
+
+    if hmr:
+        from ux_compose.hmr import APP_ENV
+
+        os.environ[APP_ENV] = args.app
+        run_target: str = "ux_compose.hmr:asgi_factory"
+        run_kw["factory"] = True
+        print(f"HMR: websocket /__uxcompose/hmr (factory, reload={reload})")
+    else:
+        run_target = args.app
 
     if provider != "none":
         threading.Thread(target=_tunnel_worker, name="uxcompose-tunnel", daemon=True).start()

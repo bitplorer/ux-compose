@@ -13,6 +13,7 @@ cd myapp
 uxcompose serve dev                 # origin + ui + channel + CSS watch
 uxcompose serve dev --tunnel ngrok
 uxcompose serve prod                # clocks off; build first
+uxcompose serve restart-channel     # one-shot Channel RAM drop
 uxcompose build                     # one-shot minify
 uxcompose deploy --provider docker  # raw uvicorn, not serve
 uxcompose doctor .
@@ -44,6 +45,12 @@ serve prod
   browser → one uvicorn (app:asgi)
   no reload, no HMR, no CSS watch
   serves output.css already on disk
+
+serve restart-channel
+  not a clock — one SIGUSR1 to the origin pidfile
+  origin respawns only the channel worker on the same fd
+  next *.py save still leaves Channel up
+  missing / stale pidfile → exit 1, fail closed
 ```
 
 Daily author path is `serve dev`. Check what the user will see
@@ -73,6 +80,20 @@ not a save — that path does nothing.
 CSS save is a different clock: stylesheet swap, no morph, no reload.
 Full diagram: [../internals/hmr.md](../internals/hmr.md).
 
+## When Channel RAM is stale
+
+Default: a `.py` save does **not** restart Channel. MorphState stays.
+
+If that RAM is wrong — stuck session, bad morph cache — drop it once:
+
+```bash
+uxcompose serve restart-channel
+```
+
+It is an action, not a flag. Do not add `--reload-channel` to `serve dev`.
+The next save still leaves Channel up. No running `serve dev` in this
+directory → exit 1.
+
 ## Rules
 
 - Do not put a file watcher in `hmr.py`.
@@ -82,6 +103,7 @@ Full diagram: [../internals/hmr.md](../internals/hmr.md).
 - `uxcompose build` is one-shot minify — no `--watch`.
 - HMR is `HmrClientMiddleware`, not `Document.use`.
 - Do not add a flag that couples Channel to the ui worker.
+- Channel RAM drop is `serve restart-channel`, not a sticky clock.
 - Do not make `location.reload()` the happy path again.
   Soft morph first; hard reload is the fallback only.
 

@@ -38,10 +38,15 @@ App folders are `ux_compose.WebAssets`. Product CSS compile is `uxcompose build`
 ```bash
 uxcompose doctor [path ...] [--no-fail]
 uxcompose create-app <dir> [--name NAME] [--level auto|0-3] [--host auto|fastapi|asgi]
-uxcompose build [--watch] [--no-minify]
-uxcompose serve [app:asgi] [--port 8080] [--reload|--no-reload] [--hmr|--no-hmr] [--no-css-watch] [--tunnel ngrok|cloudflare]
+uxcompose serve dev  [app:asgi] [--host 0.0.0.0] [--port 8080] [--reload-dir PATH ...] [--tunnel ngrok|cloudflare]
+uxcompose serve prod [app:asgi] [--host 0.0.0.0] [--port 8080]
+uxcompose build [--no-minify]
 uxcompose deploy [--provider docker|fly|render|railway|vps|checklist]
 ```
+
+There is no `--hmr`, `--reload`, `--css-watch`, or `--one-process`.
+Modes choose clocks. Missing origin extras fail closed:
+`pip install 'ux-compose[serve]'`.
 
 ### create-app
 
@@ -95,10 +100,11 @@ pr.unlock_messages(requested_level=3)
 ## Golden path
 
 ```bash
-pip install "ux-compose[full]"
+pip install "ux-compose[full,serve]"
 uxcompose create-app myapp --host auto --level auto
 cd myapp
-uxcompose build
+uxcompose serve dev
 uxcompose doctor . --no-fail
-uxcompose serve app:asgi --port 8080
+uxcompose build
+uxcompose deploy --provider docker
 ```

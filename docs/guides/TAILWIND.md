@@ -53,11 +53,12 @@ assets/static/file/css/output.css
         +-- host mounts     /css  ->  that folder
 ```
 
-`uxcompose serve` process-reloads `*.py` and live-reloads the tab. It does
-**not** compile Tailwind and it does **not** watch `.css`. Dev CSS is
-`uxcompose build --watch` writing `output.css` on disk. `uxcompose deploy`
-copies the tree and runs uvicorn; it does **not** run the compiler.
-Production CSS is `uxcompose build`, not a side effect of serve or deploy.
+`uxcompose serve dev` process-reloads `*.py`, morphs page units in the tab,
+and starts a sibling Tailwind `--watch` that writes `output.css`. The
+HMR client HEAD-polls `/css/output.css` and swaps the sheet. `hmr.py`
+does not compile CSS. `uxcompose serve prod` and `uxcompose deploy` serve
+whatever `output.css` is already on disk. Production CSS is
+`uxcompose build` (minify), not a side effect of serve or deploy.
 
 ---
 
@@ -139,14 +140,14 @@ above so you match the CLI compose downloads.
 | Input | `assets/css/input.css` (fallback `assets/input.css`) |
 | Output | `assets/static/file/css/output.css` |
 
-`--minify` in production. `--watch` in dev. Not both
+`--minify` in production. `--watch` in the `serve dev` sibling. Not both
 (`argv_with_io`: minify wins, else watch).
 
 ### Product command
 
 ```bash
 uxcompose build
-# --watch for dev (XOR with minify)
+# live CSS watch lives on serve dev — not on build
 # --skip-tailwind / --skip-import for structure-only checks
 ```
 
@@ -179,18 +180,16 @@ python -m pytailwindcss \
 `uxcompose build` uses `ensure=True`. A missing CLI is a real error, not a skip.
 Product compile is here.
 
-Dev watch (do not ship this process):
+Dev watch is the sibling process inside `uxcompose serve dev`, not a second
+`uxcompose build` invocation:
 
 ```bash
-python -m pytailwindcss \
-  -i assets/css/input.css \
-  -o assets/static/file/css/output.css \
-  --watch
+uxcompose serve dev
 ```
 
-`uxcompose build --watch` in dev, `uxcompose build` (minify) in production.
-Not both. `TailwindStyle` on ux-dom fails closed — do not compile from
-Document lifespan. The CLI is the only compiler.
+Production is `uxcompose build` (minify). Not both. `TailwindStyle` on ux-dom
+fails closed — do not compile from Document lifespan. The CLI is the only
+compiler.
 
 ---
 
@@ -321,7 +320,7 @@ so workers do not race the compiler. `TailwindStyle` on ux-dom fails closed.
 | `script src="https://cdn.tailwindcss.com"` | Playground. Ships the compiler to every visitor. Pulse demo only. |
 | `style(raw("..."))` / CSS in Python strings | Assets contract. Dual palette, no minify, CSP pain. |
 | `assets/css/output.css` as the **served** file without a mount | `uxcompose build` writes `assets/static/file/css/output.css`. Link `/css/output.css` to that folder. |
-| `uxcompose serve` as the production compiler | Serve reloads `*.py`. It never runs Tailwind. |
+| `uxcompose serve prod` as the production compiler | It serves disk CSS. Minify first with `uxcompose build`. |
 | `uxcompose deploy` as a CSS build | Prepares Dockerfile / fly / render / railway / vps. Run `uxcompose build` first. |
 | Compiling inside `Component.render()` | Render is the morph payload. |
 

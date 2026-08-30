@@ -21,6 +21,8 @@ def test_help_lists_serve_modes():
     assert "--no-css-watch" not in src
     assert "--no-hmr" not in src
     assert "def _start_tailwind_watch" in src
+    assert "run_serve_dev" in src
+    assert "--one-process" in src
 
 
 def test_serve_without_mode_exits_2(capsys):

@@ -27,6 +27,10 @@ def test_create_app_layout(tmp_path):
     assert "asgi" in text
     assert "document=document" in text
     assert "from document import document" in text
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "uxcompose serve dev" in readme
+    assert "uxcompose serve prod" in readme
+    assert "serve app:asgi" not in readme
 
 
 def test_create_app_teaches_document_and_settings(tmp_path):

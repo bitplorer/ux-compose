@@ -60,7 +60,7 @@ def _help() -> None:
     print("  serve prod = clocks hard off (does not replace deploy)")
     print("Kit copy: uxcompose add login  (drops components/login.py — you own it)")
     print("HMR / tunnel are delivery features of serve dev (not Document.use).")
-    print("CSS minify: uxcompose build. App folders: ux_compose.assets.")
+    print("CSS minify: uxcompose build (ux_compose.tailwind). App folders: ux_compose.assets.")
     print("Markup kit: uxdom add ui Button. Product Components: uxcompose add login")
 
 

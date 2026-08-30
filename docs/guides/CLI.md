@@ -37,6 +37,8 @@ uxdom add component Card
 Product apps use `uxcompose build` for CSS. ux-dom does not compile CSS.
 See `docs/FLOW.md`.
 
-`uxcompose serve` watches `.css` (HMR). It does not compile.
+`uxcompose serve` process-reloads `*.py` (uvicorn) and attaches browser
+HMR: worker death → client reconnects → page reload. It does not compile
+CSS. `--no-reload` / `--no-hmr` turn a clock off; both stay on by default.
 `uxcompose deploy` does not run Tailwind; run `uxcompose build` first so
 `output.css` is on disk. Full how-to: [TAILWIND.md](TAILWIND.md).

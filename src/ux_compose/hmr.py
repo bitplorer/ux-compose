@@ -1,215 +1,234 @@
-"""Dev HMR process for ux-compose (delivery layer — not Document.use).
+"""Dev HMR (delivery layer — not Document.use).
 
-* Watches package / routes paths
-* WebSocket at ``/__uxcompose/hmr`` broadcasts reload
-* Client stub JS for HTML pages in dev
+Two clocks, both on:
 
-Attach via ``attach_hmr(asgi_app, watch_paths=...)`` before serve,
-or let ``uxcompose serve --hmr`` do it when the ASGI object is loadable.
+  process reload   uvicorn --reload on ``*.py``
+                   new worker, cold import, new page class
+
+  browser HMR      this module
+                   WebSocket at ``/__uxcompose/hmr``
+                   reconnect after worker death → health → location.reload()
+                   live-reload client inserted into HTML (dev middleware)
+
+A page unit is a Python class in the worker. This is live reload, not
+module-graph swap. This module does not watch files.
 """
 from __future__ import annotations
 
-import asyncio
-import json
-import threading
-import time
-from pathlib import Path
-from typing import Any, Callable, Iterable, Optional, Sequence
+import importlib
+import os
+from typing import Any, Callable
 
 HMR_PATH = "/__uxcompose/hmr"
+HMR_ATTR = b"data-uxcompose-hmr"
+BODY_CLOSE = b"</body>"
+APP_ENV = "UXCOMPOSE_APP"
 
-CLIENT_JS = """\
+# First open is silent. Unclean close (worker died) reconnects, waits until
+# this URL is 200, then reloadPage(). close(1000) on beforeunload is a user
+# navigation — do not bounce.
+CLIENT_JS = r"""
 (function () {
   if (window.__UXCOMPOSE_HMR__) return;
   window.__UXCOMPOSE_HMR__ = true;
-  var path = %s;
-  var proto = location.protocol === "https:" ? "wss" : "ws";
-  var url = proto + "://" + location.host + path;
-  var delay = 500;
-  function connect() {
-    var ws;
-    try { ws = new WebSocket(url); } catch (e) { setTimeout(connect, delay); return; }
-    ws.onmessage = function (ev) {
-      try {
-        var msg = JSON.parse(ev.data || "{}");
-        if (msg && (msg.type === "reload" || msg.op === "reload")) {
-          location.reload();
-        }
-      } catch (e) { location.reload(); }
-    };
-    ws.onclose = function () { setTimeout(connect, Math.min(delay * 1.5, 4000)); };
-    ws.onerror = function () { try { ws.close(); } catch (e) {} };
+
+  function wsUrl() {
+    var u = new URL("__uxcompose/hmr", location.href);
+    u.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    return u.toString();
   }
-  connect();
+
+  function reloadPage() {
+    location.reload();
+  }
+
+  function waitUntilWorkerServes(onReady) {
+    var n = 0;
+    var tick = function () {
+      fetch(location.href, { cache: "no-store", credentials: "same-origin" })
+        .then(function (r) {
+          if (r.ok) onReady();
+          else retry();
+        })
+        .catch(retry);
+    };
+    var retry = function () {
+      n += 1;
+      if (n > 80) return;
+      setTimeout(tick, 100);
+    };
+    tick();
+  }
+
+  var current;
+  function connect(isReconnect) {
+    var ws;
+    try { ws = new WebSocket(wsUrl()); }
+    catch (e) {
+      setTimeout(function () { connect(true); }, 400);
+      return;
+    }
+    current = ws;
+    ws.onopen = function () {
+      if (isReconnect) waitUntilWorkerServes(reloadPage);
+    };
+    ws.onclose = function (ev) {
+      if (ev.code === 1000) return;
+      setTimeout(function () { connect(true); }, 400);
+    };
+    ws.onerror = function () {
+      try { ws.close(); } catch (e) {}
+    };
+  }
+
+  window.addEventListener("beforeunload", function () {
+    try { if (current) current.close(1000); } catch (e) {}
+  });
+  connect(false);
 })();
-""" % json.dumps(HMR_PATH)
+"""
 
 
 def client_script_tag() -> str:
-    """Inline script tag for optional manual injection in dev shells."""
-    return f"<script data-uxcompose-hmr>\n{CLIENT_JS}\n</script>"
+    """HTML tag that boots the live-reload client. Prefer attach_hmr."""
+    return f'<script {HMR_ATTR.decode("ascii")}>\n{CLIENT_JS}\n</script>'
 
 
-def _iter_files(roots: Sequence[Path]) -> list[Path]:
-    out: list[Path] = []
-    for root in roots:
-        r = root.resolve()
-        if not r.exists():
-            continue
-        if r.is_file():
-            out.append(r)
-            continue
-        for p in r.rglob("*"):
-            if not p.is_file():
-                continue
-            if any(part.startswith(".") or part in {"__pycache__", "node_modules", ".venv", "venv"} for part in p.parts):
-                continue
-            if p.suffix in {".py", ".html", ".css", ".js", ".md", ".json", ".toml"}:
-                out.append(p)
-    return out
+def is_html_content_type(value: bytes) -> bool:
+    return b"text/html" in value.lower()
 
 
-def _snapshot(paths: Sequence[Path]) -> dict[str, float]:
-    snap: dict[str, float] = {}
-    for p in _iter_files(paths):
-        try:
-            snap[str(p)] = p.stat().st_mtime
-        except OSError:
-            pass
-    return snap
+def insert_hmr_client(page: bytes, script: bytes) -> bytes:
+    """Put the live-reload client into an HTML page, once, before </body>.
 
-
-class HmrHub:
-    """In-process broadcast hub for HMR websocket clients."""
-
-    def __init__(self) -> None:
-        self._clients: set[Any] = set()
-        self._lock = threading.Lock()
-
-    def add(self, ws: Any) -> None:
-        with self._lock:
-            self._clients.add(ws)
-
-    def discard(self, ws: Any) -> None:
-        with self._lock:
-            self._clients.discard(ws)
-
-    async def broadcast(self, payload: dict) -> None:
-        data = json.dumps(payload)
-        dead: list[Any] = []
-        with self._lock:
-            clients = list(self._clients)
-        for ws in clients:
-            try:
-                await ws.send_text(data)
-            except Exception:
-                dead.append(ws)
-        for ws in dead:
-            self.discard(ws)
-
-    def broadcast_threadsafe(self, loop: asyncio.AbstractEventLoop, payload: dict) -> None:
-        try:
-            asyncio.run_coroutine_threadsafe(self.broadcast(payload), loop)
-        except Exception:
-            pass
-
-
-def start_watcher(
-    watch_paths: Sequence[Path],
-    on_change: Callable[[], None],
-    *,
-    interval: float = 0.4,
-    stop_event: Optional[threading.Event] = None,
-) -> threading.Thread:
-    stop = stop_event or threading.Event()
-    roots = [Path(p) for p in watch_paths]
-
-    def _run() -> None:
-        prev = _snapshot(roots)
-        while not stop.is_set():
-            time.sleep(interval)
-            cur = _snapshot(roots)
-            if cur != prev:
-                prev = cur
-                try:
-                    on_change()
-                except Exception:
-                    pass
-
-    t = threading.Thread(target=_run, name="uxcompose-hmr-watch", daemon=True)
-    t.start()
-    return t
-
-
-def attach_hmr(
-    asgi_app: Any,
-    *,
-    watch_paths: Optional[Iterable[str | Path]] = None,
-    path: str = HMR_PATH,
-) -> Any:
-    """Attach WebSocket HMR route + background watcher to a Starlette/FastAPI app.
-
-    Returns the same ``asgi_app``. No-op if the app cannot register routes.
+    This is not a general HTML injector. It is how the browser finds
+    ``/__uxcompose/hmr``. Idempotent if ``data-uxcompose-hmr`` is already there.
+    Pages without ``</body>`` are left unchanged.
     """
-    roots = [Path(p) for p in (watch_paths or [".", "routes"])]
-    hub = HmrHub()
-    loop_holder: dict[str, Any] = {"loop": None}
+    if HMR_ATTR in page:
+        return page
+    idx = page.lower().rfind(BODY_CLOSE)
+    if idx < 0:
+        return page
+    return page[:idx] + script + page[idx:]
 
-    def _notify() -> None:
-        loop = loop_holder.get("loop")
-        if loop is None:
-            return
-        hub.broadcast_threadsafe(loop, {"type": "reload", "op": "reload"})
 
-    # Capture running loop on first request if possible via middleware
+def load_asgi(app_ref: str) -> Any:
+    """Import ``module:attr`` (the uvicorn target)."""
+    if ":" not in app_ref:
+        raise ValueError(f"ASGI path must be module:attr, got {app_ref!r}")
+    mod_name, attr = app_ref.split(":", 1)
+    obj: Any = importlib.import_module(mod_name)
+    for part in attr.split("."):
+        obj = getattr(obj, part)
+    return obj
+
+
+def asgi_factory() -> Any:
+    """uvicorn factory: attach on every worker so --reload remounts the WS."""
+    spec = os.environ.get(APP_ENV, "app:asgi")
+    return attach_hmr(load_asgi(spec))
+
+
+def _has_route(asgi_app: Any, path: str) -> bool:
+    router = getattr(asgi_app, "router", asgi_app)
+    for route in getattr(router, "routes", []) or []:
+        if getattr(route, "path", None) == path:
+            return True
+    return False
+
+
+def _patch_ws_annotation(endpoint: Callable) -> None:
+    annotations = dict(getattr(endpoint, "__annotations__", {}) or {})
     try:
-        from starlette.websockets import WebSocket
-
-        async def hmr_endpoint(websocket: WebSocket) -> None:
-            await websocket.accept()
-            try:
-                loop_holder["loop"] = asyncio.get_running_loop()
-            except RuntimeError:
-                pass
-            hub.add(websocket)
-            try:
-                while True:
-                    await websocket.receive_text()
-            except Exception:
-                pass
-            finally:
-                hub.discard(websocket)
-
-        # FastAPI / Starlette
-        if hasattr(asgi_app, "add_websocket_route"):
-            asgi_app.add_websocket_route(path, hmr_endpoint, name="uxcompose_hmr")
-        elif hasattr(asgi_app, "websocket"):
-            # FastAPI decorator style already used; prefer add_api_websocket_route
-            if hasattr(asgi_app, "add_api_websocket_route"):
-                asgi_app.add_api_websocket_route(path, hmr_endpoint, name="uxcompose_hmr")
-            else:
-                return asgi_app
-        else:
-            return asgi_app
-
-        start_watcher(roots, _notify)
-        # Stash for debugging / tests
-        try:
-            setattr(asgi_app, "state", getattr(asgi_app, "state", type("S", (), {})()))
-            asgi_app.state.uxcompose_hmr = hub  # type: ignore[attr-defined]
-        except Exception:
-            pass
+        from fastapi import WebSocket as Ws
     except ImportError:
-        return asgi_app
+        try:
+            from starlette.websockets import WebSocket as Ws
+        except ImportError:
+            return
+    annotations["websocket"] = Ws
+    endpoint.__annotations__ = annotations
 
-    return asgi_app
+
+def _bind_hmr_socket(asgi_app: Any, *, path: str = HMR_PATH) -> bool:
+    if _has_route(asgi_app, path):
+        return True
+
+    async def hmr_endpoint(websocket: Any) -> None:
+        await websocket.accept()
+        try:
+            while True:
+                await websocket.receive_text()
+        except Exception:
+            return
+
+    _patch_ws_annotation(hmr_endpoint)
+
+    if hasattr(asgi_app, "add_api_websocket_route"):
+        asgi_app.add_api_websocket_route(path, hmr_endpoint, name="uxcompose_hmr")
+        return True
+    if hasattr(asgi_app, "add_websocket_route"):
+        asgi_app.add_websocket_route(path, hmr_endpoint, name="uxcompose_hmr")
+        return True
+    if hasattr(asgi_app, "websocket"):
+        asgi_app.websocket(path)(hmr_endpoint)
+        return True
+    return False
+
+
+class HmrClientMiddleware:
+    """Insert the live-reload client into HTML responses. Dev, not Document.use."""
+
+    def __init__(self, app: Any, script_html: str) -> None:
+        self.app = app
+        self.script = script_html.encode("utf-8")
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        state: dict[str, Any] = {"html": False, "buf": []}
+
+        async def send_wrapper(message):
+            kind = message["type"]
+            if kind == "http.response.start":
+                headers = []
+                html = False
+                for key, value in message.get("headers", []):
+                    if key.lower() == b"content-length":
+                        continue
+                    if key.lower() == b"content-type" and is_html_content_type(value):
+                        html = True
+                    headers.append((key, value))
+                state["html"] = html
+                message = {**message, "headers": headers}
+            elif kind == "http.response.body" and state["html"]:
+                state["buf"].append(message.get("body", b""))
+                if message.get("more_body"):
+                    return
+                body = insert_hmr_client(b"".join(state["buf"]), self.script)
+                message = {**message, "body": body, "more_body": False}
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
+
+def attach_hmr(asgi_app: Any, *, path: str = HMR_PATH) -> Any:
+    """Mount browser HMR. No file watcher. uvicorn --reload owns ``*.py``."""
+    if not _bind_hmr_socket(asgi_app, path=path):
+        return asgi_app
+    return HmrClientMiddleware(asgi_app, client_script_tag())
 
 
 __all__ = [
+    "APP_ENV",
     "HMR_PATH",
     "CLIENT_JS",
     "client_script_tag",
-    "HmrHub",
-    "start_watcher",
+    "insert_hmr_client",
+    "load_asgi",
+    "asgi_factory",
     "attach_hmr",
 ]

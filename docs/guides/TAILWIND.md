@@ -53,10 +53,11 @@ assets/static/file/css/output.css
         +-- host mounts     /css  ->  that folder
 ```
 
-`uxcompose serve --hmr` watches `.css` and reloads the browser. It does **not**
-compile Tailwind. `uxcompose deploy` writes a Dockerfile that copies the tree
-and runs uvicorn. It does **not** run the compiler. Production CSS is
-`uxcompose build`, not a side effect of serve or deploy.
+`uxcompose serve` process-reloads `*.py` and live-reloads the tab. It does
+**not** compile Tailwind and it does **not** watch `.css`. Dev CSS is
+`uxcompose build --watch` writing `output.css` on disk. `uxcompose deploy`
+copies the tree and runs uvicorn; it does **not** run the compiler.
+Production CSS is `uxcompose build`, not a side effect of serve or deploy.
 
 ---
 
@@ -320,7 +321,7 @@ so workers do not race the compiler. `TailwindStyle` on ux-dom fails closed.
 | `script src="https://cdn.tailwindcss.com"` | Playground. Ships the compiler to every visitor. Pulse demo only. |
 | `style(raw("..."))` / CSS in Python strings | Assets contract. Dual palette, no minify, CSP pain. |
 | `assets/css/output.css` as the **served** file without a mount | `uxcompose build` writes `assets/static/file/css/output.css`. Link `/css/output.css` to that folder. |
-| `uxcompose serve` as the production compiler | HMR reloads on `.css` mtime. It never runs Tailwind. |
+| `uxcompose serve` as the production compiler | Serve reloads `*.py`. It never runs Tailwind. |
 | `uxcompose deploy` as a CSS build | Prepares Dockerfile / fly / render / railway / vps. Run `uxcompose build` first. |
 | Compiling inside `Component.render()` | Render is the morph payload. |
 

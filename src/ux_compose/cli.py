@@ -7,10 +7,11 @@ Hard ownership (SoC + locality):
   ux-dom owns className, the Document ``<link>``, and package static.
   App asset folders live here (``ux_compose.assets.WebAssets``).
 
-serve owns process reload, optional browser HMR, optional public tunnel.
+serve owns process reload, browser HMR, optional public tunnel.
 """
 from __future__ import annotations
 
+import os
 import sys
 import threading
 
@@ -44,7 +45,7 @@ def _help() -> None:
     print("  uxcompose create-app <dest> [--name NAME] [--level auto|0-3] [--host auto|fastapi|asgi]")
     print("  uxcompose build [--watch] [--no-minify] [--skip-tailwind] [--skip-import] [--app app:asgi]")
     print("  uxcompose serve [app:asgi] [--host 0.0.0.0] [--port 8080] [--reload|--no-reload]")
-    print("                 [--hmr] [--watch PATH ...]" )
+    print("                 [--hmr|--no-hmr] [--watch PATH ...]")
     print("                 [--tunnel none|ngrok|cloudflare] [--tunnel-token TOKEN]")
     print("  uxcompose deploy [--provider docker|fly|render|railway|vps|checklist] [--force] [--name NAME]")
     print("  uxcompose doctor [paths...] [--no-fail]")
@@ -163,23 +164,8 @@ def _build(argv: list[str]) -> int:
     return 0 if report.ok else 1
 
 
-def _load_asgi(app_ref: str):
-    """Import ``module:attr`` ASGI app object."""
-    if ":" not in app_ref:
-        raise ValueError(f"ASGI path must be module:attr, got {app_ref!r}")
-    mod_name, attr = app_ref.split(":", 1)
-    import importlib
-
-    mod = importlib.import_module(mod_name)
-    obj = mod
-    for part in attr.split("."):
-        obj = getattr(obj, part)
-    return obj
-
-
 def _serve(argv: list[str]) -> int:
     import argparse
-    from pathlib import Path
 
     p = argparse.ArgumentParser(prog="uxcompose serve")
     p.add_argument("app", nargs="?", default="app:asgi")
@@ -187,9 +173,18 @@ def _serve(argv: list[str]) -> int:
     p.add_argument("--port", type=int, default=8080)
     p.add_argument("--reload", action="store_true")
     p.add_argument("--no-reload", action="store_true")
-    p.add_argument("--hmr", action="store_true", default=False, help="Attach browser HMR websocket (needs --no-reload)")
-    p.add_argument("--no-hmr", action="store_true", help="Disable browser HMR (default)")
-    p.add_argument("--watch", action="append", default=None, help="Extra HMR watch path (repeatable)")
+    p.add_argument(
+        "--hmr",
+        action="store_true",
+        help="Attach browser HMR (default on; works with --reload)",
+    )
+    p.add_argument("--no-hmr", action="store_true", help="Disable browser HMR")
+    p.add_argument(
+        "--watch",
+        action="append",
+        default=None,
+        help="uvicorn reload dir (repeatable; default . and routes)",
+    )
     p.add_argument(
         "--tunnel",
         default="none",
@@ -200,10 +195,12 @@ def _serve(argv: list[str]) -> int:
     p.add_argument("--health-timeout", type=float, default=30.0)
     args = p.parse_args(argv)
 
-    reload = True if not args.no_reload else False
+    reload = False if args.no_reload else True
     if args.reload:
         reload = True
-    hmr = bool(args.hmr) and not args.no_hmr
+    hmr = False if args.no_hmr else True
+    if args.hmr:
+        hmr = True
 
     try:
         import uvicorn
@@ -212,30 +209,33 @@ def _serve(argv: list[str]) -> int:
         return 1
 
     tunnel_handle = None
-    asgi_obj = None
-    run_target: str | object = args.app
+    watch = list(args.watch or [])
+    if not watch:
+        watch = [".", "routes"]
 
-    if hmr and not reload:
-        # Need concrete app object to attach WS route; reload workers re-import
-        try:
-            asgi_obj = _load_asgi(args.app)
-            from ux_compose.hmr import attach_hmr
+    run_kw: dict = {
+        "host": args.host,
+        "port": args.port,
+    }
+    if reload:
+        run_kw["reload"] = True
+        run_kw["reload_dirs"] = watch
+        run_kw["reload_includes"] = ["*.py"]
 
-            watch = list(args.watch or [])
-            if not watch:
-                watch = [".", "routes"]
-            attach_hmr(asgi_obj, watch_paths=watch)
-            run_target = asgi_obj
-            print(f"HMR: websocket /__uxcompose/hmr watching {watch}")
-        except Exception as exc:
-            print(f"HMR attach skipped: {exc}", file=sys.stderr)
-            run_target = args.app
-    elif hmr and reload:
-        print(
-            "HMR: browser WS needs --no-reload to attach on this process; "
-            "using uvicorn --reload only (process HMR).",
-            file=sys.stderr,
-        )
+    if hmr:
+        from ux_compose.hmr import APP_ENV
+
+        os.environ[APP_ENV] = args.app
+        run_target: str = "ux_compose.hmr:asgi_factory"
+        run_kw["factory"] = True
+        print(f"HMR: websocket /__uxcompose/hmr (factory, reload={reload})")
+        if not reload:
+            print(
+                "HMR: process reload is off — .py saves will not load a new page class",
+                file=sys.stderr,
+            )
+    else:
+        run_target = args.app
 
     # Tunnel after origin is up (background thread)
     from ux_compose.tunnel import parse_provider, start_tunnel, wait_for_health
@@ -268,10 +268,10 @@ def _serve(argv: list[str]) -> int:
 
     print(
         f"uxcompose serve {args.app} http://{args.host}:{args.port} "
-        f"reload={reload} hmr={hmr and not reload} tunnel={provider}"
+        f"reload={reload} hmr={hmr} tunnel={provider}"
     )
     try:
-        uvicorn.run(run_target, host=args.host, port=args.port, reload=reload and isinstance(run_target, str))
+        uvicorn.run(run_target, **run_kw)
     finally:
         if tunnel_handle is not None:
             tunnel_handle.close()

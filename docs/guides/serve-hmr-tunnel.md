@@ -11,7 +11,7 @@ Ownership law stays in FLOW. Product CLI surface: [CLI.md](CLI.md).
 ```bash
 uxcompose create-app myapp
 uxcompose serve app:asgi --port 8080
-uxcompose serve app:asgi --no-reload --hmr
+uxcompose serve app:asgi --no-hmr
 uxcompose serve app:asgi --tunnel ngrok
 uxcompose deploy --provider docker
 uxcompose doctor .
@@ -22,11 +22,12 @@ uxcompose doctor .
 ## 4. HMR (dev delivery)
 
 ```text
-uxcompose serve --no-reload --hmr
-  → attach_hmr(asgi) watches . + routes
-  → WebSocket /__uxcompose/hmr → {type: reload}
-  → optional client: ux_compose.hmr.client_script_tag()
-Process --reload is uvicorn only (separate from browser HMR).
+uxcompose serve
+  → uvicorn --reload on *.py
+  → asgi_factory → attach_hmr on every worker
+  → WebSocket /__uxcompose/hmr
+  → client: worker death → wait until GET 200 → location.reload()
+--no-reload / --no-hmr turn a clock off. Both default on.
 ```
 
 ---

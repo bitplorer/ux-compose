@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `uxcompose serve restart-channel`: one-shot Channel RAM drop for a
+  running `serve dev` (pidfile + SIGUSR1). Not a sticky flag.
 - Ownable kit (`uxcompose add`): login, tabs, accordion, dropdown, dialog, sheet,
   toast, command, table, pagination, combobox, sidebar, breadcrumb, stepper,
   carousel, calendar, select, otp, plans.
@@ -17,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `serve dev` soft-morphs page units after a `.py` save
+  (`softReload` / `morphLive`). `location.reload()` is the fallback only.
 - Typeahead: `input delay:300`. Later `input`/`change` of the same
   control aborts the in-flight Intent (Channel AbortController on
   `postIntent`). Live Results morph `#typeahead-hits` only — the field

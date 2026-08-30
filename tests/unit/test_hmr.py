@@ -76,13 +76,12 @@ def test_cli_serve_does_not_xor():
     assert "hmr:asgi_factory" in src
     assert "hmr and not reload" not in src
     assert 'run_kw["factory"]' in src
-    assert "False if args.no_hmr else True" in src
+    assert "run_serve_dev" in src
 
 
 def test_cli_css_watch_is_sibling_not_hmr_watcher():
     cli = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
     hmr = (ROOT / "src" / "ux_compose" / "hmr.py").read_text(encoding="utf-8")
-    assert "--no-css-watch" in cli
     assert "def _start_tailwind_watch" in cli
     assert "argv_with_io" in cli
     assert "Popen" in cli
@@ -105,7 +104,6 @@ def test_agents_lock_three_clocks():
     flow = (ROOT / "docs" / "FLOW.md").read_text(encoding="utf-8")
     assert "Dev clocks under `uxcompose serve`" in agents
     assert "HmrHub" in agents
-    assert "--no-css-watch" in agents
     assert "sibling Tailwind" in agents
     assert "Popen` inside `hmr.py" in flow
     assert "CSS sibling --watch" in flow

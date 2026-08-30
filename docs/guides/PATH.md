@@ -32,7 +32,7 @@ tour, open [UI.md](UI.md).
 | 1 | [Scaffold](#1-scaffold) | `settings.py` + `document.py` + `app.py` + `routes/hello.py` |
 | 2 | [Hello page unit](#2-hello-page-unit) | A Component that morphs |
 | 3 | [Serve](#3-serve) | HTTP on the product CLI |
-| 4 | [HMR + tunnel](#4-hmr-and-tunnel) | Browser reload + optional public URL |
+| 4 | [HMR + tunnel](#4-hmr-and-tunnel) | Browser morph + optional public URL |
 | 5 | [Tailwind](#5-tailwind) | `className` + `assets/css/input.css` |
 | 6 | [Composition](#6-composition-root) | `build()` / levels 0–3 |
 | 7 | [Control flow](#7-control-flow) | `dispatch`, `bind` / `control`, Caps |
@@ -222,7 +222,7 @@ HMR and tunnel are **delivery features of `serve`**. They are not Document APIs.
 ```bash
 uxcompose serve dev
 # origin + ui (reload *.py) + channel (stable)
-# WebSocket /__uxcompose/hmr — ui death → page reload
+# WebSocket /__uxcompose/hmr — ui death → morph [id]; hard reload on fail
 # sibling Tailwind --watch + HEAD /css/output.css
 
 uxcompose serve dev --reload-dir routes
@@ -230,6 +230,7 @@ uxcompose serve prod
 ```
 
 Clocks live on `serve dev`. There is no `--hmr` / `--no-reload` / `--css-watch`.
+`uxcompose serve restart-channel` drops Channel RAM once; it is not a clock.
 `attach_hmr` runs inside the ui worker via `asgi_factory`.
 
 Optional client tag for shells that skip `attach_hmr`:

@@ -7,6 +7,8 @@
 The library keeps the source of truth. The copy is yours to edit.
 ``from ux_compose.kit import Login`` stays for tests, the Atelier, and
 agents — product apps own the file after ``add``.
+
+See docs/ARCHITECTURE.md (one catalog rule).
 """
 
 from ux_compose.kit.accordion import Accordion
@@ -32,6 +34,7 @@ from ux_compose.kit.actionsheet import ActionSheet
 from ux_compose.kit.contextmenu import ContextMenu
 from ux_compose.kit.typeahead import Typeahead
 from ux_compose.kit.pullrefresh import PullRefresh
+from ux_compose.kit.overlay import OverlayChrome, overlay
 
 __all__ = [
     "AuthDecision",
@@ -58,4 +61,6 @@ __all__ = [
     "ContextMenu",
     "Typeahead",
     "PullRefresh",
+    "OverlayChrome",
+    "overlay",
 ]

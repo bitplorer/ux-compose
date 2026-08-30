@@ -70,6 +70,8 @@ CLIENT_JS = r"""
     var a = document.activeElement;
     return {
       id: a && a.id ? a.id : "",
+      name: a && a.getAttribute ? (a.getAttribute("name") || "") : "",
+      tag: a && a.tagName ? String(a.tagName).toLowerCase() : "",
       start: a && typeof a.selectionStart === "number" ? a.selectionStart : null,
       end: a && typeof a.selectionEnd === "number" ? a.selectionEnd : null,
       x: window.scrollX || 0,
@@ -79,8 +81,10 @@ CLIENT_JS = r"""
 
   function restoreUi(s) {
     try { window.scrollTo(s.x, s.y); } catch (e) {}
-    if (!s.id) return;
-    var el = document.getElementById(s.id);
+    var el = s.id ? document.getElementById(s.id) : null;
+    if (!el && s.name && s.tag) {
+      el = document.querySelector(s.tag + '[name="' + String(s.name).replace(/"/g, "") + '"]');
+    }
     if (!el) return;
     try { el.focus(); } catch (e) {}
     if (s.start != null && typeof el.setSelectionRange === "function") {
@@ -214,9 +218,7 @@ CLIENT_JS = r"""
 
 def client_script_tag() -> str:
     """HTML tag that boots the live-reload client. Prefer attach_hmr."""
-    return f'<script {HMR_ATTR.decode("ascii")}>
-{CLIENT_JS}
-</script>'
+    return f'<script {HMR_ATTR.decode("ascii")}>\n{CLIENT_JS}\n</script>'
 
 
 def is_html_content_type(value: bytes) -> bool:

@@ -31,7 +31,8 @@ behavior = ["ux-behavior"]
 motion = ["ux-motion"]
 channel = ["ux-channel"]
 full = ["ux-dom", "ux-behavior", "ux-motion", "ux-channel"]
-dev = ["pytest", "pytest-asyncio", "pytest-cov", "httpx", "fastapi", "uvicorn"]
+serve = ["uvicorn", "watchfiles", "httpx", "starlette", "websockets"]
+dev = ["pytest", "pytest-asyncio", "pytest-cov", "httpx", "fastapi", "uvicorn", "watchfiles", "starlette", "websockets"]
 
 [project.scripts]
 uxcompose = "ux_compose.cli:main"

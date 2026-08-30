@@ -13,6 +13,8 @@ from ux_compose.serve_dev import (
     RELOAD_EXCLUDES,
     RELOAD_INCLUDES,
     owner_for,
+    pick_loopback_port,
+    port_is_free,
 )
 
 
@@ -63,3 +65,17 @@ def test_old_alphabet_names_are_gone():
     assert "backend_for" not in src
     assert 'return "X"' not in src
     assert 'return "Y"' not in src
+
+
+def test_prefer_neighbor_when_free():
+    port = pick_loopback_port(prefer=0)
+    assert port != 0
+    neighbor = pick_loopback_port(prefer=port)
+    assert neighbor == port or neighbor > 0
+
+
+def test_fallback_skips_taken_prefer():
+    taken_slot = pick_loopback_port()
+    other = pick_loopback_port(prefer=taken_slot, taken={taken_slot})
+    assert other != taken_slot
+    assert port_is_free(other)

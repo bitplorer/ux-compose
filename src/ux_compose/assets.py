@@ -71,8 +71,8 @@ class _StaticDirASGI:
                     return
                 stat = target.stat()
                 last_mod = formatdate(stat.st_mtime, usegmt=True).encode()
-                # ns + size: same-second same-size Tailwind rewrites must
-                # still change the validator the client HEAD-polls.
+                # ns + size: a rewrite that changes either moves the
+                # validator the client HEAD-polls. Not a content hash.
                 etag = f'W/"{stat.st_mtime_ns}-{stat.st_size}"'.encode()
                 extra = [(b"last-modified", last_mod), (b"etag", etag)]
                 method = (scope.get("method") or "GET").upper()

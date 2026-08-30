@@ -17,8 +17,8 @@ uxcompose build
 # ux_compose.tailwind finds / ensures the CLI (not ux-dom)
 ```
 
-Dev watch is `--watch` instead of `--minify` (XOR). `uxcompose serve --hmr`
-reloads the browser when `.css` changes; it does not compile.
+Dev CSS watch lives on `uxcompose serve dev` (sibling Tailwind `--watch`).
+`uxcompose build` minifies. Do not run `build --watch`.
 
 5. Document/shell **links** `/css/output.css`. Mount
    `assets/static/file/css` at `/css`. Never `style(raw(CSS))`.

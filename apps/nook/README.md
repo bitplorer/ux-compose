@@ -36,7 +36,7 @@ make nook
 Create-app path (page units under `routes/`):
 
 ```bash
-uxcompose serve apps.nook.app:asgi --port 8080
+uxcompose serve dev apps.nook.app:asgi
 ```
 
 ## Own the kit

@@ -17,3 +17,6 @@ htmlcov/
 
 # Tailwind build output
 assets/css/output.css
+
+# serve dev origin pidfile (one-shot restart-channel)
+.uxcompose-serve-dev.pid

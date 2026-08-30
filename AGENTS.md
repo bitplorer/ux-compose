@@ -47,6 +47,7 @@ Do not document them. Tags are imported from `ux_compose`.
 - A copy of Channel codecs, Document serialize, or motion IR in this tree
 - Dual product paths
 - A second HTTP pipeline, FastAPI HTML `default_response_class`, `StreamingRoute`, or HTTP verbs on page units (see Product host below)
+- `location.reload()` as the happy path after a `.py` save (morph first)
 
 ## Dev clocks under `uxcompose serve`
 
@@ -55,7 +56,7 @@ Do not collapse these. The stale design is an in-process hub + watcher.
 | Clock | Owner | Signal |
 |-------|-------|--------|
 | Process reload | ui worker, uvicorn `--reload` on `*.py` | new ui process, cold import |
-| Browser live-reload | `hmr.py` WebSocket `/__uxcompose/hmr` | ui death → GET 200 → `location.reload()` |
+| Browser live-reload | `hmr.py` WebSocket `/__uxcompose/hmr` | ui death → GET 200 → morph; `location.reload()` on fail |
 | CSS | `cli.py` sibling Tailwind `--watch` + client HEAD `/css/output.css` | stylesheet swap. No process dies |
 
 `uxcompose serve dev` is origin + ui + channel. Always.

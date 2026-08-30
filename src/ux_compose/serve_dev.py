@@ -16,9 +16,11 @@ Not a FastAPI sub-app mount. One uvicorn still dies as one process.
 from __future__ import annotations
 
 import os
+import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 from typing import Callable, Literal
 from urllib.parse import urlsplit
@@ -182,6 +184,47 @@ def _port_open(port: int, host: str = "127.0.0.1") -> bool:
         return False
 
 
+def port_is_free(port: int, host: str = "127.0.0.1") -> bool:
+    """True if this process can bind the TCP port right now."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            sock.bind((host, port))
+        except OSError:
+            return False
+    return True
+
+
+def pick_loopback_port(*, prefer: int | None = None, taken: set[int] | None = None) -> int:
+    """Pick a free 127.0.0.1 port.
+
+    Prefer the predictable neighbor (public+1 / public+2) when it is free
+    so logs stay stable. If that slot is taken, ask the kernel for :0.
+    """
+    held = set(taken or ())
+    if prefer is not None and prefer not in held and 0 < prefer < 65535 and port_is_free(prefer):
+        return prefer
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        port = int(sock.getsockname()[1])
+    if port in held:
+        return pick_loopback_port(taken=held | {port})
+    return port
+
+
+def _watch_workers(pages: subprocess.Popen, channel: subprocess.Popen) -> None:
+    """If a worker dies after bind, stop the public process too."""
+    while True:
+        time.sleep(0.4)
+        if pages.poll() is not None or channel.poll() is not None:
+            print(
+                "serve-dev: a worker exited — stopping the public process",
+                file=sys.stderr,
+            )
+            os.kill(os.getpid(), signal.SIGTERM)
+            return
+
+
 def run(
     *,
     app_ref: str,
@@ -195,8 +238,8 @@ def run(
     import uvicorn
 
     root = cwd or os.getcwd()
-    pages_port = port + 1
-    channel_port = port + 2
+    pages_port = pick_loopback_port(prefer=port + 1)
+    channel_port = pick_loopback_port(prefer=port + 2, taken={pages_port, port})
     pages_url = f"http://127.0.0.1:{pages_port}"
     channel_url = f"http://127.0.0.1:{channel_port}"
 
@@ -246,6 +289,20 @@ def run(
             f"pages {pages_url} (reload *.py)  "
             f"channel {channel_url} (stable)"
         )
+        try:
+            import watchfiles  # noqa: F401
+        except ImportError:
+            print(
+                "serve-dev: install watchfiles so CSS writes do not reload pages "
+                "(pip install watchfiles)",
+                file=sys.stderr,
+            )
+        threading.Thread(
+            target=_watch_workers,
+            args=(pages_proc, channel_proc),
+            name="serve-dev-workers",
+            daemon=True,
+        ).start()
         uvicorn.run(
             "ux_compose.serve_dev:public_asgi",
             host=host,

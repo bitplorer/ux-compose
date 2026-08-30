@@ -12,6 +12,10 @@ only forwards: Channel paths to the channel worker, everything else to
 the pages worker. That is why a pages reload does not wipe Channel RAM.
 
 Not a FastAPI sub-app mount. One uvicorn still dies as one process.
+
+httpx is the HTTP client for that forward (browser → public → worker).
+Starlette is the public ASGI app. websockets forwards HMR and Channel
+sockets. None of these run in ``serve prod`` or deploy.
 """
 from __future__ import annotations
 
@@ -45,8 +49,11 @@ def owner_for(path: str) -> Worker:
     return "pages"
 
 
-def _url_from_env(name: str, default: str) -> str:
-    return os.environ.get(name, default).rstrip("/")
+def _url_from_env(name: str) -> str:
+    raw = os.environ.get(name)
+    if not raw:
+        raise RuntimeError(f"{name} is unset — start workers through serve_dev.run")
+    return raw.rstrip("/")
 
 
 def make_public_asgi(*, pages_url: str | None = None, channel_url: str | None = None):
@@ -58,10 +65,10 @@ def make_public_asgi(*, pages_url: str | None = None, channel_url: str | None = 
     from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
 
     def pages() -> str:
-        return pages_url or _url_from_env(PAGES_URL_ENV, "http://127.0.0.1:8081")
+        return pages_url or _url_from_env(PAGES_URL_ENV)
 
     def channel() -> str:
-        return channel_url or _url_from_env(CHANNEL_URL_ENV, "http://127.0.0.1:8082")
+        return channel_url or _url_from_env(CHANNEL_URL_ENV)
 
     hop = {
         "host",
@@ -158,12 +165,18 @@ def public_asgi():
     return make_public_asgi()
 
 
-def _spawn(cmd: list[str], *, cwd: str, extra_env: dict[str, str] | None = None) -> subprocess.Popen:
+def _spawn(
+    cmd: list[str],
+    *,
+    cwd: str,
+    extra_env: dict[str, str] | None = None,
+    pass_fds: tuple[int, ...] = (),
+) -> subprocess.Popen:
     env = os.environ.copy()
     if extra_env:
         env.update(extra_env)
     print("serve-dev:", " ".join(cmd), flush=True)
-    return subprocess.Popen(cmd, cwd=cwd, env=env)
+    return subprocess.Popen(cmd, cwd=cwd, env=env, pass_fds=pass_fds, close_fds=True)
 
 
 def _stop(proc: subprocess.Popen | None) -> None:
@@ -184,32 +197,18 @@ def _port_open(port: int, host: str = "127.0.0.1") -> bool:
         return False
 
 
-def port_is_free(port: int, host: str = "127.0.0.1") -> bool:
-    """True if this process can bind the TCP port right now."""
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            sock.bind((host, port))
-        except OSError:
-            return False
-    return True
+def listen_loopback() -> socket.socket:
+    """Bind and listen on 127.0.0.1:0. Keep the socket — do not close it.
 
-
-def pick_loopback_port(*, prefer: int | None = None, taken: set[int] | None = None) -> int:
-    """Pick a free 127.0.0.1 port.
-
-    Prefer the predictable neighbor (public+1 / public+2) when it is free
-    so logs stay stable. If that slot is taken, ask the kernel for :0.
+    uvicorn ``--fd`` inherits this listener. The port is owned from this
+    bind until the worker process exits. No probe-and-close gap.
     """
-    held = set(taken or ())
-    if prefer is not None and prefer not in held and 0 < prefer < 65535 and port_is_free(prefer):
-        return prefer
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.bind(("127.0.0.1", 0))
-        port = int(sock.getsockname()[1])
-    if port in held:
-        return pick_loopback_port(taken=held | {port})
-    return port
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(("127.0.0.1", 0))
+    sock.listen(2048)
+    sock.set_inheritable(True)
+    return sock
 
 
 def _watch_workers(pages: subprocess.Popen, channel: subprocess.Popen) -> None:
@@ -238,8 +237,10 @@ def run(
     import uvicorn
 
     root = cwd or os.getcwd()
-    pages_port = pick_loopback_port(prefer=port + 1)
-    channel_port = pick_loopback_port(prefer=port + 2, taken={pages_port, port})
+    pages_sock = listen_loopback()
+    channel_sock = listen_loopback()
+    pages_port = int(pages_sock.getsockname()[1])
+    channel_port = int(channel_sock.getsockname()[1])
     pages_url = f"http://127.0.0.1:{pages_port}"
     channel_url = f"http://127.0.0.1:{channel_port}"
 
@@ -252,12 +253,12 @@ def run(
 
     channel_cmd = [
         py, "-m", "uvicorn", app_ref,
-        "--host", "127.0.0.1", "--port", str(channel_port),
+        "--fd", str(channel_sock.fileno()),
     ]
     pages_cmd = [
         py, "-m", "uvicorn", "ux_compose.hmr:asgi_factory",
         "--factory",
-        "--host", "127.0.0.1", "--port", str(pages_port),
+        "--fd", str(pages_sock.fileno()),
         "--reload",
         "--reload-include", "*.py",
         "--reload-exclude", "*.css",
@@ -268,8 +269,17 @@ def run(
 
     channel_proc = pages_proc = None
     try:
-        channel_proc = _spawn(channel_cmd, cwd=root)
-        pages_proc = _spawn(pages_cmd, cwd=root, extra_env={"UXCOMPOSE_APP": app_ref})
+        channel_proc = _spawn(
+            channel_cmd, cwd=root, pass_fds=(channel_sock.fileno(),)
+        )
+        pages_proc = _spawn(
+            pages_cmd,
+            cwd=root,
+            extra_env={"UXCOMPOSE_APP": app_ref},
+            pass_fds=(pages_sock.fileno(),),
+        )
+        pages_sock.close()
+        channel_sock.close()
         deadline = time.time() + 12
         while time.time() < deadline:
             if channel_proc.poll() is not None:

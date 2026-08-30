@@ -41,8 +41,7 @@ Product CLI:
 ```bash
 uxcompose create-app myapp --level 1
 cd myapp
-uxcompose build
-uxcompose serve app:asgi --port 8080
+uxcompose serve dev
 ```
 
 ---
@@ -94,7 +93,7 @@ Full-stack Clock A GET: `examples/live_asgi.py`.
 | Page routes + CSS folders | **`ux_compose.routing` + `WebAssets`** |
 | HTML / JSON / stream from `render()` | **payload type** — [guides/HOST.md](guides/HOST.md) |
 
-HMR is `uxcompose serve`, not a Document API.
+HMR is `uxcompose serve dev`, not a Document API.
 
 ---
 
@@ -117,6 +116,8 @@ HMR is `uxcompose serve`, not a Document API.
 |------|-----|
 | Ownership law (authoritative) | [FLOW.md](FLOW.md) |
 | CLI reference | [guides/CLI.md](guides/CLI.md) |
+| Serve / HMR | [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) |
+| HMR architecture | [internals/hmr.md](internals/hmr.md) |
 | DX principles | [guides/DX.md](guides/DX.md) |
 | Full example map | [../examples/README.md](../examples/README.md) |
 | Test expectations | [TESTING.md](TESTING.md) |

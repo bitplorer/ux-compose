@@ -1,17 +1,22 @@
 """Dev HMR (delivery layer — not Document.use).
 
-Two clocks, both on:
+Two clocks in this module, both on:
 
-  process reload   uvicorn --reload on ``*.py``
+  process reload   uvicorn --reload on ``*.py`` (owned by serve)
                    new worker, cold import, new page class
 
-  browser HMR      this module
-                   WebSocket at ``/__uxcompose/hmr``
+  browser HMR      WebSocket at ``/__uxcompose/hmr``
                    reconnect after worker death → health → location.reload()
                    live-reload client inserted into HTML (dev middleware)
 
+CSS is not a file watcher here. ``uxcompose serve`` may start a sibling
+Tailwind ``--watch`` that writes ``output.css``. This client HEAD-polls
+``/css/output.css`` and swaps the stylesheet. The Python worker does not
+die for a CSS save.
+
 A page unit is a Python class in the worker. This is live reload, not
-module-graph swap. This module does not watch files.
+module-graph swap. This module does not watch files and does not spawn
+the compiler.
 """
 from __future__ import annotations
 
@@ -81,10 +86,49 @@ CLIENT_JS = r"""
     };
   }
 
+  function swapStylesheets() {
+    var nodes = document.querySelectorAll('link[rel="stylesheet"]');
+    for (var i = 0; i < nodes.length; i++) {
+      var href = nodes[i].getAttribute("href") || "";
+      if (href.indexOf("output.css") === -1) continue;
+      var u = new URL(href, location.href);
+      u.searchParams.set("t", String(Date.now()));
+      var next = nodes[i].cloneNode(true);
+      next.setAttribute("href", u.pathname + u.search);
+      (function (old) {
+        next.onload = function () {
+          if (old && old.parentNode) old.parentNode.removeChild(old);
+        };
+      })(nodes[i]);
+      nodes[i].parentNode.insertBefore(next, nodes[i].nextSibling);
+    }
+  }
+
+  function watchCss() {
+    var href = "/css/output.css";
+    var last = "";
+    var missing = false;
+    var tick = function () {
+      fetch(href, { method: "HEAD", cache: "no-store", credentials: "same-origin" })
+        .then(function (r) {
+          if (!r.ok) { missing = true; return; }
+          var tag = r.headers.get("etag") || r.headers.get("last-modified") || "";
+          if (!tag) return;
+          if ((last && tag !== last) || (missing && last !== tag)) swapStylesheets();
+          missing = false;
+          last = tag;
+        })
+        .catch(function () { missing = true; });
+      setTimeout(tick, 400);
+    };
+    tick();
+  }
+
   window.addEventListener("beforeunload", function () {
     try { if (current) current.close(1000); } catch (e) {}
   });
   connect(false);
+  watchCss();
 })();
 """
 
@@ -194,14 +238,17 @@ class HmrClientMiddleware:
         async def send_wrapper(message):
             kind = message["type"]
             if kind == "http.response.start":
-                headers = []
-                html = False
-                for key, value in message.get("headers", []):
-                    if key.lower() == b"content-length":
-                        continue
-                    if key.lower() == b"content-type" and is_html_content_type(value):
-                        html = True
-                    headers.append((key, value))
+                headers = list(message.get("headers", []))
+                html = any(
+                    key.lower() == b"content-type" and is_html_content_type(value)
+                    for key, value in headers
+                )
+                if html:
+                    headers = [
+                        (key, value)
+                        for key, value in headers
+                        if key.lower() != b"content-length"
+                    ]
                 state["html"] = html
                 message = {**message, "headers": headers}
             elif kind == "http.response.body" and state["html"]:

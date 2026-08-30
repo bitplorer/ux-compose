@@ -38,17 +38,41 @@ Do not document them. Tags are imported from `ux_compose`.
 - Tailwind compiler on ux-dom (`ux_compose.tailwind` + `uxcompose build` own it)
 - App asset layout / `WebAssets` on ux-dom (`ux_compose.assets` owns it)
 - HMR as a `Document.use` product API
+- A file watcher, `HmrHub`, or Tailwind `Popen` inside `hmr.py`
+- Clock flags (`--no-hmr`, `--no-reload`, `--css-watch`). Modes choose clocks.
+- Process-reloading the worker because `input.css` changed
+- A second Tailwind `--watch` next to serve's sibling (two writers on `output.css`)
+- A single-uvicorn fallback next to origin + ui + channel
 - Product code importing `ux_channel` outside compose `wire/`
 - A copy of Channel codecs, Document serialize, or motion IR in this tree
 - Dual product paths
 - A second HTTP pipeline, FastAPI HTML `default_response_class`, `StreamingRoute`, or HTTP verbs on page units (see Product host below)
 
+## Dev clocks under `uxcompose serve`
+
+Do not collapse these. The stale design is an in-process hub + watcher.
+
+| Clock | Owner | Signal |
+|-------|-------|--------|
+| Process reload | ui worker, uvicorn `--reload` on `*.py` | new ui process, cold import |
+| Browser live-reload | `hmr.py` WebSocket `/__uxcompose/hmr` | ui death → GET 200 → `location.reload()` |
+| CSS | `cli.py` sibling Tailwind `--watch` + client HEAD `/css/output.css` | stylesheet swap. No process dies |
+
+`uxcompose serve dev` is origin + ui + channel. Always.
+`uxcompose serve prod` is one process, clocks off.
+Missing extras fail closed — no single-uvicorn fallback.
+HTML insert is `HmrClientMiddleware`, not `Document.use`.
+`assets.py` `_StaticDirASGI` must emit `ETag` / `Last-Modified`.
+Architecture: [docs/internals/hmr.md](docs/internals/hmr.md).
+Decision: [docs/adr/0005-serve-dev-split.md](docs/adr/0005-serve-dev-split.md).
+How-to: [docs/guides/serve-hmr-tunnel.md](docs/guides/serve-hmr-tunnel.md).
+
 ## CLI spine
 
 ```bash
 uxcompose create-app myapp --level 1
+uxcompose serve dev
 uxcompose build
-uxcompose serve app:asgi --port 8080
 uxcompose deploy --provider docker
 uxcompose doctor .
 ```
@@ -89,4 +113,3 @@ page in the same change). `build()` wraps GET only with the author Document
 `materialize(route_class=)` fails closed. Scaffold does not emit `page()`.
 Examples (`examples/live_asgi.py`) use `build()` for Clock A GET — not a
 handmade `@app.get` + `HTMLResponse`. `App.mount` is a secondary door.
-

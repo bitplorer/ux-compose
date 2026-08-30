@@ -31,7 +31,13 @@ behavior = ["ux-behavior"]
 motion = ["ux-motion"]
 channel = ["ux-channel"]
 full = ["ux-dom", "ux-behavior", "ux-motion", "ux-channel"]
-dev = ["pytest", "pytest-asyncio", "pytest-cov", "httpx", "fastapi", "uvicorn"]
+# serve extra is only for `uxcompose serve dev`:
+#   httpx      public process re-issues HTTP to workers
+#   starlette  public ASGI app
+#   websockets public process forwards HMR + Channel sockets
+#   watchfiles uvicorn reloader that honors --reload-exclude *.css
+serve = ["uvicorn", "watchfiles", "httpx", "starlette", "websockets"]
+dev = ["pytest", "pytest-asyncio", "pytest-cov", "httpx", "fastapi", "uvicorn", "watchfiles", "starlette", "websockets"]
 
 [project.scripts]
 uxcompose = "ux_compose.cli:main"

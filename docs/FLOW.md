@@ -22,7 +22,7 @@ ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
             + ASSETS   app folders (ux_compose.assets.WebAssets) · /css mount
             + DELIVERY HTTP bind, host strategy, live units
             + CHANNEL  wire/ only
-            + DEV      HMR (/__uxcompose/hmr) · tunnel (ngrok|cloudflare)
+            + DEV      HMR (/__uxcompose/hmr) · CSS sibling --watch · tunnel
 
 ux-behavior units, MorphState, @action (offline)
 ux-channel  Intent/Caps behind wire/ only
@@ -62,10 +62,14 @@ create-app emits `document.py` (one Document; host wraps GET) and `settings.py` 
 
 How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.md](guides/CLI.md) · [guides/TAILWIND.md](guides/TAILWIND.md).
 
+Three clocks, do not collapse: process reload (`*.py`) · browser WS live-reload · sibling Tailwind `--watch` + client HEAD `/css/output.css`. No watcher and no `Popen` in `hmr.py`. CSS save must not kill the worker.
+
 ## 6. Forbidden
 
 - Dual product paths on uxdom
 - HMR as Document.use product API
+- A file watcher, `HmrHub`, or Tailwind `Popen` inside `hmr.py`
+- Process-reloading the worker because `input.css` changed
 - Product code importing ux_channel
 - Tailwind compiler living on ux-dom
 - App asset layout (`WebAssets`) living on ux-dom
@@ -107,4 +111,3 @@ Locked (full table in the spec):
 - `App.boot("auto")` is Level 1. Channel binds after the process exists.
 - `host="batteries"` fails closed. No `StreamingRoute`. No HTML
   `default_response_class`.
-

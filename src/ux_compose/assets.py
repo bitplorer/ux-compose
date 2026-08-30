@@ -17,8 +17,9 @@ not a second SSoT.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from email.utils import formatdate
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Optional, Sequence, Union
 
 __all__ = [
     "CSS_URL_PREFIX",
@@ -68,13 +69,25 @@ class _StaticDirASGI:
                 if not target.is_file():
                     await _http_send(send, 404, b"Not Found")
                     return
-                data = target.read_bytes()
+                stat = target.stat()
+                last_mod = formatdate(stat.st_mtime, usegmt=True).encode()
+                # ns + size: a rewrite that changes either moves the
+                # validator the client HEAD-polls. Not a content hash.
+                etag = f'W/"{stat.st_mtime_ns}-{stat.st_size}"'.encode()
+                extra = [(b"last-modified", last_mod), (b"etag", etag)]
+                method = (scope.get("method") or "GET").upper()
                 ctype = (
                     b"text/css; charset=utf-8"
                     if target.suffix == ".css"
                     else b"application/octet-stream"
                 )
-                await _http_send(send, 200, data, ctype)
+                if method == "HEAD":
+                    await _http_send(
+                        send, 200, b"", ctype, extra_headers=extra, length=stat.st_size
+                    )
+                    return
+                data = target.read_bytes()
+                await _http_send(send, 200, data, ctype, extra_headers=extra)
                 return
         if self.inner is None:
             await _http_send(send, 404, b"Not Found")
@@ -83,16 +96,24 @@ class _StaticDirASGI:
 
 
 async def _http_send(
-    send: Any, status: int, body: bytes, content_type: bytes = b"text/plain; charset=utf-8"
+    send: Any,
+    status: int,
+    body: bytes,
+    content_type: bytes = b"text/plain; charset=utf-8",
+    extra_headers: Optional[Sequence[tuple[bytes, bytes]]] = None,
+    length: Optional[int] = None,
 ) -> None:
+    headers = [
+        (b"content-type", content_type),
+        (b"content-length", str(len(body) if length is None else length).encode()),
+    ]
+    if extra_headers:
+        headers.extend(extra_headers)
     await send(
         {
             "type": "http.response.start",
             "status": status,
-            "headers": [
-                (b"content-type", content_type),
-                (b"content-length", str(len(body)).encode()),
-            ],
+            "headers": headers,
         }
     )
     await send({"type": "http.response.body", "body": body, "more_body": False})

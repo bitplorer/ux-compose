@@ -1,8 +1,9 @@
 # Serve, HMR, and tunnel
 
 > **Diátaxis:** how-to · **Canonical:** `docs/guides/serve-hmr-tunnel.md` · **Layer:** ux-compose
-> Architecture: [../internals/hmr.md](../internals/hmr.md) · Ownership: [../FLOW.md](../FLOW.md)
-> Product CLI surface: [CLI.md](CLI.md)
+> Architecture: [../internals/hmr.md](../internals/hmr.md)
+> Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md)
+> Ownership: [../FLOW.md](../FLOW.md) · CLI: [CLI.md](CLI.md)
 
 ## Commands
 
@@ -11,8 +12,7 @@ uxcompose create-app myapp
 cd myapp
 uxcompose serve dev                 # origin + ui + channel + CSS watch
 uxcompose serve dev --tunnel ngrok
-uxcompose serve dev --one-process   # fail-safe: one uvicorn
-uxcompose serve prod                # clocks hard off
+uxcompose serve prod                # clocks off; build first
 uxcompose build                     # one-shot minify
 uxcompose deploy --provider docker  # raw uvicorn, not serve
 uxcompose doctor .
@@ -20,20 +20,33 @@ uxcompose doctor .
 
 `uxcompose serve` with no mode prints help and exits 2.
 
-## What `serve dev` starts
+Need the origin extras once:
 
-```text
-browser → origin (no reload)
-            /ux-channel*  → channel worker (no reload)
-            everything else → ui worker (reload on *.py)
-sibling Tailwind --watch writes output.css
-client HEAD-polls /css/output.css and swaps the sheet
+```bash
+pip install 'ux-compose[serve]'
 ```
 
-Full diagram and why: [../internals/hmr.md](../internals/hmr.md).
+Missing `httpx` / `starlette` / `websockets` → `serve dev` exits 1.
+There is no fallback flag.
 
-`--one-process` skips origin/ui/channel and runs one uvicorn. Channel
-dies on a `.py` save. Daily path is `serve dev` without the flag.
+## What each mode does
+
+```text
+serve dev
+  browser → origin
+              /ux-channel*     → channel (no reload)
+              everything else  → ui (reload on *.py)
+  sibling Tailwind --watch writes output.css
+  client HEAD-polls /css/output.css and swaps the sheet
+
+serve prod
+  browser → one uvicorn (app:asgi)
+  no reload, no HMR, no CSS watch
+  serves output.css already on disk
+```
+
+Daily author path is `serve dev`. Check what the user will see
+with `build` then `serve prod`. Ship with `deploy`.
 
 ## Rules
 
@@ -42,7 +55,8 @@ dies on a `.py` save. Daily path is `serve dev` without the flag.
 - CSS save must not kill the ui worker.
 - Live CSS lives on `serve dev` only.
 - `uxcompose build` is one-shot minify — no `--watch`.
-- HMR is not `Document.use`. It is `HmrClientMiddleware`.
+- HMR is `HmrClientMiddleware`, not `Document.use`.
+- Do not add a flag that couples Channel to the ui worker.
 
 ## Tunnel
 

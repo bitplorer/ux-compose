@@ -44,6 +44,23 @@ def test_client_morphs_on_reconnect():
     assert "reloadPage" not in CLIENT_JS
 
 
+def test_client_keeps_polling_and_shows_wait_banner():
+    assert "function showFail" in CLIENT_JS
+    assert "function hideFail" in CLIENT_JS
+    assert "waiting for ui worker" in CLIENT_JS
+    assert "uxcompose-hmr-fail" in CLIENT_JS
+    assert "if (n > 80) return;" not in CLIENT_JS
+
+
+def test_client_restores_focus_and_scroll():
+    assert "function snapshotUi" in CLIENT_JS
+    assert "function restoreUi" in CLIENT_JS
+    assert "selectionStart" in CLIENT_JS
+    assert "setSelectionRange" in CLIENT_JS
+    assert "scrollTo" in CLIENT_JS
+    assert "restoreUi(snap)" in CLIENT_JS
+
+
 def test_client_polls_css_and_swaps_sheet():
     assert "function watchCss" in CLIENT_JS
     assert "function swapStylesheets" in CLIENT_JS

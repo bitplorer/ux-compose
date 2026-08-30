@@ -29,8 +29,8 @@ ADDED = {
     "maybe_plan",
     "maybe_fade",
     "maybe_slide",
-    "DegradeEvent",
-    "degrades",
+    "AttachNote",
+    "attach_notes",
 }
 
 
@@ -51,7 +51,6 @@ def test_author_helpers_are_public_and_match_common():
 
 
 def test_common_keeps_scene_rise_names():
-    """Atelier examples import scene/rise from _common. None is a legal degrade."""
     from examples import _common
 
     assert hasattr(_common, "scene")

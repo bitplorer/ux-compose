@@ -12,6 +12,7 @@ Ownership law stays in FLOW. Product CLI surface: [CLI.md](CLI.md).
 uxcompose create-app myapp
 uxcompose serve app:asgi --port 8080
 uxcompose serve app:asgi --no-hmr
+uxcompose serve app:asgi --no-css-watch
 uxcompose serve app:asgi --tunnel ngrok
 uxcompose deploy --provider docker
 uxcompose doctor .
@@ -27,8 +28,15 @@ uxcompose serve
   → asgi_factory → attach_hmr on every worker
   → WebSocket /__uxcompose/hmr
   → client: worker death → wait until GET 200 → location.reload()
---no-reload / --no-hmr turn a clock off. Both default on.
+  → sibling Tailwind --watch writes output.css
+  → client HEAD-polls /css/output.css → swap stylesheet
+--no-reload / --no-hmr / --no-css-watch turn a clock off. All default on.
 ```
+
+Do not put a file watcher in `hmr.py`. Do not spawn Tailwind inside the
+worker. CSS save must not kill the Python process. Do not run
+`uxcompose build --watch` next to serve's sibling — two writers on
+`output.css`.
 
 ---
 

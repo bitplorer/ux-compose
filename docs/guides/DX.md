@@ -39,7 +39,7 @@ App folders are `ux_compose.WebAssets`. Product CSS compile is `uxcompose build`
 uxcompose doctor [path ...] [--no-fail]
 uxcompose create-app <dir> [--name NAME] [--level auto|0-3] [--host auto|fastapi|asgi]
 uxcompose build [--watch] [--no-minify]
-uxcompose serve [app:asgi] [--port 8080] [--reload|--no-reload] [--hmr|--no-hmr] [--tunnel ngrok|cloudflare]
+uxcompose serve [app:asgi] [--port 8080] [--reload|--no-reload] [--hmr|--no-hmr] [--no-css-watch] [--tunnel ngrok|cloudflare]
 uxcompose deploy [--provider docker|fly|render|railway|vps|checklist]
 ```
 

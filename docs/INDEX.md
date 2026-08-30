@@ -56,14 +56,15 @@ Full cookbook: [guides/SNIPPETS.md](guides/SNIPPETS.md) · product path: [guides
 | **First time** | [../START_HERE.md](../START_HERE.md) · [guides/PATH.md](guides/PATH.md) |
 | **Ownership / boundaries** | [FLOW.md](FLOW.md) |
 | **CLI surface** | [guides/CLI.md](guides/CLI.md) |
+| **Serve / HMR** | [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [internals/hmr.md](internals/hmr.md) |
 | **Pick-and-use UI** | [guides/UI.md](guides/UI.md) |
 | **DX / tests** | [guides/DX.md](guides/DX.md) · [guides/TESTING.md](guides/TESTING.md) |
 | **Maintainer / agent** | [../AGENTS.md](../AGENTS.md) · [reference/host.md](reference/host.md) · [../CONTRIBUTING.md](../CONTRIBUTING.md) |
 
 ```text
-New user:     START_HERE → FLOW (ownership) → README quick start → examples/
-Builder:      FLOW → CLI → DX → examples/README → TESTING
-Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
+New user:     START_HERE → FLOW → serve dev → examples/
+Builder:      FLOW → CLI → serve-hmr-tunnel → DX → TESTING
+Maintainer:   FLOW · internals/hmr · adr/0005 · AGENTS
 ```
 
 ---
@@ -75,8 +76,8 @@ Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 | Doc | Topic |
 |-----|--------|
 | [../START_HERE.md](../START_HERE.md) | Root 5-minute path |
-| [START_HERE.md](START_HERE.md) | Mental model + install (not a second 5-minute path) |
-| [guides/PATH.md](guides/PATH.md) | Scaffold → build → serve → HMR → Tailwind → composition → control flow → motion → live |
+| [START_HERE.md](START_HERE.md) | Mental model + install |
+| [guides/PATH.md](guides/PATH.md) | Scaffold → serve dev → HMR → Tailwind → live |
 | [guides/TAILWIND.md](guides/TAILWIND.md) | Production CSS how-to |
 | [../examples/README.md](../examples/README.md) | Example map |
 | [../examples/page_unit_mount.py](../examples/page_unit_mount.py) | App.mount secondary-door proof |
@@ -85,14 +86,14 @@ Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 
 | Doc | Topic |
 |-----|--------|
-| [guides/PATH.md](guides/PATH.md) | End-to-end product path (also tutorial) |
+| [guides/PATH.md](guides/PATH.md) | End-to-end product path |
 | [guides/HOST.md](guides/HOST.md) | HTML / JSON / stream recipes |
-| [guides/TAILWIND.md](guides/TAILWIND.md) | Production Tailwind: minify, link, mount, deploy |
+| [guides/TAILWIND.md](guides/TAILWIND.md) | Production Tailwind |
 | [guides/UI.md](guides/UI.md) | Pick-and-use Components |
-| [guides/SNIPPETS.md](guides/SNIPPETS.md) | Copy-paste App / Cart / levels / XOR / path / UI |
+| [guides/SNIPPETS.md](guides/SNIPPETS.md) | Copy-paste App / Cart / levels |
 | [guides/README.md](guides/README.md) | How-to slot |
 | [guides/CLI.md](guides/CLI.md) | Product vs pure-dom CLI |
-| [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) | serve / HMR / tunnel |
+| [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) | `serve dev` / `serve prod` / HMR / tunnel |
 | [guides/DX.md](guides/DX.md) | DX principles |
 | [guides/TESTING.md](guides/TESTING.md) | Test expectations / matrix |
 | [../cookbooks/PRESENCE.md](../cookbooks/PRESENCE.md) | Presence cookbook |
@@ -103,7 +104,7 @@ Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 |-----|--------|
 | [guides/CLI.md](guides/CLI.md) | Command ownership table |
 | `src/ux_compose/__init__.py` | Public names (`__all__`) |
-| [reference/host.md](reference/host.md) | Clock A: payload law, wrap vs mount, CSP layers, future protocol |
+| [reference/host.md](reference/host.md) | Clock A payload law |
 | [resilience/MATRIX.md](resilience/MATRIX.md) | Resilience matrix |
 
 ### Explanation
@@ -113,9 +114,11 @@ Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 | [FLOW.md](FLOW.md) | Ownership law (authoritative) |
 | [internals/FLOW.md](internals/FLOW.md) | Same contract in the explanation slot |
 | [internals/c4.md](internals/c4.md) | C4-style context |
+| [internals/hmr.md](internals/hmr.md) | origin + ui + channel, three clocks |
 | [adr/README.md](adr/README.md) | ADR slot |
 | [adr/0001-ownership.md](adr/0001-ownership.md) | Render vs product lifecycle |
 | [adr/0002-product-host.md](adr/0002-product-host.md) | Product FastAPI host (Clock A) |
+| [adr/0005-serve-dev-split.md](adr/0005-serve-dev-split.md) | serve dev isolates Channel from ui reload |
 | [examples/README.md](examples/README.md) | Example slot |
 | [../CRITIC.md](../CRITIC.md) | Critic notes |
 
@@ -127,7 +130,7 @@ Maintainer:   FLOW · reference/host · resilience/MATRIX · AGENTS
 |------|------------------|
 | Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder + app asset layout (`WebAssets`) | DOM serialize / tag trees / package static (ux-dom) |
 | App composition, host strategy, delivery | Channel transport (wire/ only) |
-| HMR + tunnel under `uxcompose serve` | Pure-dom tooling (`uxdom doctor` / lint / profile / add) |
+| HMR + tunnel under `uxcompose serve dev` | Pure-dom tooling (`uxdom doctor` / lint / profile / add) |
 | Page-unit mount (`App.mount` + `routes/`) | Behavior units (ux-behavior) |
 
 **Author rule:** Render? → **ux-dom**. Product lifecycle? → **ux-compose** only.

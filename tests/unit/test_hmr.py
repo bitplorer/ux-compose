@@ -59,6 +59,8 @@ def test_client_restores_focus_and_scroll():
     assert "setSelectionRange" in CLIENT_JS
     assert "scrollTo" in CLIENT_JS
     assert "restoreUi(snap)" in CLIENT_JS
+    assert 'getAttribute("name")' in CLIENT_JS
+    assert "[name=" in CLIENT_JS
 
 
 def test_client_polls_css_and_swaps_sheet():

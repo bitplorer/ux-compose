@@ -41,7 +41,7 @@ Sole product lifecycle CLI is uxcompose. uxdom stays pure-dom (doctor / lint / p
 ```bash
 uxcompose create-app myapp --level 1
 cd myapp
-uxcompose serve app:asgi --port 8080
+uxcompose serve dev
 uxcompose deploy --provider docker
 uxcompose doctor .
 ```
@@ -134,7 +134,7 @@ Sole product CLI is uxcompose. Isolation Law: product modules never import Chann
 ```bash
 uxcompose create-app myapp --level 1
 cd myapp
-uxcompose serve app:asgi --port 8080
+uxcompose serve dev
 uxcompose doctor .
 uxcompose deploy --provider docker
 # product lifecycle lives here. uxdom doctor / lint / profile stay pure-dom.

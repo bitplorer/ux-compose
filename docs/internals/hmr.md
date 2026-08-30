@@ -7,8 +7,8 @@
 
 This is the source of truth for `uxcompose serve`.
 It is **not** Next.js Fast Refresh. A page unit is a Python class.
-A `.py` save starts a new ui worker. That is live reload, not a
-module-graph swap.
+A `.py` save starts a new ui worker. The browser then **morphs**
+matching nodes. `location.reload()` is only the fallback.
 
 ## Product surface
 
@@ -69,7 +69,7 @@ process. Channel still runs — it just shares the one process.
 | Clock | Owner | What happens |
 |-------|-------|----------------|
 | Process reload | ui worker, uvicorn `--reload` + `*.py` | new ui process, cold import, new page class |
-| Browser live-reload | `hmr.py` WebSocket `/__uxcompose/hmr` | ui death → wait GET 200 → `location.reload()` |
+| Browser live-reload | `hmr.py` WebSocket `/__uxcompose/hmr` | ui death → GET 200 → morph page units; `location.reload()` on fail |
 | CSS | `cli.py` sibling Tailwind `--watch` + client HEAD `/css/output.css` | stylesheet swap. No process dies |
 
 `hmr.py` does not watch files and does not spawn Tailwind.
@@ -94,6 +94,11 @@ worker (or the whole `serve dev`) and in-memory Channel state is gone.
 HMR does **not** add Channel attributes. The only HMR marker in HTML
 is the script tag `data-uxcompose-hmr`.
 
+Channel state surviving a save and the document staying alive are
+different facts. Channel survives because it is another process.
+The document stays alive because the client morphs instead of calling
+`location.reload()`.
+
 ## Fail-safe (not a second architecture)
 
 If `httpx`, `starlette`, or `websockets` are missing, `serve dev`
@@ -107,39 +112,112 @@ Tailwind missing: CSS watch is skipped, the three processes still run.
 
 **Python file save (`serve dev`)**
 
-1. ui reloader sees `*.py`
-2. ui worker dies; a new one imports the new class
-3. HMR WebSocket drops
-4. client waits until origin/ui answers GET 200
-5. `location.reload()` — new HTML
-6. channel worker is still the same process
-7. browser reconnects `/ux-channel` to that worker
+```text
+*.py save
+    │
+    v
+ui reloader sees *.py ── ui worker dies
+    │                        new worker cold-imports the page class
+    v
+HMR WebSocket /__uxcompose/hmr drops
+    │
+    v
+client reconnects, waits until GET location.href is 200
+    │
+    v
+softReload() fetches the same URL (HTML, cache: no-store)
+    │
+    +── parse / type / HTTP fail ──────────────+
+    v                                              │
+morphLive(html)                                    v
+    │                                   hardReload() = location.reload()
+    +─ Idiomorph on window? ─ yes ─ Idiomorph.morph(body, next body)
+    │ no
+    v
+replace live nodes whose [id] exists in the new HTML
+    (skip html, body, data-uxcompose-hmr)
+    │
+    +─ zero ids matched ─────────────────+
+    v                                              │
+document stays          channel worker untouched   v
+scroll / focus outside  /ux-channel stays          hardReload()
+the replaced unit stay
+```
+
+Client functions in `src/ux_compose/hmr.py`: `softReload`,
+`morphLive`, `hardReload`. There is no `reloadPage`.
 
 **CSS / className save (`serve dev`)**
 
-1. Tailwind `--watch` rewrites `output.css`
-2. ui reloader ignores `*.css`
-3. client HEAD `/css/output.css` sees a new ETag
-4. client swaps the stylesheet
-5. no process dies, no full page reload
+```text
+className or input.css save
+    │
+    v
+Tailwind --watch rewrites output.css
+    │
+    ui reloader ignores *.css / assets/*
+    v
+client HEAD /css/output.css sees a new ETag
+    │
+    v
+swapStylesheets() — new <link>, old node removed on load
+    │
+    v
+no process dies, no morph, no location.reload()
+```
 
 **Any save (`serve prod`)**
 
 Nothing. Rebuild CSS with `uxcompose build`. Restart the process
 yourself if Python changed.
 
+## How morph is chosen
+
+`morphLive(html)` in the HMR client, in this order:
+
+1. `DOMParser` the fetched HTML. No `body` → throw → hard reload.
+2. Copy `document.title` from the new document if present.
+3. If `window.Idiomorph.morph` exists (Channel often loads it),
+   morph `document.body` onto the new body. That is the full-tree path.
+4. Otherwise walk every `[id]` in the new body. For each id that
+   already exists in the live document, `replaceWith` a clone of the
+   new node. Skip `html`, `body`, and `data-uxcompose-hmr`.
+   This is the page-unit path — `Hello.id = "hello"` is the target.
+5. If step 4 matched zero ids → throw `hmr-no-target` → hard reload.
+
+HMR does not import Channel. Idiomorph is used only when the page
+already put it on `window`. Level 1 apps without Channel still morph
+by id.
+
+## When hard reload runs
+
+`hardReload()` is `location.reload()`. It runs only when soft reload
+cannot apply a coherent patch:
+
+| Trigger | Why |
+|---------|-----|
+| Health GET never reaches 200 (80 tries) | worker did not come back |
+| Soft fetch is not `ok` | `hmr-http` |
+| Response is not `text/html` | `hmr-type` |
+| Parse yields no `body` | `hmr-parse` |
+| No `[id]` targets and no Idiomorph | `hmr-no-target` |
+| Idiomorph throws | catch → hard reload |
+
+A user navigation closes the HMR socket with code `1000`.
+That path does not morph and does not reload.
+
 ## Dead names — do not bring back
 
 `devstack`, `glue_factory`, `pages` worker, `public_asgi`, `owner_for`,
 `A` / `X` / `Y`, `--one-process`, `--no-css-watch`, `--no-hmr`,
-`--no-reload` as a clock switch, `build --watch`, `HmrHub`.
+`--no-reload` as a clock switch, `build --watch`, `HmrHub`, `reloadPage`.
 
 ## Files
 
 | File | Owns |
 |------|------|
 | `src/ux_compose/serve_dev.py` | origin, `worker_for`, held sockets, supervisor |
-| `src/ux_compose/hmr.py` | client JS, HMR WS, HTML insert |
+| `src/ux_compose/hmr.py` | client JS (`softReload` / `morphLive` / `hardReload`), HMR WS, HTML insert |
 | `src/ux_compose/cli.py` | `serve dev` / `serve prod`, sibling Tailwind, extras check |
 | `src/ux_compose/assets.py` | HEAD + ETag for `/css` |
 | `pyproject.toml` extra `serve` | `httpx`, `starlette`, `websockets`, `watchfiles` |

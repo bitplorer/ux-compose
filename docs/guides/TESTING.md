@@ -13,12 +13,11 @@
 - `/api/health`, `/api/doctor`, POST `/action/{name}`
 
 ```bash
-# install specialists as needed
-pip install -e ".[dev]" fastapi uvicorn ux-dom ux-behavior
+pip install -e ".[dev,serve]" fastapi uvicorn ux-dom ux-behavior
 
-PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080
-#   uxcompose serve apps.pulse.server:app --no-hmr
-#   uxcompose serve apps.pulse.server:app --tunnel ngrok
+PYTHONPATH=src:. uxcompose serve dev apps.pulse.server:app --host 0.0.0.0 --port 8080
+#   uxcompose serve prod apps.pulse.server:app
+#   uxcompose serve dev apps.pulse.server:app --tunnel ngrok
 ```
 
 Smoke:
@@ -83,7 +82,7 @@ make pulse   # live serve Pulse
 
 | Area | Target |
 |------|--------|
-| `cli` / `deploy` / `tunnel` / `hmr` | High (unit + integration) |
+| `cli` / `deploy` / `tunnel` / `hmr` / `serve_dev` | High (unit + integration) |
 | `app` / progressive | Existing + concurrency |
 | `wire/` | gated on channel install |
 | Live HTTP | integration + manual / live marker |
@@ -101,7 +100,8 @@ Pen-style tests are **defensive unit checks** (sanitization, isolation), not a s
 
 Raise `cov-fail-under` as specialists are pinned in CI.
 
-See also: `docs/FLOW.md`, `docs/guides/CLI.md`, `docs/reference/host.md`.
+See also: `docs/FLOW.md`, `docs/guides/CLI.md`, `docs/internals/hmr.md`,
+`docs/reference/host.md`.
 
 Clock A (payload law, path law, host bind) is locked in `tests/unit/test_host.py`.
 Tests speak ASGI (`tests/asgi_http.py`) — no Starlette TestClient / httpx2.
@@ -109,4 +109,3 @@ A synthesized Document is mount-only; wrap is the author `document=`.
 `App.mount` passes the same `wrap=` as `build()`.
 `attach_motion()` must return instances. Do not add host behaviour that is
 not covered in `test_host.py`.
-

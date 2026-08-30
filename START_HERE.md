@@ -7,9 +7,10 @@
 Mental model + install (not a second 5-minute path): [docs/START_HERE.md](docs/START_HERE.md).
 Ownership law: [docs/FLOW.md](docs/FLOW.md). **Map:** [docs/INDEX.md](docs/INDEX.md).
 **Cookbook:** [docs/guides/SNIPPETS.md](docs/guides/SNIPPETS.md) — App, Cart, levels, bind, surfaces, build(), XOR.
-**Product path:** [docs/guides/PATH.md](docs/guides/PATH.md) — scaffold → serve → HMR → Tailwind → composition → control flow → motion → live.
+**Product path:** [docs/guides/PATH.md](docs/guides/PATH.md) — scaffold → serve dev → HMR → Tailwind → composition → control flow → motion → live.
 **Production CSS:** [docs/guides/TAILWIND.md](docs/guides/TAILWIND.md) — minify to `/css/output.css`, link, deploy.
 **UI kit:** [docs/guides/UI.md](docs/guides/UI.md) — pick-and-use Components.
+**HMR architecture:** [docs/internals/hmr.md](docs/internals/hmr.md).
 
 ---
 
@@ -37,18 +38,18 @@ Python **≥ 3.14** recommended for the full stack (ux-dom requirement).
 
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate
-pip install -e .    # from this repo
+pip install -e ".[serve]"    # from this repo
 pip install "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git"
 pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
 
 uxcompose create-app myapp --level 1
 cd myapp
-uxcompose build
-uxcompose serve app:asgi --port 8080
+uxcompose serve dev
 ```
 
-HMR is `uxcompose serve`, not a Document API.
-Product CSS is `uxcompose build`.
+Daily author path is `uxcompose serve dev` (origin + ui + channel + CSS watch).
+Ship CSS with `uxcompose build`. Check the frozen sheet with `uxcompose serve prod`.
+HMR is not a Document API.
 
 ---
 
@@ -121,6 +122,8 @@ print(app.dispatch("cart.add", sku="tee"))
 | Goal | Doc |
 |------|-----|
 | End-to-end product path | [docs/guides/PATH.md](docs/guides/PATH.md) |
+| Serve / HMR / tunnel | [docs/guides/serve-hmr-tunnel.md](docs/guides/serve-hmr-tunnel.md) |
+| HMR architecture | [docs/internals/hmr.md](docs/internals/hmr.md) |
 | Production CSS (Tailwind minify) | [docs/guides/TAILWIND.md](docs/guides/TAILWIND.md) |
 | Pick-and-use UI | [docs/guides/UI.md](docs/guides/UI.md) |
 | Public-API cookbook | [docs/guides/SNIPPETS.md](docs/guides/SNIPPETS.md) |

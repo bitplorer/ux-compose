@@ -22,7 +22,7 @@ ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
             + ASSETS   app folders (ux_compose.assets.WebAssets) · /css mount
             + DELIVERY HTTP bind, host strategy, live units
             + CHANNEL  wire/ only
-            + DEV      HMR (/__uxcompose/hmr) · CSS sibling --watch · tunnel
+            + DEV      origin + ui + channel · HMR · CSS sibling --watch · tunnel
 
 ux-behavior units, MorphState, @action (offline)
 ux-channel  Intent/Caps behind wire/ only
@@ -33,8 +33,8 @@ ux-channel  Intent/Caps behind wire/ only
 Product path::
 
     uxcompose create-app myapp
+    uxcompose serve dev
     uxcompose build
-    uxcompose serve app:asgi
     uxcompose deploy --provider docker
 
 ---
@@ -61,8 +61,10 @@ create-app emits `document.py` (one Document; host wraps GET) and `settings.py` 
 ## 3–5. Product CLI / HMR / tunnel
 
 How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.md](guides/CLI.md) · [guides/TAILWIND.md](guides/TAILWIND.md).
+Architecture: [internals/hmr.md](internals/hmr.md) · decision: [adr/0005-serve-dev-split.md](adr/0005-serve-dev-split.md).
 
-Three clocks, do not collapse: process reload (`*.py`) · browser WS live-reload · sibling Tailwind `--watch` + client HEAD `/css/output.css`. No watcher and no `Popen` in `hmr.py`. CSS save must not kill the worker.
+`serve dev` is origin + ui + channel. `serve prod` is one process, clocks off.
+Three clocks on `serve dev` only: process reload (`*.py`) · browser WS live-reload · sibling Tailwind `--watch` + client HEAD `/css/output.css`. No watcher and no `Popen` in `hmr.py`. CSS save must not kill the worker.
 
 ## 6. Forbidden
 
@@ -70,6 +72,7 @@ Three clocks, do not collapse: process reload (`*.py`) · browser WS live-reload
 - HMR as Document.use product API
 - A file watcher, `HmrHub`, or Tailwind `Popen` inside `hmr.py`
 - Process-reloading the worker because `input.css` changed
+- Clock flags (`--hmr`, `--no-reload`, `--css-watch`) or a single-uvicorn fallback
 - Product code importing ux_channel
 - Tailwind compiler living on ux-dom
 - App asset layout (`WebAssets`) living on ux-dom

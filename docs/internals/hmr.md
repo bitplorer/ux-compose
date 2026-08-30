@@ -133,9 +133,11 @@ HMR WebSocket /__uxcompose/hmr drops
     |
     v
 client reconnects, waits until GET location.href is 200
-    |
+    |                        late → banner "waiting for ui worker"
+    |                        keep polling; never give up
     v
 softReload() fetches the same URL (HTML, cache: no-store)
+    then restores focus / selection / scroll (id, else name)
     |
     +-- parse / type / HTTP fail --------------+
     v                                              |
@@ -155,7 +157,8 @@ the replaced unit stay
 ```
 
 Client functions in `src/ux_compose/hmr.py`: `softReload`,
-`morphLive`, `hardReload`. There is no `reloadPage`.
+`morphLive`, `hardReload`, `showFail`, `restoreUi`.
+There is no `reloadPage`.
 
 **CSS / className save (`serve dev`)**
 
@@ -206,7 +209,7 @@ cannot apply a coherent patch:
 
 | Trigger | Why |
 |---------|-----|
-| Health GET never reaches 200 (80 tries) | worker did not come back |
+| Health GET stays non-200 | banner stays; polling continues |
 | Soft fetch is not `ok` | `hmr-http` |
 | Response is not `text/html` | `hmr-type` |
 | Parse yields no `body` | `hmr-parse` |

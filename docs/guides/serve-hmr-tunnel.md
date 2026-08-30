@@ -40,6 +40,7 @@ serve dev
   sibling Tailwind --watch writes output.css
   client HEAD-polls /css/output.css and swaps the sheet
   .py save → morph page-unit [id]s; location.reload() only on fail
+  ui worker late → banner, keep polling; hide banner on 200
 
 serve prod
   browser → one uvicorn (app:asgi)
@@ -61,8 +62,10 @@ with `build` then `serve prod`. Ship with `deploy`.
 ```text
 *.py save → ui worker dies → new class imported
          → HMR socket drops → wait GET 200
+         → late: banner, keep polling
          → fetch this URL
          → morph matching [id] (Idiomorph if present)
+         → restore focus / selection / scroll (id, else name)
          → on fail: location.reload()
 ```
 
@@ -73,9 +76,9 @@ Morph choice, in order:
    (`Hello.id = "hello"` is the usual target).
 3. Else hard reload.
 
-Hard reload also runs when the worker never returns 200, the
-response is not HTML, or parse throws. A user tab navigation is
-not a save — that path does nothing.
+Hard reload runs when the response is not HTML or parse throws.
+If the worker stays down, the banner stays and polling continues.
+A user tab navigation is not a save — that path does nothing.
 
 CSS save is a different clock: stylesheet swap, no morph, no reload.
 Full diagram: [../internals/hmr.md](../internals/hmr.md).

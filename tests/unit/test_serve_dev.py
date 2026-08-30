@@ -15,6 +15,7 @@ from ux_compose.serve_dev import (
     listen_loopback,
     worker_for,
 )
+from ux_compose.serve_restart import PID_NAME, pid_path, restart_channel
 
 
 def test_channel_paths_stay_on_channel_worker():
@@ -94,3 +95,23 @@ def test_workers_inherit_a_held_fd():
     assert "origin_asgi" in src
     assert "worker_for" in src
     assert "UXCOMPOSE_UI_URL" in src
+
+
+def test_restart_channel_helpers(tmp_path):
+    assert PID_NAME == ".uxcompose-serve-dev.pid"
+    path = pid_path(str(tmp_path))
+    assert path.name == PID_NAME
+    assert restart_channel(cwd=str(tmp_path)) == 1
+    path.write_text("not-a-pid", encoding="utf-8")
+    assert restart_channel(cwd=str(tmp_path)) == 1
+    path.write_text("99999999", encoding="utf-8")
+    assert restart_channel(cwd=str(tmp_path)) == 1
+    assert not path.exists()
+
+
+def test_origin_keeps_channel_socket_for_restart():
+    src = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    assert "write_pid" in src
+    assert "SIGUSR1" in src
+    assert "_respawn_channel" in src
+    assert "channel_sock.close()" not in src.split("def run")[1].split("finally:")[0]

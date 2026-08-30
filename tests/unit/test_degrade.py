@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from ux_compose.app import App
-from ux_compose.degrade import DegradeBus, clear, degrades, format_report, note, using
+from ux_compose.degrade import DegradeLog, clear, degrades, format_report, note, using
 
 
 def setup_function():
@@ -24,9 +24,9 @@ def test_clear_is_test_only_reset():
     assert degrades() == ()
 
 
-def test_two_buses_do_not_leak():
-    a = DegradeBus()
-    b = DegradeBus()
+def test_two_logs_do_not_leak():
+    a = DegradeLog()
+    b = DegradeLog()
     with using(a):
         note("use_channel", "L2", "missing", level_kept=1)
     with using(b):

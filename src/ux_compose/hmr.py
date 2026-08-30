@@ -6,7 +6,8 @@ Two clocks in this module, both on:
                    new worker, cold import, new page class
 
   browser HMR      WebSocket at ``/__uxcompose/hmr``
-                   reconnect after worker death → health → location.reload()
+                   reconnect after worker death → health → morph page units
+                   location.reload() only if morph fails
                    live-reload client inserted into HTML (dev middleware)
 
 CSS is not a file watcher here. ``uxcompose serve`` may start a sibling
@@ -30,8 +31,8 @@ BODY_CLOSE = b"</body>"
 APP_ENV = "UXCOMPOSE_APP"
 
 # First open is silent. Unclean close (worker died) reconnects, waits until
-# this URL is 200, then reloadPage(). close(1000) on beforeunload is a user
-# navigation — do not bounce.
+# this URL is 200, then morphs page-unit ids. location.reload() is the
+# fallback. close(1000) on beforeunload is a user navigation — do not bounce.
 CLIENT_JS = r"""
 (function () {
   if (window.__UXCOMPOSE_HMR__) return;
@@ -43,8 +44,42 @@ CLIENT_JS = r"""
     return u.toString();
   }
 
-  function reloadPage() {
+  function hardReload() {
     location.reload();
+  }
+
+  function morphLive(html) {
+    var doc = new DOMParser().parseFromString(html, "text/html");
+    if (!doc || !doc.body) throw new Error("hmr-parse");
+    if (doc.title) document.title = doc.title;
+    if (window.Idiomorph && typeof window.Idiomorph.morph === "function") {
+      window.Idiomorph.morph(document.body, doc.body);
+      return;
+    }
+    var fresh = doc.body.querySelectorAll("[id]");
+    var n = 0;
+    for (var i = 0; i < fresh.length; i++) {
+      var id = fresh[i].getAttribute("id");
+      if (!id) continue;
+      var live = document.getElementById(id);
+      if (!live || live === document.body || live === document.documentElement) continue;
+      if (live.getAttribute && live.getAttribute("data-uxcompose-hmr") !== null) continue;
+      live.replaceWith(fresh[i].cloneNode(true));
+      n += 1;
+    }
+    if (!n) throw new Error("hmr-no-target");
+  }
+
+  function softReload() {
+    fetch(location.href, { cache: "no-store", credentials: "same-origin" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("hmr-http");
+        var ct = r.headers.get("content-type") || "";
+        if (ct.indexOf("text/html") === -1) throw new Error("hmr-type");
+        return r.text();
+      })
+      .then(function (html) { morphLive(html); })
+      .catch(hardReload);
   }
 
   function waitUntilWorkerServes(onReady) {
@@ -75,7 +110,7 @@ CLIENT_JS = r"""
     }
     current = ws;
     ws.onopen = function () {
-      if (isReconnect) waitUntilWorkerServes(reloadPage);
+      if (isReconnect) waitUntilWorkerServes(softReload);
     };
     ws.onclose = function (ev) {
       if (ev.code === 1000) return;

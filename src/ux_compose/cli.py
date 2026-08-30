@@ -225,6 +225,17 @@ def _stop_proc(proc) -> None:
         proc.kill()
 
 
+def _missing_serve_dev_extras() -> list[str]:
+    """Packages origin needs. Missing → fail closed, no second architecture."""
+    missing: list[str] = []
+    for name in ("httpx", "starlette", "websockets"):
+        try:
+            __import__(name)
+        except ImportError:
+            missing.append(name)
+    return missing
+
+
 _SERVE_MODES = {
     "dev": "dev",
     "development": "dev",
@@ -281,11 +292,6 @@ def _serve(argv: list[str]) -> int:
         p.add_argument("--tunnel-token", default=None)
         p.add_argument("--health-path", default="/")
         p.add_argument("--health-timeout", type=float, default=30.0)
-        p.add_argument(
-            "--one-process",
-            action="store_true",
-            help="Fail-safe: one uvicorn. Channel dies when ui reloads.",
-        )
     args, unknown = p.parse_known_args(rest)
     if unknown:
         print(
@@ -296,8 +302,6 @@ def _serve(argv: list[str]) -> int:
             print("clocks live on 'serve dev', not flags on prod", file=sys.stderr)
         return 2
 
-    reload = mode == "dev"
-    hmr = mode == "dev"
     css_watch = mode == "dev"
     tunnel_value = getattr(args, "tunnel", "none")
     tunnel_token = getattr(args, "tunnel_token", None)
@@ -341,11 +345,17 @@ def _serve(argv: list[str]) -> int:
         except Exception as exc:
             print(f"tunnel failed: {exc}", file=sys.stderr)
 
-    run_kw: dict = {
-        "host": args.host,
-        "port": args.port,
-    }
-    if mode == "dev" and not getattr(args, "one_process", False):
+    if mode == "dev":
+        missing = _missing_serve_dev_extras()
+        if missing:
+            print(
+                "serve dev needs "
+                + ", ".join(missing)
+                + " — pip install 'ux-compose[serve]'",
+                file=sys.stderr,
+            )
+            _stop_proc(css_proc)
+            return 1
         from ux_compose.serve_dev import run as run_serve_dev
 
         print(
@@ -367,32 +377,14 @@ def _serve(argv: list[str]) -> int:
             if tunnel_handle is not None:
                 tunnel_handle.close()
 
-    if reload:
-        run_kw["reload"] = True
-        run_kw["reload_dirs"] = reload_dirs
-        run_kw["reload_includes"] = ["*.py"]
-        run_kw["reload_excludes"] = ["*.css", "assets/*"]
-
-    if hmr:
-        from ux_compose.hmr import APP_ENV
-
-        os.environ[APP_ENV] = args.app
-        run_target: str = "ux_compose.hmr:asgi_factory"
-        run_kw["factory"] = True
-        print(f"HMR: websocket /__uxcompose/hmr (factory, reload={reload})")
-    else:
-        run_target = args.app
-
+    print(
+        f"uxcompose serve prod {args.app} http://{args.host}:{args.port} "
+        f"clocks=off tunnel={provider}"
+    )
     if provider != "none":
         threading.Thread(target=_tunnel_worker, name="uxcompose-tunnel", daemon=True).start()
-
-    print(
-        f"uxcompose serve {mode} {args.app} http://{args.host}:{args.port} "
-        f"reload={reload} hmr={hmr} "
-        f"css_watch={css_proc is not None} tunnel={provider}"
-    )
     try:
-        uvicorn.run(run_target, **run_kw)
+        uvicorn.run(args.app, host=args.host, port=args.port)
     finally:
         _stop_proc(css_proc)
         if tunnel_handle is not None:

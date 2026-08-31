@@ -76,7 +76,6 @@ part of HMR.
 |----------|--------|
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` | `host="auto"` |
-| `from ux_compose.degrade import` | `from ux_compose import attach_notes` |
 | Teaching `App.mount` as the product path | `build()` |
 | root `swipe.*` on an overlay card | swipe on dismiss |
 

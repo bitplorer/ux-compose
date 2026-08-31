@@ -60,15 +60,3 @@ def test_leftover_use_host_batteries_is_residual():
         diags = scan_leftover_aliases([product])
         assert diags
         assert any("batteries" in d for d in diags)
-
-
-def test_leftover_degrade_module_is_residual():
-    with tempfile.TemporaryDirectory() as td:
-        product = Path(td) / "app.py"
-        product.write_text(
-            "from ux_compose.degrade import AttachNote\n",
-            encoding="utf-8",
-        )
-        diags = scan_leftover_aliases([product])
-        assert diags
-        assert any("ux_compose.degrade" in d for d in diags)

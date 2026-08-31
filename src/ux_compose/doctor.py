@@ -195,12 +195,13 @@ def _teaching_for_level(level: int, caps: dict) -> list[str]:
         lines.append("Full progressive stack available (L3).")
     if caps.get("directory_routes"):
         lines.append(
-            "Product path: uxcompose create-app + serve dev + build(). "
-            "App.mount is a library mount — not a second product."
+            "Product path: uxcompose create-app + serve dev + build() "
+            "(routes/ + stem match via DirectoryRoutes). "
+            "App.mount is the page-unit scan step, not a second product."
         )
     lines.append("One catalog: uxcompose add copies a kit widget. Do not import kit in product apps.")
     try:
-        from ux_compose.degrade import format_report
+        from ux_compose.attach_notes import format_report
         lines.extend(format_report())
     except Exception:
         pass

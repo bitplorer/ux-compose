@@ -4,7 +4,7 @@ Host seam: override ``on_confirm()``. Opening is public. Destroying is authority
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 Live: the root ``id`` is the region. Channel picks it up.
-Swipe lives on Keep it, not the root and not Delete. OverlayChrome
+Swipe lives on dismiss, not the root and not confirm. OverlayChrome
 owns scrim/panel/dismiss ids, dismiss grammar, and the open plan.
 """
 

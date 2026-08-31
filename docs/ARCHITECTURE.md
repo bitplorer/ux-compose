@@ -72,6 +72,8 @@ part of HMR.
 
 ## Leftovers that expire by teaching
 
+These strings are not the product path. Doctor flags them in app trees.
+
 | Leftover | Prefer |
 |----------|--------|
 | `from ux_compose.kit import` in an app | `uxcompose add` |

@@ -35,7 +35,7 @@ from ux_compose.author import (
     status,
     tick,
 )
-from ux_compose.degrade import DegradeEvent, degrades
+from ux_compose.degrade import AttachNote, attach_notes
 
 try:
     from ux_motion import scene, fade, rise, slide  # type: ignore
@@ -108,8 +108,8 @@ __all__ = [
     "maybe_plan",
     "maybe_fade",
     "maybe_slide",
-    "DegradeEvent",
-    "degrades",
+    "AttachNote",
+    "attach_notes",
     "Level",
     "doctor",
     "DoctorResult",

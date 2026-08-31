@@ -36,8 +36,8 @@ still lock them. Confusion must stop growing.
 4. **Leftovers expire by teaching.** Doctor scans kit-imports and leftover
    aliases in product trees and prints guidance. It does not fail-close on
    them. Deleting aliases while 0.1 tests lock them is a capability drop.
-5. **Degrade is visible and per-App.** Each `App` owns a `DegradeLog`.
-   `note()` dual-writes a process log so doctor has a process-wide audit.
+5. **Attach step-downs are visible and per-App.** Each `App` owns attach notes (`app.attach_notes`).
+   `note()` dual-writes a process notebook so doctor has a process-wide audit.
    Two Apps in one process do not leak. Attach methods still do not raise
    when a specialist is absent.
 6. **OverlayChrome owns edge-overlay chrome.** Dialog, Sheet, and

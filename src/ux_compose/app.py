@@ -1,13 +1,14 @@
 """App — progressive composition root and boot façade.
 
-Attach step-downs are recorded per-App, never raised.
+Owns glue only: levels, attach order, Component registration, offline dispatch.
+Missing specialists write ``app.attach_notes`` instead of raising.
 """
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Type
 
 from ux_compose.component import Component
-from ux_compose.degrade import AttachNotes, note, using
+from ux_compose.attach_notes import AttachNotes, note, using
 from ux_compose.progressive import Level
 
 

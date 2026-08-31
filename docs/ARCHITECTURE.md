@@ -19,9 +19,9 @@ Author  →  ux_compose (this package root)
               ├─ author helpers   act tick field status maybe_*
               ├─ composition      App Component MorphState @action helpers
               ├─ product host     create-app → serve dev → build → serve prod
-              ├─ scan step        App.mount  (called by build())   ← tests / surfaces
-              ├─ catalog          ux_compose.kit  +  uxcompose add ← one catalog
-              └─ wire/            only importer of channel / CEK   ← Isolation door
+              ├─ scan step        App.mount  (called by build())
+              ├─ catalog          ux_compose.kit  +  uxcompose add
+              └─ wire/            only importer of channel / CEK
 ```
 
 ---
@@ -35,25 +35,28 @@ uxcompose build
 uxcompose serve prod
 ```
 
-`serve dev` clocks (origin + ui + channel) are ADR 0005. This page does
-not reopen them. Channel stays off the ui reload path.
-
+`serve dev` clocks stay ADR 0005. Channel stays off the ui reload path.
 `build()` calls `App.mount` internally. Mount is the scan step, not a
 second product.
 
 ---
 
+## OverlayChrome — edge overlays
+
+Dialog, Sheet, and ActionSheet take ids, dismiss grammar, and the open
+plan from `kit/overlay.py`. Markup and Tailwind stay on the widget.
+Swipe lives on dismiss / handle, never the root.
+
+Anchored popovers and Command are a different family. They do not copy
+these ids.
+
+---
+
 ## Attach notes — missing specialist, visible step-down
 
-Level 1 code stays correct when Channel / Motion / CEK are absent.
-
-If `use_channel` cannot import ux-channel, the App does **not** raise.
-It stays at L1 and writes one `AttachNote`:
-
-- `door` — which attach (`use_channel`)
-- `wanted` — what was asked (`L2`)
-- `reason` — why it stepped down
-- `level_kept` — what still runs (`1`)
+If `use_channel` cannot import ux-channel, the App does not raise. It
+stays at L1 and writes one `AttachNote` (`door`, `wanted`, `reason`,
+`level_kept`).
 
 ```python
 from ux_compose import App, attach_notes
@@ -62,11 +65,21 @@ app.attach_notes                 # this App
 attach_notes()                   # process-wide when no App is bound
 ```
 
-Two Apps in one process do not leak. `use_channel` / `use_motion` /
-`use_cek` still return `self`. Doctor prints the same rows.
+Two Apps in one process do not leak. This is not a message bus and not
+part of HMR.
 
-This is not a message bus and not part of HMR. File-save still reloads
-the ui process only.
+---
+
+## Leftovers that expire by teaching
+
+| Leftover | Prefer |
+|----------|--------|
+| `from ux_compose.kit import` in an app | `uxcompose add` |
+| `host="batteries"` / `DirectoryRouter` | `host="auto"` |
+| Teaching `App.mount` as the product path | `build()` |
+| root `swipe.*` on an overlay card | swipe on dismiss |
+
+Doctor flags these in product trees. Deleting the aliases is a capability drop.
 
 ---
 

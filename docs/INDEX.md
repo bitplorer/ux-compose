@@ -54,7 +54,7 @@ Full cookbook: [guides/SNIPPETS.md](guides/SNIPPETS.md) · product path: [guides
 | You are… | Start (≤ 2 clicks from repo root) |
 |----------|-----------------------------------|
 | **First time** | [../START_HERE.md](../START_HERE.md) · [guides/PATH.md](guides/PATH.md) |
-| **Ownership / boundaries** | [FLOW.md](FLOW.md) |
+| **Ownership / boundaries** | [FLOW.md](FLOW.md) · [ARCHITECTURE.md](ARCHITECTURE.md) |
 | **CLI surface** | [guides/CLI.md](guides/CLI.md) |
 | **Serve / HMR** | [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [internals/hmr.md](internals/hmr.md) |
 | **Pick-and-use UI** | [guides/UI.md](guides/UI.md) |
@@ -64,7 +64,7 @@ Full cookbook: [guides/SNIPPETS.md](guides/SNIPPETS.md) · product path: [guides
 ```text
 New user:     START_HERE → FLOW → serve dev → examples/
 Builder:      FLOW → CLI → serve-hmr-tunnel → DX → TESTING
-Maintainer:   FLOW · internals/hmr · adr/0005 · AGENTS
+Maintainer:   FLOW · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005 · AGENTS
 ```
 
 ---
@@ -111,6 +111,7 @@ Maintainer:   FLOW · internals/hmr · adr/0005 · AGENTS
 
 | Doc | Topic |
 |-----|--------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Shape: one door, attach notes, OverlayChrome |
 | [FLOW.md](FLOW.md) | Ownership law (authoritative) |
 | [internals/FLOW.md](internals/FLOW.md) | Same contract in the explanation slot |
 | [internals/c4.md](internals/c4.md) | C4-style context |
@@ -118,6 +119,7 @@ Maintainer:   FLOW · internals/hmr · adr/0005 · AGENTS
 | [adr/README.md](adr/README.md) | ADR slot |
 | [adr/0001-ownership.md](adr/0001-ownership.md) | Render vs product lifecycle |
 | [adr/0002-product-host.md](adr/0002-product-host.md) | Product FastAPI host (Clock A) |
+| [adr/0004-clarity-and-residuals.md](adr/0004-clarity-and-residuals.md) | One author door, attach notes, OverlayChrome |
 | [adr/0005-serve-dev-split.md](adr/0005-serve-dev-split.md) | serve dev isolates Channel from ui reload |
 | [examples/README.md](examples/README.md) | Example slot |
 | [../CRITIC.md](../CRITIC.md) | Critic notes |

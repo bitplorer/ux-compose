@@ -1,31 +1,19 @@
+"""App — progressive composition root and boot façade.
+
+Owns glue only: levels, attach order, Component registration, offline dispatch.
+Missing specialists write ``app.attach_notes`` instead of raising.
 """
-App — progressive composition root and boot façade.
-
-Owns only glue: progressive levels, attach order, registration of Components,
-offline dispatch, and (via wire/) optional Channel + Motion attachment.
-Never invents Document, Caps, or Plan IR.
-
-Host choice is Invisible Strategy (see docs/FLOW.md).
-"""
-
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional, Type
 
 from ux_compose.component import Component
+from ux_compose.attach_notes import AttachNotes, note, using
 from ux_compose.progressive import Level
 
 
 class App:
-    """
-    Progressive composition root.
-
-    Example:
-        app = App.boot("Shop")  # level=auto
-        app = App.boot("Shop", level=1)  # pin offline for tests
-        app.use_host("fastapi")
-        bundle = app.mount(PACKAGE, asgi_app=api, base="routes")
-    """
+    """Progressive composition root."""
 
     def __init__(self, name: str = "App", *, strict_caps: bool = False):
         self.name = name
@@ -40,32 +28,25 @@ class App:
         self._author_document = None
         self._motion = False
         self._cek = None
-        self._host = "auto"  # Invisible Strategy preference
+        self._host = "auto"
+        self._notes = AttachNotes()
+
+    def _note(self, door: str, wanted: str, reason: Any, *, level_kept: int | None = None):
+        kept = int(self._level) if level_kept is None else level_kept
+        with using(self._notes):
+            return note(door, wanted, reason, level_kept=kept)
+
+    @property
+    def attach_notes(self):
+        """This App's attach step-downs. Process-wide list is attach_notes()."""
+        return self._notes.snapshot()
 
     @classmethod
-    def boot(
-        cls,
-        name: str = "App",
-        *,
-        strict_caps: bool = False,
-        level: int | str = "auto",
-    ) -> "App":
-        """Boot at the requested progressive level.
-
-        level:
-          - ``"auto"`` (default) — Level 1 (Behavior). Channel/Motion attach
-            in ``build()`` once the ASGI process exists, or via explicit
-            ``use_channel`` / ``use_motion``.
-          - ``0..3`` — pin progressive floor (tests / teaching / headless)
-
-        HTMX is never auto-attached; opt in via Document.use(Htmx()).
-        """
+    def boot(cls, name: str = "App", *, strict_caps: bool = False, level: int | str = "auto") -> "App":
         app = cls(name, strict_caps=strict_caps)
         auto = isinstance(level, str) and str(level).lower() == "auto"
         if auto:
             app.use_behavior()
-            # Channel/Motion attach in build() once the ASGI process exists,
-            # or via explicit use_channel / use_motion (tests, headless).
             return app
         lv = max(0, min(3, int(level)))
         if lv >= 1:
@@ -73,39 +54,26 @@ class App:
         if lv >= 2:
             try:
                 app.use_channel()
-            except Exception:
-                pass
+            except Exception as exc:
+                app._note("boot.use_channel", "L2", exc)
         if lv >= 3:
             try:
                 app.use_motion()
-            except Exception:
-                pass
+            except Exception as exc:
+                app._note("boot.use_motion", "L3", exc)
         return app
 
     def use_host(self, host: str = "fastapi") -> "App":
-        """Set host preference for page routing (Invisible Strategy).
-
-        Values: "auto" | "fastapi" | "asgi".
-        Authors never implement adapters; the strategy stays private.
-        ``batteries`` is leftover DirectoryRouter and fails closed.
-        ``starlette`` is accepted as an alias of auto/fastapi (not a host).
-        """
         self._host = (host or "auto").lower().strip()
         return self
 
     def use_dom(self, document: Any = None, *, author: bool = True) -> "App":
-        """Attach Document (ux-dom). Document SSoT respected.
-
-        ``author=True`` (default): this Document wraps GET. ``author=False``
-        is a synthesized runtime (CSP / static mount only).
-        """
         self._document = document
         if author:
             self._author_document = document
         return self
 
     def use_behavior(self) -> "App":
-        """Unlock Level 1 — offline interactive Behavior + MorphState + @action."""
         if self._behavior is not None:
             return self
         try:
@@ -115,22 +83,15 @@ class App:
             try:
                 import ux_motion  # noqa: F401
                 self._register_motion_stamp()
-            except ImportError:
-                pass
-        except ImportError:
+            except ImportError as exc:
+                self._note("use_behavior.motion_stamp", "L3", exc)
+        except ImportError as exc:
+            self._note("use_behavior", "ux-behavior", exc, level_kept=1)
             self._behavior = _LocalBehavior(self)
             self._level = max(self._level, Level.L1)
         return self
 
     def use_channel(self, **config) -> "App":
-        """Unlock Level 2. Imports only through wire/ (Isolation Law).
-
-        When ux-channel is absent, degrades gracefully and stays at current level.
-        Pass asgi_app=FastAPI() so Channel mounts on the real host.
-
-        If Channel was already booted headless, a later asgi_app= **rebinds**
-        onto that process (Behavior.attach is otherwise idempotent on _wire).
-        """
         asgi = config.get("asgi_app")
         if self._channel is not None and asgi is None:
             return self
@@ -139,7 +100,6 @@ class App:
                 return self
             behavior = self._behavior
             if behavior is not None and getattr(behavior, "_wire", None) is not None:
-                # Headless boot landed first — allow attach() to Channel.boot(asgi)
                 behavior._wire = None
             self._channel = None
         self.use_behavior()
@@ -149,12 +109,11 @@ class App:
             self._channel = ch
             self._channel_asgi = asgi
             self._level = max(self._level, Level.L2)
-        except ImportError:
-            pass
+        except ImportError as exc:
+            self._note("use_channel", "L2", exc)
         return self
 
     def use_motion(self) -> "App":
-        """Unlock Level 3. Motion + MotionChannel via controlled wire door."""
         try:
             from ux_compose.wire.boot import attach_motion
             Motion, MotionChannel = attach_motion()
@@ -163,20 +122,20 @@ class App:
             if self._document is not None and hasattr(self._document, "use"):
                 self._document.use(Motion, MotionChannel)
             self._register_motion_stamp()
-        except ImportError:
-            pass
+        except ImportError as exc:
+            self._note("use_motion", "L3", exc)
         return self
 
     def use_cek(self, *, mode: str = "adapt") -> "App":
-        """Optional CEK door via wire/ only. Progressive: degrades if cek_host absent."""
         if self._channel is None:
             self.use_channel()
         try:
             from ux_compose.wire.cek import attach_cek
             self._cek = attach_cek(self._channel, mode=mode)
-        except ImportError:
+        except ImportError as exc:
             if mode == "require":
                 raise
+            self._note("use_cek", "cek_host", exc)
             self._cek = None
         return self
 
@@ -186,57 +145,28 @@ class App:
         from ux_compose.wire.caps import mint_cap
         return mint_cap(self._channel, action, args, **kwargs)
 
-    def submit_intent(
-        self,
-        action: str,
-        *,
-        cap: Optional[str] = None,
-        mint: bool = False,
-        args: Optional[dict] = None,
-        **kwargs,
-    ):
+    def submit_intent(self, action: str, *, cap: Optional[str] = None, mint: bool = False, args: Optional[dict] = None, **kwargs):
         if self._channel is None:
             self.use_channel()
         from ux_compose.wire.caps import submit_intent
-        return submit_intent(
-            self._channel, action, cap=cap, mint=mint, args=args, **kwargs
-        )
+        return submit_intent(self._channel, action, cap=cap, mint=mint, args=args, **kwargs)
 
-    async def submit_intent_async(
-        self,
-        action: str,
-        *,
-        cap: Optional[str] = None,
-        mint: bool = False,
-        args: Optional[dict] = None,
-        **kwargs,
-    ):
+    async def submit_intent_async(self, action: str, *, cap: Optional[str] = None, mint: bool = False, args: Optional[dict] = None, **kwargs):
         if self._channel is None:
             self.use_channel()
         from ux_compose.wire.caps import async_submit_intent
-        return await async_submit_intent(
-            self._channel, action, cap=cap, mint=mint, args=args, **kwargs
-        )
+        return await async_submit_intent(self._channel, action, cap=cap, mint=mint, args=args, **kwargs)
 
     def _register_motion_stamp(self) -> None:
         behavior = self._behavior
         if behavior is None or not hasattr(behavior, "domain"):
             return
         try:
-            behavior.domain(
-                "motion",
-                "1",
-                pairs=(
-                    ("transition", "play"),
-                    ("transition", "cancel"),
-                    ("transition", "rewind"),
-                ),
-            )
-        except Exception:
-            pass
+            behavior.domain("motion", "1", pairs=(("transition", "play"), ("transition", "cancel"), ("transition", "rewind")))
+        except Exception as exc:
+            self._note("motion_stamp", "transition.play", exc)
 
     def add(self, *components: Type[Component]) -> "App":
-        """Manual / dynamic registration (preserved). Prefer mount() for route trees."""
         self.use_behavior()
         for c in components:
             key = getattr(c, "id", None) or c.__name__.lower()
@@ -247,59 +177,18 @@ class App:
             try:
                 from ux_compose.wire.caps import bridge_actions
                 bridge_actions(self._behavior, self._channel)
-            except Exception:
-                pass
+            except Exception as exc:
+                self._note("add.bridge_actions", "caps", exc)
         return self
 
-    def mount(
-        self,
-        package_dir,
-        *,
-        asgi_app=None,
-        base: str = "routes",
-        base_directory: str | None = None,
-        fail_closed: bool = True,
-        bind_pages: bool = True,
-        include_directory_router: bool | None = None,
-        on_surface=None,
-        package_name=None,
-        host: str | None = None,
-    ):
-        """Scan routes, register units on Behavior, optionally bind page routes.
-
-        When ``asgi_app`` is provided, wires ``RouterHooks.resolve_unit`` so
-        synthetic page GETs receive live Behavior instances (page-unit path).
-        Page units have no HTTP verbs; extra APIs live on the FastAPI process.
-
-        Host preference (Invisible Strategy) comes from ``use_host`` or the
-        ``host=`` argument. Authors never implement adapters.
-
-        ``include_directory_router`` is a deprecated alias of ``bind_pages``.
-        """
+    def mount(self, package_dir, *, asgi_app=None, base: str = "routes", base_directory: str | None = None, fail_closed: bool = True, bind_pages: bool = True, include_directory_router: bool | None = None, on_surface=None, package_name=None, host: str | None = None):
         if include_directory_router is not None:
             bind_pages = include_directory_router
         from ux_compose.surfaces import mount_surfaces
-
         self.use_behavior()
-        return mount_surfaces(
-            package_dir=package_dir,
-            base_directory=base_directory or base,
-            compose_app=self,
-            asgi_app=asgi_app,
-            fail_closed=fail_closed,
-            bind_pages=bind_pages,
-            on_surface=on_surface,
-            package_name=package_name,
-            host=host or getattr(self, "_host", "auto"),
-        )
+        return mount_surfaces(package_dir=package_dir, base_directory=base_directory or base, compose_app=self, asgi_app=asgi_app, fail_closed=fail_closed, bind_pages=bind_pages, on_surface=on_surface, package_name=package_name, host=host or getattr(self, "_host", "auto"))
 
     def dispatch(self, action: str, **kwargs) -> List[Any]:
-        """Offline-first dispatch. Same surface for tests, agents, and live.
-
-        Channel Intent uses ``args=dict``. L1 uses ``**kwargs``. One door:
-        ``dispatch("cart.add", sku="tee")`` and
-        ``dispatch("cart.add", args={"sku": "tee"})`` are the same call.
-        """
         self.use_behavior()
         kwargs = _unpack_action_kwargs(kwargs)
         if self._behavior is not None and hasattr(self._behavior, "dispatch"):
@@ -328,12 +217,6 @@ class App:
 
 
 def _unpack_action_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
-    """Flatten Channel-style ``args=dict`` into L1 kwargs.
-
-    ``args`` as a dict is the Intent payload, not a parameter named args.
-    A real action parameter called ``args`` still works: pass it as a
-    non-dict, or inside the packed dict.
-    """
     packed = kwargs.get("args")
     if not isinstance(packed, dict):
         return dict(kwargs)
@@ -346,7 +229,6 @@ def _unpack_action_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
 
 
 class _LocalBehavior:
-    """Minimal offline Behavior shim when ux-behavior is absent."""
     def __init__(self, app: App):
         self.app = app
         self._registry = {}
@@ -384,9 +266,7 @@ def _local_dispatch(app: App, action: str, **kwargs) -> List[Any]:
     result = fn(**kwargs)
     if result is None:
         target = getattr(inst, "id", None) or comp_id
-        dirty = set()
-        if hasattr(inst, "dirty_fields"):
-            dirty = inst.dirty_fields()
+        dirty = set(inst.dirty_fields()) if hasattr(inst, "dirty_fields") else set()
         ops = []
         if dirty or target:
             ops.append({"op": "morph", "target": f"#{target}", "strategy": "idiomorph"})

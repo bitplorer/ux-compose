@@ -1,16 +1,12 @@
 """Drop-in action sheet — bottom panel, swipe-down to dismiss.
 
-Host seam: override ``ACTIONS`` and ``on_pick(key)``. Destructive keys spend a Cap.
-Style: edit the ``class_*`` Tailwind strings. No companion CSS.
-
-Live: the root ``id`` is the region. Channel picks it up.
-Swipe lives on the handle and Cancel, not the root. A host-level
-``swipe.vertical`` captures the pointer and swallows clicks on the
-rows. Handle accepts ``click swipe.down swipe.vertical``. Rows stay
-``click``. Same synthesizer, no extra JS.
+Swipe lives on the handle and Cancel, not the root. OverlayChrome owns
+scrim/panel/dismiss ids, handle grammar, and the open plan.
 """
 
 from __future__ import annotations
+
+from ux_compose.kit.overlay import overlay as overlay_chrome
 
 from ux_compose import (
     Component,
@@ -28,36 +24,8 @@ from ux_compose import (
 )
 
 
-def _open_plan(cid: str = "actionsheet"):
-    """Enter the overlay after morph inserts it. Selectors only — no html=.
-
-    Presence is a Motion HOF. Same-node chrome is CSS.
-    Close is morph-only: the panel is gone after apply, so an exit recipe
-    in the same Result has nothing to play.
-    """
-    try:
-        from ux_compose import scene, fade, slide
-
-        if scene is None or fade is None or slide is None:
-            return None
-        return (
-            scene("actionsheet-open")
-            .enter(f"#{cid}-scrim", fade.enter(ms=120))
-            .enter(f"#{cid}-panel", slide.enter(y=32, ms=180))
-        )
-    except Exception:
-        return None
-
-
 class ActionSheet(Component):
-    """A sheet from the bottom. Presence is MorphState. Pick is a named key.
-
-    Swipe lives on the **handle** and Cancel, not the root. A host-level
-    ``swipe.vertical`` captures the pointer and swallows clicks on the
-    rows. Handle accepts ``click swipe.down``. Rows stay ``click``.
-    The card is not a containing block (no ``relative``, no overflow clip)
-    so ``fixed`` overlay is not trapped. Panel and scrim keep stable ids.
-    """
+    """A sheet from the bottom. Presence is MorphState. Pick is a named key."""
 
     id = "actionsheet"
 
@@ -94,7 +62,6 @@ class ActionSheet(Component):
     class_choice = "m-0 text-sm text-stone-500"
     class_sr = "sr-only"
 
-    # (key, label, destructive)
     ACTIONS = (
         ("share", "Share this piece", False),
         ("pin", "Pin to the desk", False),
@@ -111,10 +78,14 @@ class ActionSheet(Component):
     def _tick(self):
         self.stamp = "b" if self.stamp == "a" else "a"
 
+    def _chrome(self):
+        return overlay_chrome(self.id, kind="actionsheet")
+
     def render(self):
         is_open = bool(self.open)
         picked = str(self.picked or "")
-        overlay = []
+        ch = self._chrome()
+        layer = []
         if is_open:
             rows = [
                 button(
@@ -125,11 +96,11 @@ class ActionSheet(Component):
                 )
                 for key, label, dest in self.ACTIONS
             ]
-            overlay = [
+            layer = [
                 button(
                     span("Close", className=self.class_sr),
                     type="button",
-                    id=f"{self.id}-scrim",
+                    id=ch.scrim_id,
                     className=self.class_scrim,
                     aria_label="Close",
                     **bind(self.close),
@@ -139,10 +110,10 @@ class ActionSheet(Component):
                         span("Dismiss", className=self.class_sr),
                         div("", className=self.class_handle),
                         type="button",
-                        id=f"{self.id}-dismiss",
+                        id=ch.dismiss_id,
                         className=self.class_handle_hit,
                         aria_label="Dismiss",
-                        data_channel_on="click swipe.down swipe.vertical threshold:48",
+                        data_channel_on=ch.swipe_on_handle(),
                         **bind(self.close),
                     ),
                     span("Actions", className=self.class_kicker),
@@ -153,10 +124,10 @@ class ActionSheet(Component):
                         type="button",
                         id=f"{self.id}-cancel",
                         className=self.class_btn_ghost + " mt-1 text-stone-500",
-                        data_channel_on="click swipe.down",
+                        data_channel_on=ch.swipe_on_dismiss(),
                         **bind(self.close),
                     ),
-                    id=f"{self.id}-panel",
+                    id=ch.panel_id,
                     className=self.class_panel,
                     role="dialog",
                     aria_modal="true",
@@ -166,18 +137,10 @@ class ActionSheet(Component):
         return div(
             span("Sheet · swipe down", className=self.class_kicker),
             h2("Action sheet", className=self.class_title),
-            p(
-                "Opens from the bottom. Swipe the handle or Cancel to dismiss.",
-                className=self.class_lede,
-            ),
+            p("Opens from the bottom. Swipe the handle or Cancel to dismiss.", className=self.class_lede),
             p(f"Last pick · {picked}" if picked else "Nothing picked yet.", className=self.class_choice),
-            button(
-                "Open actions",
-                type="button",
-                className=self.class_btn_primary,
-                **bind(self.open_sheet),
-            ),
-            *overlay,
+            button("Open actions", type="button", className=self.class_btn_primary, **bind(self.open_sheet)),
+            *layer,
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
@@ -188,7 +151,7 @@ class ActionSheet(Component):
     def open_sheet(self):
         self.open = True
         self._tick()
-        return update_with(self, _open_plan(self.id))
+        return update_with(self, self._chrome().open_plan())
 
     @action(caps=())
     def close(self):

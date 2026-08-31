@@ -4,14 +4,13 @@ Host seam: override ``on_confirm()``. Opening is public. Destroying is authority
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 Live: the root ``id`` is the region. Channel picks it up.
-Swipe lives on Keep it, not the root and not Delete. A host-level
-``swipe.horizontal`` on the card swallows clicks the same way
-ActionSheet's root ``swipe.vertical`` did. Keep it accepts
-``click swipe.down``. Same synthesizer, no extra JS. Delete stays
-click-only — it spends a Cap.
+Swipe lives on dismiss, not the root and not confirm. OverlayChrome
+owns scrim/panel/dismiss ids, dismiss grammar, and the open plan.
 """
 
 from __future__ import annotations
+
+from ux_compose.kit.overlay import overlay as overlay_chrome
 
 from ux_compose import (
     Component,
@@ -29,35 +28,11 @@ from ux_compose import (
 )
 
 
-def _open_plan(cid: str = "dialog"):
-    """Enter the overlay after morph inserts it. Selectors only — no html=.
-
-    Presence is a Motion HOF. Same-node chrome is CSS.
-    Close is morph-only: the panel is gone after apply, so an exit recipe
-    in the same Result has nothing to play.
-    """
-    try:
-        from ux_compose import scene, fade, rise
-
-        if scene is None or fade is None or rise is None:
-            return None
-        return (
-            scene("dialog-open")
-            .enter(f"#{cid}-scrim", fade.enter(ms=120))
-            .enter(f"#{cid}-panel", rise.enter(ms=180))
-        )
-    except Exception:
-        return None
-
-
 class Dialog(Component):
     """Confirm overlay. Target id is silent RefState.
 
     Override ``on_confirm(target)`` in the product. Demo stand-in notifies.
     The resting card stays in flow; the overlay is presence on top of it.
-    The card is not a containing block (no ``relative``, no overflow clip)
-    so ``fixed`` overlay is not trapped. Panel and scrim keep stable ids.
-    Centering is a fixed flex chassis so rise can own transform.
     """
 
     id = "dialog"
@@ -98,6 +73,9 @@ class Dialog(Component):
         """Host seam. Return the toast copy. Called after the Cap spent."""
         return f"Deleted {target}" if target else "Deleted"
 
+    def _chrome(self):
+        return overlay_chrome(self.id, kind="dialog")
+
     def _resting(self):
         return [
             span("Authority", className=self.class_kicker),
@@ -114,12 +92,13 @@ class Dialog(Component):
     def render(self):
         kids = list(self._resting())
         if bool(self.open):
+            ch = self._chrome()
             who = str(self.target or "row")
             kids.extend([
                 button(
                     span("Close", className=self.class_sr),
                     type="button",
-                    id=f"{self.id}-scrim",
+                    id=ch.scrim_id,
                     className=self.class_scrim,
                     aria_label="Close",
                     **bind(self.cancel),
@@ -139,9 +118,9 @@ class Dialog(Component):
                             button(
                                 "Keep it",
                                 type="button",
-                                id=f"{self.id}-dismiss",
+                                id=ch.dismiss_id,
                                 className=self.class_btn_ghost,
-                                data_channel_on="click swipe.down",
+                                data_channel_on=ch.swipe_on_dismiss(),
                                 **bind(self.cancel),
                             ),
                             button(
@@ -153,7 +132,7 @@ class Dialog(Component):
                             ),
                             className=self.class_actions,
                         ),
-                        id=f"{self.id}-panel",
+                        id=ch.panel_id,
                         className=self.class_panel,
                         role="dialog",
                         aria_modal="true",
@@ -178,7 +157,7 @@ class Dialog(Component):
         if body:
             self.body = body
         self.open = True
-        return update_with(self, _open_plan(self.id))
+        return update_with(self, self._chrome().open_plan())
 
     @action(caps=())
     def cancel(self):

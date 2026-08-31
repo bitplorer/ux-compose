@@ -35,7 +35,7 @@ from ux_compose.author import (
     status,
     tick,
 )
-from ux_compose.degrade import AttachNote, attach_notes
+from ux_compose.attach_notes import AttachNote, attach_notes
 
 try:
     from ux_motion import scene, fade, rise, slide  # type: ignore

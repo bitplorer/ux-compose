@@ -249,7 +249,7 @@ class App:
 
     def doctor(self, paths=None, *, fail: bool = False):
         from ux_compose.doctor import doctor
-        return doctor(paths, fail=fail)
+        return doctor(paths, fail=fail, app=self)
 
 
 def _unpack_action_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:

@@ -43,11 +43,21 @@ Compose is allowed to look like “the product” to authors. It must **import**
 
 ## Install
 
+One Product path after `uxcompose create-app`. `pip install -r requirements.txt`
+boots Cap require (`cek="require"`) — no tribal specialist pins.
+
+**Python 3.13 — L2 Cap.** Channel (≥ `31a60bd`) + `cek-host>=0.1.3` +
+`cek-surface>=0.1.3`. Document stays off: ux-dom needs ≥3.14.
+
+**Python 3.14 — Document.** Uncomment `ux-dom` in the scaffold
+`requirements.txt`. Cap require is the same.
+
 ```bash
-python3.14 -m venv .venv && source .venv/bin/activate
+python3.13 -m venv .venv && source .venv/bin/activate   # or python3.14
 pip install -e .
 pip install "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git"
-pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
+# 3.14 Document shell:
+# pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
 ```
 
 Extras (specialists you actually use):
@@ -65,6 +75,7 @@ Product path:
 ```bash
 uxcompose create-app myapp --level 1
 cd myapp
+pip install -r requirements.txt
 uxcompose serve dev
 uxcompose build
 uxcompose deploy --provider docker
@@ -160,7 +171,7 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 
 Full law: [docs/OWNERSHIP.md](docs/OWNERSHIP.md). Examples: [examples/README.md](examples/README.md).
 
-**Notes:** ux-dom requires Python ≥3.14 (L1 offline can run 3.11+). Product Cap: `build(cek="require")` / `app.use_cek()` (default `require` — cek-runtime Host via Channel). Soft install: `cek-host>=0.1.3`. `mode="adapt"` is compare-only lab. Headless `use_channel()` boots Channel without HTTP for mint/submit tests. `mint_cap(action, {}, once=True)` is single-use; default remains `once=False`.
+**Notes:** ux-dom requires Python ≥3.14 (L1/L2 Cap can run 3.13). Product Cap: `build(cek="require")` / `app.use_cek()` (default `require` — cek-runtime Host via Channel). Scaffold `requirements.txt` pins ux-channel ≥ `31a60bd` plus `cek-host>=0.1.3` / `cek-surface>=0.1.3`. `mode="adapt"` is compare-only lab. Headless `use_channel()` boots Channel without HTTP for mint/submit tests. `mint_cap(action, {}, once=True)` is single-use; default remains `once=False`.
 
 ## Documentation
 

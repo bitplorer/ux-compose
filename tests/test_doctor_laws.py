@@ -92,3 +92,52 @@ def test_single_document_ok():
         mod.write_text("d = Document()\n", encoding="utf-8")
         diags = scan_dual_document([mod])
         assert diags == []
+
+
+class _Caps:
+    kernel_ssot = None
+
+
+def _app(*, caps_name: str, kernel_ssot=None, cek="require", channel=True):
+    caps = type(caps_name, (_Caps,), {"kernel_ssot": kernel_ssot})()
+
+    class _Registry:
+        _caps = caps
+
+    class _Channel:
+        registry = _Registry()
+
+    class _App:
+        _channel = _Channel() if channel else None
+        _cek = cek
+
+    return _App()
+
+
+def test_doctor_fail_loud_when_require_is_not_cek_runtime():
+    """cek=require + live Channel without CekHostCapService is a hard violation."""
+    app = _app(caps_name="CapService", kernel_ssot="channel", cek="require")
+    report = doctor([], fail=False, app=app)
+    assert report.ok is False
+    assert any("violation" in d.lower() for d in report.diagnostics)
+    assert any("CekHostCapService" in d or "cek-runtime" in d for d in report.diagnostics)
+
+
+def test_doctor_ok_when_identity_is_cek_runtime():
+    app = _app(caps_name="CekHostCapService", kernel_ssot="cek-runtime", cek="require")
+    report = doctor([], fail=False, app=app)
+    assert report.ok is True
+    assert not any("Cap Host" in d for d in report.diagnostics)
+
+
+def test_doctor_skips_cek_check_when_off_or_no_channel():
+    assert doctor([], fail=False, app=_app(caps_name="CapService", cek="require", channel=False)).ok is True
+    assert doctor([], fail=False, app=_app(caps_name="CapService", cek="off")).ok is True
+    assert doctor([], fail=False, app=_app(caps_name="CapService", cek="adapt")).ok is True
+
+
+def test_doctor_treats_unset_cek_as_require_when_channel_live():
+    """Swallowed require must not look healthy: _cek is None, Channel still live."""
+    report = doctor([], fail=False, app=_app(caps_name="CapService", cek=None))
+    assert report.ok is False
+    assert any("violation" in d.lower() for d in report.diagnostics)

@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `data-channel-action`. Scaffold `document.py` uses
   `Document.use(…, Channel.optional())` from `ux_dom.runtime`.
 
+- `create-app` `requirements.txt` installs Cap require: ux-channel VCS pin
+  ≥ `31a60bd`, `cek-host>=0.1.3`, `cek-surface>=0.1.3`. ux-dom is commented
+  (Python ≥3.14). Doctor fail-loud when `cek=require` and Channel is live
+  but `registry._caps` is not `CekHostCapService` / `kernel_ssot=cek-runtime`.
 - `build(cek="require")` (default): after `use_channel`, attach product Cap
   Host through `App.use_cek` (cek-runtime). Skip when `live="null"` / no
   Channel. Scaffold emits `cek="require"` so authors never hand-wire.

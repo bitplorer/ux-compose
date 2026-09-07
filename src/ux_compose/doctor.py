@@ -16,6 +16,7 @@ __all__ = [
     "scan_isolation",
     "scan_kit_product_imports",
     "scan_leftover_aliases",
+    "scan_cek_host",
 ]
 
 
@@ -156,6 +157,38 @@ def scan_leftover_aliases(paths: Iterable[str | Path]) -> list[str]:
     return diagnostics
 
 
+_CEK_SKIP = ("off", "0", "false", "no", "adapt")
+
+
+def scan_cek_host(app: Any) -> list[str]:
+    """Fail-loud when cek=require and Channel is live but Cap identity is not cek-runtime.
+
+    Isolation: duck-type ``registry._caps`` (type name + ``kernel_ssot``).
+    Product modules never import ``ux_channel``. ``_cek is None`` with a live
+    Channel is treated as require (swallowed attach must not look healthy).
+    """
+    if app is None:
+        return []
+    channel = getattr(app, "_channel", None)
+    if channel is None:
+        return []
+    mode = getattr(app, "_cek", None)
+    mode_s = str(mode).strip().lower() if mode is not None else "require"
+    if mode_s in _CEK_SKIP:
+        return []
+    caps = getattr(getattr(channel, "registry", None), "_caps", None)
+    name = type(caps).__name__ if caps is not None else None
+    ssot = getattr(caps, "kernel_ssot", None) if caps is not None else None
+    if name == "CekHostCapService" or ssot == "cek-runtime":
+        return []
+    return [
+        "Cap Host identity violation: cek=require with live Channel but "
+        f"registry._caps is {name!r} (kernel_ssot={ssot!r}); "
+        "expected CekHostCapService / kernel_ssot='cek-runtime'. "
+        "Install ux-channel (pin ≥ 31a60bd), cek-host>=0.1.3, cek-surface>=0.1.3."
+    ]
+
+
 @dataclass
 class DoctorResult:
     ok: bool = True
@@ -213,6 +246,7 @@ def doctor(
     *,
     fail: bool = True,
     bundle: Any = None,
+    app: Any = None,
 ) -> DoctorResult:
     caps = _detect_capabilities()
     if caps.get("ux_motion"):
@@ -252,6 +286,9 @@ def doctor(
             diagnostics.append(f"surface bundle: {e}")
         if not getattr(bundle, "sealed", True):
             diagnostics.append("surface bundle is not sealed — mount may be incomplete")
+    if app is None and bundle is not None:
+        app = getattr(bundle, "compose_app", None) or getattr(bundle, "app", None)
+    diagnostics.extend(scan_cek_host(app))
     hard = [d for d in diagnostics if "violation" in d.lower() or "dual-document risk" in d.lower()]
     result = DoctorResult(
         ok=len(hard) == 0,

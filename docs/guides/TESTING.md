@@ -51,31 +51,31 @@ Also: `apps/atelier_shop`, `apps/atelier_studio` (Makefile `shop` / `studio`).
 ## Commands
 
 ```bash
-# default (excludes nested-shell cto_red — expected RED until morph-shell fix)
-PYTHONPATH=src:. pytest tests/ -q -m "not cto_red"
+# default (includes nested-shell fragment-law)
+PYTHONPATH=src:. pytest tests/ -q
 
 # by layer
-PYTHONPATH=src:. pytest tests/unit tests/regression tests/feature -q -m "not cto_red"
+PYTHONPATH=src:. pytest tests/unit tests/regression tests/feature -q
 PYTHONPATH=src:. pytest tests/integration -q
 PYTHONPATH=src:. pytest tests/concurrency tests/load -q
 PYTHONPATH=src:. pytest tests/property tests/security -q
 
 # coverage
-PYTHONPATH=src:. pytest tests/ --cov=ux_compose --cov-report=term-missing -q -m "not cto_red"
+PYTHONPATH=src:. pytest tests/ --cov=ux_compose --cov-report=term-missing -q
 
 # markers
 PYTHONPATH=src:. pytest -m "not slow" -q
 PYTHONPATH=src:. pytest -m live -q   # needs fastapi / specialists
-PYTHONPATH=src:. pytest -m cto_red -q --tb=short  # nested-shell fragment-law; expected RED
+PYTHONPATH=src:. pytest -m cto_red -q --tb=short  # nested-shell fragment-law
 ```
 
 Makefile:
 
 ```bash
 make test
-make test-matrix          # excludes cto_red (nested-shell expected RED)
-make test-cto             # green CTO gates
-make test-cto-fragment-law  # nested-shell / fragment-law — expected RED
+make test-matrix
+make test-cto             # CTO gates (scaffold, Cap mint, fragment-law)
+make test-cto-fragment-law  # nested-shell / fragment-law
 make cek-repro-morph-shell  # optional sibling ../cek-auto-suite/repro_morph_shell.py
 make coverage
 make pulse   # live serve Pulse
@@ -92,13 +92,15 @@ Python < 3.14.
 |------|------|-------------|
 | Scaffold hello HTML fallback is a fragment (`id=hello`, no document chrome) | `test_cto_scaffold_hello_fragment.py` | GREEN |
 | `control()` mints Cap when Cap Host is live; Intent/dispatch fail-closed without cap for caps-required actions | `test_cto_cap_mint_fail_closed.py` | GREEN (live Intent skips without ux-channel) |
-| Morph payload for `#X` must not embed outer shell/brand chrome | `test_cto_fragment_law.py` | GREEN for scaffold/fragment Hello; **RED** `cto_red` nested-shell until morph-shell fix |
+| Morph payload for `#X` must not embed outer shell/brand chrome | `test_cto_fragment_law.py` | GREEN (scaffold/fragment Hello + nested-shell `cto_red`) |
 | GET `/` `/hello` CSS/JS presence | `test_cto_css_js_smoke.py` | GREEN source contract; ASGI GET skips without fastapi |
 
 The nested-shell tests use an in-repo `FullShellHello` fixture that mirrors the
 broken StunningCek pattern (full shell in `render()`, `update_with` targets
-`#hello`). They do **not** need the stunning tree in this repo. They fail
-until compose stops shipping full-shell HTML in the morph payload.
+`#hello`). They do **not** need the stunning tree in this repo. The fixture
+stays a full-shell characterization of the bad author pattern — do not rewrite
+it into a fragment. Authors should still write fragment `render()`; helpers
+strip the `#target` subtree as a safety net.
 
 Optional live repro (not imported by product, not required in CI):
 

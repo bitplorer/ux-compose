@@ -82,7 +82,8 @@ tree = div(
 ```
 
 `Component.render()` stays a **fragment** (the morph payload). Do not put the
-stylesheet link inside `render()`.
+stylesheet link inside `render()`. Authors should still write fragment
+`render()`; `update_with` strips a nested `#target` subtree as a safety net.
 
 ---
 

@@ -3,12 +3,12 @@
 Live smoking gun (cek-live-demo/stunning — not in this repo):
 - routes/hello.py render() returns a FULL shell ``<div id="stunning-root">…brand
   StunningCek…`` while ``update_with`` targets ``#hello``.
-- compose ``helpers.update_with`` / ``_render_html`` dumps that full render into
-  the morph payload, so brand + kernel_ssot nest on each click.
+- compose ``helpers.update_with`` / ``_render_html`` must emit the ``#hello``
+  subtree (not that full render) so brand + kernel_ssot do not nest on click.
 
-This fixture is the in-repo stand-in so the fragment-law suite goes RED without
-the stunning tree. Do not "fix" this fixture into a fragment — the RED test
-depends on it matching the broken author shape.
+This fixture is the in-repo stand-in for the broken author shape. Do not
+"fix" this fixture into a fragment — helpers must strip the #hello subtree
+from the full-shell render().
 """
 from __future__ import annotations
 

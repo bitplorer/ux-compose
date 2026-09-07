@@ -158,9 +158,11 @@ class Hello(Component):
 ```
 
 Page-unit law: `routes/hello.py` exports class `Hello`. The stem matches the
-class. `render()` is a fragment; the host wraps Document. Host adapters are
-chosen in `build(host=)`, not here. HTML / JSON / stream from `render()`:
-[HOST.md](HOST.md).
+class. `render()` is a fragment; the host wraps Document. Authors should still
+write fragment `render()` — `update_with` strips a nested `#target` subtree
+from a full-shell `render()` as a safety net, not as a license to return a
+document. Host adapters are chosen in `build(host=)`, not here. HTML / JSON /
+stream from `render()`: [HOST.md](HOST.md).
 
 ---
 

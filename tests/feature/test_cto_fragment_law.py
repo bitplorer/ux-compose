@@ -2,9 +2,10 @@
 
 Morph payload for target #X must not embed outer shell / brand chrome.
 
-The nested-shell test is EXPECTED RED against current compose
-(helpers.update_with → _render_html of full render()) and against the live
-StunningCek morph shape. Official scaffold hello stays a fragment (GREEN).
+Nested-shell tests characterize FullShellHello (full shell in render(),
+update_with targets #hello). Helpers must emit the #hello subtree — do not
+rewrite the fixture into a fragment. Official scaffold hello stays a
+fragment.
 
 HTML-string path only. Py3.13 HAS_DOM=False — this file does not claim
 Morph/L3 DOM trees. DOM-tree variants skip on Python < 3.14.
@@ -94,15 +95,12 @@ def test_fragment_law_scaffold_hello_morph_stays_fragment(tmp_path):
 
 @pytest.mark.cto_red
 def test_fragment_law_nested_shell_morph_html_must_not_embed_outer_brand_chrome():
-    """EXPECTED RED until the morph-shell fix PR.
+    """FullShellHello stays a full-shell fixture; morph payload must be #hello.
 
     Smoking gun: FullShellHello.render() is ``<div id="stunning-root">…brand
-    StunningCek…`` while update_with targets ``#hello``. helpers._render_html
-    currently ships that full shell as the morph HTML, matching live StunningCek
-    (brand + kernel_ssot nested 3× after clicks; initial GET brand count=1).
-
-    Fragment law: morph payload for #hello must be the #hello island only —
-    no outer shell, no brand chrome. Do not fix stunning/hello.py in this PR.
+    StunningCek…`` while update_with targets ``#hello``. helpers must emit the
+    #hello subtree, not the outer shell (live StunningCek nested brand +
+    kernel_ssot on each click). Do not rewrite this fixture into a fragment.
     """
     inst = FullShellHello()
     inst.n = 3
@@ -120,7 +118,7 @@ def test_fragment_law_nested_shell_morph_html_must_not_embed_outer_brand_chrome(
 @pytest.mark.skipif(not HAS_BEHAVIOR, reason="ux-behavior")
 @pytest.mark.cto_red
 def test_fragment_law_nested_shell_dispatch_morph_must_not_embed_outer_brand_chrome():
-    """Same fragment law via App.dispatch — EXPECTED RED on the broken pattern."""
+    """Same fragment law via App.dispatch against the full-shell fixture."""
     from ux_compose import App
 
     app = App.boot("StunningPattern", strict_caps=False)

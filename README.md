@@ -160,7 +160,7 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 
 Full law: [docs/OWNERSHIP.md](docs/OWNERSHIP.md). Examples: [examples/README.md](examples/README.md).
 
-**Notes:** ux-dom requires Python ≥3.14 (L1 offline can run 3.11+). Product Cap: `app.use_cek()` (default `require` — cek-runtime Host via Channel). `mode="adapt"` is compare-only lab. Headless `use_channel()` boots Channel without HTTP for mint/submit tests.
+**Notes:** ux-dom requires Python ≥3.14 (L1 offline can run 3.11+). Product Cap: `build(cek="require")` / `app.use_cek()` (default `require` — cek-runtime Host via Channel). Soft install: `cek-host>=0.1.3`. `mode="adapt"` is compare-only lab. Headless `use_channel()` boots Channel without HTTP for mint/submit tests. `mint_cap(action, {}, once=True)` is single-use; default remains `once=False`.
 
 ## Documentation
 

@@ -58,6 +58,7 @@ myapp/
   assets/css/input.css
   requirements.txt
   routes/
+    index.py     # GET / (alias; keep /hello)
     hello.py     # page unit (stem match)
 ```
 

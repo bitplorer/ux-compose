@@ -55,20 +55,62 @@ class ProductBuildReport:
         }
 
 
-def find_product_root(start: Optional[Path] = None) -> Path:
+def _product_root_hint(app_ref: Optional[str]) -> Optional[Path]:
+    """Directory to search when ``--app`` looks like a filesystem path."""
+    if not app_ref:
+        return None
+    loc, _, _attr = str(app_ref).partition(":")
+    loc = loc.strip()
+    if not loc:
+        return None
+    if "/" not in loc and "\\" not in loc and not loc.endswith(".py"):
+        return None
+    p = Path(loc)
+    if loc.endswith(".py") or p.suffix == ".py":
+        return p.parent
+    if p.name == "app":
+        return p.parent
+    return p
+
+
+def find_product_root(
+    start: Optional[Path] = None, *, app_ref: Optional[str] = None
+) -> Path:
     """Locate a product app root.
 
     Prefer ``app.py`` (uxcompose create-app). Leftover ``app/main.py``
     showcase trees are ``uxdom build`` (Document/static verify), not this CLI.
+
+    When cwd is not the app root, ``app_ref`` may be a path prefix
+    (``myapp/app:asgi`` / ``myapp/app.py:asgi``) so the CLI can walk from
+    that directory.
     """
+    origins: list[Path] = []
+    hint = _product_root_hint(app_ref)
+    if hint is not None:
+        origins.append(hint.resolve())
     cur = (start or Path.cwd()).resolve()
-    for p in [cur, *cur.parents]:
-        if (p / "app.py").is_file():
-            return p
-        if p == p.parent:
-            break
+    if cur not in origins:
+        origins.append(cur)
+
+    seen: set[str] = set()
+    for origin in origins:
+        for p in [origin, *origin.parents]:
+            key = str(p)
+            if key in seen:
+                continue
+            seen.add(key)
+            if (p / "app.py").is_file():
+                return p
+            if p == p.parent:
+                break
+    looked = ", ".join(str(o) for o in origins)
+    extra = f" and --app {app_ref}" if app_ref else ""
     raise FileNotFoundError(
-        "no product app found (expected app.py from uxcompose create-app). "
+        "no product app found (expected app.py from uxcompose create-app).\n"
+        f"Looked from: {looked}{extra}.\n"
+        "cd into the app directory (the folder that contains app.py), "
+        "or pass --app path/to/app:asgi so the CLI can find the root.\n"
         "Leftover app/main.py trees: uxdom build (does not compile CSS)."
     )
 
@@ -94,7 +136,7 @@ def run_product_build(
     """
     from ux_compose.tailwind import argv_with_io, discover_css_io, resolve_tailwind
 
-    root = find_product_root(cwd)
+    root = find_product_root(cwd, app_ref=app_ref)
     report = ProductBuildReport(root=root)
 
     app_py = root / "app.py"

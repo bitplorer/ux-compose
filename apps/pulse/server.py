@@ -252,7 +252,10 @@ def build():
             action_name = f"{sid}.{name}"
         try:
             if action_name.endswith("checkout") and hasattr(app, "submit_intent_async"):
-                result = await app.submit_intent_async(action_name, mint=True, args=args)
+                cap = app.mint_cap(action_name, args or {}, once=True)
+                result = await app.submit_intent_async(
+                    action_name, cap=cap, args=args
+                )
                 if not getattr(result, "ok", True):
                     app.dispatch(action_name, **args)
             else:

@@ -74,6 +74,27 @@ def test_checkout_succeeds_only_with_real_cap():
     assert "placed" in blob.lower() or "toast" in blob.lower() or placed.ok
 
 
+def test_mint_once_true_replay_refused():
+    """Channel post-cut5: mint(action, {}, once=True); replay of that Cap is refused.
+
+    Default remains once=False (reusable). Compose does not own the once store.
+    """
+    app = _cart_app()
+    cap = app.mint_cap("cart.checkout", {}, once=True)
+    assert isinstance(cap, str) and len(cap) > 8
+    first = app.submit_intent("cart.checkout", cap=cap, args={})
+    assert getattr(first, "ok", True) is True
+    replay = app.submit_intent("cart.checkout", cap=cap, args={})
+    assert getattr(replay, "ok", None) is False
+    blob = str(getattr(replay, "error", None) or "") + str(replay)
+    assert (
+        "replay" in blob.lower()
+        or "once" in blob.lower()
+        or "nonce" in blob.lower()
+        or "cap" in blob.lower()
+    )
+
+
 def test_mint_flag_on_submit_intent():
     app = _cart_app()
     result = app.submit_intent("cart.checkout", mint=True, args={})

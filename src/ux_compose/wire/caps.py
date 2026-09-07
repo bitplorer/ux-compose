@@ -19,7 +19,12 @@ def mint_cap(
     args: Optional[Mapping[str, Any]] = None,
     **kwargs: Any,
 ) -> str:
-    """Mint a real Channel Cap for *action*. Isolation door."""
+    """Mint a real Channel Cap for *action*. Isolation door.
+
+    Keyword args pass through to Channel.mint (``once=``, ``sub=``, …).
+    Default is ``once=False`` (reusable). ``once=True`` is single-use at
+    the Cap Host — compose does not own the once store.
+    """
     if channel is None:
         raise RuntimeError(
             "mint_cap requires a live Channel. Call App.use_channel() first "
@@ -81,7 +86,8 @@ def submit_intent(
 ) -> Any:
     """Dispatch an Intent on Channel.registry.
 
-    *mint=True* mints a real Cap first (Host path).
+    *mint=True* mints a real Cap first (Host path). Pass ``once=True``
+    through to mint when the Cap should be single-use (default ``once=False``).
     *cap=* supplies an already-minted token.
     Missing Cap with require_cap=True → Result.ok is False (Cap Law).
     """
@@ -93,8 +99,13 @@ def submit_intent(
 
     payload = dict(args or {})
     token = cap
+    mint_kw = {
+        k: kwargs.pop(k)
+        for k in ("once", "jti", "sub", "scopes", "extra")
+        if k in kwargs
+    }
     if token is None and mint:
-        token = mint_cap(channel, action, payload)
+        token = mint_cap(channel, action, payload, **mint_kw)
     intent = Intent(action=action, args=payload, cap=token)
     registry = getattr(channel, "registry", None)
     if registry is None or not hasattr(registry, "dispatch"):
@@ -127,8 +138,13 @@ async def async_submit_intent(
 
     payload = dict(args or {})
     token = cap
+    mint_kw = {
+        k: kwargs.pop(k)
+        for k in ("once", "jti", "sub", "scopes", "extra")
+        if k in kwargs
+    }
     if token is None and mint:
-        token = mint_cap(channel, action, payload)
+        token = mint_cap(channel, action, payload, **mint_kw)
     intent = Intent(action=action, args=payload, cap=token)
     registry = getattr(channel, "registry", None)
     if registry is None:

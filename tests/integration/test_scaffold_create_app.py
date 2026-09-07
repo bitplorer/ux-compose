@@ -27,6 +27,10 @@ def test_create_app_layout(tmp_path):
     assert "asgi" in text
     assert "document=document" in text
     assert "from document import document" in text
+    assert 'cek="require"' in text or "app.use_cek(" in text
+    assert "import ux_channel" not in text
+    assert "from ux_channel" not in text
+    assert (root / "routes" / "index.py").is_file()
     readme = (root / "README.md").read_text(encoding="utf-8")
     assert "uxcompose serve dev" in readme
     assert "uxcompose serve prod" in readme
@@ -66,6 +70,11 @@ def test_create_app_teaches_document_and_settings(tmp_path):
 
     assert "ux-compose" in req
     assert "ux-dom" in req
+    assert "cek-host>=0.1.3" in req
+
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "cek-host>=0.1.3" in readme
+    assert "use_cek" in readme or 'cek="require"' in readme or "cek=" in readme
 
 
 def test_create_app_isolation_and_single_document(tmp_path):
@@ -96,3 +105,14 @@ def test_create_app_python_compiles(tmp_path):
         ast.parse(src, filename=str(p))
         assert "{{" not in src, f"leftover format escape in {p.name}"
         assert "}}" not in src, f"leftover format escape in {p.name}"
+
+
+def test_create_app_discovers_root_and_hello(tmp_path):
+    """index.py aliases GET /; hello.py stays at /hello."""
+    from ux_compose.routing import DirectoryRoutes
+
+    root = create_app(tmp_path / "routes_demo", name="routes_demo")
+    core = DirectoryRoutes(root, base_directory="routes")
+    paths = {r.path for r in core.discover()}
+    assert "/" in paths
+    assert "/hello" in paths

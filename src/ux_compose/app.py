@@ -94,21 +94,34 @@ class App:
     def use_channel(self, **config) -> "App":
         asgi = config.get("asgi_app")
         if self._channel is not None and asgi is None:
+            from ux_compose.wire.caps import register_live_channel
+
+            register_live_channel(self._channel)
             return self
         if self._channel is not None and asgi is not None:
             if getattr(self, "_channel_asgi", None) is asgi:
+                from ux_compose.wire.caps import register_live_channel
+
+                register_live_channel(self._channel)
                 return self
             behavior = self._behavior
             if behavior is not None and getattr(behavior, "_wire", None) is not None:
                 behavior._wire = None
             self._channel = None
+            from ux_compose.wire.caps import register_live_channel
+
+            register_live_channel(None)
         self.use_behavior()
         try:
             from ux_compose.wire.boot import attach_channel
+            from ux_compose.wire.caps import register_live_channel
+
             ch = attach_channel(self, **config)
             self._channel = ch
             self._channel_asgi = asgi
             self._level = max(self._level, Level.L2)
+            if ch is not None:
+                register_live_channel(ch)
         except ImportError as exc:
             self._note("use_channel", "L2", exc)
         return self
@@ -215,6 +228,11 @@ class App:
 
     def control(self, action: str, **args) -> dict:
         self.use_behavior()
+        if self._channel is not None:
+            from ux_compose.wire.caps import control_attrs
+
+            # Product verb (hello.inc), not Behavior.control's ux_behavior.dispatch remap.
+            return control_attrs(self._channel, action, **args)
         if self._behavior is not None and hasattr(self._behavior, "control"):
             return self._behavior.control(action, **args)
         from ux_compose.helpers import control

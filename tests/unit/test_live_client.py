@@ -209,6 +209,7 @@ def test_build_fragment_get_injects_channel_client(tmp_path: Path):
     assert r.text.count(CHANNEL_JS_URL) == 1
     assert 'data-ux-action="hello.inc"' in r.text
     assert 'data-channel-action="hello.inc"' in r.text
+    assert "data-channel-cap=" in r.text
     assert hasattr(asgi, "mount")
     ops = app.dispatch("hello.inc")
     assert isinstance(ops, list)

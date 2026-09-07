@@ -41,6 +41,10 @@ def _hyphenate_keys(mapping: Mapping[str, Any]) -> dict[str, str]:
     return {str(k).replace("_", "-"): str(v) for k, v in mapping.items()}
 
 
+def _cap_token(raw: Mapping[str, Any]) -> str:
+    return str(raw.get("data-channel-cap") or "").strip()
+
+
 def _as_attr_map(result: Any) -> dict[str, str]:
     if result is None:
         return {}
@@ -90,22 +94,28 @@ def control_attrs(channel: Any, action: str, **args: Any) -> dict[str, str]:
             raw = _as_attr_map(_call_control(control_fn, str(action), args))
         except Exception:
             raw = {}
-    if "data-channel-cap" not in raw:
+    if not _cap_token(raw):
         mint_fn = getattr(channel, "mint", None)
         if callable(mint_fn):
-            token = mint_fn(str(action), dict(args))
-            raw.setdefault("data-channel-action", str(action))
-            raw["data-channel-cap"] = str(token)
-            if args and "data-channel-args" not in raw:
-                raw["data-channel-args"] = json.dumps(
-                    {k: str(v) for k, v in args.items()},
-                    separators=(",", ":"),
-                    ensure_ascii=True,
-                )
+            token = str(mint_fn(str(action), dict(args)) or "").strip()
+            if token:
+                raw.setdefault("data-channel-action", str(action))
+                raw["data-channel-cap"] = token
+                if args and "data-channel-args" not in raw:
+                    raw["data-channel-args"] = json.dumps(
+                        {k: str(v) for k, v in args.items()},
+                        separators=(",", ":"),
+                        ensure_ascii=True,
+                    )
         elif not raw:
             raise TypeError(
                 "channel has no control() or mint() — pass the Channel from use_channel()"
             )
+    if not _cap_token(raw):
+        raise RuntimeError(
+            f"control_attrs failed to mint a Cap for {action!r}. "
+            "Channel is live — refusing empty Cap (Cap Host would toast missing capability)."
+        )
     raw.setdefault("data-ux-action", str(action))
     raw.setdefault("data-channel-action", str(action))
     for k, v in args.items():

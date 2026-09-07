@@ -52,22 +52,24 @@ def _minted_attrs(verb: str, args: dict) -> dict | None:
     channel = _live_channel()
     if channel is None:
         return None
-    try:
-        from ux_compose.wire.caps import control_attrs
+    from ux_compose.wire.caps import control_attrs
 
-        minted = control_attrs(channel, verb, **args)
-    except Exception:
-        return None
-    if minted.get("data-channel-cap"):
-        return minted
-    return None
+    minted = control_attrs(channel, verb, **args)
+    cap = str(minted.get("data-channel-cap") or "").strip()
+    if not cap:
+        raise RuntimeError(
+            f"live Channel mint for {verb!r} returned empty Cap; "
+            "refusing no-cap attrs (Cap Host would toast missing capability)"
+        )
+    return minted
 
 
 def bind(action_obj, **kwargs):
     """Symbol-safe UI attrs. Prefers ux_behavior.bind / .ui when available.
 
     When Cap Host is live, never return Behavior bind attrs without Cap
-    enrichment — mint via ``wire.caps.control_attrs``.
+    enrichment — mint via ``wire.caps.control_attrs``. Empty mint fails
+    loud (no silent dual-attr fallback that would toast missing capability).
     """
     verb = None
     attrs = None

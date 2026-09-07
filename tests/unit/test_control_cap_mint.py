@@ -125,6 +125,21 @@ def test_helpers_control_emits_cap_when_channel_live(_restore_live_channel):
     assert ch.seen == [("hello.inc", {"sku": "tee"})]
 
 
+def test_helpers_control_hello_pulse_emits_cap_when_channel_live(_restore_live_channel):
+    """Same mint path as hello.inc — Reviewer-visible pulse coverage."""
+    from ux_compose.wire.caps import register_live_channel
+
+    ch = _FakeChannel(cap="tok.pulse")
+    register_live_channel(ch)
+    attrs = control("hello.pulse")
+    cap = attrs.get("data-channel-cap")
+    assert isinstance(cap, str) and cap.strip()
+    assert cap == "tok.pulse"
+    assert attrs["data-channel-action"] == "hello.pulse"
+    assert attrs["data-ux-action"] == "hello.pulse"
+    assert ch.seen == [("hello.pulse", {})]
+
+
 def test_helpers_control_normalizes_underscore_keys(_restore_live_channel):
     from ux_compose.wire.caps import register_live_channel
 
@@ -285,3 +300,44 @@ def test_intent_without_cap_fails_minted_cap_from_control_ok(_restore_live_chann
     assert app_attrs["data-channel-action"] == "hello.inc"
     assert app_attrs.get("data-channel-cap")
     assert "dispatch" not in app_attrs["data-channel-action"]
+
+
+@pytest.mark.skipif(not HAS_CHANNEL, reason="ux-channel")
+def test_hello_pulse_control_emits_nonempty_cap_when_cap_host_live(_restore_live_channel):
+    """control('hello.pulse') mints a non-empty Cap on the same path as hello.inc."""
+    from ux_compose import App
+    from ux_compose.helpers import control as live_control
+    from ux_compose.wire.caps import register_live_channel
+
+    app = App.boot("Demo", strict_caps=False)
+    app.use_channel()
+    if app._channel is None:
+        pytest.skip("Channel did not boot")
+    register_live_channel(app._channel)
+
+    attrs = live_control("hello.pulse")
+    cap = attrs.get("data-channel-cap")
+    assert isinstance(cap, str) and cap.strip(), attrs
+    assert attrs["data-channel-action"] == "hello.pulse"
+    assert attrs["data-ux-action"] == "hello.pulse"
+
+    app_attrs = app.control("hello.pulse")
+    app_cap = app_attrs.get("data-channel-cap")
+    assert isinstance(app_cap, str) and app_cap.strip(), app_attrs
+    assert app_attrs["data-channel-action"] == "hello.pulse"
+
+
+def test_helpers_control_empty_mint_fails_loud_when_channel_live(_restore_live_channel):
+    """Registered Channel + empty Cap must not fall back to no-cap dual attrs."""
+    from ux_compose.wire.caps import register_live_channel
+
+    class _EmptyCap:
+        def control(self, action, trust=None, **_kw):
+            return _FakeAttrs(str(action), dict(trust or {}), cap="")
+
+        def mint(self, action, args=None, **_kw):
+            return ""
+
+    register_live_channel(_EmptyCap())
+    with pytest.raises(RuntimeError, match=r"empty Cap|failed to mint"):
+        control("hello.pulse")

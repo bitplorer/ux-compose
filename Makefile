@@ -23,21 +23,20 @@ specialists: venv314
 	$(PY314) -m pip install -e ".[dev]"
 
 test:
-	PYTHONPATH=src:. python -m pytest tests/ -q -m "not cto_red"
+	PYTHONPATH=src:. python -m pytest tests/ -q
 
 test-matrix:
 	PYTHONPATH=src:. python -m pytest \
 	  tests/unit tests/integration tests/regression tests/feature \
-	  tests/concurrency tests/load tests/property tests/security -q -m "not cto_red"
+	  tests/concurrency tests/load tests/property tests/security -q
 
-# CTO gates (scaffold fragment, Cap mint / fail-closed, green fragment-law).
-# Excludes the nested-shell assertion, which is expected RED until the
-# morph-shell fix PR. Isolation: product never imports ux_channel.
+# CTO gates (scaffold fragment, Cap mint / fail-closed, fragment-law).
+# Isolation: product never imports ux_channel.
 test-cto:
-	PYTHONPATH=src:. python -m pytest tests/feature -q -m "not cto_red"
+	PYTHONPATH=src:. python -m pytest tests/feature -q
 
 # Nested-shell / fragment-law: morph HTML for #hello must not embed outer
-# brand chrome. EXPECTED RED against full-shell-in-render (stunning pattern).
+# brand chrome. FullShellHello stays a full-shell fixture; helpers strip.
 test-cto-fragment-law:
 	PYTHONPATH=src:. python -m pytest tests/feature -q -m cto_red --tb=short
 
@@ -51,16 +50,16 @@ cek-repro-morph-shell:
 	python ../cek-auto-suite/repro_morph_shell.py
 
 coverage:
-	PYTHONPATH=src:. python -m pytest tests/ -q --cov=ux_compose --cov-report=term-missing -m "not cto_red"
+	PYTHONPATH=src:. python -m pytest tests/ -q --cov=ux_compose --cov-report=term-missing
 
 test314:
-	cd $(CURDIR) && PYTHONPATH=src:. $(PY314) -m pytest tests/ -q -m "not cto_red"
+	cd $(CURDIR) && PYTHONPATH=src:. $(PY314) -m pytest tests/ -q
 
 test312:
 	PYTHONPATH=src $(PY312) -m pytest \
 	  tests/test_offline.py tests/test_offline_cart.py tests/test_doctor_laws.py \
 	  tests/test_cold_isolation.py tests/test_return_algebra.py tests/test_xor_helpers.py \
-	  tests/feature -q -m "not cto_red"
+	  tests/feature -q
 
 examples:
 	$(PY314) examples/foundation.py

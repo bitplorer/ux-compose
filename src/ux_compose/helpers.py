@@ -10,6 +10,7 @@ When absent, helpers emit plain dict Ops for the pure-shim path.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, List, Optional
 
 try:
@@ -165,16 +166,176 @@ def _serialize_tree(tree: Any) -> str:
         return ""
 
 
-def _render_html(component_or_id: Any) -> str:
+_VOID_TAGS = frozenset(
+    {
+        "area",
+        "base",
+        "br",
+        "col",
+        "embed",
+        "hr",
+        "img",
+        "input",
+        "link",
+        "meta",
+        "param",
+        "source",
+        "track",
+        "wbr",
+    }
+)
+_TAG_NAME = re.compile(r"<(/?)([A-Za-z][A-Za-z0-9:_-]*)", re.I)
+_ID_ATTR_NAME = re.compile(r"(?<![A-Za-z0-9:_-])id\s*=\s*", re.I)
+
+
+def _skip_quoted(html: str, start: int) -> int:
+    """Advance from ``start`` (a ``>`` search) past the next unquoted ``>``."""
+    i = start
+    in_quote: str | None = None
+    while i < len(html):
+        c = html[i]
+        if in_quote:
+            if c == in_quote:
+                in_quote = None
+        elif c in "\"'":
+            in_quote = c
+        elif c == ">":
+            return i
+        i += 1
+    return -1
+
+
+def _element_end(html: str, start: int) -> int | None:
+    """Exclusive index of the element that opens at ``html[start]`` (``<``)."""
+    m = _TAG_NAME.match(html, start)
+    if not m or m.group(1):
+        return None
+    name = m.group(2).lower()
+    gt = _skip_quoted(html, m.end())
+    if gt < 0:
+        return None
+    self_close = gt > start and html[gt - 1] == "/"
+    after_open = gt + 1
+    if self_close or name in _VOID_TAGS:
+        return after_open
+    depth = 1
+    i = after_open
+    while i < len(html):
+        if html.startswith("<!--", i):
+            end = html.find("-->", i + 4)
+            if end < 0:
+                return None
+            i = end + 3
+            continue
+        if html[i] != "<":
+            i += 1
+            continue
+        tm = _TAG_NAME.match(html, i)
+        if not tm:
+            i += 1
+            continue
+        gt = _skip_quoted(html, tm.end())
+        if gt < 0:
+            return None
+        tname = tm.group(2).lower()
+        closing = bool(tm.group(1))
+        self_close = gt > i and html[gt - 1] == "/"
+        nxt = gt + 1
+        if tname == name:
+            if closing:
+                depth -= 1
+                if depth == 0:
+                    return nxt
+            elif not self_close and name not in _VOID_TAGS:
+                depth += 1
+        i = nxt
+    return None
+
+
+def _open_tag_id(open_tag: str) -> str | None:
+    """Return the ``id`` attribute of one start tag, ignoring quoted values."""
+    i = 0
+    in_quote: str | None = None
+    while i < len(open_tag):
+        c = open_tag[i]
+        if in_quote:
+            if c == in_quote:
+                in_quote = None
+            i += 1
+            continue
+        if c in "\"'":
+            in_quote = c
+            i += 1
+            continue
+        m = _ID_ATTR_NAME.match(open_tag, i)
+        if not m:
+            i += 1
+            continue
+        j = m.end()
+        if j < len(open_tag) and open_tag[j] in "\"'":
+            q = open_tag[j]
+            k = open_tag.find(q, j + 1)
+            return open_tag[j + 1 : k] if k >= 0 else open_tag[j + 1 :].rstrip(">/ \t\n\r")
+        k = j
+        while k < len(open_tag) and open_tag[k] not in " \t\n\r>/":
+            k += 1
+        return open_tag[j:k]
+    return None
+
+
+def _fragment_for_target(html: str, target_id: str) -> str:
+    """Document law: morph payload is the subtree for ``#target``, not a shell.
+
+    Authors should still write fragment ``render()``. This strip is a safety
+    net when ``render()`` returns a full shell that *contains* ``#target``.
+    Already-fragment HTML (root id == target) is returned unchanged. Missing
+    target id leaves ``html`` as-is.
+    """
+    blob = html or ""
+    tid = str(target_id or "").lstrip("#")
+    if not blob or not tid:
+        return html
+    i = 0
+    while i < len(blob):
+        if blob.startswith("<!--", i):
+            end = blob.find("-->", i + 4)
+            i = len(blob) if end < 0 else end + 3
+            continue
+        if blob[i] != "<" or blob.startswith(("</", "<!", "<?"), i):
+            i += 1
+            continue
+        gt = _skip_quoted(blob, i + 1)
+        if gt < 0:
+            break
+        if _open_tag_id(blob[i : gt + 1]) == tid:
+            end = _element_end(blob, i)
+            if end is not None:
+                return blob[i:end]
+        i = gt + 1
+    return html
+
+
+def _render_html(component_or_id: Any, *, target_id: str | None = None) -> str:
     if isinstance(component_or_id, str):
-        return component_or_id
-    render = getattr(component_or_id, "render", None)
-    if callable(render):
-        try:
-            return _serialize_tree(render())
-        except Exception:
-            pass
-    return _serialize_tree(component_or_id)
+        html = component_or_id
+    else:
+        html = ""
+        render = getattr(component_or_id, "render", None)
+        if callable(render):
+            try:
+                html = _serialize_tree(render())
+            except Exception:
+                html = ""
+        if not html:
+            html = _serialize_tree(component_or_id)
+    tid = target_id
+    if not tid:
+        raw = getattr(component_or_id, "id", None)
+        if raw:
+            tid = str(raw)
+    if tid:
+        return _fragment_for_target(html, tid)
+    return html
 
 
 def _coerce_op(op: Any) -> Any:
@@ -257,6 +418,10 @@ def update_with(
 
     Returns an ordered list: morph Op first, then plan ops, then extra_ops.
     XOR: never puts html= on the plan for the same target as the morph.
+
+    Morph HTML for ``#target`` is the fragment rooted at that id. Authors
+    should still write fragment ``render()``; helpers strip an outer shell
+    when the rendered tree contains an element matching ``component.id``.
     """
     target = getattr(component, "id", None) or getattr(
         component, "__name__", component if isinstance(component, str) else "component"
@@ -270,10 +435,10 @@ def update_with(
     if fields:
         morph_payload["fields"] = list(fields)
     if html is not None:
-        morph_payload["html"] = html
+        morph_payload["html"] = _fragment_for_target(html, tid)
     else:
         try:
-            morph_payload["html"] = _render_html(component)
+            morph_payload["html"] = _render_html(component, target_id=tid)
         except Exception:
             pass
     # strip helper kwargs that are not morph fields

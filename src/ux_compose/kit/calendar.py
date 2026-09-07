@@ -10,7 +10,6 @@ import calendar as _cal
 from datetime import datetime
 
 from ux_compose import (
-    HAS_DOM,
     Component,
     MorphState,
     action,
@@ -94,10 +93,6 @@ class Calendar(Component):
         return datetime(y, m, 1).strftime("%B %Y")
 
     def render(self):
-        if not HAS_DOM or div is None:
-            raise ImportError(
-                f"{type(self).__name__} requires ux-dom (Py≥3.14)"
-            )
         month = str(self.month or "2026-08")
         y, m = _parse_month(month)
         selected = str(self.day or "")

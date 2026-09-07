@@ -54,19 +54,12 @@ these ids.
 
 ## Attach notes — missing specialist, visible step-down
 
-If `use_channel` cannot import ux-channel, the App does not raise. It
-stays at L1 and writes one `AttachNote` (`door`, `wanted`, `reason`,
-`level_kept`).
+`use_channel` / `use_motion` fail loud when the hard-dep is missing
+(`ImportError`). Isolation: product never imports `ux_channel`.
+`App.boot("auto")` stays L1 (does not boot Channel).
 
-```python
-from ux_compose import App, attach_notes
-app = App.boot("Shop", level=2)   # stays L1 if channel is missing
-app.attach_notes                 # this App
-attach_notes()                   # process-wide when no App is bound
-```
-
-Two Apps in one process do not leak. This is not a message bus and not
-part of HMR.
+Attach notes still record non-import step-downs. Two Apps in one process
+do not leak. This is not a message bus and not part of HMR.
 
 ---
 
@@ -80,7 +73,7 @@ These strings are not the product path. Doctor flags them in app trees.
 | `host="batteries"` / `DirectoryRouter` | `host="auto"` |
 | Teaching `App.mount` as the product path | `build()` |
 | root `swipe.*` on an overlay card | swipe on dismiss |
-| `stunning-root` / nav brand in `render()` | `build(wrap=wrap_get_chrome)` |
+| `stunning-root` / nav brand in `render()` | Document wrap / `build(wrap=document)` |
 
 Doctor flags these in product trees. Deleting the aliases is a capability drop.
 

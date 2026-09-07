@@ -19,7 +19,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -85,9 +84,7 @@ class Calendar(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{month}-{day}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def set_month(self, key: str = "august"):
@@ -143,9 +140,7 @@ class ProgressMeter(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_phase=phase)
-        return f'<div id="{self.id}">{n}</div>'
+        return div(*kids, id=self.id, className="widget", data_phase=phase)
 
     @action(caps=())
     def start(self):
@@ -192,9 +187,7 @@ class CopyClip(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def copy(self):
@@ -239,9 +232,7 @@ class Settings(Component):
             ),
             act("settings.wipe", "Wipe local prefs (Cap)", kind="text"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def set_density(self, key: str = "roomy"):
@@ -287,9 +278,7 @@ class OfflineBanner(Component):
                 kind="primary" if on else "secondary",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_online="1" if on else "0")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget", data_online="1" if on else "0")
 
     @action(caps=())
     def flip(self):
@@ -325,9 +314,7 @@ class Presence(Component):
                 className="seg",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{me}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def set(self, key: str = "here"):
@@ -373,9 +360,7 @@ class KpiStrip(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def tick_up(self):
@@ -442,9 +427,7 @@ class Shortcuts(Component):
             ),
             panel,
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def open_keys(self):

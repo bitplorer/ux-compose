@@ -7,7 +7,6 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     Component,
     MorphState,
     RefState,
@@ -23,7 +22,6 @@ from ux_compose import (
     span,
     ul,
 )
-from ux_compose.helpers import html_attrs, html_escape
 
 
 def _plan(name: str, target: str, *, ms: int = 140):
@@ -103,11 +101,6 @@ class PullRefresh(Component):
         return tuple(rows)
 
     def render(self):
-        if HAS_DOM and div is not None:
-            return self._render_tree()
-        return self._render_html()
-
-    def _render_tree(self):
         phase = str(self.phase or "idle")
         rows = self._rows()
         lis = [
@@ -142,35 +135,6 @@ class PullRefresh(Component):
             className=self.class_card,
             data_phase=phase,
             data_channel_on="swipe.vertical threshold:56",
-        )
-
-    def _render_html(self):
-        phase = str(self.phase or "idle")
-        rows = self._rows()
-        lis = [
-            f'<li class="{self.class_row}" id="pr-{i}">{html_escape(x)}</li>'
-            for i, x in enumerate(rows)
-        ]
-        hint = {
-            "refreshing": "Fetching the table…",
-            "caught": "Caught up.",
-            "idle": "Swipe down · or tap Refresh",
-        }.get(phase, "Swipe down · or tap Refresh")
-        hint_cls = self.class_busy if phase == "refreshing" else self.class_hint
-        stamp = html_attrs(bind(self.refresh))
-        return (
-            f'<div id="{html_escape(self.id)}" class="{self.class_card}" '
-            f'data-phase="{html_escape(phase)}" data-channel-on="swipe.vertical threshold:56">'
-            f'<span class="{self.class_kicker}">Feed</span>'
-            f'<h2 class="{self.class_title}">Pull to refresh</h2>'
-            f'<p class="{self.class_lede}">Vertical swipe is a synthesizer. The Refresh control accepts swipe.down.</p>'
-            f'<div class="{self.class_stage}" style="touch-action:pan-x;user-select:none;">'
-            f'<p class="{hint_cls}">{html_escape(hint)}</p>'
-            f'<ul class="{self.class_list}">{"".join(lis)}</ul>'
-            f"</div>"
-            f'<button type="button" class="{self.class_btn_ghost}" '
-            f'data-channel-on="click swipe.down" {stamp}>Refresh</button>'
-            f"</div>"
         )
 
     @action(caps=())

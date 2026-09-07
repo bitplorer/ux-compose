@@ -8,7 +8,7 @@ Authors write::
         def render(self):
             return div(h1(f"Items: {self.count}"), id=self.id)
 
-This module re-exports tags when ux-dom is installed (Python ≥3.14).
+This module re-exports tags from ux-dom (hard dependency, Python ≥3.14).
 It does **not** re-export ux-dom's Component class.
 
 Why not inherit ux-dom Component (or Tags)?
@@ -25,62 +25,53 @@ Why not inherit ux-dom Component (or Tags)?
 
 from __future__ import annotations
 
-HAS_DOM = False
+from ux_dom.dom import (  # type: ignore
+    a,
+    article,
+    aside,
+    body,
+    button,
+    circle,
+    div,
+    footer,
+    form,
+    h1,
+    h2,
+    h3,
+    head,
+    header,
+    html,
+    input_,
+    label,
+    li,
+    link,
+    main,
+    meta,
+    nav,
+    p,
+    path,
+    rect,
+    script,
+    section,
+    span,
+    style,
+    svg,
+    title,
+    ul,
+)
+from ux_dom.dom.src.utils.dom_util import raw  # type: ignore
 
-# Populated when ux-dom is installed. Stay None on the offline shim path.
-div = span = h1 = h2 = h3 = p = a = button = form = input_ = None
-ul = li = header = footer = aside = section = article = nav = main = None
-label = svg = path = rect = circle = None
-html = head = body = title = style = meta = link = script = None
-raw = None
-
-try:
-    from ux_dom.dom import (  # type: ignore
-        a,
-        article,
-        aside,
-        body,
-        button,
-        circle,
-        div,
-        footer,
-        form,
-        h1,
-        h2,
-        h3,
-        head,
-        header,
-        html,
-        input_,
-        label,
-        li,
-        link,
-        main,
-        meta,
-        nav,
-        p,
-        path,
-        rect,
-        script,
-        section,
-        span,
-        style,
-        svg,
-        title,
-        ul,
-    )
-    from ux_dom.dom.src.utils.dom_util import raw  # type: ignore
-
-    HAS_DOM = True
-except ImportError:  # pragma: no cover
-    pass
+HAS_DOM = True
 
 
 def require_dom() -> None:
+    """Fail loud if ux-dom is not importable. Hard-dep: this is a no-op on
+    a complete install; tests may monkeypatch ``HAS_DOM``.
+    """
     if not HAS_DOM:
         raise ImportError(
-            "ux-dom is not installed. Tag trees need Python ≥3.14 and "
-            "`pip install ux-dom`. HTML strings in render() still work at L1."
+            "ux-dom is not installed. ux-compose hard-depends on ux-dom "
+            "(Python ≥3.14). Install the pinned specialists."
         )
 
 

@@ -4,8 +4,7 @@ High-level helpers that emit pure Ops / Plans and enforce the Composition Algebr
 Never import ux_channel or CEK. XOR and Morph-then-Play are enforced by construction
 where possible; remaining cases fail closed under doctor / strict mode.
 
-When ux-behavior is installed, helpers emit real Op objects (required by @action).
-When absent, helpers emit plain dict Ops for the pure-shim path.
+Helpers emit real ux-behavior Op objects (hard dependency, Python ≥3.14).
 """
 from __future__ import annotations
 
@@ -13,62 +12,20 @@ import json
 import re
 from typing import Any, List, Optional
 
-try:
-    from ux_behavior import notify as _real_notify, update as _real_update
-    from ux_behavior.ops import Op as _Op
-
-    _HAS_BEHAVIOR = True
-except ImportError:
-    _real_notify = _real_update = _Op = None  # type: ignore
-    _HAS_BEHAVIOR = False
-
-
-def html_escape(value: Any) -> str:
-    """Escape text for an HTML-string fallback. Not a tag builder."""
-    text = "" if value is None else str(value)
-    return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-        .replace("'", "&#39;")
-    )
-
-
-def html_attrs(attrs: dict | None) -> str:
-    """Stamp bind()/control() dicts onto an HTML-string tag.
-
-    L1 uses strings when ``HAS_DOM`` is false — this is attribute
-    serialization, not a mini HTML builder.
-    """
-    if not attrs:
-        return ""
-    parts: list[str] = []
-    for key, val in attrs.items():
-        if val is None or val is False:
-            continue
-        name = "class" if key == "className" else str(key).replace("_", "-")
-        if val is True:
-            parts.append(name)
-            continue
-        parts.append(f'{name}="{html_escape(val)}"')
-    return " ".join(parts)
+from ux_behavior import bind as _behavior_bind, notify as _real_notify, update as _real_update
+from ux_behavior.ops import Op as _Op
+from ux_dom.response.serialize import to_html_bytes
 
 
 def _as_op(ns: str, name: str, payload: Optional[dict] = None) -> Any:
-    """Build a real Op when behavior is present, else a plain dict."""
-    payload = payload or {}
-    if _HAS_BEHAVIOR and _Op is not None:
-        return _Op(ns=ns, name=name, payload=payload)
-    return {"op": f"{ns}.{name}" if ns else name, **payload}
+    """Build a real ux-behavior Op. Compose does not emit parallel dict Ops."""
+    return _Op(ns=ns, name=name, payload=payload or {})
 
 
 def notify(message: str, **kwargs) -> Any:
-    """Emit a notify / toast Op as data."""
-    if _HAS_BEHAVIOR and _real_notify is not None:
-        level = kwargs.pop("level", "info")
-        return _real_notify(message, level=level)
-    return {"op": "notify", "message": message, **kwargs}
+    """Emit a notify / toast Op as data (ux-behavior.notify)."""
+    level = kwargs.pop("level", "info")
+    return _real_notify(message, level=level)
 
 
 def _live_channel() -> Any:
@@ -98,52 +55,27 @@ def _minted_attrs(verb: str, args: dict) -> dict | None:
 
 
 def bind(action_obj, **kwargs):
-    """Symbol-safe UI attrs. Prefers ux_behavior.bind / .ui when available.
+    """Symbol-safe UI attrs via ux-behavior.bind.
 
-    When Cap Host is live, never return Behavior bind attrs without Cap
-    enrichment — mint via ``wire.caps.control_attrs``. Empty mint fails
-    loud (no silent dual-attr fallback that would toast missing capability).
+    String verbs stay compose ``control()`` orchestration (Cap mint through
+    ``wire.caps``). @action methods use ux-behavior — no parallel bind.
+    When Cap Host is live, mint via ``wire.caps.control_attrs``. Empty mint
+    fails loud.
     """
-    verb = None
-    attrs = None
-    try:
-        from ux_behavior.action import bind as _b
-
-        attrs = _b(action_obj, **kwargs)
-        verb = attrs.get("data-ux-action") or attrs.get("data-channel-action")
-    except Exception:
-        attrs = None
-    if attrs is None:
-        ui = getattr(action_obj, "ui", None)
-        if callable(ui):
-            try:
-                attrs = ui(**kwargs)
-                verb = attrs.get("data-ux-action") or attrs.get("data-channel-action")
-            except Exception:
-                attrs = None
-    if attrs is not None:
-        if verb:
-            minted = _minted_attrs(str(verb), kwargs)
-            if minted is not None:
-                merged = dict(attrs)
-                merged.update(minted)
-                return merged
-        return attrs
     if isinstance(action_obj, str):
-        verb = action_obj
-    elif callable(action_obj):
-        name = getattr(action_obj, "__name__", "action")
-        inst = getattr(action_obj, "__self__", None)
-        if inst is not None:
-            sid = getattr(inst, "id", None) or type(inst).__name__.lower()
-            verb = f"{sid}.{name}"
-        else:
-            verb = str(name)
-    else:
-        raise TypeError(
-            f"bind requires @action method or str, got {type(action_obj).__name__}"
-        )
-    return _action_attrs(verb, kwargs)
+        return _action_attrs(action_obj, kwargs)
+    attrs = _behavior_bind(action_obj, **kwargs)
+    verb = attrs.get("data-ux-action") or attrs.get("data-channel-action")
+    if verb:
+        minted = _minted_attrs(str(verb), kwargs)
+        if minted is not None:
+            merged = dict(attrs)
+            merged.update(minted)
+            return merged
+        out = dict(attrs)
+        out.setdefault("data-channel-action", str(verb))
+        return out
+    return attrs
 
 
 def _action_attrs(verb: str, args: dict) -> dict:
@@ -174,28 +106,12 @@ def control(action: str, **args) -> dict:
 
 
 def _serialize_tree(tree: Any) -> str:
+    """Serialize via ux-dom. No homemade HTML-string renderer."""
     if tree is None:
         return ""
     if isinstance(tree, str):
         return tree
-    for attr in ("render", "__render__", "__html__", "to_html"):
-        fn = getattr(tree, attr, None)
-        if callable(fn):
-            try:
-                out = fn()
-                if out is not None and out is not tree:
-                    return _serialize_tree(out)
-            except TypeError:
-                try:
-                    return _serialize_tree(fn(tree))  # type: ignore[misc]
-                except Exception:
-                    pass
-            except Exception:
-                pass
-    try:
-        return str(tree)
-    except Exception:
-        return ""
+    return to_html_bytes(tree).decode("utf-8")
 
 
 _VOID_TAGS = frozenset(
@@ -351,15 +267,9 @@ def _render_html(component_or_id: Any, *, target_id: str | None = None) -> str:
     if isinstance(component_or_id, str):
         html = component_or_id
     else:
-        html = ""
         render = getattr(component_or_id, "render", None)
-        if callable(render):
-            try:
-                html = _serialize_tree(render())
-            except Exception:
-                html = ""
-        if not html:
-            html = _serialize_tree(component_or_id)
+        tree = render() if callable(render) else component_or_id
+        html = _serialize_tree(tree)
     tid = target_id
     if not tid:
         raw = getattr(component_or_id, "id", None)
@@ -373,7 +283,7 @@ def _render_html(component_or_id: Any, *, target_id: str | None = None) -> str:
 def _coerce_op(op: Any) -> Any:
     if op is None:
         return None
-    if _HAS_BEHAVIOR and _Op is not None and isinstance(op, _Op):
+    if isinstance(op, _Op):
         return op
     if isinstance(op, dict):
         return op
@@ -385,7 +295,7 @@ def _coerce_op(op: Any) -> Any:
 def _looks_like_op(op: Any) -> bool:
     if op is None:
         return False
-    if _HAS_BEHAVIOR and _Op is not None and isinstance(op, _Op):
+    if isinstance(op, _Op):
         return True
     if isinstance(op, dict) and str(op.get("op", "")).endswith("play"):
         return True
@@ -469,19 +379,13 @@ def update_with(
     if html is not None:
         morph_payload["html"] = _fragment_for_target(html, tid)
     else:
-        try:
-            morph_payload["html"] = _render_html(component, target_id=tid)
-        except Exception:
-            pass
+        morph_payload["html"] = _render_html(component, target_id=tid)
     # strip helper kwargs that are not morph fields
     for k, v in kwargs.items():
         if k not in ("extra_ops",):
             morph_payload[k] = v
 
-    if _HAS_BEHAVIOR and _real_update is not None:
-        ops: List[Any] = [_real_update(tid, morph_payload.get("html", ""))]
-    else:
-        ops = [_as_op("", "morph", morph_payload)]
+    ops: List[Any] = [_real_update(tid, morph_payload.get("html", ""))]
     ops.extend(_normalize_plan_ops(plan))
     if extra_ops:
         for o in extra_ops:
@@ -494,10 +398,7 @@ def update_with(
 def morph_play(target: str, plan: Any) -> List[Any]:
     """Morph-then-Play: morph target, then append motion plan ops."""
     tid = target if str(target).startswith("#") else f"#{target}"
-    if _HAS_BEHAVIOR and _real_update is not None:
-        ops: List[Any] = [_real_update(tid, "")]
-    else:
-        ops = [_as_op("", "morph", {"target": tid, "strategy": "idiomorph"})]
+    ops: List[Any] = [_real_update(tid, "")]
     ops.extend(_normalize_plan_ops(plan))
     return ops
 

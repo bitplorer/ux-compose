@@ -164,12 +164,13 @@ def test_scaffold_document_uses_dom_channel_optional():
     assert "Csp.auto()" in DOCUMENT_PY
     assert "from ux_channel" not in DOCUMENT_PY
     assert "import ux_channel" not in DOCUMENT_PY
-    assert "Py3.14" in DOCUMENT_PY or "3.14" in DOCUMENT_PY
-    assert "live-client" in DOCUMENT_PY or "fragment" in DOCUMENT_PY.lower()
+    assert "document = None" not in DOCUMENT_PY
+    assert "except Exception" not in DOCUMENT_PY
 
 
 @pytest.mark.skipif(not HAS_FASTAPI, reason="fastapi required")
-def test_build_fragment_get_injects_channel_client(tmp_path: Path):
+def test_build_document_none_does_not_attach_live_client(tmp_path: Path):
+    """Document-absent GET is not the product path; do not inject live-client."""
     pytest.importorskip("ux_channel")
     from ux_compose.build import build
 
@@ -203,22 +204,9 @@ def test_build_fragment_get_injects_channel_client(tmp_path: Path):
     r = asgi_get(asgi, "/hello")
     assert r.status_code == 200
     assert "text/html" in r.headers.get("content-type", "")
-    assert CHANNEL_JS_URL in r.text
-    assert f'data-channel-endpoint="{CHANNEL_ENDPOINT}"' in r.text
-    assert "data-uxcompose-live-client" in r.text
-    assert r.text.count(CHANNEL_JS_URL) == 1
+    assert "data-uxcompose-live-client" not in r.text
     assert 'data-ux-action="hello.inc"' in r.text
-    assert 'data-channel-action="hello.inc"' in r.text
-    assert "data-channel-cap=" in r.text
     assert hasattr(asgi, "mount")
-    ops = app.dispatch("hello.inc")
-    assert isinstance(ops, list)
-    try:
-        result = app.submit_intent("hello.inc", mint=True, args={})
-    except Exception:
-        result = None
-    if result is not None:
-        assert getattr(result, "ok", True) is True
 
 
 @pytest.mark.skipif(not HAS_FASTAPI, reason="fastapi required")
@@ -314,7 +302,7 @@ def test_complete_document_fragment_path_is_not_double_wrapped(tmp_path: Path):
     assert r.status_code == 200
     assert r.text.lower().count("<html") == 1
     assert r.text.lower().count("<body") == 1
-    assert CHANNEL_JS_URL in r.text
+    assert "data-uxcompose-live-client" not in r.text
     assert "hello" in r.text
 
 

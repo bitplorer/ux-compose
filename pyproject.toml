@@ -7,7 +7,7 @@ name = "ux-compose"
 version = "0.1.0"
 description = "Pure-Python composition root that fully harnesses ux-dom + ux-behavior + ux-motion + ux-channel into a progressive, isolation-enforced, server-driven hypermedia framework."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 license = {text = "MIT"}
 authors = [{name = "bitplorer"}]
 keywords = ["ux", "hypermedia", "server-driven", "python", "composition"]
@@ -16,21 +16,28 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
-dependencies = []
+dependencies = [
+    "ux-dom @ git+https://github.com/bitplorer/ux-dom.git@25338a6d624b764bb79615de52fca48084ce2c55",
+    "ux-channel @ git+https://github.com/bitplorer/ux-channel.git@31a60bdd40a1b52aea1fd13159ad09c293c63fd6#subdirectory=python",
+    "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@76adc72ff8e8d2f6a784d8b988b720934bd8a612",
+    "ux-motion @ git+https://github.com/bitplorer/ux-motion.git@67ff3f0c4912b70b7056f8226a6f226b6fe93f60",
+    "cek-host>=0.1.3",
+    "cek-surface>=0.1.3",
+]
 
 [project.optional-dependencies]
-dom = ["ux-dom"]
-behavior = ["ux-behavior"]
-motion = ["ux-motion"]
-channel = ["ux-channel"]
-full = ["ux-dom", "ux-behavior", "ux-motion", "ux-channel"]
+# Specialists are hard dependencies (see [project].dependencies). These extras
+# remain as no-op aliases so existing `pip install ux-compose[full]` commands
+# do not fail closed on a missing extra name.
+dom = []
+behavior = []
+motion = []
+channel = []
+full = []
 # serve extra is only for `uxcompose serve dev`:
 #   httpx      public process re-issues HTTP to workers
 #   starlette  public ASGI app

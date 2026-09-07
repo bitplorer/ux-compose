@@ -72,25 +72,30 @@ class ProbeResult:
         return bool(self.specialists.get("ux_motion"))
 
     def unlock_messages(self, *, requested_level: int = 3) -> list[str]:
-        """Teaching lines for the next unlock(s) relative to installed packages."""
+        """Diagnostics when the pinned stack is incomplete. Levels are additive."""
         lines: list[str] = []
         s = self.specialists
-        if requested_level >= 1 and not s.get("ux_behavior"):
+        missing = []
+        if not s.get("ux_behavior"):
+            missing.append("ux-behavior")
+        if not s.get("ux_channel"):
+            missing.append("ux-channel")
+        if not s.get("ux_motion"):
+            missing.append("ux-motion")
+        if not s.get("ux_dom"):
+            missing.append("ux-dom")
+        if missing:
             lines.append(
-                "L1 offline interactive: pip install ux-behavior  →  App.boot(...).use_behavior()"
+                "incomplete stack: missing "
+                + ", ".join(missing)
+                + ". Complete install first (Python ≥3.14). "
+                "Levels are additive after the stack is present."
             )
-        if requested_level >= 2 and not s.get("ux_channel"):
+        else:
             lines.append(
-                "L2 live Caps: pip install ux-channel  →  app.use_channel(asgi_app=...)"
-            )
-        if requested_level >= 3 and not s.get("ux_motion"):
-            lines.append(
-                "L3 choreography: pip install ux-motion  →  app.use_motion()"
-            )
-        if not lines:
-            lines.append(
-                f"Specialists present for L{self.level_available}. "
-                "Progressive Superpower: Level-1 code stays correct at higher levels."
+                f"Full stack present (L{self.level_available}). "
+                "Progressive Superpower: complete install first; "
+                "Level-1 code stays correct at higher levels."
             )
         return lines
 

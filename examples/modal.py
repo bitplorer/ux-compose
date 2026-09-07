@@ -24,7 +24,6 @@ from ux_compose import (
     action,
     notify,
     update_with,
-    HAS_DOM,
     div,
     h2,
     p,
@@ -41,43 +40,36 @@ class ConfirmModal(Component):
     body = RefState("")
 
     def render(self):
-        if HAS_DOM:
-            if not self.open:
-                return div(
-                    header(
-                        p("Presence flag + Cap confirm", className="kicker"),
-                        h2("Modal", className="widget-title"),
-                    ),
-                    p("Closed. The unit keeps its id in the tree.", className="lede"),
-                    act(
-                        "demomodal.open_modal",
-                        "Open dialog",
-                        kind="primary",
-                        title="Delete this piece?",
-                        body="This cannot be undone.",
-                    ),
-                    id=self.id,
-                    className="widget",
-                    data_open="0",
-                )
+        if not self.open:
             return div(
-                header(h2(str(self.title))),
-                p(str(self.body), className="lede"),
-                div(
-                    act("demomodal.close", "Cancel", kind="ghost"),
-                    act("demomodal.confirm", "Confirm", kind="primary"),
-                    className="row-actions",
+                header(
+                    p("Presence flag + Cap confirm", className="kicker"),
+                    h2("Modal", className="widget-title"),
+                ),
+                p("Closed. The unit keeps its id in the tree.", className="lede"),
+                act(
+                    "demomodal.open_modal",
+                    "Open dialog",
+                    kind="primary",
+                    title="Delete this piece?",
+                    body="This cannot be undone.",
                 ),
                 id=self.id,
-                className="widget dialog",
-                role="dialog",
-                data_open="1",
+                className="widget",
+                data_open="0",
             )
-        if not self.open:
-            return f'<div id="{self.id}" class="modal closed"></div>'
-        return (
-            f'<div id="{self.id}" class="modal open" role="dialog">'
-            f"<h2>{self.title}</h2><p>{self.body}</p></div>"
+        return div(
+            header(h2(str(self.title))),
+            p(str(self.body), className="lede"),
+            div(
+                act("demomodal.close", "Cancel", kind="ghost"),
+                act("demomodal.confirm", "Confirm", kind="primary"),
+                className="row-actions",
+            ),
+            id=self.id,
+            className="widget dialog",
+            role="dialog",
+            data_open="1",
         )
 
     @action(caps=())

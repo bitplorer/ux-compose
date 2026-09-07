@@ -58,8 +58,8 @@ create-app emits `document.py` (one Document; `.use(XElement(), Csp.auto(),
 Channel.optional())` via the `ux_dom.runtime` Channel alias — not
 `ux_channel.Channel`; host wraps GET) and `settings.py` (`ux_compose.WebAssets`).
 `build(document=)` attaches that Document. Dual-Document in product files is a
-doctor fail. Py3.14 Document.use(+Channel.optional) is the full shell; the
-L1 fragment path (`document=None`) uses compose live-client.
+doctor fail. `Document.use(+Channel.optional)` is the full shell. There is no
+Document-absent product path.
 
 ---
 

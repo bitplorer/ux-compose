@@ -18,7 +18,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -83,9 +82,7 @@ class Wishlist(Component):
             p(f"{len(have)} saved. Saving is not placing.", className="lede"),
             ul(*lis, className="bag-lines"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def toggle(self, sku: str = ""):
@@ -128,9 +125,8 @@ class Coupon(Component):
                 data_ux="1",
                 data_target="#stage",
                 className="stack",
-            )
-            if HAS_DOM
-            else p(""),
+            ),
+
             div(
                 act("coupon.check", "Check HOUSE10", kind="ghost", code="HOUSE10"),
                 act("coupon.redeem", "Redeem (Cap)", kind="primary"),
@@ -140,9 +136,7 @@ class Coupon(Component):
             p(str(self.error), className="error", role="alert") if self.error else p(""),
             status(f"Held · {self.off} off." if self.applied else "", kind="ok"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def check(self, code: str = ""):
@@ -208,9 +202,8 @@ class CheckoutFlow(Component):
                     data_ux="1",
                     data_target="#stage",
                     className="stack",
-                )
-                if HAS_DOM
-                else p(""),
+                ),
+
             ]
         elif step == "ship":
             body = [
@@ -252,9 +245,7 @@ class CheckoutFlow(Component):
             p(" · ".join(self.STEPS), className="muted"),
             *body,
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_step=step)
-        return f'<div id="{self.id}">{step}</div>'
+        return div(*kids, id=self.id, className="widget", data_step=step)
 
     @action(caps=())
     def next(self, name: str = ""):
@@ -337,9 +328,7 @@ class StockBadge(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_band=band)
-        return f'<div id="{self.id}">{n}</div>'
+        return div(*kids, id=self.id, className="widget", data_band=band)
 
     @action(caps=())
     def sell(self):
@@ -400,9 +389,7 @@ class CompareTray(Component):
             ul(*tray, className="bag-lines"),
             act("compare.clear", "Clear tray", kind="text"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def toggle(self, sku: str = ""):

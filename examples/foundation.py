@@ -24,7 +24,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -76,9 +75,7 @@ class Counter(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*body, id=self.id, className="widget", data_dirty=str(self.dirty))
-        return f'<div id="{self.id}" class="widget" data-n="{n}">n={n}</div>'
+        return div(*body, id=self.id, className="widget", data_dirty=str(self.dirty))
 
     @action(caps=())
     def inc(self, sku: str = ""):
@@ -133,15 +130,13 @@ class Toggle(Component):
                 kind="primary" if not on else "ghost",
             ),
         )
-        if HAS_DOM:
-            return div(
-                *kids,
-                id=self.id,
-                className="widget",
-                data_on="1" if on else "0",
-                aria_pressed="true" if on else "false",
-            )
-        return f'<div id="{self.id}">{label}</div>'
+        return div(
+            *kids,
+            id=self.id,
+            className="widget",
+            data_on="1" if on else "0",
+            aria_pressed="true" if on else "false",
+        )
 
     @action(caps=())
     def flip(self):
@@ -180,9 +175,7 @@ class Planes(Component):
                 className="muted",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{self.shown}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def morph_only(self):

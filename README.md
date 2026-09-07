@@ -1,7 +1,7 @@
 # ux-compose
 
 [![CI](https://github.com/bitplorer/ux-compose/actions/workflows/ci.yml/badge.svg)](https://github.com/bitplorer/ux-compose/actions/workflows/ci.yml)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.14+](https://img.shields.io/badge/python-3.14%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Thin pure-Python composition and delivery root for the UX framework family.
@@ -12,7 +12,7 @@ Compose is allowed to look like “the product” to authors. It must **import**
 
 | Specialist | Role |
 |------------|------|
-| **[ux-dom](https://github.com/bitplorer/ux-dom)** | Document SSoT, elements, runtimes (Python ≥3.14) |
+| **[ux-dom](https://github.com/bitplorer/ux-dom)** | Document SSoT, elements, runtimes |
 | **[ux-channel](https://github.com/bitplorer/ux-channel)** | Live Caps, Intent, signed control, ASGI |
 | **[ux-behavior](https://github.com/bitplorer/ux-behavior)** | Offline Components, MorphState, `@action`, Cap Law |
 | **[ux-motion](https://github.com/bitplorer/ux-motion)** | Scene plans, presence, Morph-then-Play |
@@ -23,7 +23,7 @@ Compose is allowed to look like “the product” to authors. It must **import**
 | **Import** | `ux_compose` |
 | **CLI** | **`uxcompose`** (sole product lifecycle) |
 | **Version** | `0.1.0` |
-| **Python** | ≥ 3.11 (ux-dom full stack needs ≥3.14) |
+| **Python** | ≥ 3.14 (hard-depends on the four specialists) |
 | **License** | [MIT](LICENSE) |
 
 ## Table of Contents
@@ -43,32 +43,17 @@ Compose is allowed to look like “the product” to authors. It must **import**
 
 ## Install
 
-One Product path after `uxcompose create-app`. `pip install -r requirements.txt`
-boots Cap require (`cek="require"`) — no tribal specialist pins.
-
-**Python 3.13 — L2 Cap.** Channel (≥ `31a60bd`) + `cek-host>=0.1.3` +
-`cek-surface>=0.1.3`. Document stays off: ux-dom needs ≥3.14.
-
-**Python 3.14 — Document.** Uncomment `ux-dom` in the scaffold
-`requirements.txt`. Cap require is the same.
+Python **≥ 3.14**. `pip install -e .` pulls the pinned stack (ux-dom,
+ux-channel, ux-behavior, ux-motion, cek-host, cek-surface). Missing
+specialists fail loud — there is no optional L1 / Document-absent floor.
 
 ```bash
-python3.13 -m venv .venv && source .venv/bin/activate   # or python3.14
-pip install -e .
-pip install "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git"
-# 3.14 Document shell:
-# pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
+python3.14 -m venv .venv && source .venv/bin/activate
+pip install -e ".[serve]"    # from this repo
 ```
 
-Extras (specialists you actually use):
-
-```bash
-pip install "ux-compose[dom]"
-pip install "ux-compose[behavior]"
-pip install "ux-compose[motion]"
-pip install "ux-compose[channel]"
-pip install "ux-compose[full]"
-```
+`[dom]` / `[behavior]` / `[motion]` / `[channel]` / `[full]` extras are
+empty aliases. Specialists are hard dependencies.
 
 Product path:
 
@@ -154,12 +139,13 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 
 | Level | What you get | Unlock |
 |-------|----------------|--------|
-| **0** | Static Document | `ux-dom` |
-| **1** | Offline MorphState + `@action` | `+ ux-behavior` |
-| **2** | Live Caps + Intent | `+ ux-channel` via `App.use_channel(asgi_app=…)` |
-| **3** | Choreographed motion | `+ ux-motion` via `App.use_motion()` |
+| **0** | Static Document | complete install |
+| **1** | Offline MorphState + `@action` | `App.boot` |
+| **2** | Live Caps + Intent | `App.use_channel(asgi_app=…)` |
+| **3** | Choreographed motion | `App.use_motion()` |
 
-**Progressive contract:** Level 1 code remains correct at higher levels. Zero rewrite.
+**Progressive Superpower:** complete install first. Levels are additive —
+Level 1 page units stay correct at L2/L3. Zero rewrite. Not an optional-package unlock ladder.
 
 ## Hard invariants
 
@@ -171,7 +157,7 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 
 Full law: [docs/OWNERSHIP.md](docs/OWNERSHIP.md). Examples: [examples/README.md](examples/README.md).
 
-**Notes:** ux-dom requires Python ≥3.14 (L1/L2 Cap can run 3.13). Product Cap: `build(cek="require")` / `app.use_cek()` (default `require` — cek-runtime Host via Channel). Scaffold `requirements.txt` pins ux-channel ≥ `31a60bd` plus `cek-host>=0.1.3` / `cek-surface>=0.1.3`. `mode="adapt"` is compare-only lab. Headless `use_channel()` boots Channel without HTTP for mint/submit tests. `mint_cap(action, {}, once=True)` is single-use; default remains `once=False`.
+**Notes:** Product floor is Python ≥3.14 with the pinned specialist stack. Product Cap: `build(cek="require")` / `app.use_cek()` (default `require` — cek-runtime Host via Channel). Scaffold `requirements.txt` pins the same SHAs as CI. `mode="adapt"` is compare-only lab. Headless `use_channel()` boots Channel without HTTP for mint/submit tests. `mint_cap(action, {}, once=True)` is single-use; default remains `once=False`. Isolation: product modules never import `ux_channel`.
 
 ## Documentation
 
@@ -194,8 +180,8 @@ Public names are `ux_compose.__all__` (re-exported specialists + compose’s own
 |--------|------|
 | `App` | Composition root: `boot`, `add`, `mount`, `use_channel`, `use_motion`, `dispatch` |
 | `Component`, `MorphState`, `RefState`, `action`, `bind`, `control`, `notify`, `update_with` | Behavior surface (via ux-behavior) |
-| `div`, `h1`, `button`, … | Tag constructors (via ux-dom, when installed) |
-| `scene`, `fade`, `rise`, `morph_play` | Motion surface (via ux-motion, when installed) |
+| `div`, `h1`, `button`, … | Tag constructors (via ux-dom) |
+| `scene`, `fade`, `rise`, `morph_play` | Motion surface (via ux-motion) |
 | `Surface`, `mount_surfaces`, `scan_surfaces` | Surface bundles |
 | `doctor`, `DoctorResult`, `Level` | DX |
 | CLI `uxcompose` | `ux_compose.cli:main` |

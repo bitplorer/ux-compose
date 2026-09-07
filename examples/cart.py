@@ -20,18 +20,14 @@ from ux_compose import (
     update_with,
     control,
     doctor,
-    HAS_DOM,
     div,
     h1,
     span,
     button,
 )
 
-# Optional motion (graceful if not installed)
-try:
-    from ux_compose import scene, rise
-except Exception:
-    scene = rise = None
+# Motion is a hard dependency (Python ≥3.14).
+from ux_compose import scene, rise
 
 
 class Cart(Component):
@@ -44,22 +40,12 @@ class Cart(Component):
     def render(self):
         # Pure w.r.t. MorphState / RefState values at dispatch / SSR time.
         last = self.last_sku or ""
-        if HAS_DOM:
-            return div(
-                h1(f"Items: {self.count}"),
-                span(last, className="last"),
-                button("+ tee", **control("add", sku="tee")),
-                id="cart",
-                className="cart",
-            )
-        attrs = control("add", sku="tee")
-        attr_str = " ".join(f'{k}="{v}"' for k, v in attrs.items())
-        return (
-            f'<div id="cart" class="cart">'
-            f"<h1>Items: {self.count}</h1>"
-            f'<span class="last">{last}</span>'
-            f"<button {attr_str}>+ tee</button>"
-            f"</div>"
+        return div(
+            h1(f"Items: {self.count}"),
+            span(last, className="last"),
+            button("+ tee", **control("add", sku="tee")),
+            id="cart",
+            className="cart",
         )
 
     @action(caps=())  # public
@@ -68,12 +54,7 @@ class Cart(Component):
         self.last_sku = sku
         # Prefer update_with when combining state + (optional) motion.
         # Offline: produces morph + notify. Live+Motion: same call, XOR-safe.
-        plan = None
-        if scene is not None and rise is not None:
-            try:
-                plan = scene("cart-pop").enter(f"#{self.id}", rise.enter(ms=160))
-            except Exception:
-                plan = None
+        plan = scene("cart-pop").enter(f"#{self.id}", rise.enter(ms=160))
         return update_with(self, plan, extra_ops=[notify(f"Added {sku}")])
 
     @action(caps=("orders.place",))  # Cap required when live / strict

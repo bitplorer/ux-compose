@@ -2,12 +2,7 @@
 from __future__ import annotations
 
 from ux_compose import Component, MorphState, action, control, notify, update_with
-
-try:
-    from ux_compose import div, span, h1, p, a, button, section, article, HAS_DOM
-except Exception:
-    HAS_DOM = False
-    div = span = h1 = p = a = button = section = article = None  # type: ignore
+from ux_compose import div, span, h1, p, a, button, section, article
 
 
 class Home(Component):
@@ -18,8 +13,6 @@ class Home(Component):
     def render(self):
         n = int(self.pulse or 0)
         attrs = control("home.beat")
-        if not (HAS_DOM and div is not None):
-            return f'<section id="home"><p>{self.greeting} · pulse {n}</p></section>'
 
         return section(
             span(

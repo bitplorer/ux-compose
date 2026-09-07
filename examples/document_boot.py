@@ -21,24 +21,14 @@ from ux_compose import (
     notify,
     update_with,
     control,
-    HAS_DOM as COMPOSE_HAS_DOM,
+    scene,
+    rise,
     div,
     span,
     button,
 )
-
-try:
-    from ux_dom import Document
-    from ux_dom.runtime import XElement, Htmx, Csp
-    from ux_dom.dom import div, h1, button, span
-    HAS_DOM = True
-except ImportError:
-    HAS_DOM = False
-
-try:
-    from ux_compose import scene, rise
-except Exception:
-    scene = rise = None
+from ux_dom import Document
+from ux_dom.runtime import XElement, Htmx, Csp
 
 
 class Badge(Component):
@@ -48,37 +38,22 @@ class Badge(Component):
 
     def render(self):
         n = int(self.count or 0)
-        if COMPOSE_HAS_DOM or HAS_DOM:
-            return div(
-                span(str(n)),
-                button("+1", **control("inc")),
-                id=self.id,
-                className="badge",
-            )
-        return f'<div id="{self.id}" class="badge">{n}</div>'
+        return div(
+            span(str(n)),
+            button("+1", **control("inc")),
+            id=self.id,
+            className="badge",
+        )
 
     @action(caps=())
     def inc(self):
         self.count = int(self.count or 0) + 1
         self.dirty = "tock" if self.dirty == "tick" else "tick"
-        plan = None
-        if scene is not None and rise is not None:
-            try:
-                plan = scene("badge-pop").enter(f"#{self.id}", rise.enter(ms=120))
-            except Exception:
-                plan = None
+        plan = scene("badge-pop").enter(f"#{self.id}", rise.enter(ms=120))
         return update_with(self, plan, extra_ops=[notify(f"count={self.count}")])
 
 
 if __name__ == "__main__":
-    if not HAS_DOM:
-        print("ux-dom not installed — Document SSoT path skipped (needs Python ≥3.14)")
-        app = App.boot("Shop", strict_caps=False)
-        app.add(Badge)
-        print("Level:", int(app.level), app.level.label)
-        print(app.dispatch("badge.inc"))
-        raise SystemExit(0)
-
     document = Document(head=[], body=[], ensure_csrf_token=False).use(
         XElement(),
         Htmx(),

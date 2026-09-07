@@ -11,7 +11,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -68,9 +67,7 @@ class Tabs(Component):
                 role="tabpanel",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_tab=current)
-        return f'<div id="{self.id}">{current}</div>'
+        return div(*kids, id=self.id, className="widget", data_tab=current)
 
     @action(caps=())
     def select(self, tab: str = "cut"):
@@ -124,9 +121,7 @@ class Accordion(Component):
             ),
             *items,
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def toggle(self, key: str = ""):
@@ -179,9 +174,7 @@ class Dropdown(Component):
                 className="dropdown-wrap",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_open="1" if self.open else "0")
-        return f'<div id="{self.id}">{val}</div>'
+        return div(*kids, id=self.id, className="widget", data_open="1" if self.open else "0")
 
     @action(caps=())
     def toggle(self):
@@ -226,16 +219,14 @@ class Drawer(Component):
             act("drawer.open_drawer", "Open filters", kind="primary"),
             panel,
         )
-        if HAS_DOM:
-            attrs = {
-                "id": self.id,
-                "className": "widget drawer" + (" is-open" if self.open else ""),
-                "data_open": "1" if self.open else "0",
-            }
-            if self.open:
-                attrs["data_channel_on"] = "swipe.horizontal threshold:40"
-            return div(*kids, **attrs)
-        return f'<div id="{self.id}"></div>'
+        attrs = {
+            "id": self.id,
+            "className": "widget drawer" + (" is-open" if self.open else ""),
+            "data_open": "1" if self.open else "0",
+        }
+        if self.open:
+            attrs["data_channel_on"] = "swipe.horizontal threshold:40"
+        return div(*kids, **attrs)
 
     @action(caps=())
     def open_drawer(self, which: str = "filters"):

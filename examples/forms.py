@@ -11,7 +11,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -62,18 +61,15 @@ class SignupForm(Component):
                 data_ux="1",
                 data_target="#stage",
                 className="stack",
-            )
-            if HAS_DOM
-            else p(""),
+            ),
+
             p(err, className="error", role="alert") if err else p(""),
             p("Welcome. The host would mint account.create here.", className="status status-ok")
             if self.ok
             else p(""),
             act("signup.create_account", "Create account (Cap)", kind="ghost"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<form id="{self.id}"><p>{err}</p></form>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def submit(self, email: str = ""):
@@ -120,9 +116,8 @@ class Wizard(Component):
                     data_ux="1",
                     data_target="#stage",
                     className="stack",
-                )
-                if HAS_DOM
-                else p(""),
+                ),
+
             ]
         elif step == "piece":
             body = [
@@ -150,9 +145,7 @@ class Wizard(Component):
             ),
             *body,
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_step=step)
-        return f'<div id="{self.id}">{step}</div>'
+        return div(*kids, id=self.id, className="widget", data_step=step)
 
     @action(caps=())
     def next(self, name: str = ""):
@@ -219,9 +212,8 @@ class Search(Component):
                 data_ux="1",
                 data_target="#stage",
                 className="stack",
-            )
-            if HAS_DOM
-            else p(""),
+            ),
+
             ul(*lis, className="hit-list"),
             div(
                 act("search.type", "Oak", kind="ghost", q="oak"),
@@ -230,9 +222,7 @@ class Search(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{q}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def type(self, q: str = ""):

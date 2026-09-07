@@ -12,17 +12,13 @@ from ux_compose import (
     notify,
     update_with,
     control,
-    HAS_DOM,
     div,
     h1,
     span,
     button,
+    scene,
+    rise,
 )
-
-try:
-    from ux_compose import scene, rise
-except Exception:
-    scene = rise = None
 
 
 class Index(Component):
@@ -32,24 +28,17 @@ class Index(Component):
 
     def render(self):
         val = int(self.n or 0)
-        if HAS_DOM and div is not None:
-            return div(
-                h1(f"Count: {val}"),
-                span("+ via Channel Intent when live"),
-                button("+1", **control("inc")),
-                id=self.id,
-                className="counter",
-            )
-        return f'<div id="{self.id}"><h1>Count: {val}</h1></div>'
+        return div(
+            h1(f"Count: {val}"),
+            span("+ via Channel Intent when live"),
+            button("+1", **control("inc")),
+            id=self.id,
+            className="counter",
+        )
 
     @action(caps=())
     def inc(self):
         self.n = int(self.n or 0) + 1
         self.dirty = "tock" if self.dirty == "tick" else "tick"
-        plan = None
-        if scene is not None and rise is not None:
-            try:
-                plan = scene("inc").enter(f"#{self.id}", rise.enter(ms=100))
-            except Exception:
-                plan = None
+        plan = scene("inc").enter(f"#{self.id}", rise.enter(ms=100))
         return update_with(self, plan, extra_ops=[notify(f"n={self.n}")])

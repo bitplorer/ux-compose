@@ -7,39 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Fixed
+### BREAKING
 
-- Kit widgets that import `div` / `button` no longer TypeError on `render()`
-  when `HAS_DOM` is false (Py3.13 / no ux-dom). Toast, Login, and Wave-1
-  (`actionsheet`, `contextmenu`, `typeahead`, `pullrefresh`) use an
-  HTML-string fragment fallback so Progressive Superpower is real on 3.13.
-  Other kits fail at `uxcompose add` / `render()` with
-  `requires ux-dom (Py≥3.14)`.
+- **Python floor is ≥3.14.** ux-compose hard-depends on pinned ux-dom,
+  ux-channel, ux-behavior, and ux-motion (plus `cek-host>=0.1.3` /
+  `cek-surface>=0.1.3`). Day-one install is the full stack. Missing
+  specialists fail loud — no optional L1 / `HAS_DOM=False` / Document-absent
+  product path.
+- Kit HTML-string fallbacks (`_render_html`, `html_fallback`) and
+  `create-app` dual-floor (`document=None`, `shell.py` / `wrap_get_chrome`)
+  are gone. Scaffold emits Document-only `render()` trees.
+- `doctor` exits non-zero when the stack is incomplete (unless `--no-fail`).
+  Progressive Superpower is additive levels on a complete install, not an
+  unlock ladder of optional packages.
+- Product extras `[dom]` / `[behavior]` / `[motion]` / `[channel]` / `[full]`
+  are empty aliases. Specialists live in `[project].dependencies`.
+- CI product-green is full-stack py3.14 only. The py3.12 offline-shim job
+  is retired.
+
+### Removed
+
+- `ux_compose.chrome.wrap_get_chrome` / `shell.py` Document-absent primary.
+- Kit HTML-string fallbacks (`_render_html`, catalog `html_fallback`).
+- CI py3.12 offline-shim job and Makefile `test312`.
+- Optional `_LocalBehavior` / specialist soft-import shims on the product path.
+- `build()` / `surfaces` auto-attach of live-client when no Document is given.
+- Parallel HTML-string helpers (`html_escape` / `html_attrs`) and dict-Op
+  fallbacks. Morph HTML serializes through ux-dom; Ops are ux-behavior.
+- Optional motion swallows (`optional_*` returning None / `scene is None`).
+  Those names still exist; they import and use ux-motion.
+
+### Fixed
 
 ### Added
 
-- GET-only chrome for Document-absent apps: `ux_compose.chrome.wrap_get_chrome`
-  / `get_chrome(brand=…)` as `build(wrap=)`. String shell (not a synthesized
-  Document). Morph payloads stay `render()` fragments — GET may contain the
-  brand once; `update_with` morph HTML brand count is 0. `create-app` emits
-  `shell.py` and uses it when `document` is None. Doctor residual-teaches
-  `stunning-root` / `class="nav"` brand patterns inside `routes/*.py` `render()`.
-- Official `create-app` hello teaches Cap mint + fail-closed
-  `hello.pulse` (`@action(caps=("pulse",))`, `control("hello.pulse")`)
-  on both the Py3.13 HTML-string path and the Py3.14 DOM path.
-  `render()` stays a `#hello` fragment (no nav / brand / stunning-root).
-- Fragment / L1 live-client: when `build(document=None)` and Channel is
-  attached, compose injects `/ux-channel/static/ux-channel.js` (+ optional
-  `ux-bridge.js`) and `data-channel-endpoint="/ux-channel/action"` via
-  `LiveClientMiddleware` (string shell, not a synthesized Document).
-  `control()` / offline `bind` emit both `data-ux-action` and
-  `data-channel-action`. Scaffold `document.py` uses
-  `Document.use(…, Channel.optional())` from `ux_dom.runtime`.
-
-- `create-app` `requirements.txt` installs Cap require: ux-channel VCS pin
-  ≥ `31a60bd`, `cek-host>=0.1.3`, `cek-surface>=0.1.3`. ux-dom is commented
-  (Python ≥3.14). Doctor fail-loud when `cek=require` and Channel is live
-  but `registry._caps` is not `CekHostCapService` / `kernel_ssot=cek-runtime`.
+- `create-app` `requirements.txt` pins the full specialist stack (CI SHAs)
+  plus `cek-host>=0.1.3` / `cek-surface>=0.1.3`. Doctor fail-loud when
+  `cek=require` and Channel is live but `registry._caps` is not
+  `CekHostCapService` / `kernel_ssot=cek-runtime`.
 - `build(cek="require")` (default): after `use_channel`, attach product Cap
   Host through `App.use_cek` (cek-runtime). Skip when `live="null"` / no
   Channel. Scaffold emits `cek="require"` so authors never hand-wire.

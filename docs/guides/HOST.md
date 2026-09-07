@@ -29,28 +29,12 @@ app, asgi, bundle = build(
 `routes/hello.py` → `GET /hello`. `render()` is a fragment. The host wraps
 the **author** Document (CSP, shell, stylesheet). A synthesized Document
 (tests that omit `document=`) is mounted for CSP/static only — it does not
-swallow the fragment. If Channel is attached with `document=None`, compose
-injects the Cap live client (public `/ux-channel/static/ux-channel.js` URLs)
-so fragment GETs are not script-less. `live="null"` stays a bare fragment.
+swallow the fragment. Product path is `build(document=, wrap=document)`.
+`Document.use(Channel.optional())` owns Channel client tags. `live="null"`
+stays a bare fragment.
 
-Py3.13 / Document-absent brand chrome is `build(wrap=)`, not ASGI
-middleware and not chrome inside `render()` (morph would nest the brand):
-
-```python
-from functools import partial
-from ux_compose.build import build
-from ux_compose.chrome import wrap_get_chrome
-
-app, asgi, bundle = build(
-    PACKAGE,
-    document=None,
-    wrap=partial(wrap_get_chrome, brand="Acme"),
-)
-```
-
-`create-app` emits `shell.py` and passes it as `wrap=` when `document` is
-None. GET HTML may contain the brand once. `update_with` morph HTML must
-not.
+GET chrome belongs on the author Document, not inside `render()` (morph
+would nest the brand).
 
 ```python
 from ux_compose import Component, MorphState, action, div, span, update_with
@@ -68,8 +52,8 @@ class Hello(Component):
         return update_with(self)
 ```
 
-L1 without ux-dom: return an HTML **string**. Strings stay `text/html` (they
-are not JSON-encoded, they are not streamed).
+L1 without HTTP: return a ux-dom tag tree. A `str` still serializes as
+`text/html` (not JSON, not streamed) but is not a Document-absent product path.
 
 Path params: `routes/shop/[sku].py` → `GET /shop/{sku}`.
 

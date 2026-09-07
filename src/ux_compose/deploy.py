@@ -54,7 +54,7 @@ def _write(path: Path, content: str, *, force: bool) -> bool:
 
 _DOCKERFILE = """\
 # ux-compose product ASGI image
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \\

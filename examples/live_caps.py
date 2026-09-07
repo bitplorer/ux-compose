@@ -18,7 +18,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -62,9 +61,7 @@ class LiveOrder(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_status=st)
-        return f'<div id="{self.id}">{st}</div>'
+        return div(*kids, id=self.id, className="widget", data_status=st)
 
     @action(caps=())
     def prepare(self):

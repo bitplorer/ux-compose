@@ -44,11 +44,10 @@ the (possibly synthesized) Document as `document`. Synthesized Document is
 write drops HTML-string fragments (ux-dom treats a positional `str` on
 `<body>` as a script `src`).
 
-Document-absent GET chrome (Py3.13 / L1 HTML-string) is
-`ux_compose.chrome.wrap_get_chrome` passed as `build(wrap=)` — a string
-shell, same law as `live_client`. Do not put brand / `stunning-root` /
-`class="nav"` inside `routes/*.py` `render()` (morph payloads stay
-fragments). Scaffold emits `shell.py` for that wrap.
+Product path is `build(document=, wrap=document)`. GET chrome lives on the
+author Document — not a string `wrap_get_chrome` / `shell.py` dual floor.
+Do not put brand / `stunning-root` / `class="nav"` inside `routes/*.py`
+`render()` (morph payloads stay fragments).
 
 `App.boot("auto")` is **Level 1**. Channel never boots headless on auto —
 `Behavior.attach` is idempotent on `_wire`, so a headless Channel would never
@@ -63,7 +62,7 @@ first (tests / explicit `level=2`).
 Not FastAPI `default_response_class`.**
 
 Same spirit as ux-dom `html_response` / `streaming_response` (wrap trees, pass
-the rest through). Compose adds the L1 HTML-string path: a `str` is HTML, never JSON.
+the rest through). Compose treats a `str` as HTML, never JSON.
 
 | `render()` / handler returns | HTTP | Document wrap | CSP stamp |
 |------------------------------|------|---------------|-----------|
@@ -138,8 +137,7 @@ the class are ignored. Path params come from the Request, passed into
 ```text
 shop/
 ├── app.py                 composition root — build() only
-├── document.py            Document SSoT (.use(XElement, Csp)); host wraps GET
-├── shell.py               GET chrome when Document is absent (wrap_get_chrome)
+├── document.py            Document SSoT (.use(XElement, Csp, Channel.optional)); host wraps GET
 ├── settings.py            BASE_DIR, DEBUG, WebAssets
 ├── requirements.txt
 ├── README.md
@@ -155,8 +153,7 @@ shop/
 |------|------|----------|
 | `settings.py` | env, disk folders | Channel, Document |
 | `document.py` | one Document | `ux_channel`, page routes |
-| `shell.py` | GET-only chrome wrap (no Document) | `render()`, Channel, morph HTML |
-| `app.py` | `build(host=, live=, level=, document=, wrap=)` | HTML wrap, HTTP verbs |
+| `app.py` | `build(host=, live=, level=, document=, wrap=document)` | HTML wrap, HTTP verbs |
 | `routes/*.py` | `render()` + `@action` | `get()`, `HTMLResponse`, Document.mount |
 
 Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs,
@@ -173,8 +170,6 @@ Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs,
 | Path / stem / JSON / stream / wrap? | `src/ux_compose/routing/core.py` |
 | No-Starlette degrade? | `src/ux_compose/routing/asgi.py` |
 | Orchestra (`wrap=` vs `document=`)? | `src/ux_compose/build.py`, `surfaces_host.py` |
-| GET chrome without Document? | `src/ux_compose/chrome.py` (`wrap_get_chrome`) |
-| Fragment live-client (`document=None`)? | `src/ux_compose/live_client.py` |
 | Channel attach? | `src/ux_compose/wire/boot.py` only |
 | Scaffold? | `src/ux_compose/scaffold.py` |
 | Fitness tests? | `tests/unit/test_host.py` |
@@ -215,15 +210,12 @@ FastAPI is **not** given `default_response_class=HTMLResponse`. Author
   **only** the author `document=` (`wrap=`). DirectoryASGI has no middleware;
   doctor reports CSP middleware is not attached.
 - HTMX is opt-in (`build(use_htmx=True)` / `Document.use(Htmx())`).
-- Py3.14 `Document.use(XElement(), Csp.auto(), Channel.optional())` (the
+- `Document.use(XElement(), Csp.auto(), Channel.optional())` (the
   `ux_dom.runtime` alias, not `ux_channel.Channel`) is the full shell.
-- L1 / Py3.13 fragment GET (`document=None`) with Channel attached: compose
-  `LiveClientMiddleware` inserts `/ux-channel/static/ux-channel.js` and
-  `data-channel-endpoint="/ux-channel/action"` (string shell, not a
-  synthesized Document — a positional `str` on `<body>` is script `src`).
-  Brand / nav chrome on that path is `build(wrap=wrap_get_chrome)` /
-  scaffold `shell.py`, not chrome inside `render()`. `live="null"` is
-  unchanged. Complete documents and `/css` are not double-wrapped.
+  Product path is `build(document=, wrap=document)`. There is no
+  Document-absent live-client / `wrap_get_chrome` primary. `live="null"`
+  stays offline Behavior. Complete documents and `/css` are not
+  double-wrapped.
 
 ---
 
@@ -281,10 +273,11 @@ Do **not**:
 | `HTMLResponse` in page units | host wraps; Isolation of concerns |
 | A second path function next to `http_path` | two scanners, two URLs |
 | Logic in `routing/adapters/` | shims only |
-| Mini HTML builder when `HAS_DOM` is false | invents a sixth product; L1 uses strings |
+| Mini HTML builder when `HAS_DOM` is false | invents a sixth product; ux-dom is a hard dep |
 | Wrap GET with a synthesized Document | HTML `str` becomes script `src`; fragment vanishes |
 | Scaffold `page()` as the GET wrap | host calls `document(child)`; two wrap stories |
 | `host="batteries"` as a product path | leftover ux-dom `DirectoryRouter` |
+| Document-absent `wrap_get_chrome` / `shell.py` primary | dual floor; product path is `wrap=document` |
 
 If a future need conflicts with the payload law, write **ADR 0003**. Do not
 quietly add a second pipeline.

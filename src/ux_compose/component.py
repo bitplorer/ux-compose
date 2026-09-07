@@ -5,8 +5,8 @@ Satisfies the ux-behavior Component protocol (MorphState / RefState / @action)
 and produces renderable trees for ux-dom. Composition is internal; authors
 never see dual inheritance.
 
-render() returns a ux-dom tag tree (div, h1, …) when ux-dom is installed.
-HTML strings remain valid (Progressive Superpower / offline shim).
+render() returns a ux-dom tag tree (div, h1, …). ux-dom is a hard
+dependency (Python ≥3.14).
 
 This class does **not** subclass ux-dom Component. Freeze on that class is
 fragile (skip __init__, republish _entry). The MRO is not: add/remove/get/clear
@@ -15,81 +15,17 @@ are reserved tree verbs today, and more will land. Sharing that MRO with
 """
 from __future__ import annotations
 
-from typing import Any, AsyncIterator, Callable, Optional
+from typing import AsyncIterator
 
-# Prefer real specialists when installed.
-try:
-    from ux_behavior import (  # type: ignore
-        Component as _BehaviorComponent,
-        MorphState,
-        RefState,
-        action,
-    )
-    _HAS_BEHAVIOR = True
-except ImportError:  # pragma: no cover
-    _HAS_BEHAVIOR = False
+from ux_behavior import (  # type: ignore
+    Component as _BehaviorComponent,
+    MorphState,
+    RefState,
+    action,
+)
 
-    class MorphState:  # type: ignore
-        def __init__(self, default: Any = None):
-            self.default = default
-            self._name: Optional[str] = None
-
-        def __set_name__(self, owner, name):
-            self._name = name
-
-        def __get__(self, obj, objtype=None):
-            if obj is None:
-                return self
-            return obj.__dict__.get(self._name, self.default)
-
-        def __set__(self, obj, value):
-            obj.__dict__[self._name] = value
-            dirty = obj.__dict__.setdefault("_dirty", set())
-            dirty.add(self._name)
-
-    class RefState:  # type: ignore
-        def __init__(self, default: Any = None):
-            self.default = default
-            self._name: Optional[str] = None
-
-        def __set_name__(self, owner, name):
-            self._name = name
-
-        def __get__(self, obj, objtype=None):
-            if obj is None:
-                return self
-            return obj.__dict__.get(self._name, self.default)
-
-        def __set__(self, obj, value):
-            obj.__dict__[self._name] = value
-
-    def action(caps=()):  # type: ignore
-        def deco(fn: Callable):
-            fn._ux_action = True  # type: ignore
-            fn._ux_caps = caps  # type: ignore
-            return fn
-        return deco
-
-    class _BehaviorComponent:  # type: ignore
-        id: str = ""
-
-        def __init__(self, **kwargs):
-            for k, v in kwargs.items():
-                setattr(self, k, v)
-
-        def render(self):
-            raise NotImplementedError
-
-
-try:
-    from ux_dom.dom.src.component import Component as _DomComponent  # type: ignore
-    from ux_dom.dom.src.dom_tag import dom_tag as _dom_tag  # type: ignore
-
-    _HAS_DOM_COMPONENT = True
-except ImportError:  # pragma: no cover
-    _HAS_DOM_COMPONENT = False
-    _DomComponent = None  # type: ignore
-    _dom_tag = None  # type: ignore
+from ux_dom.dom.src.component import Component as _DomComponent  # type: ignore
+from ux_dom.dom.src.dom_tag import dom_tag as _dom_tag  # type: ignore
 
 _DOM_TREE_NAMES = frozenset({"Component", "Tags", "dom_tag", "ReactiveComponent", "Fragment"})
 
@@ -105,7 +41,6 @@ class Component(_BehaviorComponent):
 
           return div(h1(f"{self.count}"), id=self.id)
 
-      HTML strings still work (offline / no ux-dom).
     - @action(caps=...) methods return None | list[Op] | Result
     - control() via helpers for progressive attrs
     - __render__(pretty=False) re-runs render() — never a construct snapshot
@@ -119,18 +54,11 @@ class Component(_BehaviorComponent):
     5. Prefer update_with(self, scene(...)) for morph + motion
     """
 
-    # Real Behavior Component already has id; we only ensure the attribute exists
-    # for the shim path and for static analysis.
-    if not _HAS_BEHAVIOR:
-        id: str = ""
-
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        # Auto-id when class body omitted id= (shim path; behavior base also does this)
+        # Auto-id when class body omitted id= (behavior base also does this)
         if "id" not in cls.__dict__ and not getattr(cls, "id", ""):
             cls.id = cls.__name__.lower()
-        if not _HAS_DOM_COMPONENT:
-            return
         for base in cls.__mro__:
             if base is cls or base is Component or base is _BehaviorComponent or base is object:
                 continue

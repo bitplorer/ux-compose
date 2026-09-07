@@ -13,8 +13,8 @@ class Level(IntEnum):
     L2 — + Channel + Caps + control()  (HTMX is a separate opt-in control plane)
     L3 — + Motion / Scenes (choreography)
 
-    Progressive Superpower Contract: code written at L1 remains correct
-    when you unlock L2/L3 — zero rewrite.
+    Progressive Superpower Contract: complete install first. Code written
+    at L1 remains correct at L2/L3 — levels are additive, zero rewrite.
     """
 
     L0 = 0  # Document + static Components + page-unit routing

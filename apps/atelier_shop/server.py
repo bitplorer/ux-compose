@@ -35,6 +35,8 @@ from ux_compose import (
     aside,
 )
 from ux_compose.helpers import _serialize_tree
+from ux_dom import Document
+from ux_dom.runtime import XElement, Htmx
 
 from apps.atelier_shop.shop import Cart, ConfirmModal, catalog_grid
 
@@ -45,14 +47,6 @@ try:
 except ImportError:  # pragma: no cover
     HAS_FASTAPI = False
     FastAPI = None  # type: ignore
-
-try:
-    from ux_dom import Document
-    from ux_dom.runtime import XElement, Htmx
-    HAS_DOM = True
-except ImportError:
-    HAS_DOM = False
-    Document = None  # type: ignore
 
 
 _IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -137,8 +131,6 @@ def _sniff_multipart(raw: bytes) -> dict[str, Any]:
 
 
 def _document():
-    if not HAS_DOM:
-        return None
     return Document(head=[], body=[], ensure_csrf_token=False).use(
         XElement(),
         Htmx(),

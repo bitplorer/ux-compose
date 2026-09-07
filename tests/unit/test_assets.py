@@ -62,8 +62,9 @@ def test_scaffold_settings_imports_compose_webassets(tmp_path):
     assert "/css/{OUTPUT_CSS}" in document
     assert "from document import document" in app
     assert "from settings import webassets" in app
-    # independent tries — Document import must not zero WebAssets
-    assert app.count("except Exception:") >= 2
+    assert "wrap=document" in app
+    assert "except Exception:" not in app
+    assert "except ImportError" not in app
 
 
 def test_mount_css_requires_asgi(tmp_path):

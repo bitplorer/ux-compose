@@ -235,8 +235,7 @@ app, asgi, bundle = build(
 print(app.name, app.level, bundle)
 ```
 
-Document-absent GET chrome (Py3.13): `from ux_compose.chrome import wrap_get_chrome`
-then `build(..., document=None, wrap=wrap_get_chrome)`. Morph stays a fragment.
+Product path: `build(..., document=document, wrap=document)`. Morph stays a fragment.
 
 ### use_host / use_channel / use_motion
 

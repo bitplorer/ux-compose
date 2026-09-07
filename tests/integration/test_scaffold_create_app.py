@@ -18,7 +18,7 @@ def test_create_app_layout(tmp_path):
     assert (root / "app.py").is_file()
     assert (root / "settings.py").is_file()
     assert (root / "document.py").is_file()
-    assert (root / "shell.py").is_file()
+    assert not (root / "shell.py").exists()
     assert (root / "routes" / "hello.py").is_file()
     assert (root / "README.md").is_file()
     assert (root / "requirements.txt").is_file()
@@ -28,12 +28,9 @@ def test_create_app_layout(tmp_path):
     assert "asgi" in text
     assert "document=document" in text
     assert "from document import document" in text
-    assert "from shell import wrap" in text
-    assert "wrap=" in text
-    shell = (root / "shell.py").read_text(encoding="utf-8")
-    assert "wrap_get_chrome" in shell
-    assert "import ux_channel" not in shell
-    assert "Document(" not in shell
+    assert "from shell import wrap" not in text
+    assert "wrap=document" in text
+    assert "wrap_get_chrome" not in text
     assert 'cek="require"' in text
     assert "import ux_channel" not in text
     assert "from ux_channel" not in text
@@ -42,6 +39,7 @@ def test_create_app_layout(tmp_path):
     assert "uxcompose serve dev" in readme
     assert "uxcompose serve prod" in readme
     assert "serve app:asgi" not in readme
+    assert "3.13" not in readme
 
 
 def test_create_app_teaches_document_and_settings(tmp_path):
@@ -51,6 +49,7 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     hello = (root / "routes" / "hello.py").read_text(encoding="utf-8")
     css = (root / "assets" / "css" / "input.css").read_text(encoding="utf-8")
     req = (root / "requirements.txt").read_text(encoding="utf-8")
+    readme = (root / "README.md").read_text(encoding="utf-8")
 
     assert "BASE_DIR" in settings
     assert "from ux_compose import WebAssets" in settings
@@ -69,11 +68,14 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     assert "Channel" in document
     assert "import ux_channel" not in document
     assert "from ux_channel" not in document
+    assert "document = None" not in document
+    assert "except Exception" not in document
 
     assert "class Hello" in hello
     assert "def get(" not in hello
     assert "def render(" in hello
     assert "className" in hello
+    assert "HAS_DOM" not in hello
 
     assert '@import "tailwindcss"' in css
     assert "@source" in css
@@ -95,20 +97,14 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     assert any(ln.startswith("cek-surface") and ">=0.1.3" in ln for ln in active)
     assert any("ux-channel" in ln for ln in active)
     assert any("31a60bd" in ln for ln in active), "Channel VCS pin must be ≥ 31a60bd"
-    # Bare ux-dom is unsatisfiable on 3.13; keep it commented / optional.
-    assert not any(
-        ln == "ux-dom" or ln.startswith("ux-dom==") or ln.startswith("ux-dom ")
-        for ln in active
-    )
-    assert "ux-dom" in req
-    assert "3.14" in req
+    assert any("ux-dom" in ln and "25338a6" in ln for ln in active)
+    assert any("ux-motion" in ln and "67ff3f0" in ln for ln in active)
+    assert any("ux-behavior" in ln and "76adc72" in ln for ln in active)
+    assert "3.13" not in req
 
-    readme = (root / "README.md").read_text(encoding="utf-8")
-    assert "cek-host>=0.1.3" in readme
     assert 'cek="require"' in readme
-    assert "3.13" in readme
+    assert "3.13" not in readme
     assert "3.14" in readme
-    assert "L2" in readme
 
 
 def test_create_app_isolation_and_single_document(tmp_path):
@@ -162,28 +158,26 @@ def _active_requirement_lines(text: str) -> list[str]:
 
 
 def test_create_app_requirements_boot_cap_require(tmp_path):
-    """pip install -r requirements.txt must name Cap require deps, not tribal knowledge."""
+    """pip install -r requirements.txt must name the full pinned stack."""
     root = create_app(tmp_path / "caps", name="caps")
     req = (root / "requirements.txt").read_text(encoding="utf-8")
     app_py = (root / "app.py").read_text(encoding="utf-8")
     active = _active_requirement_lines(req)
 
     assert 'cek="require"' in app_py
+    assert "wrap=document" in app_py
     assert any(ln.startswith("cek-host") and ">=0.1.3" in ln for ln in active)
     assert any(ln.startswith("cek-surface") and ">=0.1.3" in ln for ln in active)
     assert any("ux-channel" in ln and "31a60bd" in ln for ln in active)
+    assert any("ux-dom" in ln and "25338a6" in ln for ln in active)
+    assert any("ux-behavior" in ln and "76adc72" in ln for ln in active)
+    assert any("ux-motion" in ln and "67ff3f0" in ln for ln in active)
     assert "subdirectory=python" in req
     assert any(ln.startswith("fastapi") for ln in active)
     assert any(ln.startswith("uvicorn") for ln in active)
     assert any("ux-compose" in ln for ln in active)
-    assert any("ux-behavior" in ln for ln in active)
-    assert not any(
-        ln == "ux-dom" or ln.startswith("ux-dom==") or ln.startswith("ux-dom ")
-        for ln in active
-    )
-    assert "ux-dom" in req
-    assert "3.14" in req
+    assert "3.13" not in req
     readme = (root / "README.md").read_text(encoding="utf-8")
-    assert "3.13" in readme and "3.14" in readme
-    assert "L2" in readme
+    assert "3.13" not in readme
+    assert "3.14" in readme
     assert 'cek="require"' in readme

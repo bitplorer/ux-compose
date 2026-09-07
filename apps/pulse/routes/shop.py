@@ -2,12 +2,7 @@
 from __future__ import annotations
 
 from ux_compose import Component, MorphState, RefState, action, control, notify, update_with
-
-try:
-    from ux_compose import div, span, h1, h3, p, button, section, article, HAS_DOM
-except Exception:
-    HAS_DOM = False
-    div = span = h1 = h3 = p = button = section = article = None  # type: ignore
+from ux_compose import div, span, h1, h3, p, button, section, article
 
 CATALOG = (
     {"sku": "linen-throw", "name": "Linen throw", "price": 4800, "blurb": "Stone-washed, heavy drape"},
@@ -45,8 +40,6 @@ class Shop(Component):
         self.dirty = "a" if self.dirty == "b" else "b"
 
     def render(self):
-        if not (HAS_DOM and div is not None):
-            return f'<section id="shop">cart {_money(self._total())}</section>'
 
         cards = []
         for prod in CATALOG:

@@ -21,24 +21,18 @@ from ux_compose.build import build
 
 PACKAGE = Path(__file__).resolve().parent / "live_asgi_app"
 
-try:
-    from ux_dom import Document
-    from ux_dom.runtime import XElement, Htmx, Csp
-
-    HAS_DOM = True
-except ImportError:
-    HAS_DOM = False
+from ux_dom import Document
+from ux_dom.runtime import XElement, Htmx, Csp
 
 
 def build_app():
     """Compose Document + progressive App via build(). Returns (app, asgi, bundle, document)."""
     document = None
-    if HAS_DOM:
-        document = Document(head=[], body=[], ensure_csrf_token=False).use(
-            XElement(),
-            Htmx(),
-            Csp.auto(),
-        )
+    document = Document(head=[], body=[], ensure_csrf_token=False).use(
+        XElement(),
+        Htmx(),
+        Csp.auto(),
+    )
 
     app, asgi, bundle = build(
         PACKAGE,

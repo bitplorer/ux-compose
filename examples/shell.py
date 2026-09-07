@@ -18,7 +18,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -101,15 +100,13 @@ class AppShell(Component):
                 className="tab-panel",
             ),
         )
-        if HAS_DOM:
-            return div(
-                *kids,
-                id=self.id,
-                className="widget",
-                data_current=cur,
-                data_collapsed="1" if self.collapsed else "0",
-            )
-        return f'<div id="{self.id}">{cur}</div>'
+        return div(
+            *kids,
+            id=self.id,
+            className="widget",
+            data_current=cur,
+            data_collapsed="1" if self.collapsed else "0",
+        )
 
     @action(caps=())
     def go(self, key: str = "table"):
@@ -166,9 +163,7 @@ class Breadcrumbs(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{trail[-1]}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def go(self, key: str = "house"):
@@ -229,9 +224,7 @@ class BottomNav(Component):
             p(copy.get(cur, ""), className="lede"),
             nav(*segs, className="bottom-nav", aria_label="Sections"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_tab=cur)
-        return f'<div id="{self.id}">{cur}</div>'
+        return div(*kids, id=self.id, className="widget", data_tab=cur)
 
     @action(caps=())
     def select(self, key: str = "home"):
@@ -288,14 +281,12 @@ class Popover(Component):
                 className="dropdown-wrap",
             ),
         )
-        if HAS_DOM:
-            return div(
-                *kids,
-                id=self.id,
-                className="widget",
-                data_open="1" if self.open else "0",
-            )
-        return f'<div id="{self.id}">{pin}</div>'
+        return div(
+            *kids,
+            id=self.id,
+            className="widget",
+            data_open="1" if self.open else "0",
+        )
 
     @action(caps=())
     def toggle(self):
@@ -351,9 +342,7 @@ class OverflowMenu(Component):
                 className="dropdown-wrap",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{last}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def toggle(self):

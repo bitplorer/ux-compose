@@ -12,7 +12,7 @@
         live="auto",   # auto|channel|null
         level="auto",
         document=document,
-        wrap=document,  # or wrap_get_chrome when Document is absent
+        wrap=document,
         cek="require",  # product Cap Host after use_channel
     )
 
@@ -49,35 +49,33 @@ def _attach_document(app: Any, document: Any, *, use_htmx: bool) -> Any:
     """Attach the author's Document, or synthesize one if none given.
 
     Author-provided Document is the SSoT. HTMX stays opt-in.
-    Missing ux-dom is a soft skip (L1 HTML-string path).
+    Missing ux-dom fails loud (hard dependency, Python ≥3.14).
     """
-    if document is not None:
-        if use_htmx:
-            try:
+    try:
+        if document is not None:
+            if use_htmx:
                 from ux_dom.runtime import Htmx
 
                 document.use(Htmx())
-            except Exception:
-                pass
-        app.use_dom(document)
-        return document
-    try:
+            app.use_dom(document)
+            return document
         from ux_dom import Document
         from ux_dom.runtime import XElement, Csp
 
         runtimes: list[Any] = [XElement(), Csp.auto()]
         if use_htmx:
-            try:
-                from ux_dom.runtime import Htmx
+            from ux_dom.runtime import Htmx
 
-                runtimes.insert(1, Htmx())
-            except ImportError:
-                pass
+            runtimes.insert(1, Htmx())
         document = Document(head=[], body=[], ensure_csrf_token=False).use(*runtimes)
         app.use_dom(document, author=False)
         return document
-    except ImportError:
-        return None
+    except ImportError as exc:
+        raise ImportError(
+            "ux-dom is required (Python ≥3.14). "
+            "ux-compose hard-depends on the pinned specialist stack. "
+            "Pass build(document=) with an author Document."
+        ) from exc
 
 
 def build(
@@ -98,10 +96,9 @@ def build(
     """Boot specialists + mount page units. Host and live set only here.
 
     wrap:
-      Author GET shell. Defaults to ``document`` (Py3.14 Document SSoT).
-      Pass ``wrap_get_chrome`` / ``get_chrome(brand=…)`` when Document is
-      absent (Py3.13 / L1 HTML-string). ``wrap=None`` is a bare fragment.
-      Never a synthesized Document (string fragment → script src).
+      Author GET shell. Defaults to ``document`` (Document SSoT).
+      ``wrap=None`` is a bare fragment. Never a synthesized Document
+      (string fragment → script src).
 
     host:
       - ``"auto"`` — FastAPI if importable, else DirectoryASGI
@@ -147,12 +144,16 @@ def build(
     if want_channel and kind == KIND_FASTAPI and asgi is not None:
         try:
             app.use_channel(asgi_app=asgi)
+        except ImportError:
+            raise
         except Exception:
             if live_l == "channel":
                 raise
     elif want_channel:
         try:
             app.use_channel()
+        except ImportError:
+            raise
         except Exception:
             if live_l == "channel":
                 raise
@@ -172,6 +173,8 @@ def build(
     if want_motion:
         try:
             app.use_motion()
+        except ImportError:
+            raise
         except Exception:
             if pinned is not None and pinned >= 3:
                 raise
@@ -205,13 +208,6 @@ def build(
         wrap=author_wrap,
         resolve_unit=_resolve,
     )
-    # L1 / Py3.13 fragment GET: author Document/wrap is absent, Cap Host is
-    # live. Inject Channel client tags (public URLs only) — never a
-    # synthesized Document wrap (str → script src). live=null skips.
-    if author_document is None and getattr(app, "_channel", None) is not None:
-        from ux_compose.live_client import attach_live_client
-
-        asgi = attach_live_client(asgi)
     if bundle is not None and core.records:
         bundle.route_table = core.route_table()
 

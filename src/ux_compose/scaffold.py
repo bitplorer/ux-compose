@@ -11,7 +11,8 @@ Emits the locked product path:
 - requirements.txt     so ``uxcompose deploy`` is not a lie
 
 Laws: Isolation (no ux_channel in product files). Progressive Superpower
-(Level 1 page units stay correct when Channel or Motion unlock).
+(complete install first; Level 1 page units stay correct when Channel or
+Motion attach).
 """
 from __future__ import annotations
 
@@ -23,7 +24,7 @@ APP_PY = dedent('''\
     """Progressive ux-compose app (level={level_repr}, host={host}).
 
     Composition root: host + live set only in build().
-    Document SSoT lives in document.py; GET chrome without Document is shell.py.
+    Document SSoT lives in document.py.
     Environment in settings.py.
     """
     from __future__ import annotations
@@ -33,20 +34,10 @@ APP_PY = dedent('''\
     from ux_compose.build import build
     from ux_compose import doctor
 
-    PACKAGE = Path(__file__).resolve().parent
+    from document import document
+    from settings import webassets
 
-    try:
-        from document import document
-    except Exception:
-        document = None
-    try:
-        from shell import wrap as page_wrap
-    except Exception:
-        page_wrap = None
-    try:
-        from settings import webassets
-    except Exception:
-        webassets = None
+    PACKAGE = Path(__file__).resolve().parent
 
 
     def _mount_css(asgi):
@@ -81,7 +72,7 @@ APP_PY = dedent('''\
             base="routes",
             use_htmx=use_htmx,
             document=document,
-            wrap=document if document is not None else page_wrap,
+            wrap=document,
             cek="require",
         )
         asgi = _mount_css(asgi)
@@ -138,40 +129,33 @@ SETTINGS_PY = dedent('''\
 DOCUMENT_PY = dedent('''\
     """Document SSoT — one HTML shell for every GET.
 
-    Py3.14 Document.use(XElement(), Csp.auto(), Channel.optional()) is the
-    full shell (CSP + Channel client tags). Channel is the ux_dom.runtime
+    Document.use(XElement(), Csp.auto(), Channel.optional()) is the full
+    shell (CSP + Channel client tags). Channel is the ux_dom.runtime
     alias — never ux_channel.Channel. Isolation: this module never imports
     ux_channel.
 
-    When ux-dom is absent (L1 / Py3.13 HTML-string fallback), document=None
-    and compose injects the live-client on fragment GET if Channel is attached.
-    GET brand chrome is shell.py / wrap_get_chrome — not a synthesized Document.
     HTMX is opt-in via build(use_htmx=True). Component.render() stays a
     fragment (the morph payload) — never put the stylesheet link inside render().
     """
     from __future__ import annotations
 
-    try:
-        from ux_dom import Document
-        from ux_dom.runtime import XElement, Csp, Channel
-        from ux_dom.dom import link, meta, title
+    from ux_dom import Document
+    from ux_dom.runtime import XElement, Csp, Channel
+    from ux_dom.dom import link, meta, title
 
-        from settings import OUTPUT_CSS
+    from settings import OUTPUT_CSS
 
-        _plugins = (XElement(), Csp.auto(), Channel.optional())
-        document = Document(
-            head=[
-                meta(charset="utf-8"),
-                meta(name="viewport", content="width=device-width, initial-scale=1"),
-                title("Hello"),
-                link(href=f"/css/{OUTPUT_CSS}", rel="stylesheet"),
-            ],
-            body=[],
-            ensure_csrf_token=False,
-        ).use(*[p for p in _plugins if p is not None])
-
-    except Exception:  # ux-dom not installed — L1 HTML-string fallback still works
-        document = None
+    _plugins = (XElement(), Csp.auto(), Channel.optional())
+    document = Document(
+        head=[
+            meta(charset="utf-8"),
+            meta(name="viewport", content="width=device-width, initial-scale=1"),
+            title("Hello"),
+            link(href=f"/css/{OUTPUT_CSS}", rel="stylesheet"),
+        ],
+        body=[],
+        ensure_csrf_token=False,
+    ).use(*[p for p in _plugins if p is not None])
 ''')
 
 
@@ -183,18 +167,12 @@ ROUTES_HELLO_PY = dedent('''\
     and mints a Cap when Cap Host is live. hello.inc is public (caps=());
     hello.pulse is fail-closed (caps=("pulse",)). HTMX is opt-in at
     Document layer. render() stays a #hello fragment (the morph payload).
-    Py3.14 host wraps Document; L1 fragment GET uses compose live-client
-    plus optional wrap_get_chrome (shell.py) — never chrome inside render().
+    Host wraps Document — never chrome inside render().
     """
     from __future__ import annotations
 
     from ux_compose import Component, MorphState, action, control, notify, update_with
-
-    try:
-        from ux_compose import div, span, button, HAS_DOM
-    except Exception:
-        HAS_DOM = False
-        div = span = button = None  # type: ignore
+    from ux_compose import div, span, button
 
 
     class Hello(Component):
@@ -207,28 +185,17 @@ ROUTES_HELLO_PY = dedent('''\
             pulses = int(self.pulses or 0)
             inc_attrs = control("hello.inc")
             pulse_attrs = control("hello.pulse")
-            if HAS_DOM and div is not None:
-                btn = (
-                    "rounded-full bg-stone-900 text-stone-50 "
-                    "px-4 py-2 text-sm font-medium hover:bg-stone-800"
-                )
-                return div(
-                    span(str(n), className="text-2xl font-semibold tabular-nums"),
-                    button("+1", type="button", className=btn, **inc_attrs),
-                    span(str(pulses), className="text-2xl font-semibold tabular-nums"),
-                    button("pulse", type="button", className=btn, **pulse_attrs),
-                    id=self.id,
-                    className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm",
-                )
-            inc_str = " ".join(f'{k}="{v}"' for k, v in inc_attrs.items())
-            pulse_str = " ".join(f'{k}="{v}"' for k, v in pulse_attrs.items())
-            return (
-                f'<div id="hello" class="flex items-center gap-3">'
-                f"<span>{n}</span>"
-                f"<button {inc_str}>+1</button>"
-                f"<span>{pulses}</span>"
-                f"<button {pulse_str}>pulse</button>"
-                f"</div>"
+            btn = (
+                "rounded-full bg-stone-900 text-stone-50 "
+                "px-4 py-2 text-sm font-medium hover:bg-stone-800"
+            )
+            return div(
+                span(str(n), className="text-2xl font-semibold tabular-nums"),
+                button("+1", type="button", className=btn, **inc_attrs),
+                span(str(pulses), className="text-2xl font-semibold tabular-nums"),
+                button("pulse", type="button", className=btn, **pulse_attrs),
+                id=self.id,
+                className="flex items-center gap-3 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm",
             )
 
         @action(caps=())
@@ -243,26 +210,6 @@ ROUTES_HELLO_PY = dedent('''\
 ''')
 
 
-SHELL_PY = dedent('''\
-    """GET-only chrome when Document is absent (Py3.13 / L1 HTML-string).
-
-    Morph payloads stay fragments — do not call wrap() from render().
-    build(wrap=) / host.bind wrap= this callable. Never synthesize a
-    ux-dom Document from strings (positional str on <body> is script src).
-    Py3.14 keeps document.py as the wrap (CSP, stylesheet, Channel.optional).
-    """
-    from __future__ import annotations
-
-    from ux_compose.chrome import wrap_get_chrome
-
-    BRAND = "{name}"
-
-
-    def wrap(inner=None):
-        return wrap_get_chrome(inner, brand=BRAND)
-''')
-
-
 ROUTES_INDEX_PY = dedent('''\
     """Page unit — index.py → GET /. Keep /hello; the app root is not 404.
 
@@ -271,13 +218,7 @@ ROUTES_INDEX_PY = dedent('''\
     """
     from __future__ import annotations
 
-    from ux_compose import Component
-
-    try:
-        from ux_compose import a, div, p, HAS_DOM
-    except Exception:
-        HAS_DOM = False
-        a = div = p = None  # type: ignore
+    from ux_compose import Component, a, div, p
 
 
     class Index(Component):
@@ -285,18 +226,11 @@ ROUTES_INDEX_PY = dedent('''\
 
         def render(self):
             href = "/hello"
-            if HAS_DOM and div is not None:
-                return div(
-                    p("Hello lives at /hello."),
-                    a("Open hello", href=href),
-                    id=self.id,
-                    className="flex flex-col gap-2 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm",
-                )
-            return (
-                f'<div id="index">'
-                f'<meta http-equiv="refresh" content="0;url={href}">'
-                f'<a href="{href}">hello</a>'
-                f"</div>"
+            return div(
+                p("Hello lives at /hello."),
+                a("Open hello", href=href),
+                id=self.id,
+                className="flex flex-col gap-2 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm",
             )
 ''')
 
@@ -323,22 +257,22 @@ INPUT_CSS = dedent('''\
 ''')
 
 
-# Channel pin matches Makefile / CI (≥ 31a60bd — CEK adapter). VCS so
-# ``pip install -r requirements.txt`` boots Cap require without tribal pins.
+# Pins match Makefile / CI / pyproject.toml (CI SSOT).
 CHANNEL_VCS_PIN = "31a60bdd40a1b52aea1fd13159ad09c293c63fd6"
+BEHAVIOR_VCS_PIN = "76adc72ff8e8d2f6a784d8b988b720934bd8a612"
+MOTION_VCS_PIN = "67ff3f0c4912b70b7056f8226a6f226b6fe93f60"
+DOM_VCS_PIN = "25338a6d624b764bb79615de52fca48084ce2c55"
 
 REQUIREMENTS = dedent(f'''\
     ux-compose
-    ux-behavior
-    fastapi
-    uvicorn[standard]
-    # Product Cap Host — L2 on Python 3.13+. build(cek="require") needs these.
+    ux-dom @ git+https://github.com/bitplorer/ux-dom.git@{DOM_VCS_PIN}
+    ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@{BEHAVIOR_VCS_PIN}
+    ux-motion @ git+https://github.com/bitplorer/ux-motion.git@{MOTION_VCS_PIN}
     ux-channel @ git+https://github.com/bitplorer/ux-channel.git@{CHANNEL_VCS_PIN}#subdirectory=python
     cek-host>=0.1.3
     cek-surface>=0.1.3
-    # Document SSoT needs Python ≥3.14. Bare ux-dom is unsatisfiable on 3.13.
-    # Uncomment on 3.14:
-    # ux-dom
+    fastapi
+    uvicorn[standard]
 ''')
 
 
@@ -350,10 +284,8 @@ README = dedent('''\
     ## Mental model
 
     - `settings.py` — environment (BASE_DIR, DEBUG, WebAssets on ux-compose)
-    - `document.py` — Document SSoT + `.use(XElement, Csp, Channel.optional)`;
-      Py3.14 full shell. L1 fragment GET uses compose live-client.
+    - `document.py` — Document SSoT + `.use(XElement, Csp, Channel.optional)`
     - `app.py` — composition root: `build(host=, live=, level=, document=, wrap=, cek=)`
-    - `shell.py` — GET-only chrome when Document is absent (`wrap_get_chrome`)
     - `routes/index.py` — GET `/` (index alias; keep `/hello`)
     - `routes/hello.py` — page unit (`render()` is a fragment; host wraps Document)
     - `assets/css/input.css` — Tailwind tokens; compile with `uxcompose build`
@@ -369,6 +301,7 @@ README = dedent('''\
         live="auto",     # auto | channel | null
         level={level_repr_py},
         document=document,
+        wrap=document,
         cek="require",   # product Cap Host via App.use_cek (skip if live=null)
     )
     ```
@@ -377,15 +310,10 @@ README = dedent('''\
 
     ## Product path
 
-    One Product. Two Python floors — `pip install -r requirements.txt` is enough.
+    One Product. Python ≥ 3.14 with the pinned specialist stack.
+    `pip install -r requirements.txt` is enough.
 
-    **Python 3.13 — L2 Cap (no Document).** Channel pin ≥ 31a60bd plus
-    `cek-host>=0.1.3` / `cek-surface>=0.1.3` boot `build(cek="require")`.
-    `document.py` stays `document = None` until ux-dom is present.
-    GET chrome is `shell.py` (`wrap_get_chrome`) — not chrome inside `render()`.
-
-    **Python 3.14 — Document SSoT.** Uncomment `ux-dom` in `requirements.txt`,
-    reinstall. Cap require is unchanged. Isolation: never import `ux_channel`.
+    Isolation: never import `ux_channel`.
 
     ```bash
     pip install -r requirements.txt
@@ -393,7 +321,7 @@ README = dedent('''\
     uxcompose build
     uxcompose serve prod
     uxcompose deploy --provider docker
-    uxcompose doctor . --no-fail
+    uxcompose doctor .
     ```
 
     `uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`).
@@ -404,7 +332,8 @@ README = dedent('''\
     - Isolation: product modules never import `ux_channel` or CEK
     - Cap Law: protected actions fail closed under `strict_caps=True`
     - HTMX is opt-in (`use_htmx=True` in main)
-    - Progressive Superpower: this Level 1 page unit stays correct at L2/L3
+    - Progressive Superpower: complete install first; this Level 1 page unit
+      stays correct at L2/L3 (levels are additive)
 ''')
 
 
@@ -448,7 +377,6 @@ def create_app(
     )
     (root / "settings.py").write_text(SETTINGS_PY, encoding="utf-8")
     (root / "document.py").write_text(DOCUMENT_PY, encoding="utf-8")
-    (root / "shell.py").write_text(SHELL_PY.format(name=name), encoding="utf-8")
     (root / "README.md").write_text(
         README.format(
             name=name,

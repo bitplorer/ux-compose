@@ -15,7 +15,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -81,9 +80,7 @@ class Shelf(Component):
             ),
             ul(*lis, className="bag-lines"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<ul id="{self.id}"></ul>'
+        return div(*kids, id=self.id, className="widget")
 
     def _plan(self):
         if scene is None or rise is None:
@@ -146,13 +143,11 @@ class OptimisticList(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(
-                *kids,
-                id=self.id,
-                className="widget" + (" is-pending" if self.pending else ""),
-            )
-        return f'<div id="{self.id}"></div>'
+        return div(
+            *kids,
+            id=self.id,
+            className="widget" + (" is-pending" if self.pending else ""),
+        )
 
     @action(caps=())
     def add_optimistic(self, sku: str = "item"):
@@ -210,9 +205,7 @@ class Pages(Component):
             ul(*lis, className="bag-lines"),
             more,
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def load_more(self):
@@ -265,9 +258,7 @@ class UndoSnack(Component):
             ul(*lis, className="bag-lines"),
             snack,
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def remove(self, sku: str = ""):

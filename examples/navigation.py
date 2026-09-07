@@ -9,7 +9,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -52,9 +51,7 @@ class ShopView(Component):
                 p(line, className="lede"),
                 act("shopview.show_list", "Back to the table", kind="ghost"),
             )
-            if HAS_DOM:
-                return section(*kids, id=self.id, className="widget detail")
-            return f'<section id="{self.id}">{name}</section>'
+            return section(*kids, id=self.id, className="widget detail")
         rows = [
             li(
                 span(name, className="bag-line-name"),
@@ -71,9 +68,7 @@ class ShopView(Component):
             ),
             ul(*rows, className="bag-lines"),
         )
-        if HAS_DOM:
-            return section(*kids, id=self.id, className="widget list")
-        return f'<section id="{self.id}">list</section>'
+        return section(*kids, id=self.id, className="widget list")
 
     def _plan(self, kind: str):
         if scene is None:
@@ -137,9 +132,7 @@ class MasterDetail(Component):
                 className="tab-panel",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{sel}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def select(self, sku: str = "linen"):

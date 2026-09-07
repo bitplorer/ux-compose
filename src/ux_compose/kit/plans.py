@@ -7,6 +7,7 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 from __future__ import annotations
 
 from ux_compose import (
+    HAS_DOM,
     Component,
     MorphState,
     action,
@@ -85,6 +86,10 @@ class Plans(Component):
         return tuple(self.PLANS)
 
     def render(self):
+        if not HAS_DOM or div is None:
+            raise ImportError(
+                f"{type(self).__name__} requires ux-dom (Py≥3.14)"
+            )
         val = str(self.value or self._plans()[0][0])
         cards = []
         for key, name, price, lede, feats in self._plans():

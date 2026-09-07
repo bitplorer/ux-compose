@@ -10,6 +10,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
+from ux_compose import HAS_DOM
 from ux_compose.cli import main
 from ux_compose.kit.catalog import CATALOG
 from ux_compose.kit.copy import KitCopyError, copy_component, find_app_root
@@ -61,6 +62,10 @@ def test_catalog_has_login():
 
 
 def test_copy_tabs_into_app(tmp_path: Path):
+    if not HAS_DOM:
+        with pytest.raises(KitCopyError, match=r"requires ux-dom"):
+            copy_component("tabs", root=_fake_app(tmp_path))
+        return
     root = _fake_app(tmp_path)
     written = copy_component("tabs", root=root)
     text = written["py"].read_text(encoding="utf-8")
@@ -73,6 +78,15 @@ def test_copy_tabs_into_app(tmp_path: Path):
     inp = (root / "assets" / "css" / "input.css").read_text(encoding="utf-8")
     assert '@import "./kit.css"' not in inp
     assert '@import "./tabs.css"' not in inp
+
+
+def test_copy_toast_html_fallback_without_dom(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr("ux_compose.kit.copy.HAS_DOM", False)
+    written = copy_component("toast", root=_fake_app(tmp_path))
+    text = written["py"].read_text(encoding="utf-8")
+    assert "class Toast" in text
+    assert "_render_html" in text
+    ast.parse(text)
 
 
 def test_copy_login_into_app(tmp_path: Path):

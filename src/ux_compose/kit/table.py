@@ -8,6 +8,7 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 from __future__ import annotations
 
 from ux_compose import (
+    HAS_DOM,
     Component,
     MorphState,
     RefState,
@@ -131,6 +132,10 @@ class Table(Component):
         return raw
 
     def render(self):
+        if not HAS_DOM or div is None:
+            raise ImportError(
+                f"{type(self).__name__} requires ux-dom (Py≥3.14)"
+            )
         sel = set(self.selected or ())
         sort = str(self.sort or "name")
         heads = []

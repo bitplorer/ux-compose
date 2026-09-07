@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- Kit widgets that import `div` / `button` no longer TypeError on `render()`
+  when `HAS_DOM` is false (Py3.13 / no ux-dom). Toast, Login, and Wave-1
+  (`actionsheet`, `contextmenu`, `typeahead`, `pullrefresh`) use an
+  HTML-string fragment fallback so Progressive Superpower is real on 3.13.
+  Other kits fail at `uxcompose add` / `render()` with
+  `requires ux-dom (Py≥3.14)`.
+
 ### Added
 
 - GET-only chrome for Document-absent apps: `ux_compose.chrome.wrap_get_chrome`
-  / `get_chrome(brand=…)` as `build(wrap=)`. String shell (not a synthesized
   Document). Morph payloads stay `render()` fragments — GET may contain the
   brand once; `update_with` morph HTML brand count is 0. `create-app` emits
   `shell.py` and uses it when `document` is None. Doctor residual-teaches

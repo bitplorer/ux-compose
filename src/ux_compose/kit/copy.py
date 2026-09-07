@@ -12,6 +12,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import Optional
 
+from ux_compose.dom import HAS_DOM
 from ux_compose.kit.catalog import CATALOG, list_components, resolve
 
 
@@ -100,6 +101,8 @@ def copy_component(
     app_root = find_app_root(root)
     stem = meta["stem"]
     cls = meta["name"]
+    if not HAS_DOM and not meta.get("html_fallback"):
+        raise KitCopyError(f"{cls} requires ux-dom (Py≥3.14)")
 
     mod = import_module(meta["module"])
     src = Path(mod.__file__).resolve()  # type: ignore[arg-type]

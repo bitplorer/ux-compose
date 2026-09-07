@@ -23,6 +23,38 @@ except ImportError:
     _HAS_BEHAVIOR = False
 
 
+def html_escape(value: Any) -> str:
+    """Escape text for an HTML-string fallback. Not a tag builder."""
+    text = "" if value is None else str(value)
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+        .replace("'", "&#39;")
+    )
+
+
+def html_attrs(attrs: dict | None) -> str:
+    """Stamp bind()/control() dicts onto an HTML-string tag.
+
+    L1 uses strings when ``HAS_DOM`` is false — this is attribute
+    serialization, not a mini HTML builder.
+    """
+    if not attrs:
+        return ""
+    parts: list[str] = []
+    for key, val in attrs.items():
+        if val is None or val is False:
+            continue
+        name = "class" if key == "className" else str(key).replace("_", "-")
+        if val is True:
+            parts.append(name)
+            continue
+        parts.append(f'{name}="{html_escape(val)}"')
+    return " ".join(parts)
+
+
 def _as_op(ns: str, name: str, payload: Optional[dict] = None) -> Any:
     """Build a real Op when behavior is present, else a plain dict."""
     payload = payload or {}

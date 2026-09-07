@@ -28,6 +28,7 @@ CATALOG: dict[str, KitEntry] = {
         "description": "Sign-in / sign-up card. Reveal attaches. Submit is a Cap.",
         "css": False,
         "page": True,
+        "html_fallback": True,
     },
     "tabs": {
         "name": "Tabs",
@@ -82,6 +83,7 @@ CATALOG: dict[str, KitEntry] = {
         "description": "Server list is authority. Push is public.",
         "css": False,
         "page": True,
+        "html_fallback": True,
     },
     "command": {
         "name": "Command",
@@ -199,6 +201,7 @@ CATALOG: dict[str, KitEntry] = {
         "description": "Bottom sheet. Handle swipe-down dismisses. Rows stay click.",
         "css": False,
         "page": True,
+        "html_fallback": True,
     },
     "contextmenu": {
         "name": "ContextMenu",
@@ -208,6 +211,7 @@ CATALOG: dict[str, KitEntry] = {
         "description": "Click or longpress. Floating panel, not a native list.",
         "css": False,
         "page": True,
+        "html_fallback": True,
     },
     "typeahead": {
         "name": "Typeahead",
@@ -217,6 +221,7 @@ CATALOG: dict[str, KitEntry] = {
         "description": "Live filter on input delay:. The field is the control.",
         "css": False,
         "page": True,
+        "html_fallback": True,
     },
     "pullrefresh": {
         "name": "PullRefresh",
@@ -226,6 +231,7 @@ CATALOG: dict[str, KitEntry] = {
         "description": "Vertical swipe synthesizer. Refresh control accepts swipe.down.",
         "css": False,
         "page": True,
+        "html_fallback": True,
     },
 }
 

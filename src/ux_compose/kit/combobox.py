@@ -8,6 +8,7 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 from __future__ import annotations
 
 from ux_compose import (
+    HAS_DOM,
     Component,
     MorphState,
     RefState,
@@ -110,6 +111,10 @@ class Combobox(Component):
             self.query = str(kwargs["q"])
 
     def render(self):
+        if not HAS_DOM or div is None:
+            raise ImportError(
+                f"{type(self).__name__} requires ux-dom (Py≥3.14)"
+            )
         q = str(self.query or "")
         val = str(self.value or "")
         is_open = bool(self.open)

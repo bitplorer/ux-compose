@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import NamedTuple
 
 from ux_compose import (
+    HAS_DOM,
     Component,
     MorphState,
     RefState,
@@ -29,6 +30,7 @@ from ux_compose import (
     p,
     h1,
 )
+from ux_compose.helpers import html_attrs, html_escape
 
 
 class AuthDecision(NamedTuple):
@@ -169,8 +171,12 @@ class Login(Component):
 
     def render(self):
         if bool(self.authed):
-            return self._render_success()
-        return self._render_card()
+            if HAS_DOM and div is not None:
+                return self._render_success()
+            return self._render_success_html()
+        if HAS_DOM and div is not None:
+            return self._render_card()
+        return self._render_card_html()
 
     def _render_success(self):
         email = str(self.email or "")
@@ -351,6 +357,149 @@ class Login(Component):
                 className=self.class_hint,
             ))
         return div(*kids, className=self.class_field)
+
+    def _render_success_html(self):
+        email = html_escape(self.email or "")
+        lede = f"Signed in as {email}" if email else "Session started."
+        out = html_attrs(bind(self.logout))
+        return (
+            f'<div id="{html_escape(self.id)}" class="{self.class_card}">'
+            f'<div class="{self.class_ok}">'
+            f'<span class="{self.class_mark}">In</span>'
+            f'<h1 class="{self.class_title} mt-4">You\'re in</h1>'
+            f'<p class="{self.class_lede}">{lede}</p>'
+            f'<button type="button" class="{self.class_out}" {out}>Sign out</button>'
+            f"</div>"
+            f"</div>"
+        )
+
+    def _render_card_html(self):
+        mode = str(self.mode or "login")
+        is_signup = mode == "signup"
+        show_pw = bool(self.show_password)
+        busy = bool(self.submitting)
+        title = "Create account" if is_signup else "Welcome back"
+        subtitle = (
+            "Join in under a minute. No spam, ever."
+            if is_signup
+            else "Sign in to continue to your workspace."
+        )
+        submit_label = (
+            "Creating…" if (is_signup and busy)
+            else "Signing in…" if busy
+            else ("Create account" if is_signup else "Sign in")
+        )
+        login_tab = self.class_tab_on if not is_signup else self.class_tab
+        signup_tab = self.class_tab_on if is_signup else self.class_tab
+        to_login = html_attrs(bind(self.set_mode, mode="login"))
+        to_signup = html_attrs(bind(self.set_mode, mode="signup"))
+        parts = [
+            f'<div id="{html_escape(self.id)}" class="{self.class_card}">',
+            f'<div class="{self.class_head}">'
+            f'<h1 class="{self.class_title}">{html_escape(title)}</h1>'
+            f'<p class="{self.class_lede}">{html_escape(subtitle)}</p>'
+            f"</div>",
+            f'<div class="{self.class_tabs}" role="tablist">'
+            f'<button type="button" class="{login_tab}" {to_login}>Sign in</button>'
+            f'<button type="button" class="{signup_tab}" {to_signup}>Sign up</button>'
+            f"</div>",
+        ]
+        form_err = str(self.err_form or "")
+        if form_err:
+            parts.append(
+                f'<div class="{self.class_alert}" role="alert">'
+                f'<span class="{self.class_alert_text}">{html_escape(form_err)}</span>'
+                f"</div>"
+            )
+        fields = []
+        if is_signup:
+            fields.append(self._field_html(
+                "name", "Full name", "text",
+                str(self.name or ""), str(self.err_name or ""),
+                placeholder="Ada Lovelace", autocomplete="name",
+            ))
+        fields.append(self._field_html(
+            "email", "Email", "email",
+            str(self.email or ""), str(self.err_email or ""),
+            placeholder="you@company.com", autocomplete="email",
+        ))
+        fields.append(self._password_field_html(
+            str(self.password or ""), str(self.err_password or ""), show_pw,
+        ))
+        submit = html_attrs(bind(self.submit))
+        parts.append(
+            f'<form id="login-form" class="{self.class_form}">'
+            f"{''.join(fields)}"
+            f'<button type="button" class="{self.class_submit}" {submit}>'
+            f"{html_escape(submit_label)}</button>"
+            f"</form>"
+        )
+        if is_signup:
+            parts.append(
+                f'<p class="{self.class_switch}">Already have an account? '
+                f'<button type="button" class="{self.class_text_btn}" {to_login}>'
+                f"Sign in</button></p>"
+            )
+        else:
+            parts.append(
+                f'<p class="{self.class_switch}">New here? '
+                f'<button type="button" class="{self.class_text_btn}" {to_signup}>'
+                f"Create an account</button></p>"
+            )
+        parts.append("</div>")
+        return "".join(parts)
+
+    def _field_html(
+        self, name, caption, input_type, value, error, *, placeholder="", autocomplete="off",
+    ):
+        cls = self.class_input_err if error else self.class_input
+        stamp = html_attrs(bind(self.set_field, field=name))
+        bits = [
+            f'<div class="{self.class_field}">',
+            f'<label class="{self.class_label}">{html_escape(caption)}</label>',
+            f'<input type="{html_escape(input_type)}" name="{html_escape(name)}" '
+            f'value="{html_escape(value)}" placeholder="{html_escape(placeholder)}" '
+            f'autocomplete="{html_escape(autocomplete)}" class="{cls}" {stamp}/>',
+        ]
+        if error:
+            bits.append(
+                f'<span class="{self.class_hint_err}" role="alert">{html_escape(error)}</span>'
+            )
+        bits.append("</div>")
+        return "".join(bits)
+
+    def _password_field_html(self, value, error, show):
+        inp = (
+            f"{self.class_input_err} {self.class_input_pw}"
+            if error
+            else f"{self.class_input} {self.class_input_pw}"
+        )
+        stamp = html_attrs(bind(self.set_field, field="password"))
+        reveal = html_attrs(bind(self.toggle_password))
+        label_txt = "Hide" if show else "Show"
+        itype = "text" if show else "password"
+        bits = [
+            f'<div class="{self.class_field}">',
+            f'<label class="{self.class_label}">Password</label>',
+            f'<div class="{self.class_pw_wrap}">',
+            f'<input type="{itype}" name="password" id="login-password" '
+            f'value="{html_escape(value)}" placeholder="At least 8 characters" '
+            f'autocomplete="current-password" class="{inp}" {stamp}/>',
+            f'<button type="button" class="{self.class_reveal}" {reveal}>'
+            f"{label_txt}</button>",
+            f"</div>",
+        ]
+        if error:
+            bits.append(
+                f'<span class="{self.class_hint_err}" role="alert">{html_escape(error)}</span>'
+            )
+        if str(self.mode or "") == "signup" and not error:
+            bits.append(
+                f'<span class="{self.class_hint}">'
+                f"Use 8+ characters with at least one number.</span>"
+            )
+        bits.append("</div>")
+        return "".join(bits)
 
     def _mark_error_dirty(self):
         self.error_dirty = "b" if self.error_dirty == "a" else "a"

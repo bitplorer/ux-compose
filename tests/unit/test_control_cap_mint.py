@@ -159,6 +159,27 @@ def test_helpers_bind_enriches_when_channel_live(_restore_live_channel):
     assert attrs["data-channel-action"] == "cart.add"
 
 
+@pytest.mark.skipif(not HAS_BEHAVIOR, reason="ux-behavior")
+def test_bind_action_method_enriches_when_channel_live(_restore_live_channel):
+    """ux_behavior.bind must not win without Cap when Cap Host is live."""
+    from ux_compose import Component, action
+    from ux_compose.wire.caps import register_live_channel
+
+    class Hello(Component):
+        id = "hello"
+
+        @action(caps=())
+        def inc(self):
+            return []
+
+    ch = _FakeChannel(cap="tok.method")
+    register_live_channel(ch)
+    attrs = bind(Hello().inc)
+    assert attrs["data-channel-cap"] == "tok.method"
+    assert attrs["data-ux-action"] == "hello.inc"
+    assert attrs["data-channel-action"] == "hello.inc"
+
+
 def test_app_control_mints_product_verb_not_dispatch_remap(_restore_live_channel):
     from ux_compose import App
     from ux_compose.wire.caps import register_live_channel

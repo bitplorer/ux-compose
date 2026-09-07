@@ -54,10 +54,24 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
 
     cfg = getattr(channel, "config", None)
     if cfg is not None:
+        # ChannelConfig is frozen; setattr is a no-op. replace() so the
+        # author's mode reaches apply_host_adapter (Cap decide stays there).
         try:
-            setattr(cfg, "cek", resolved)
+            from dataclasses import is_dataclass, replace
+
+            if is_dataclass(cfg) and "cek" in getattr(cfg, "__dataclass_fields__", {}):
+                cfg = replace(cfg, cek=resolved)
+                try:
+                    object.__setattr__(channel, "config", cfg)
+                except Exception:
+                    pass
+            else:
+                object.__setattr__(cfg, "cek", resolved)
         except Exception:
-            pass
+            try:
+                setattr(cfg, "cek", resolved)
+            except Exception:
+                pass
     registry = getattr(channel, "registry", None)
     if registry is None:
         if resolved == "require":

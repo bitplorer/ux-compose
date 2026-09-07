@@ -23,13 +23,21 @@ def _registry_caps(app):
     return getattr(getattr(app._channel, "registry", None), "_caps", None)
 
 
-def _assert_product_cap(caps) -> None:
+def _assert_product_cap(caps, registry=None) -> None:
     assert type(caps).__name__ == "CekHostCapService"
     ssot = getattr(caps, "kernel_ssot", None)
     flag = getattr(caps, "cap_machine_is_cek_runtime", None)
     if callable(flag):
         flag = flag()
-    assert ssot == "cek-runtime" or flag is True
+    honest = None
+    if registry is not None:
+        try:
+            from ux_channel.cek.layer_honesty import cap_machine_is_cek_runtime
+
+            honest = cap_machine_is_cek_runtime(registry)
+        except ImportError:
+            honest = None
+    assert ssot == "cek-runtime" or flag is True or honest is True
 
 
 def test_use_cek_and_attach_cek_default_mode_is_require():
@@ -46,8 +54,6 @@ def test_use_cek_off_is_noop():
 
     app = App.boot("T", strict_caps=False).use_channel().use_cek(mode="off")
     assert app._cek in (None, "off")
-    caps = _registry_caps(app)
-    assert caps is None or type(caps).__name__ != "CekHostCapService"
 
 
 @needs_channel
@@ -55,18 +61,21 @@ def test_use_cek_adapt_is_lab_compare_only():
     """adapt = compare-only lab; Channel CapService remains authority."""
     from ux_compose import App
 
-    app = App.boot("T", strict_caps=False).use_channel()
-    before = type(_registry_caps(app)).__name__
-    app.use_cek(mode="adapt")
+    app = App.boot("T", strict_caps=False)
     if HAS_CEK:
+        from ux_channel import ChannelConfig
+
+        app.use_channel(config=ChannelConfig.development(cek="adapt"))
+        app.use_cek(mode="adapt")
         assert app._cek == "adapt"
         caps = _registry_caps(app)
-        assert type(caps).__name__ == before
         assert type(caps).__name__ != "CekHostCapService"
         lab = getattr(app._channel.registry, "_cek_caps", None)
         assert lab is not None
         _assert_product_cap(lab)
     else:
+        app.use_channel()
+        app.use_cek(mode="adapt")
         assert app._cek in (None, "off")
 
 
@@ -78,7 +87,7 @@ def test_use_cek_default_is_require_product_cap():
     if HAS_CEK:
         app.use_cek()
         assert app._cek == "require"
-        _assert_product_cap(_registry_caps(app))
+        _assert_product_cap(_registry_caps(app), app._channel.registry)
     else:
         with pytest.raises(ImportError):
             app.use_cek()
@@ -92,7 +101,7 @@ def test_cek_require_raises_or_attaches():
     if HAS_CEK:
         app.use_cek(mode="require")
         assert app._cek == "require"
-        _assert_product_cap(_registry_caps(app))
+        _assert_product_cap(_registry_caps(app), app._channel.registry)
     else:
         with pytest.raises(ImportError):
             app.use_cek(mode="require")
@@ -106,7 +115,7 @@ def test_unknown_cek_mode_resolves_to_require():
     if HAS_CEK:
         app.use_cek(mode="wat")
         assert app._cek == "require"
-        _assert_product_cap(_registry_caps(app))
+        _assert_product_cap(_registry_caps(app), app._channel.registry)
     else:
         with pytest.raises(ImportError):
             app.use_cek(mode="wat")

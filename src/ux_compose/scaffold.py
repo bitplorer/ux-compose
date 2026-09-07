@@ -23,7 +23,8 @@ APP_PY = dedent('''\
     """Progressive ux-compose app (level={level_repr}, host={host}).
 
     Composition root: host + live set only in build().
-    Document SSoT lives in document.py; environment in settings.py.
+    Document SSoT lives in document.py; GET chrome without Document is shell.py.
+    Environment in settings.py.
     """
     from __future__ import annotations
 
@@ -38,6 +39,10 @@ APP_PY = dedent('''\
         from document import document
     except Exception:
         document = None
+    try:
+        from shell import wrap as page_wrap
+    except Exception:
+        page_wrap = None
     try:
         from settings import webassets
     except Exception:
@@ -76,6 +81,7 @@ APP_PY = dedent('''\
             base="routes",
             use_htmx=use_htmx,
             document=document,
+            wrap=document if document is not None else page_wrap,
             cek="require",
         )
         asgi = _mount_css(asgi)
@@ -139,6 +145,7 @@ DOCUMENT_PY = dedent('''\
 
     When ux-dom is absent (L1 / Py3.13 HTML-string fallback), document=None
     and compose injects the live-client on fragment GET if Channel is attached.
+    GET brand chrome is shell.py / wrap_get_chrome — not a synthesized Document.
     HTMX is opt-in via build(use_htmx=True). Component.render() stays a
     fragment (the morph payload) — never put the stylesheet link inside render().
     """
@@ -176,7 +183,8 @@ ROUTES_HELLO_PY = dedent('''\
     and mints a Cap when Cap Host is live. hello.inc is public (caps=());
     hello.pulse is fail-closed (caps=("pulse",)). HTMX is opt-in at
     Document layer. render() stays a #hello fragment (the morph payload).
-    Py3.14 host wraps Document; L1 fragment GET uses compose live-client.
+    Py3.14 host wraps Document; L1 fragment GET uses compose live-client
+    plus optional wrap_get_chrome (shell.py) — never chrome inside render().
     """
     from __future__ import annotations
 
@@ -232,6 +240,26 @@ ROUTES_HELLO_PY = dedent('''\
         def pulse(self):
             self.pulses = int(self.pulses or 0) + 1
             return update_with(self, extra_ops=[notify("pulsed")])
+''')
+
+
+SHELL_PY = dedent('''\
+    """GET-only chrome when Document is absent (Py3.13 / L1 HTML-string).
+
+    Morph payloads stay fragments — do not call wrap() from render().
+    build(wrap=) / host.bind wrap= this callable. Never synthesize a
+    ux-dom Document from strings (positional str on <body> is script src).
+    Py3.14 keeps document.py as the wrap (CSP, stylesheet, Channel.optional).
+    """
+    from __future__ import annotations
+
+    from ux_compose.chrome import wrap_get_chrome
+
+    BRAND = "{name}"
+
+
+    def wrap(inner=None):
+        return wrap_get_chrome(inner, brand=BRAND)
 ''')
 
 
@@ -324,7 +352,8 @@ README = dedent('''\
     - `settings.py` — environment (BASE_DIR, DEBUG, WebAssets on ux-compose)
     - `document.py` — Document SSoT + `.use(XElement, Csp, Channel.optional)`;
       Py3.14 full shell. L1 fragment GET uses compose live-client.
-    - `app.py` — composition root: `build(host=, live=, level=, document=, cek=)`
+    - `app.py` — composition root: `build(host=, live=, level=, document=, wrap=, cek=)`
+    - `shell.py` — GET-only chrome when Document is absent (`wrap_get_chrome`)
     - `routes/index.py` — GET `/` (index alias; keep `/hello`)
     - `routes/hello.py` — page unit (`render()` is a fragment; host wraps Document)
     - `assets/css/input.css` — Tailwind tokens; compile with `uxcompose build`
@@ -353,6 +382,7 @@ README = dedent('''\
     **Python 3.13 — L2 Cap (no Document).** Channel pin ≥ 31a60bd plus
     `cek-host>=0.1.3` / `cek-surface>=0.1.3` boot `build(cek="require")`.
     `document.py` stays `document = None` until ux-dom is present.
+    GET chrome is `shell.py` (`wrap_get_chrome`) — not chrome inside `render()`.
 
     **Python 3.14 — Document SSoT.** Uncomment `ux-dom` in `requirements.txt`,
     reinstall. Cap require is unchanged. Isolation: never import `ux_channel`.
@@ -418,6 +448,7 @@ def create_app(
     )
     (root / "settings.py").write_text(SETTINGS_PY, encoding="utf-8")
     (root / "document.py").write_text(DOCUMENT_PY, encoding="utf-8")
+    (root / "shell.py").write_text(SHELL_PY.format(name=name), encoding="utf-8")
     (root / "README.md").write_text(
         README.format(
             name=name,

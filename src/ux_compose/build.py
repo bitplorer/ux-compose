@@ -12,6 +12,7 @@
         live="auto",   # auto|channel|null
         level="auto",
         document=document,
+        wrap=document,  # or wrap_get_chrome when Document is absent
         cek="require",  # product Cap Host after use_channel
     )
 
@@ -24,6 +25,8 @@ from pathlib import Path
 from typing import Any
 
 __all__ = ["build", "BuildResult"]
+
+_UNSET = object()
 
 
 class BuildResult(tuple):
@@ -89,9 +92,16 @@ def build(
     use_htmx: bool = False,
     asgi_app: Any = None,
     document: Any = None,
+    wrap: Any = _UNSET,
     cek: str = "require",
 ) -> BuildResult:
     """Boot specialists + mount page units. Host and live set only here.
+
+    wrap:
+      Author GET shell. Defaults to ``document`` (Py3.14 Document SSoT).
+      Pass ``wrap_get_chrome`` / ``get_chrome(brand=…)`` when Document is
+      absent (Py3.13 / L1 HTML-string). ``wrap=None`` is a bare fragment.
+      Never a synthesized Document (string fragment → script src).
 
     host:
       - ``"auto"`` — FastAPI if importable, else DirectoryASGI
@@ -131,6 +141,7 @@ def build(
 
     app = App.boot(name, strict_caps=False, level=boot_level)
     author_document = document
+    author_wrap = author_document if wrap is _UNSET else wrap
     document = _attach_document(app, author_document, use_htmx=use_htmx)
 
     if want_channel and kind == KIND_FASTAPI and asgi is not None:
@@ -191,7 +202,7 @@ def build(
         kind=kind,
         core=core,
         document=document,
-        wrap=author_document,
+        wrap=author_wrap,
         resolve_unit=_resolve,
     )
     # L1 / Py3.13 fragment GET: author Document/wrap is absent, Cap Host is

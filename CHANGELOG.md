@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- GET-only chrome for Document-absent apps: `ux_compose.chrome.wrap_get_chrome`
+  / `get_chrome(brand=…)` as `build(wrap=)`. String shell (not a synthesized
+  Document). Morph payloads stay `render()` fragments — GET may contain the
+  brand once; `update_with` morph HTML brand count is 0. `create-app` emits
+  `shell.py` and uses it when `document` is None. Doctor residual-teaches
+  `stunning-root` / `class="nav"` brand patterns inside `routes/*.py` `render()`.
 - Official `create-app` hello teaches Cap mint + fail-closed
   `hello.pulse` (`@action(caps=("pulse",))`, `control("hello.pulse")`)
   on both the Py3.13 HTML-string path and the Py3.14 DOM path.

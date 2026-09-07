@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose.scaffold import create_app
-from ux_compose.doctor import scan_isolation, scan_dual_document
+from ux_compose.doctor import scan_isolation, scan_dual_document, scan_render_chrome
 
 
 def test_create_app_layout(tmp_path):
@@ -18,6 +18,7 @@ def test_create_app_layout(tmp_path):
     assert (root / "app.py").is_file()
     assert (root / "settings.py").is_file()
     assert (root / "document.py").is_file()
+    assert (root / "shell.py").is_file()
     assert (root / "routes" / "hello.py").is_file()
     assert (root / "README.md").is_file()
     assert (root / "requirements.txt").is_file()
@@ -27,6 +28,12 @@ def test_create_app_layout(tmp_path):
     assert "asgi" in text
     assert "document=document" in text
     assert "from document import document" in text
+    assert "from shell import wrap" in text
+    assert "wrap=" in text
+    shell = (root / "shell.py").read_text(encoding="utf-8")
+    assert "wrap_get_chrome" in shell
+    assert "import ux_channel" not in shell
+    assert "Document(" not in shell
     assert 'cek="require"' in text
     assert "import ux_channel" not in text
     assert "from ux_channel" not in text
@@ -110,6 +117,7 @@ def test_create_app_isolation_and_single_document(tmp_path):
     assert scan_isolation(files) == []
     # One Document() in document.py; host wraps GET (no leftover page())
     assert scan_dual_document(files) == []
+    assert scan_render_chrome(files) == []
     src = (root / "document.py").read_text(encoding="utf-8")
     tree = ast.parse(src)
     calls = [

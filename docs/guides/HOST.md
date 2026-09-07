@@ -29,7 +29,9 @@ app, asgi, bundle = build(
 `routes/hello.py` → `GET /hello`. `render()` is a fragment. The host wraps
 the **author** Document (CSP, shell, stylesheet). A synthesized Document
 (tests that omit `document=`) is mounted for CSP/static only — it does not
-swallow the fragment.
+swallow the fragment. If Channel is attached with `document=None`, compose
+injects the Cap live client (public `/ux-channel/static/ux-channel.js` URLs)
+so fragment GETs are not script-less. `live="null"` stays a bare fragment.
 
 ```python
 from ux_compose import Component, MorphState, action, div, span, update_with

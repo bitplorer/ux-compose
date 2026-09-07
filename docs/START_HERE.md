@@ -27,13 +27,11 @@ Full map: [OWNERSHIP.md](OWNERSHIP.md).
 
 ## 2. Install
 
-Python **≥ 3.14** recommended for the full stack (ux-dom requirement).
+Python **≥ 3.14**. `pip install -e .` pulls the pinned specialist stack.
 
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate
 pip install -e .    # from this repo
-pip install "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git"
-pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
 ```
 
 Product CLI:
@@ -107,7 +105,7 @@ HMR is `uxcompose serve dev`, not a Document API.
 | **2** | Live Caps + Intent |
 | **3** | Choreographed motion |
 
-**Contract:** Level 1 code stays valid at Level 2 and 3. No rewrite.
+**Contract:** complete install first. Levels are additive — Level 1 code stays valid at Level 2 and 3. No rewrite.
 
 ---
 

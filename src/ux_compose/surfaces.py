@@ -410,14 +410,6 @@ def mount_surfaces(
             )
             if table:
                 bundle.route_table = table
-            if (
-                wrap is None
-                and compose_app is not None
-                and getattr(compose_app, "_channel", None) is not None
-            ):
-                from ux_compose.live_client import attach_live_client
-
-                attach_live_client(asgi_app)
         except ImportError:
             if fail_closed:
                 raise

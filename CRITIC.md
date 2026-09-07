@@ -24,12 +24,12 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 - Optional CEK door via `wire/cek.py` (`App.use_cek`) — Isolation-safe, degrades if absent
 - Product app: `apps/atelier_shop` (cart + confirm modal + Document shell)
 - Presence continuity cookbook: `cookbooks/PRESENCE.md`
-- GitHub Actions CI matrix (3.12 offline + 3.14 full stack)
+- GitHub Actions CI: full-stack py3.14 only (specialists are hard dependencies)
 - create-app scaffold emits settings.py + document.py + assets/css/input.css + progressive L1–L3 app (`build(document=)`)
 
 ## Soft notes (non-kill)
 
-1. **ux-dom requires Python ≥3.14** — documented; L1 offline works on 3.11+.
+1. **Python floor is ≥3.14** — ux-dom / channel / behavior / motion are hard dependencies.
 2. **Doctor dual-Document** when scanning `examples/` may still list multiple educational Document() calls — product packages construct one Document at boot (`apps/atelier_shop`).
 3. After `use_channel`, `App.dispatch` is Host-internal (Behavior skips Caps when `_wire` is set). Live Cap verification is `submit_intent` / Channel edge. This is specialist contract, not a compose bug.
 

@@ -185,7 +185,7 @@ def scan_render_chrome(paths: Iterable[str | Path]) -> list[str]:
     """
     diagnostics: list[str] = []
     teach = (
-        "GET chrome belongs on build(wrap=wrap_get_chrome) / shell.py, "
+        "GET chrome belongs on Document / build(wrap=document), "
         "not in render(). Morph payloads stay fragments."
     )
     for raw in paths:
@@ -299,16 +299,42 @@ def _detect_capabilities() -> dict:
     }
 
 
+def _stack_diagnostics(caps: dict) -> list[str]:
+    """Hard diagnostics when a pinned specialist is missing."""
+    labels = (
+        ("ux_dom", "ux-dom"),
+        ("ux_behavior", "ux-behavior"),
+        ("ux_channel", "ux-channel"),
+        ("ux_motion", "ux-motion"),
+    )
+    missing = [label for key, label in labels if not caps.get(key)]
+    if not missing:
+        return []
+    return [
+        "incomplete stack: missing "
+        + ", ".join(missing)
+        + ". ux-compose hard-depends on ux-dom + ux-channel + ux-behavior + ux-motion "
+        "(Python ≥3.14). Install the pinned specialists."
+    ]
+
+
 def _teaching_for_level(level: int, caps: dict) -> list[str]:
     lines = []
-    if level < 1:
-        lines.append("Level 0. Unlock L1: pip install ux-behavior then App.boot(...).use_behavior()")
-    if level < 2 and caps.get("ux_behavior"):
-        lines.append("Level 1. Unlock L2: pip install ux-channel then app.use_channel(asgi_app=...)")
-    if level < 3 and caps.get("ux_channel"):
-        lines.append("Level 2. Unlock L3: pip install ux-motion then app.use_motion()")
-    if level >= 3:
-        lines.append("Full progressive stack available (L3).")
+    stack_ok = all(
+        caps.get(key)
+        for key in ("ux_dom", "ux_behavior", "ux_channel", "ux_motion")
+    )
+    if not stack_ok:
+        lines.append(
+            "Complete install first: pip install ux-compose (Python ≥3.14) "
+            "pulls ux-dom, ux-channel, ux-behavior, and ux-motion. "
+            "Levels are additive after the stack is present — not an unlock ladder."
+        )
+    else:
+        lines.append(
+            f"Full stack present (L{level}). Levels are additive: "
+            "Level 1 page units stay correct at L2/L3."
+        )
     if caps.get("directory_routes"):
         lines.append(
             "Product path: uxcompose create-app + serve dev + build() "
@@ -341,6 +367,7 @@ def doctor(
     else:
         level = 0
     diagnostics: list[str] = []
+    diagnostics.extend(_stack_diagnostics(caps))
     expanded: list[Path] = []
     if paths:
         for p in paths:
@@ -373,7 +400,13 @@ def doctor(
     if app is None and bundle is not None:
         app = getattr(bundle, "compose_app", None) or getattr(bundle, "app", None)
     diagnostics.extend(scan_cek_host(app))
-    hard = [d for d in diagnostics if "violation" in d.lower() or "dual-document risk" in d.lower()]
+    hard = [
+        d
+        for d in diagnostics
+        if "violation" in d.lower()
+        or "dual-document risk" in d.lower()
+        or "incomplete stack" in d.lower()
+    ]
     result = DoctorResult(
         ok=len(hard) == 0,
         level_available=level,
@@ -398,7 +431,12 @@ def main(argv: Optional[List[str]] = None) -> int:
     print("ux-compose doctor — protective coach")
     print(f"  Progressive level available: L{res.level_available}")
     if res.diagnostics:
-        hard = any("violation" in d.lower() or "dual-document risk" in d.lower() for d in res.diagnostics)
+        hard = any(
+            "violation" in d.lower()
+            or "dual-document risk" in d.lower()
+            or "incomplete stack" in d.lower()
+            for d in res.diagnostics
+        )
         for d in res.diagnostics:
             print(f"    - {d}")
         return 0 if args.no_fail or not hard else 1

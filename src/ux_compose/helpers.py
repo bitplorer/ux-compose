@@ -4,8 +4,7 @@ High-level helpers that emit pure Ops / Plans and enforce the Composition Algebr
 Never import ux_channel or CEK. XOR and Morph-then-Play are enforced by construction
 where possible; remaining cases fail closed under doctor / strict mode.
 
-When ux-behavior is installed, helpers emit real Op objects (required by @action).
-When absent, helpers emit plain dict Ops for the pure-shim path.
+Helpers emit real ux-behavior Op objects (hard dependency, Python ≥3.14).
 """
 from __future__ import annotations
 
@@ -13,14 +12,10 @@ import json
 import re
 from typing import Any, List, Optional
 
-try:
-    from ux_behavior import notify as _real_notify, update as _real_update
-    from ux_behavior.ops import Op as _Op
+from ux_behavior import notify as _real_notify, update as _real_update
+from ux_behavior.ops import Op as _Op
 
-    _HAS_BEHAVIOR = True
-except ImportError:
-    _real_notify = _real_update = _Op = None  # type: ignore
-    _HAS_BEHAVIOR = False
+_HAS_BEHAVIOR = True
 
 
 def html_escape(value: Any) -> str:
@@ -38,8 +33,8 @@ def html_escape(value: Any) -> str:
 def html_attrs(attrs: dict | None) -> str:
     """Stamp bind()/control() dicts onto an HTML-string tag.
 
-    L1 uses strings when ``HAS_DOM`` is false — this is attribute
-    serialization, not a mini HTML builder.
+    Attribute serialization for bind()/control() dicts — not a mini HTML
+    builder and not a Document-absent product path.
     """
     if not attrs:
         return ""

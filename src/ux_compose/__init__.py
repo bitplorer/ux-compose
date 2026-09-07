@@ -37,10 +37,7 @@ from ux_compose.author import (
 )
 from ux_compose.attach_notes import AttachNote, attach_notes
 
-try:
-    from ux_motion import scene, fade, rise, slide  # type: ignore
-except ImportError:  # pragma: no cover
-    scene = fade = rise = slide = None  # type: ignore
+from ux_motion import scene, fade, rise, slide  # type: ignore
 
 from ux_compose.dom import (  # noqa: E402
     HAS_DOM,

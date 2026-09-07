@@ -17,7 +17,6 @@ active pip coalesces into the next, it does not jump.
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     Component,
     MorphState,
     action,
@@ -145,10 +144,6 @@ class Carousel(Component):
         )
 
     def render(self):
-        if not HAS_DOM or div is None:
-            raise ImportError(
-                f"{type(self).__name__} requires ux-dom (Py≥3.14)"
-            )
         idx, cur, rows, keys = self._current()
         _key, kicker, title, body = rows[idx]
         n = len(keys)

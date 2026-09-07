@@ -1,11 +1,16 @@
 # ux-compose — progressive composition root
-# Full stack requires Python ≥3.14 (ux-dom).
+# Product floor is Python ≥3.14 with the pinned specialist stack.
 
 PY314 ?= /tmp/ux314venv/bin/python
-PY312 ?= /tmp/ux312venv/bin/python
 VENV  ?= /tmp/ux314venv
 
-.PHONY: test test-matrix coverage test314 test312 venv314 specialists examples doctor shop studio pulse test-cto test-cto-fragment-law cek-repro-morph-shell
+# CI SSOT pins (keep in lockstep with pyproject.toml / scaffold REQUIREMENTS).
+UX_BEHAVIOR_SHA = 76adc72ff8e8d2f6a784d8b988b720934bd8a612
+UX_MOTION_SHA = 67ff3f0c4912b70b7056f8226a6f226b6fe93f60
+UX_CHANNEL_SHA = 31a60bdd40a1b52aea1fd13159ad09c293c63fd6
+UX_DOM_SHA = 25338a6d624b764bb79615de52fca48084ce2c55
+
+.PHONY: test test-matrix coverage test314 venv314 specialists examples doctor shop studio pulse test-cto test-cto-fragment-law cek-repro-morph-shell
 
 venv314:
 	python3.14 -m venv --without-pip $(VENV) || true
@@ -14,10 +19,10 @@ venv314:
 
 specialists: venv314
 	$(PY314) -m pip install \
-	  "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git" \
-	  "ux-motion @ git+https://github.com/bitplorer/ux-motion.git" \
-    "ux-channel @ git+https://github.com/bitplorer/ux-channel.git@31a60bdd40a1b52aea1fd13159ad09c293c63fd6#subdirectory=python" \
-	  "ux-dom @ git+https://github.com/bitplorer/ux-dom.git" \
+	  "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@$(UX_BEHAVIOR_SHA)" \
+	  "ux-motion @ git+https://github.com/bitplorer/ux-motion.git@$(UX_MOTION_SHA)" \
+	  "ux-channel @ git+https://github.com/bitplorer/ux-channel.git@$(UX_CHANNEL_SHA)#subdirectory=python" \
+	  "ux-dom @ git+https://github.com/bitplorer/ux-dom.git@$(UX_DOM_SHA)" \
 	  "cek-host>=0.1.3" "cek-surface>=0.1.3" \
 	  fastapi uvicorn pytest pytest-cov httpx
 	$(PY314) -m pip install -e ".[dev]"
@@ -54,12 +59,6 @@ coverage:
 
 test314:
 	cd $(CURDIR) && PYTHONPATH=src:. $(PY314) -m pytest tests/ -q
-
-test312:
-	PYTHONPATH=src $(PY312) -m pytest \
-	  tests/test_offline.py tests/test_offline_cart.py tests/test_doctor_laws.py \
-	  tests/test_cold_isolation.py tests/test_return_algebra.py tests/test_xor_helpers.py \
-	  tests/feature -q
 
 examples:
 	$(PY314) examples/foundation.py

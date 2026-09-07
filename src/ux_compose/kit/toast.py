@@ -10,7 +10,6 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     Component,
     MorphState,
     RefState,
@@ -26,7 +25,6 @@ from ux_compose import (
     span,
     ul,
 )
-from ux_compose.helpers import html_attrs, html_escape
 
 
 class Toast(Component):
@@ -75,11 +73,6 @@ class Toast(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self):
-        if HAS_DOM and div is not None:
-            return self._render_tree()
-        return self._render_html()
-
-    def _render_tree(self):
         rows = list(self.items or ())[-4:]
         n = len(rows)
         lis = [
@@ -126,47 +119,6 @@ class Toast(Component):
             stack,
             id=self.id,
             className=self.class_card,
-        )
-
-    def _render_html(self):
-        """L1 / Py3.13 fragment. Morph target is ``#toast`` — not a document."""
-        rows = list(self.items or ())[-4:]
-        n = len(rows)
-        lis = []
-        for row in rows:
-            dismiss = html_attrs(bind(self.dismiss, id=str(row.get("id", ""))))
-            msg = html_escape(row.get("message", ""))
-            rid = html_escape(row.get("id", ""))
-            lis.append(
-                f'<li id="toast-{rid}" class="{self.class_item}" role="status">'
-                f"<span>{msg}</span>"
-                f'<button type="button" class="{self.class_x}" {dismiss}>Dismiss</button>'
-                f"</li>"
-            )
-        stack = (
-            f'<ul class="{self.class_stack}">{"".join(lis)}</ul>'
-            if lis
-            else '<span class="sr-only"></span>'
-        )
-        if n:
-            noun = "notice" if n == 1 else "notices"
-            status = f'<p class="{self.class_lede}">{n} {noun} on the stack.</p>'
-        else:
-            status = f'<p class="{self.class_lede}">No notices yet.</p>'
-        push = html_attrs(bind(self.push, message="Saved to the table"))
-        clear = html_attrs(bind(self.clear))
-        return (
-            f'<div id="{html_escape(self.id)}" class="{self.class_card}">'
-            f'<span class="{self.class_kicker}">Notices</span>'
-            f'<h2 class="{self.class_title}">Saved to the table</h2>'
-            f'<p class="{self.class_lede}">notify() is the Op. This unit shows them.</p>'
-            f"{status}"
-            f'<div class="{self.class_row}">'
-            f'<button type="button" class="{self.class_btn_primary}" {push}>Push note</button>'
-            f'<button type="button" class="{self.class_btn_ghost}" {clear}>Clear</button>'
-            f"</div>"
-            f"{stack}"
-            f"</div>"
         )
 
     @action(caps=())

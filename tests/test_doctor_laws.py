@@ -141,3 +141,25 @@ def test_doctor_treats_unset_cek_as_require_when_channel_live():
     report = doctor([], fail=False, app=_app(caps_name="CapService", cek=None))
     assert report.ok is False
     assert any("violation" in d.lower() for d in report.diagnostics)
+
+
+def test_doctor_fail_loud_when_stack_incomplete(monkeypatch):
+    """Missing specialists are hard diagnostics (unless --no-fail / fail=False)."""
+    from ux_compose import doctor as doctor_mod
+
+    monkeypatch.setattr(
+        doctor_mod,
+        "_detect_capabilities",
+        lambda: {
+            "ux_dom": False,
+            "ux_behavior": True,
+            "ux_motion": True,
+            "ux_channel": True,
+            "directory_routes": True,
+        },
+    )
+    report = doctor([], fail=False)
+    assert report.ok is False
+    assert any("incomplete stack" in d.lower() for d in report.diagnostics)
+    assert any("ux-dom" in d for d in report.diagnostics)
+    assert any("Complete install first" in t for t in report.teaching)

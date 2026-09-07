@@ -9,7 +9,6 @@ from __future__ import annotations
 from ux_compose.kit.overlay import overlay as overlay_chrome
 
 from ux_compose import (
-    HAS_DOM,
     Component,
     MorphState,
     RefState,
@@ -23,7 +22,6 @@ from ux_compose import (
     p,
     span,
 )
-from ux_compose.helpers import html_attrs, html_escape
 
 
 class ActionSheet(Component):
@@ -84,11 +82,6 @@ class ActionSheet(Component):
         return overlay_chrome(self.id, kind="actionsheet")
 
     def render(self):
-        if HAS_DOM and div is not None:
-            return self._render_tree()
-        return self._render_html()
-
-    def _render_tree(self):
         is_open = bool(self.open)
         picked = str(self.picked or "")
         ch = self._chrome()
@@ -152,59 +145,6 @@ class ActionSheet(Component):
             className=self.class_card,
             data_open="1" if is_open else "0",
             data_channel_id=self.id,
-        )
-
-    def _render_html(self):
-        is_open = bool(self.open)
-        picked = str(self.picked or "")
-        ch = self._chrome()
-        choice = (
-            f"Last pick · {html_escape(picked)}" if picked else "Nothing picked yet."
-        )
-        open_btn = html_attrs(bind(self.open_sheet))
-        layer = []
-        if is_open:
-            rows = []
-            for key, label, dest in self.ACTIONS:
-                cls = self.class_btn_danger if dest else self.class_btn_ghost
-                stamp = html_attrs(bind(self.pick if not dest else self.archive, key=key))
-                rows.append(
-                    f'<button type="button" class="{cls}" {stamp}>{html_escape(label)}</button>'
-                )
-            close = html_attrs(bind(self.close))
-            handle_on = html_escape(ch.swipe_on_handle())
-            dismiss_on = html_escape(ch.swipe_on_dismiss())
-            layer.append(
-                f'<button type="button" id="{html_escape(ch.scrim_id)}" '
-                f'class="{self.class_scrim}" aria-label="Close" {close}>'
-                f'<span class="{self.class_sr}">Close</span></button>'
-            )
-            layer.append(
-                f'<div id="{html_escape(ch.panel_id)}" class="{self.class_panel}" '
-                f'role="dialog" aria-modal="true" aria-labelledby="{html_escape(self.id)}-title">'
-                f'<button type="button" id="{html_escape(ch.dismiss_id)}" '
-                f'class="{self.class_handle_hit}" aria-label="Dismiss" '
-                f'data-channel-on="{handle_on}" {close}>'
-                f'<span class="{self.class_sr}">Dismiss</span>'
-                f'<div class="{self.class_handle}"></div></button>'
-                f'<span class="{self.class_kicker}">Actions</span>'
-                f'<h2 class="{self.class_title}" id="{html_escape(self.id)}-title">What next</h2>'
-                f"{''.join(rows)}"
-                f'<button type="button" id="{html_escape(self.id)}-cancel" '
-                f'class="{self.class_btn_ghost} mt-1 text-stone-500" '
-                f'data-channel-on="{dismiss_on}" {close}>Cancel</button>'
-                f"</div>"
-            )
-        return (
-            f'<div id="{html_escape(self.id)}" class="{self.class_card}" '
-            f'data-open="{"1" if is_open else "0"}" data-channel-id="{html_escape(self.id)}">'
-            f'<span class="{self.class_kicker}">Sheet · swipe down</span>'
-            f'<h2 class="{self.class_title}">Action sheet</h2>'
-            f'<p class="{self.class_lede}">Opens from the bottom. Swipe the handle or Cancel to dismiss.</p>'
-            f'<p class="{self.class_choice}">{choice}</p>'
-            f'<button type="button" class="{self.class_btn_primary}" {open_btn}>Open actions</button>'
-            f"{''.join(layer)}"
-            f"</div>"
         )
 
     @action(caps=())

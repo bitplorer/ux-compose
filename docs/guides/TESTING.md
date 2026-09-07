@@ -84,17 +84,16 @@ make pulse   # live serve Pulse
 ### CTO gates (`tests/feature/`)
 
 Automated feature suite for the product-path CTO checks. Isolation Law: no
-product import of `ux_channel`. No Cap re-implementation. Py3.13
-`HAS_DOM=False` — do not claim Morph/L3 DOM; DOM-tree cases skip on
-Python < 3.14.
+product import of `ux_channel`. No Cap re-implementation. Product floor is
+Python ≥3.14 with the pinned specialist stack.
 
 | Gate | File | Expectation |
 |------|------|-------------|
-| Scaffold hello HTML fallback is a fragment (`id=hello`, no document chrome) | `test_cto_scaffold_hello_fragment.py` | GREEN |
+| Scaffold hello Document-path fragment (`id=hello`, no document chrome) | `test_cto_scaffold_hello_fragment.py` | GREEN |
 | `control()` mints Cap when Cap Host is live; official `hello.pulse` Intent/dispatch fail-closed without cap | `test_cto_cap_mint_fail_closed.py` | GREEN (live Intent skips without ux-channel) |
 | Morph payload for `#X` must not embed outer shell/brand chrome | `test_cto_fragment_law.py` | GREEN (scaffold/fragment Hello + nested-shell `cto_red`) |
 | GET `/` `/hello` CSS/JS presence | `test_cto_css_js_smoke.py` | GREEN source contract; ASGI GET skips without fastapi |
-| Kit `HAS_DOM=False`: toast/login/wave-1 HTML fallback is a fragment; other kits fail with `requires ux-dom (Py≥3.14)` | `test_cto_kit_has_dom_false.py` | GREEN (import + `render()` never TypeError) |
+| Kit copy refuses without ux-dom; render() is DOM-only | `test_cto_kit_has_dom_false.py` | GREEN (copy fail-loud when `HAS_DOM=False`) |
 
 The nested-shell tests use an in-repo `FullShellHello` fixture that mirrors the
 broken StunningCek pattern (full shell in `render()`, `update_with` targets
@@ -138,10 +137,8 @@ See also: `docs/OWNERSHIP.md`, `docs/guides/CLI.md`, `docs/internals/hmr.md`,
 `docs/reference/host.md`.
 
 Clock A (payload law, path law, host bind) is locked in `tests/unit/test_host.py`.
-Fragment live-client (document=None + Channel) is locked in
-`tests/unit/test_live_client.py`. Tests speak ASGI (`tests/asgi_http.py`) —
-no Starlette TestClient / httpx2.
+Tests speak ASGI (`tests/asgi_http.py`) — no Starlette TestClient / httpx2.
 A synthesized Document is mount-only; wrap is the author `document=`.
 `App.mount` passes the same `wrap=` as `build()`.
 `attach_motion()` must return instances. Do not add host behaviour that is
-not covered in `test_host.py` / `test_live_client.py`.
+not covered in `test_host.py`.

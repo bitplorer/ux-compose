@@ -5,10 +5,7 @@ Morph payload for target #X must not embed outer shell / brand chrome.
 Nested-shell tests characterize FullShellHello (full shell in render(),
 update_with targets #hello). Helpers must emit the #hello subtree — do not
 rewrite the fixture into a fragment. Official scaffold hello stays a
-fragment.
-
-HTML-string path only. Py3.13 HAS_DOM=False — this file does not claim
-Morph/L3 DOM trees. DOM-tree variants skip on Python < 3.14.
+fragment. Product floor is Python ≥3.14 with ux-dom.
 """
 from __future__ import annotations
 
@@ -133,7 +130,7 @@ def test_fragment_law_nested_shell_dispatch_morph_must_not_embed_outer_brand_chr
 
 @pytest.mark.skipif(
     not _DOM_TREES,
-    reason="Morph/L3 DOM trees require Python ≥3.14 + ux-dom; Py3.13 HAS_DOM=False",
+    reason="Morph/L3 DOM trees require Python ≥3.14 + ux-dom",
 )
 def test_fragment_law_dom_tree_scaffold_hello_skips_below_314():
     """Py3.14-only: tag-tree Hello still morphs as a #hello fragment."""

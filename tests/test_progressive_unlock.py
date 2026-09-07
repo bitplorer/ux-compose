@@ -31,29 +31,25 @@ def test_boot_default_is_l1():
     assert int(app.level) >= 1
 
 
-def test_use_channel_absent_or_present_stays_usable():
-    """use_channel never breaks L1 dispatch (degrades or elevates honestly)."""
+def test_use_channel_elevates_l1():
+    """use_channel elevates L1 dispatch; missing ux-channel fails loud."""
     app = App.boot("T", strict_caps=False).use_behavior()
     app.add(Counter)
     app.use_channel()
     ops = app.dispatch("c.inc")
     assert isinstance(ops, list) and len(ops) >= 1
-    if HAS_CHANNEL:
-        assert int(app.level) >= 2
-    else:
-        assert int(app.level) == 1
+    assert HAS_CHANNEL
+    assert int(app.level) >= 2
 
 
-def test_use_motion_absent_or_present_stays_usable():
+def test_use_motion_elevates_l1():
     app = App.boot("T", strict_caps=False).use_behavior()
     app.add(Counter)
     app.use_motion()
     ops = app.dispatch("c.inc")
     assert isinstance(ops, list) and len(ops) >= 1
-    if HAS_MOTION:
-        assert int(app.level) >= 3
-    else:
-        assert int(app.level) == 1
+    assert HAS_MOTION
+    assert int(app.level) >= 3
 
 
 def test_level_enum_labels():
@@ -71,10 +67,5 @@ def test_zero_rewrite_same_component_across_unlocks():
     app.use_motion()
     ops2 = app.dispatch("c.inc")
     assert ops1 and ops2
-    # Level reflects what actually attached
-    if HAS_MOTION:
-        assert int(app.level) >= 3
-    elif HAS_CHANNEL:
-        assert int(app.level) >= 2
-    else:
-        assert int(app.level) == 1
+    assert HAS_MOTION and HAS_CHANNEL
+    assert int(app.level) >= 3

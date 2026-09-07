@@ -10,7 +10,6 @@ The menu is a floating panel (list-none), not a native tab/list.
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     Component,
     MorphState,
     RefState,
@@ -26,7 +25,6 @@ from ux_compose import (
     span,
     ul,
 )
-from ux_compose.helpers import html_attrs, html_escape
 
 
 def _plan(name: str, target: str, *, ms: int = 120):
@@ -90,11 +88,6 @@ class ContextMenu(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self):
-        if HAS_DOM and div is not None:
-            return self._render_tree()
-        return self._render_html()
-
-    def _render_tree(self):
         is_open = bool(self.open)
         ran = str(self.ran or "")
         layer = []
@@ -147,47 +140,6 @@ class ContextMenu(Component):
             role="region",
             data_open="1" if is_open else "0",
             data_channel_id=self.id,
-        )
-
-    def _render_html(self):
-        is_open = bool(self.open)
-        ran = str(self.ran or "")
-        choice = f"Ran · {html_escape(ran)}" if ran else "No command yet."
-        open_menu = html_attrs(bind(self.open_menu))
-        layer = []
-        if is_open:
-            rows = []
-            for key, label in self.ITEMS:
-                stamp = html_attrs(bind(self.run, key=key))
-                rows.append(
-                    f'<li class="{self.class_item}">'
-                    f'<button type="button" role="menuitem" class="{self.class_row}" {stamp}>'
-                    f"{html_escape(label)}</button></li>"
-                )
-            close = html_attrs(bind(self.close))
-            layer.append(
-                f'<button type="button" class="{self.class_scrim}" '
-                f'aria-label="Close menu" {close}>'
-                f'<span class="{self.class_sr}">Close</span></button>'
-            )
-            layer.append(
-                f'<ul class="{self.class_menu}" role="menu">{"".join(rows)}</ul>'
-            )
-        return (
-            f'<div id="{html_escape(self.id)}" class="{self.class_card}" role="region" '
-            f'data-open="{"1" if is_open else "0"}" data-channel-id="{html_escape(self.id)}">'
-            f'<span class="{self.class_kicker}">Hold or click</span>'
-            f'<h2 class="{self.class_title}">Context menu</h2>'
-            f'<p class="{self.class_lede}">The trigger accepts both pointers. Items stay on click only.</p>'
-            f'<p class="{self.class_choice}">{choice}</p>'
-            f'<div class="{self.class_stage}">'
-            f'<button type="button" class="{self.class_canvas}" '
-            f'data-channel-on="click longpress delay:480" {open_menu}>'
-            f'<span class="text-sm font-medium text-stone-700">Hold · or click</span>'
-            f'<span class="text-xs text-stone-400">Opens the same menu.</span>'
-            f"</button>"
-            f"{''.join(layer)}"
-            f"</div></div>"
         )
 
     @action(caps=())

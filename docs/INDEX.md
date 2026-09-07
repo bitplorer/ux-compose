@@ -105,7 +105,6 @@ Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005
 | [guides/CLI.md](guides/CLI.md) | Command ownership table |
 | `src/ux_compose/__init__.py` | Public names (`__all__`) |
 | [reference/host.md](reference/host.md) | Clock A payload law |
-| `src/ux_compose/chrome.py` | GET-only chrome (`wrap_get_chrome`) when Document is absent |
 | [resilience/MATRIX.md](resilience/MATRIX.md) | Resilience matrix |
 
 ### Explanation

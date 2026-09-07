@@ -1,7 +1,8 @@
 """App — progressive composition root and boot façade.
 
 Owns glue only: levels, attach order, Component registration, offline dispatch.
-Missing specialists write ``app.attach_notes`` instead of raising.
+Missing specialists on ``use_behavior`` / ``use_channel`` / ``use_motion``
+fail loud (hard dependencies). Isolation: product never imports ``ux_channel``.
 """
 from __future__ import annotations
 
@@ -54,11 +55,15 @@ class App:
         if lv >= 2:
             try:
                 app.use_channel()
+            except ImportError:
+                raise
             except Exception as exc:
                 app._note("boot.use_channel", "L2", exc)
         if lv >= 3:
             try:
                 app.use_motion()
+            except ImportError:
+                raise
             except Exception as exc:
                 app._note("boot.use_motion", "L3", exc)
         return app
@@ -78,17 +83,23 @@ class App:
             return self
         try:
             from ux_behavior import Behavior
-            self._behavior = Behavior.boot(self.name, strict_caps=self.strict_caps)
-            self._level = max(self._level, Level.L1)
-            try:
-                import ux_motion  # noqa: F401
-                self._register_motion_stamp()
-            except ImportError as exc:
-                self._note("use_behavior.motion_stamp", "L3", exc)
         except ImportError as exc:
             self._note("use_behavior", "ux-behavior", exc, level_kept=1)
-            self._behavior = _LocalBehavior(self)
-            self._level = max(self._level, Level.L1)
+            raise ImportError(
+                "ux-behavior is required (Python ≥3.14). "
+                "ux-compose hard-depends on the pinned specialist stack."
+            ) from exc
+        self._behavior = Behavior.boot(self.name, strict_caps=self.strict_caps)
+        self._level = max(self._level, Level.L1)
+        try:
+            import ux_motion  # noqa: F401
+            self._register_motion_stamp()
+        except ImportError as exc:
+            self._note("use_behavior.motion_stamp", "L3", exc)
+            raise ImportError(
+                "ux-motion is required (Python ≥3.14). "
+                "ux-compose hard-depends on the pinned specialist stack."
+            ) from exc
         return self
 
     def use_channel(self, **config) -> "App":
@@ -124,6 +135,11 @@ class App:
                 register_live_channel(ch)
         except ImportError as exc:
             self._note("use_channel", "L2", exc)
+            raise ImportError(
+                "ux-channel is required (Python ≥3.14). "
+                "ux-compose hard-depends on the pinned specialist stack. "
+                "Isolation: attach only through App.use_channel (wire/)."
+            ) from exc
         return self
 
     def use_motion(self) -> "App":
@@ -137,6 +153,10 @@ class App:
             self._register_motion_stamp()
         except ImportError as exc:
             self._note("use_motion", "L3", exc)
+            raise ImportError(
+                "ux-motion is required (Python ≥3.14). "
+                "ux-compose hard-depends on the pinned specialist stack."
+            ) from exc
         return self
 
     def use_cek(self, *, mode: str = "require") -> "App":
@@ -222,9 +242,7 @@ class App:
     def dispatch(self, action: str, **kwargs) -> List[Any]:
         self.use_behavior()
         kwargs = _unpack_action_kwargs(kwargs)
-        if self._behavior is not None and hasattr(self._behavior, "dispatch"):
-            return self._behavior.dispatch(action, **kwargs) or []
-        return _local_dispatch(self, action, **kwargs)
+        return self._behavior.dispatch(action, **kwargs) or []
 
     def control(self, action: str, **args) -> dict:
         self.use_behavior()
@@ -262,56 +280,6 @@ def _unpack_action_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
             continue
         out[key] = value
     return out
-
-
-class _LocalBehavior:
-    def __init__(self, app: App):
-        self.app = app
-        self._registry = {}
-
-    def add(self, comp_cls):
-        key = getattr(comp_cls, "id", None) or comp_cls.__name__.lower()
-        self._registry[key] = comp_cls
-
-    def dispatch(self, action: str, **kwargs):
-        return _local_dispatch(self.app, action, **_unpack_action_kwargs(kwargs))
-
-
-def _local_dispatch(app: App, action: str, **kwargs) -> List[Any]:
-    if "." in action:
-        comp_id, method = action.rsplit(".", 1)
-    else:
-        comp_id = next(iter(app._components), None)
-        method = action
-    if not comp_id or comp_id not in app._components:
-        return []
-    cls = app._components[comp_id]
-    inst = app._instances.get(comp_id)
-    if inst is None:
-        inst = cls()
-        app._instances[comp_id] = inst
-    fn = getattr(inst, method, None)
-    if fn is None:
-        return []
-    caps = getattr(fn, "_ux_caps", ()) or ()
-    if getattr(app, "strict_caps", False) and caps and getattr(app, "_channel", None) is None:
-        raise PermissionError(
-            f"AuthorityError: '{action}' requires Cap {caps} "
-            "(offline strict; attach Channel, use trust(), or set strict_caps=False)"
-        )
-    result = fn(**kwargs)
-    if result is None:
-        target = getattr(inst, "id", None) or comp_id
-        dirty = set(inst.dirty_fields()) if hasattr(inst, "dirty_fields") else set()
-        ops = []
-        if dirty or target:
-            ops.append({"op": "morph", "target": f"#{target}", "strategy": "idiomorph"})
-            if hasattr(inst, "clear_dirty"):
-                inst.clear_dirty()
-        return ops
-    if isinstance(result, list):
-        return result
-    return [result]
 
 
 __all__ = ["App"]

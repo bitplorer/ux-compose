@@ -34,13 +34,11 @@ There is no second `ux.*` namespace on this package.
 
 ## 2. Five minutes — product CLI
 
-Python **≥ 3.14** recommended for the full stack (ux-dom requirement).
+Python **≥ 3.14**. `pip install -e .` pulls the pinned specialist stack.
 
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate
 pip install -e ".[serve]"    # from this repo
-pip install "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git"
-pip install "ux-dom @ git+https://github.com/bitplorer/ux-dom.git"
 
 uxcompose create-app myapp --level 1
 cd myapp

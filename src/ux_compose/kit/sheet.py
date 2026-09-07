@@ -9,7 +9,6 @@ from __future__ import annotations
 from ux_compose.kit.overlay import overlay as overlay_chrome
 
 from ux_compose import (
-    HAS_DOM,
     Component,
     MorphState,
     RefState,
@@ -62,10 +61,6 @@ class Sheet(Component):
         return overlay_chrome(self.id, kind="sheet")
 
     def render(self):
-        if not HAS_DOM or div is None:
-            raise ImportError(
-                f"{type(self).__name__} requires ux-dom (Py≥3.14)"
-            )
         is_open = bool(self.open)
         ch = self._chrome()
         layer = []

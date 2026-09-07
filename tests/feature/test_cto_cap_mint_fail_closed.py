@@ -191,9 +191,7 @@ def _load_scaffold_hello(root: Path):
     return mod
 
 
-def _hello_html(mod, *, force_html: bool = False) -> str:
-    if force_html:
-        mod.HAS_DOM = False
+def _hello_html(mod) -> str:
     tree = mod.Hello().render()
     if not isinstance(tree, str):
         from ux_compose.helpers import _serialize_tree
@@ -232,7 +230,7 @@ def test_scaffold_hello_source_has_pulse_cap_control():
 
 
 def test_scaffold_hello_render_mints_pulse_cap_attrs(tmp_path):
-    """Cap mint attrs present for hello.pulse on both render paths."""
+    """Cap mint attrs present for hello.pulse on the Document path."""
     from ux_compose.wire.caps import register_live_channel
 
     root = create_app(tmp_path / "mint", name="mint", level=1, host="asgi")
@@ -241,14 +239,12 @@ def test_scaffold_hello_render_mints_pulse_cap_attrs(tmp_path):
     register_live_channel(ch)
     try:
         live = _hello_html(mod)
-        html = _hello_html(mod, force_html=True)
     finally:
         register_live_channel(None)
-    for blob in (live, html):
-        assert 'data-channel-action="hello.pulse"' in blob
-        assert 'data-ux-action="hello.pulse"' in blob
-        assert "data-channel-cap" in blob
-        assert "tok.pulse.mint" in blob
+    assert 'data-channel-action="hello.pulse"' in live
+    assert 'data-ux-action="hello.pulse"' in live
+    assert "data-channel-cap" in live
+    assert "tok.pulse.mint" in live
 
 
 def test_scaffold_hello_pulse_dispatch_fail_closed_without_cap(tmp_path):

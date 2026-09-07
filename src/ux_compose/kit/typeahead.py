@@ -8,7 +8,6 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     Component,
     MorphState,
     RefState,
@@ -25,7 +24,6 @@ from ux_compose import (
     span,
     ul,
 )
-from ux_compose.helpers import html_attrs, html_escape
 
 
 class Typeahead(Component):
@@ -99,11 +97,6 @@ class Typeahead(Component):
         return tuple(hits)
 
     def _listing(self):
-        if HAS_DOM and div is not None:
-            return self._listing_tree()
-        return self._listing_html()
-
-    def _listing_tree(self):
         q = str(self.query or "")
         val = str(self.value or "")
         hits = self._hits()
@@ -129,34 +122,7 @@ class Typeahead(Component):
         )
         return div(body, id=f"{self.id}-hits")
 
-    def _listing_html(self):
-        q = str(self.query or "")
-        val = str(self.value or "")
-        hits = self._hits()
-        if hits:
-            rows = []
-            for i, x in enumerate(hits):
-                cls = self.class_row_on if x == val else self.class_row
-                stamp = html_attrs(bind(self.pick, key=x))
-                rows.append(
-                    f'<li id="hit-{i}">'
-                    f'<button type="button" class="{cls}" {stamp}>{html_escape(x)}</button>'
-                    f"</li>"
-                )
-            body = f'<ul class="{self.class_list}" role="listbox">{"".join(rows)}</ul>'
-        else:
-            empty = (
-                f"No pieces match “{html_escape(q)}”." if q else "Start typing a material."
-            )
-            body = f'<p class="{self.class_empty}">{empty}</p>'
-        return f'<div id="{html_escape(self.id)}-hits">{body}</div>'
-
     def render(self):
-        if HAS_DOM and div is not None:
-            return self._render_tree()
-        return self._render_html()
-
-    def _render_tree(self):
         q = str(self.query or "")
         val = str(self.value or "")
         return div(
@@ -184,27 +150,6 @@ class Typeahead(Component):
             self._listing(),
             id=self.id,
             className=self.class_card,
-        )
-
-    def _render_html(self):
-        q = str(self.query or "")
-        val = str(self.value or "")
-        choice = f"Picked · {html_escape(val)}" if val else "Nothing picked."
-        stamp = html_attrs(bind(self.query_hits))
-        return (
-            f'<div id="{html_escape(self.id)}" class="{self.class_card}">'
-            f'<span class="{self.class_kicker}">Live filter</span>'
-            f'<h2 class="{self.class_title}">Typeahead</h2>'
-            f'<p class="{self.class_lede}">The list follows after a 300ms pause. The field keeps what you type.</p>'
-            f'<p class="{self.class_choice}">{choice}</p>'
-            f'<input type="search" id="{html_escape(self.id)}-q" name="q" '
-            f'value="{html_escape(q)}" placeholder="Linen, oak, wool…" autocomplete="off" '
-            f'class="{self.class_input}" aria-autocomplete="list" '
-            f'aria-controls="{html_escape(self.id)}-hits" '
-            f'data-channel-on="input delay:300" '
-            f'data-channel-target="#{html_escape(self.id)}-hits" {stamp}/>'
-            f"{self._listing()}"
-            f"</div>"
         )
 
     def _take_q(self, q: str = "", **kwargs):

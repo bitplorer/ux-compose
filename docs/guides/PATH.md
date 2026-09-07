@@ -14,7 +14,7 @@ motion — without inventing APIs.
 2. Scaffold text comes from `ux_compose.scaffold` (what `create-app` actually writes).
 3. Isolation Law: product modules never import `ux_channel`. Live Caps attach through `App.use_channel` / `wire/`.
 4. Ownership: compose owns create-app / build / serve / deploy / HMR / tunnel. ux-dom renders. ux-behavior owns `@action`.
-5. Progressive Superpower: L1 code stays correct at L2/L3. Zero rewrite of the Component.
+5. Progressive Superpower: complete install first. L1 code stays correct at L2/L3. Zero rewrite of the Component.
 6. Tailwind is `className` on tag trees. CSS lives in `assets/css`, never inside Python strings.
 7. HMR is `uxcompose serve dev`, not `Document.use`.
 8. If code and this page disagree, **code wins**.
@@ -63,8 +63,7 @@ Product CSS is `uxcompose build` (`ux_compose.tailwind` finds the CLI).
 
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate
-pip install ux-compose ux-dom ux-behavior
-# optional later: ux-channel ux-motion fastapi uvicorn
+pip install ux-compose   # hard-depends on ux-dom + ux-channel + ux-behavior + ux-motion
 
 uxcompose create-app myapp --name Shop --level 1 --host auto
 cd myapp
@@ -86,14 +85,13 @@ myapp/
     hello.py          # page unit: stem == class name; render() is a fragment
 ```
 
-`--level auto` unlocks specialists that import. Pin `--level 1` until Channel is
-intentional. `--host auto` prefers FastAPI if installed, else a pure ASGI adapter.
+`--level auto` attaches Channel/Motion after L1 boot when they import. Pin `--level 1` until Channel is intentional. `--host auto` prefers FastAPI if installed, else a pure ASGI adapter.
 
 Next:
 
 ```bash
 uxcompose serve dev
-uxcompose doctor . --no-fail
+uxcompose doctor .
 uxcompose build
 ```
 
@@ -113,12 +111,7 @@ uxcompose build
 
 ```python
 from ux_compose import Component, MorphState, action, control, notify, update_with
-
-try:
-    from ux_compose import div, span, button, HAS_DOM
-except Exception:
-    HAS_DOM = False
-    div = span = button = None
+from ux_compose import div, span, button
 
 
 class Hello(Component):
@@ -131,31 +124,20 @@ class Hello(Component):
         pulses = int(self.pulses or 0)
         inc_attrs = control("hello.inc")
         pulse_attrs = control("hello.pulse")
-        if HAS_DOM and div is not None:
-            btn = (
-                "rounded-full bg-stone-900 text-stone-50 "
-                "px-4 py-2 text-sm font-medium hover:bg-stone-800"
-            )
-            return div(
-                span(str(n), className="text-2xl font-semibold tabular-nums"),
-                button("+1", type="button", className=btn, **inc_attrs),
-                span(str(pulses), className="text-2xl font-semibold tabular-nums"),
-                button("pulse", type="button", className=btn, **pulse_attrs),
-                id=self.id,
-                className=(
-                    "flex items-center gap-3 rounded-2xl "
-                    "border border-stone-200 bg-white p-6 shadow-sm"
-                ),
-            )
-        inc_str = " ".join(f'{k}="{v}"' for k, v in inc_attrs.items())
-        pulse_str = " ".join(f'{k}="{v}"' for k, v in pulse_attrs.items())
-        return (
-            f'<div id="hello" class="flex items-center gap-3">'
-            f"<span>{n}</span>"
-            f"<button {inc_str}>+1</button>"
-            f"<span>{pulses}</span>"
-            f"<button {pulse_str}>pulse</button>"
-            f"</div>"
+        btn = (
+            "rounded-full bg-stone-900 text-stone-50 "
+            "px-4 py-2 text-sm font-medium hover:bg-stone-800"
+        )
+        return div(
+            span(str(n), className="text-2xl font-semibold tabular-nums"),
+            button("+1", type="button", className=btn, **inc_attrs),
+            span(str(pulses), className="text-2xl font-semibold tabular-nums"),
+            button("pulse", type="button", className=btn, **pulse_attrs),
+            id=self.id,
+            className=(
+                "flex items-center gap-3 rounded-2xl "
+                "border border-stone-200 bg-white p-6 shadow-sm"
+            ),
         )
 
     @action(caps=())

@@ -1,4 +1,4 @@
-"""Fragment Cap live-client — public URL refs when Document/wrap is absent.
+"""Fragment Cap live-client — public URL refs when an author opts in.
 
 Cap Host stays on cek-runtime via Channel. This module does **not** import
 ``ux_channel``, mint Caps, or copy the channel client. It emits the same
@@ -8,14 +8,12 @@ public URLs Channel already serves:
     /ux-channel/static/ux-bridge.js   (optional)
     body data-channel-endpoint="/ux-channel/action"
 
-Py3.14 ``Document.use(XElement(), Csp.auto(), Channel.optional())`` (the
-``ux_dom.runtime`` alias) is the full shell. The L1 / Py3.13 fragment GET
-path (``document=None``) uses this insert so buttons with ``data-ux-action``
-are not shipped without a ``<script>``.
+Product path is ``Document.use(XElement(), Csp.auto(), Channel.optional())``
+(the ``ux_dom.runtime`` alias). This helper is **not** the Document-absent
+primary: ``build()`` does not auto-attach it when ``document=None``.
 
 Never wrap HTML-string fragments with a synthesized ux-dom Document (a
-positional ``str`` becomes script ``src``). This is a string shell or an
-ASGI insert patterned on ``HmrClientMiddleware``.
+positional ``str`` becomes script ``src``).
 """
 from __future__ import annotations
 

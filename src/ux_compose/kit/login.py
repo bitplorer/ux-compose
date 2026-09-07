@@ -136,7 +136,7 @@ class Login(Component):
     show_password = MorphState(False)
     submitting = MorphState(False)
     authed = MorphState(False)
-    error_stamp = MorphState("idle")
+    error_dirty = MorphState("idle")
 
     email = RefState("")
     password = RefState("")
@@ -352,8 +352,8 @@ class Login(Component):
             ))
         return div(*kids, className=self.class_field)
 
-    def _tick_error(self):
-        self.error_stamp = "b" if self.error_stamp == "a" else "a"
+    def _mark_error_dirty(self):
+        self.error_dirty = "b" if self.error_dirty == "a" else "a"
 
     def _clear_errors(self):
         self.err_email = self.err_password = self.err_name = self.err_form = ""
@@ -432,7 +432,7 @@ class Login(Component):
             ok = False
 
         if not ok:
-            self._tick_error()
+            self._mark_error_dirty()
             return update_with(self, extra_ops=[notify("Check the highlighted fields")])
 
         decision = self.authenticate(
@@ -440,7 +440,7 @@ class Login(Component):
         )
         if not decision.ok:
             self.err_form = decision.message or "Sign-in was refused."
-            self._tick_error()
+            self._mark_error_dirty()
             return update_with(
                 self,
                 extra_ops=[notify("Sign-in blocked" if decision.blocked else decision.message)],

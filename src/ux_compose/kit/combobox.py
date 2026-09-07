@@ -88,7 +88,7 @@ class Combobox(Component):
     query = RefState("")
     value = MorphState("")
     open = MorphState(False)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def _options(self):
         return tuple(self.OPTIONS)
@@ -100,8 +100,8 @@ class Combobox(Component):
             return opts
         return tuple(x for x in opts if q in x.lower())
 
-    def _tick(self):
-        self.stamp = "b" if self.stamp == "a" else "a"
+    def _mark_dirty(self):
+        self.dirty = "b" if self.dirty == "a" else "a"
 
     def _take_q(self, q: str = "", **kwargs):
         if q:
@@ -181,7 +181,7 @@ class Combobox(Component):
     def type_query(self, q: str = ""):
         self._take_q(q=q)
         self.open = True
-        self._tick()
+        self._mark_dirty()
         return update_with(self)
 
     @action(caps=())
@@ -190,7 +190,7 @@ class Combobox(Component):
         if field in ("q", "query"):
             self.query = "" if raw is None else str(raw)
             self.open = True
-            self._tick()
+            self._mark_dirty()
             return update_with(self)
         return None
 
@@ -201,7 +201,7 @@ class Combobox(Component):
             self.value = key
             self.query = key
             self.open = False
-            self._tick()
+            self._mark_dirty()
             return update_with(self, extra_ops=[notify(key)])
         return update_with(self)
 
@@ -210,5 +210,5 @@ class Combobox(Component):
         self.query = ""
         self.value = ""
         self.open = False
-        self._tick()
+        self._mark_dirty()
         return update_with(self)

@@ -15,7 +15,7 @@ card. Product shop lives at `/shop`.
 | What | Where |
 |------|--------|
 | Open / value / query / named step / named band | `MorphState` (qualitative) |
-| Magnitude, lists, money, ISO dates, files, digits | `RefState` + `stamp = MorphState("idle")` |
+| Magnitude, lists, money, ISO dates, files, digits | `RefState` + `dirty = MorphState("idle")` |
 | One-shot message | `notify(...)` |
 | Domain stock / money source | Host DB, never the client plane |
 | Protected verb | `@action(caps=("orders.place",))` + live `submit_intent` |

@@ -1,7 +1,7 @@
 """Collections — filter, keyed list, optimistic paint, pagination, undo.
 
 Encoding rule:
-  Open/value/query/window  → MorphState (or stamp + RefState if quantity)
+  Open/value/query/window  → MorphState (or dirty + RefState if quantity)
   Tokens / pending ids     → RefState
   One-shot message         → notify
   Domain money/stock       → Host, never the client plane
@@ -32,19 +32,19 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, tick, maybe_plan, scene, rise
+from examples._common import act, mark_dirty, optional_plan, scene, rise
 
 CATALOG = (("linen", "Work shirt", 48), ("oak", "Serving board", 72), ("wool", "Throw", 96), ("clay", "Pourer", 38))
 
 
 class Shelf(Component):
-    """Filter + sort. Query is MorphState. Rows are RefState. Stamp dirties."""
+    """Filter + sort. Query is MorphState. Rows are RefState. dirty MorphState dirties."""
 
     id = "shelf"
     query = MorphState("")
     order = MorphState("alpha")
     items = RefState(tuple(s for s, _, _ in CATALOG))
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def _visible(self):
         q = str(self.query or "").lower()
@@ -103,19 +103,19 @@ class Shelf(Component):
     @action(caps=())
     def set_query(self, q: str = ""):
         self.query = q
-        tick(self)
+        mark_dirty(self)
         return update_with(self, self._plan())
 
     @action(caps=())
     def sort_price(self):
         self.order = "price"
-        tick(self)
+        mark_dirty(self)
         return update_with(self, self._plan(), extra_ops=[notify("price")])
 
     @action(caps=())
     def sort_alpha(self):
         self.order = "alpha"
-        tick(self)
+        mark_dirty(self)
         return update_with(self, self._plan())
 
 
@@ -126,7 +126,7 @@ class OptimisticList(Component):
     lines = RefState(())
     pending = MorphState(False)
     token = RefState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         rows = list(self.lines or ())
@@ -159,7 +159,7 @@ class OptimisticList(Component):
         self.lines = tuple(self.lines or ()) + (f"{sku}…",)
         self.pending = True
         self.token = f"tok-{len(self.lines)}"
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(f"optimistic {sku}")])
 
     @action(caps=())
@@ -169,7 +169,7 @@ class OptimisticList(Component):
             x[:-1] if x.endswith("…") else x for x in (self.lines or ())
         )
         self.pending = False
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("confirmed")])
 
     @action(caps=())
@@ -177,7 +177,7 @@ class OptimisticList(Component):
         _ = token
         self.lines = tuple(x for x in (self.lines or ()) if not x.endswith("…"))
         self.pending = False
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("rolled back")])
 
 
@@ -234,7 +234,7 @@ class UndoSnack(Component):
     items = RefState(("linen", "oak", "wool"))
     gone = RefState("")
     open = MorphState(False)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         names = dict((s, n) for s, n, _ in CATALOG)
@@ -274,7 +274,7 @@ class UndoSnack(Component):
         self.items = tuple(s for s in (self.items or ()) if s != sku)
         self.gone = sku
         self.open = True
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(f"removed {sku}")])
 
     @action(caps=())
@@ -283,7 +283,7 @@ class UndoSnack(Component):
             self.items = tuple(self.items or ()) + (self.gone,)
         self.gone = ""
         self.open = False
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("restored")])
 
 

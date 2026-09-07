@@ -18,13 +18,13 @@ except Exception:  # pragma: no cover
     scene = rise = fade = slide = None  # type: ignore
 
 
-def tick(comp: Any, *, on: str = "tick", off: str = "tock") -> None:
-    """Flip a qualitative MorphState stamp so RefState-only mutations morph."""
-    cur = str(getattr(comp, "stamp", "") or "")
-    setattr(comp, "stamp", off if cur == on else on)
+def mark_dirty(comp: Any, *, on: str = "tick", off: str = "tock") -> None:
+    """Flip a qualitative MorphState dirty flag so RefState-only mutations morph."""
+    cur = str(getattr(comp, "dirty", "") or "")
+    setattr(comp, "dirty", off if cur == on else on)
 
 
-def maybe_plan(name: str, target: str, *, ms: int = 140):
+def optional_plan(name: str, target: str, *, ms: int = 140):
     if scene is None or rise is None:
         return None
     try:
@@ -33,7 +33,7 @@ def maybe_plan(name: str, target: str, *, ms: int = 140):
         return None
 
 
-def maybe_fade(name: str, target: str, *, ms: int = 120):
+def optional_fade(name: str, target: str, *, ms: int = 120):
     if scene is None or fade is None:
         return None
     try:
@@ -42,7 +42,7 @@ def maybe_fade(name: str, target: str, *, ms: int = 120):
         return None
 
 
-def maybe_slide(name: str, target: str, *, direction: str = "next", ms: int = 180):
+def optional_slide(name: str, target: str, *, direction: str = "next", ms: int = 180):
     if scene is None or slide is None:
         return None
     try:
@@ -132,10 +132,10 @@ def status(text: Optional[str], *, kind: str = "note"):
 
 
 __all__ = [
-    "tick",
-    "maybe_plan",
-    "maybe_fade",
-    "maybe_slide",
+    "mark_dirty",
+    "optional_plan",
+    "optional_fade",
+    "optional_slide",
     "act",
     "field",
     "status",

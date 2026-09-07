@@ -28,7 +28,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, tick, maybe_plan, maybe_slide, maybe_fade
+from examples._common import act, mark_dirty, optional_plan, optional_slide, optional_fade
 
 
 class Toasts(Component):
@@ -36,7 +36,7 @@ class Toasts(Component):
 
     id = "toasts"
     items = RefState(())
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     _seq = RefState(0)
 
     def render(self):
@@ -66,17 +66,17 @@ class Toasts(Component):
         self._seq = int(self._seq or 0) + 1
         row = {"id": str(self._seq), "message": message}
         self.items = tuple(self.items or ()) + (row,)
-        tick(self)
+        mark_dirty(self)
         return update_with(
             self,
-            maybe_plan("toast-in", f"#toast-{row['id']}", ms=100),
+            optional_plan("toast-in", f"#toast-{row['id']}", ms=100),
             extra_ops=[notify(message)],
         )
 
     @action(caps=())
     def clear(self):
         self.items = ()
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 
@@ -123,7 +123,7 @@ class Confirm(Component):
     def ask(self, id: str = ""):
         self.target = id
         self.open = True
-        return update_with(self, maybe_plan("confirm-open", f"#{self.id}", ms=140))
+        return update_with(self, optional_plan("confirm-open", f"#{self.id}", ms=140))
 
     @action(caps=())
     def cancel(self):
@@ -143,7 +143,7 @@ class Lightbox(Component):
     id = "lightbox"
     open = MorphState(False)
     index = RefState(0)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     SLIDES = ("Linen in raking light", "Oak end-grain", "Wool nap", "Clay lip")
 
     def render(self):
@@ -181,28 +181,28 @@ class Lightbox(Component):
     def open_box(self, index: str = "0"):
         self.open = True
         self.index = int(index or 0)
-        tick(self)
-        return update_with(self, maybe_plan("lb-open", f"#{self.id}", ms=140))
+        mark_dirty(self)
+        return update_with(self, optional_plan("lb-open", f"#{self.id}", ms=140))
 
     @action(caps=())
     def close(self):
         self.open = False
-        return update_with(self, maybe_fade("lb-close", f"#{self.id}", ms=100))
+        return update_with(self, optional_fade("lb-close", f"#{self.id}", ms=100))
 
     @action(caps=())
     def next(self):
         self.index = (int(self.index or 0) + 1) % len(self.SLIDES)
-        tick(self)
+        mark_dirty(self)
         return update_with(
-            self, maybe_slide("lb-next", f"#{self.id}", direction="next", ms=160)
+            self, optional_slide("lb-next", f"#{self.id}", direction="next", ms=160)
         )
 
     @action(caps=())
     def prev(self):
         self.index = (int(self.index or 0) - 1) % len(self.SLIDES)
-        tick(self)
+        mark_dirty(self)
         return update_with(
-            self, maybe_slide("lb-prev", f"#{self.id}", direction="prev", ms=160)
+            self, optional_slide("lb-prev", f"#{self.id}", direction="prev", ms=160)
         )
 
 

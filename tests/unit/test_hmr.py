@@ -127,7 +127,7 @@ def test_docs_do_not_teach_css_mtime_hmr():
 def test_agents_lock_three_clocks():
     """Stop the next agent collapsing clocks back into a hub + watcher."""
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    flow = (ROOT / "docs" / "FLOW.md").read_text(encoding="utf-8")
+    flow = (ROOT / "docs" / "OWNERSHIP.md").read_text(encoding="utf-8")
     assert "Dev clocks under `uxcompose serve`" in agents
     assert "HmrHub" in agents
     assert "sibling Tailwind" in agents

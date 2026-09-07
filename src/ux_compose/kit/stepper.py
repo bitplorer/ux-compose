@@ -24,7 +24,7 @@ from ux_compose import (
 class Stepper(Component):
     """Wizard. Current step is a name, never an int MorphState.
 
-    ``STEPS`` is ``(key, label, body)``. Finish spends ``flow.finish``.
+    ``STEPS`` is ``(key, label, body)``. Finish spends ``stepper.finish``.
     """
 
     id = "stepper"
@@ -191,7 +191,7 @@ class Stepper(Component):
             self.step = keys[idx - 1]
         return update_with(self)
 
-    @action(caps=("flow.finish",))
+    @action(caps=("stepper.finish",))
     def finish(self):
         self.done = True
         return update_with(self, extra_ops=[notify(self.on_finish())])

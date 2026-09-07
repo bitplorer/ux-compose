@@ -10,4 +10,4 @@
 | [0004-clarity-and-residuals.md](0004-clarity-and-residuals.md) | One author door, attach notes, OverlayChrome |
 | [0005-serve-dev-split.md](0005-serve-dev-split.md) | serve dev isolates Channel from ui reload |
 
-Spec: [../reference/host.md](../reference/host.md). Ownership SSoT remains [../FLOW.md](../FLOW.md).
+Spec: [../reference/host.md](../reference/host.md). Ownership SSoT remains [../OWNERSHIP.md](../OWNERSHIP.md).

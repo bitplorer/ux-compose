@@ -8,7 +8,7 @@ The last mile of the 99%: operational chrome every working house grows.
     settings     density / motion names; wipe is a Cap
     offline      online bool
     presence     peers list silent; self named
-    KPI          values silent; stamp dirties
+    KPI          values silent; dirty MorphState dirties
     shortcuts    same shape as the command palette
 
 No new framework verbs. Morph / Ref / @action / update_with.
@@ -37,7 +37,7 @@ from ux_compose import (
     section,
 )
 
-from examples._common import act, tick, status
+from examples._common import act, mark_dirty, status
 
 
 class Calendar(Component):
@@ -50,7 +50,7 @@ class Calendar(Component):
     month = MorphState("august")
     day = RefState(20)
     booked = RefState(())
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     MONTHS = (("july", "July"), ("august", "August"), ("september", "September"))
     DAYS = (14, 15, 20, 21, 27)
 
@@ -100,7 +100,7 @@ class Calendar(Component):
             self.day = int(n)
         except ValueError:
             self.day = 20
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=("bookings.create",))
@@ -109,7 +109,7 @@ class Calendar(Component):
         have = tuple(self.booked or ())
         if d and d not in have:
             self.booked = have + (d,)
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(f"booked {d}")])
 
 
@@ -119,7 +119,7 @@ class ProgressMeter(Component):
     id = "progress"
     pct = RefState(0)
     phase = MorphState("idle")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         n = int(self.pct or 0)
@@ -151,7 +151,7 @@ class ProgressMeter(Component):
     def start(self):
         self.phase = "run"
         self.pct = 10
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
@@ -159,14 +159,14 @@ class ProgressMeter(Component):
         n = min(100, int(self.pct or 0) + 25)
         self.pct = n
         self.phase = "done" if n >= 100 else "run"
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
     def finish(self):
         self.pct = 100
         self.phase = "done"
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("done")])
 
 
@@ -176,7 +176,7 @@ class CopyClip(Component):
     id = "copyclip"
     copied = MorphState(False)
     text = RefState("atelier://piece/linen")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         kids = (
@@ -199,7 +199,7 @@ class CopyClip(Component):
     @action(caps=())
     def copy(self):
         self.copied = True
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("copied")])
 
     @action(caps=())
@@ -214,7 +214,7 @@ class Settings(Component):
     id = "settings"
     density = MorphState("roomy")
     motion = MorphState("allow")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         dens = str(self.density or "roomy")
@@ -257,7 +257,7 @@ class Settings(Component):
     def wipe(self):
         self.density = "roomy"
         self.motion = "allow"
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("wiped")])
 
 
@@ -303,7 +303,7 @@ class Presence(Component):
     id = "presence"
     self_state = MorphState("here")
     peers = RefState(("Noor · here", "Atelier · away"))
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         me = str(self.self_state or "here")
@@ -345,7 +345,7 @@ class KpiStrip(Component):
     bag = RefState(3)
     held = RefState(48)
     placed = RefState(2)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         cells = (
@@ -363,7 +363,7 @@ class KpiStrip(Component):
         ]
         kids = (
             header(
-                p("Magnitudes silent · stamp dirties", className="kicker"),
+                p("Magnitudes silent · dirty MorphState dirties", className="kicker"),
                 h2("KPI strip", className="widget-title"),
             ),
             div(*tiles, className="kpi-grid"),
@@ -382,7 +382,7 @@ class KpiStrip(Component):
         self.bag = max(0, int(self.bag or 0) - 1)
         self.placed = int(self.placed or 0) + 1
         self.held = int(self.held or 0) + 12
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("sale")])
 
     @action(caps=())
@@ -390,7 +390,7 @@ class KpiStrip(Component):
         self.bag = 0
         self.held = 0
         self.placed = 0
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 

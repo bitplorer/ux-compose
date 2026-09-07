@@ -3,7 +3,7 @@
 99% of product *frames* are the same two MorphState keys:
 
     current / open / collapsed   qualitative MorphState
-    last-clicked payload         RefState + stamp (if a magnitude or list)
+    last-clicked payload         RefState + dirty (if a magnitude or list)
 
 A shell is **not** a second Document. One HTML shell, many units. Opening a
 route is public. Spending money / deleting / changing identity is a Cap on
@@ -37,13 +37,13 @@ from ux_compose import (
     li,
 )
 
-from examples._common import act, tick
+from examples._common import act, mark_dirty
 
 
 ROUTES = (
     ("table", "Table", "The working surface. Lists morph in place."),
     ("bag", "Bag", "Cart lives here. Checkout is a Cap on that unit."),
-    ("inbox", "Inbox", "Badge is a magnitude — stamp + RefState, not MorphState(int)."),
+    ("inbox", "Inbox", "Badge is a magnitude — dirty + RefState, not MorphState(int)."),
     ("settings", "Settings", "Locale / density are names. Wipe is authority."),
 )
 
@@ -324,7 +324,7 @@ class OverflowMenu(Component):
     id = "overflow"
     open = MorphState(False)
     last = RefState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         last = str(self.last or "—")
@@ -369,7 +369,7 @@ class OverflowMenu(Component):
         """
         self.last = key
         self.open = False
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(key or "none")])
 
 

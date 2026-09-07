@@ -51,7 +51,7 @@ still lock them. Confusion must stop growing.
 
 - Authors import from `ux_compose`. No second helper world.
 - Maintainers point every new doc at [../ARCHITECTURE.md](../ARCHITECTURE.md)
-  plus [../FLOW.md](../FLOW.md). Do not add a third map.
+  plus [../OWNERSHIP.md](../OWNERSHIP.md). Do not add a third map.
 - Overlay widgets cannot drift on ids / swipe / enter distance: the
   primitive is the single source.
 - New media-type conflicts still get **ADR 0003**, not a second pipeline

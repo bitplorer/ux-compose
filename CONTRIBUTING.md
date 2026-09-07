@@ -29,7 +29,7 @@ Live showcase: `apps/pulse` via `uxcompose serve apps.pulse.server:app`.
 
 ## Ownership (do not regress)
 
-Authoritative: [docs/FLOW.md](docs/FLOW.md). Agent contract: [AGENTS.md](AGENTS.md).
+Authoritative: [docs/OWNERSHIP.md](docs/OWNERSHIP.md). Agent contract: [AGENTS.md](AGENTS.md).
 
 | Do | Don't |
 |----|-------|
@@ -44,8 +44,8 @@ Authoritative: [docs/FLOW.md](docs/FLOW.md). Agent contract: [AGENTS.md](AGENTS.
 | File | May contain | Must not contain |
 |------|-------------|------------------|
 | `README.md` | Gate | Full API, ADR bodies |
-| `START_HERE.md` | 5-minute first success | Exhaustive FLOW restatement |
-| `docs/FLOW.md` | Ownership law | Tutorial steps as primary form |
+| `START_HERE.md` | 5-minute first success | Exhaustive OWNERSHIP restatement |
+| `docs/OWNERSHIP.md` | Ownership law | Tutorial steps as primary form |
 | `docs/guides/` | Goal-oriented recipes (CLI, serve/HMR/tunnel, DX, tests) | Conceptual essays as primary form |
 | `docs/reference/` | Facts | Learning narrative as primary form |
 | `docs/internals/` | Why / architecture / C4 | Step lists as primary form |

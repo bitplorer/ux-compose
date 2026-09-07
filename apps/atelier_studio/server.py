@@ -281,7 +281,7 @@ def _shop(*, flash: str = "") -> str:
             h1("Quiet pieces for a working house."),
             p(
                 "The same Cart class as examples/cart.py, live-safe: lines in RefState, "
-                "stamp as MorphState, checkout under a Cap.",
+                "dirty as MorphState, checkout under a Cap.",
                 className="lede",
             ),
             className="hero",

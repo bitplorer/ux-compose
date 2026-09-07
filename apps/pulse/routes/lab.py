@@ -14,7 +14,7 @@ class Lab(Component):
     id = "lab"
     tab = MorphState("counter")
     count = RefState(0)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     name = RefState("")
     email = RefState("")
     note = RefState("")
@@ -41,9 +41,9 @@ class Lab(Component):
 
         if self.tab == "counter":
             body = div(
-                h3("RefState magnitude + Morph stamp", className="font-serif text-lg"),
+                h3("RefState magnitude + Morph dirty", className="font-serif text-lg"),
                 p(str(int(self.count or 0)), className="mt-4 font-serif text-5xl tracking-tight"),
-                p(f"stamp={self.stamp}", className="mt-1 font-mono text-xs text-stone-500"),
+                p(f"dirty={self.dirty}", className="mt-1 font-mono text-xs text-stone-500"),
                 div(
                     button("\u2212", type="button", className="rounded-full border px-3 py-1.5", **control("lab.dec")),
                     button("+", type="button", className="rounded-full bg-stone-900 px-3 py-1.5 text-stone-50", **control("lab.inc")),
@@ -97,19 +97,19 @@ class Lab(Component):
     @action(caps=())
     def inc(self):
         self.count = int(self.count or 0) + 1
-        self.stamp = "a" if self.stamp == "b" else "b"
+        self.dirty = "a" if self.dirty == "b" else "b"
         return update_with(self)
 
     @action(caps=())
     def dec(self):
         self.count = max(0, int(self.count or 0) - 1)
-        self.stamp = "a" if self.stamp == "b" else "b"
+        self.dirty = "a" if self.dirty == "b" else "b"
         return update_with(self)
 
     @action(caps=())
     def reset(self):
         self.count = 0
-        self.stamp = "idle"
+        self.dirty = "idle"
         return update_with(self, extra_ops=[notify("reset")])
 
     @action(caps=())

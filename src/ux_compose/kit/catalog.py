@@ -142,7 +142,7 @@ CATALOG: dict[str, KitEntry] = {
         "module": "ux_compose.kit.stepper",
         "stem": "stepper",
         "exports": ["Stepper"],
-        "description": "Named steps. Finish spends flow.finish.",
+        "description": "Named steps. Finish spends stepper.finish.",
         "css": False,
         "page": True,
     },

@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Nomen cut: `maybe_*` → `optional_*`; MorphState `stamp` / helper `tick` →
+  `dirty` / `mark_dirty`; kit Cap `flow.finish` → `stepper.finish`;
+  `docs/FLOW.md` → `docs/OWNERSHIP.md`.
 - `serve dev` soft-morphs page units after a `.py` save
   (`softReload` / `morphLive`). `location.reload()` is the fallback only.
 - Typeahead: `input delay:300`. Later `input`/`change` of the same
@@ -65,8 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Copy is the live region (chrome is not). Dots label the slide title.
   Prev / next / dots keep stable ids across morph.
 - Carousel / Lightbox / Drawer: `data-channel-on` swipe + directional slide/rise/fade.
-- Accordion open uses `maybe_plan`; Confirm overlay open uses rise.
-- `act(..., on=)` and `maybe_slide` in `examples/_common.py` (already on main).
+- Accordion open uses `optional_plan`; Confirm overlay open uses rise.
+- `act(..., on=)` and `optional_slide` in `examples/_common.py` (already on main).
 
 
 ## [0.1.0] — 2026-08-26

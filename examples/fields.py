@@ -3,14 +3,14 @@
 Signup / wizard / typeahead live in ``forms.py``. This file is every other
 control a product actually ships:
 
-    radio / checkbox set     names in RefState + stamp
+    radio / checkbox set     names in RefState + dirty
     combobox                 query MorphState + value MorphState
     date                     named window MorphState; ISO in RefState
-    file drop                filenames RefState + stamp
-    slider                   magnitude RefState + stamp
+    file drop                filenames RefState + dirty
+    slider                   magnitude RefState + dirty
     OTP                      digits RefState; verify is a Cap
     password reveal          bool MorphState; secret RefState
-    autosave                 dirty MorphState; draft RefState
+    autosave                 unsaved MorphState; draft RefState
     limited note             length derived from RefState
 
 Never put ints / money / counts on MorphState if the class will go live
@@ -46,20 +46,20 @@ from ux_compose import (
     control,
 )
 
-from examples._common import act, field, tick, status
+from examples._common import act, field, mark_dirty, status
 
 
 class ChoiceGroup(Component):
     """Radio (one name) + checkbox (set of names).
 
     Radio value is MorphState (qualitative). Checkbox set is a tuple on
-    RefState because it is a list; stamp dirties.
+    RefState because it is a list; dirty MorphState dirties.
     """
 
     id = "choices"
     finish = MorphState("oil")
     extras = RefState(("cloth",))
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     FINISHES = (("oil", "Oil"), ("wax", "Wax"), ("raw", "Raw"))
     EXTRAS = (("cloth", "Care cloth"), ("box", "Gift box"), ("note", "Hand note"))
 
@@ -112,7 +112,7 @@ class ChoiceGroup(Component):
         elif key:
             cur.add(key)
         self.extras = tuple(sorted(cur))
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 
@@ -197,7 +197,7 @@ class DateField(Component):
     id = "datefield"
     window = MorphState("today")
     iso = RefState("2026-08-20")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     WINDOWS = (
         ("today", "Today", "2026-08-20"),
         ("tomorrow", "Tomorrow", "2026-08-21"),
@@ -234,7 +234,7 @@ class DateField(Component):
             key, row = "today", "2026-08-20"
         self.window = key
         self.iso = row
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(row)])
 
 
@@ -246,7 +246,7 @@ class FileDrop(Component):
 
     id = "filedrop"
     files = RefState(())
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         rows = list(self.files or ())
@@ -282,19 +282,19 @@ class FileDrop(Component):
         name = (name or "").strip()
         if name and name not in (self.files or ()):
             self.files = tuple(self.files or ()) + (name,)
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(name)])
 
     @action(caps=())
     def remove(self, name: str = ""):
         self.files = tuple(x for x in (self.files or ()) if x != name)
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
     def clear(self):
         self.files = ()
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 
@@ -303,7 +303,7 @@ class SliderField(Component):
 
     id = "slider"
     value = RefState(40)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     STEPS = (0, 25, 50, 75, 100)
 
     def render(self):
@@ -342,7 +342,7 @@ class SliderField(Component):
         except ValueError:
             v = 40
         self.value = max(0, min(100, v))
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 
@@ -356,7 +356,7 @@ class OtpGate(Component):
     digits = RefState("")
     error = MorphState("")
     ok = MorphState(False)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     EXPECT = "2468"
 
     def render(self):
@@ -398,7 +398,7 @@ class OtpGate(Component):
         self.digits = "".join(ch for ch in str(code or "") if ch.isdigit())[:4]
         self.error = ""
         self.ok = False
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
@@ -406,7 +406,7 @@ class OtpGate(Component):
         self.digits = ""
         self.error = ""
         self.ok = False
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=("auth.verify",))
@@ -414,11 +414,11 @@ class OtpGate(Component):
         if str(self.digits or "") != self.EXPECT:
             self.error = "Code does not match"
             self.ok = False
-            tick(self)
+            mark_dirty(self)
             return update_with(self, extra_ops=[notify("mismatch")])
         self.ok = True
         self.error = ""
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("verified")])
 
 
@@ -428,7 +428,7 @@ class PasswordField(Component):
     id = "password"
     shown = MorphState(False)
     secret = RefState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         shown = bool(self.shown)
@@ -463,7 +463,7 @@ class PasswordField(Component):
     @action(caps=())
     def set(self, secret: str = ""):
         self.secret = secret
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
@@ -473,26 +473,26 @@ class PasswordField(Component):
 
 
 class Autosave(Component):
-    """Dirty flag MorphState. Draft body RefState. Saved stamp is a name.
+    """Unsaved MorphState. Draft body RefState. Saved is a name.
 
     Debounce lives on the Host. Behavior only holds the window.
     """
 
     id = "autosave"
-    dirty = MorphState(False)
+    unsaved = MorphState(False)
     draft = RefState("Quiet pieces for a working house.")
     saved = MorphState("clean")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         kids = (
             header(
-                p("Dirty flag · draft silent", className="kicker"),
+                p("Unsaved flag · draft silent", className="kicker"),
                 h2("Autosave", className="widget-title"),
             ),
             p(str(self.draft or ""), className="lede"),
             p(
-                "Unsaved changes." if self.dirty else f"Saved · {self.saved}.",
+                "Unsaved changes." if self.unsaved else f"Saved · {self.saved}.",
                 className="muted",
             ),
             form(
@@ -513,23 +513,23 @@ class Autosave(Component):
             ),
         )
         if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_dirty="1" if self.dirty else "0")
+            return div(*kids, id=self.id, className="widget", data_unsaved="1" if self.unsaved else "0")
         return f'<div id="{self.id}"></div>'
 
     @action(caps=())
     def type(self, text: str = ""):
         if text:
             self.draft = text
-        self.dirty = True
-        self.saved = "dirty"
-        tick(self)
+        self.unsaved = True
+        self.saved = "unsaved"
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
     def save(self):
-        self.dirty = False
+        self.unsaved = False
         self.saved = "just-now"
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("saved")])
 
 
@@ -538,7 +538,7 @@ class LimitedNote(Component):
 
     id = "limited"
     text = RefState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     LIMIT = 80
 
     def render(self):
@@ -580,13 +580,13 @@ class LimitedNote(Component):
     @action(caps=())
     def type(self, text: str = ""):
         self.text = text
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
     def clear(self):
         self.text = ""
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 

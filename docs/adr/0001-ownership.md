@@ -4,7 +4,7 @@
 > Map: [INDEX.md](../INDEX.md).
 
 **Status:** accepted  
-**Date:** 2026-08-24 (extracted from FLOW.md; law predates this extract)  
+**Date:** 2026-08-24 (extracted from FLOW.md (now OWNERSHIP.md); law predates this extract)  
 **Amended:** 2026-08-24 — product `build` + Tailwind compiler + **app asset layout** (`ux_compose.assets.WebAssets`) live on ux-compose. ux-dom keeps className, `<link>`, and package static. `WebAssets` / `TailwindCommand` on ux-dom fail closed.
 
 ## Context
@@ -33,4 +33,4 @@ Product path: `uxcompose create-app` → `build` → `serve` → `deploy`.
   trees. It does not compile CSS. `TailwindCommand` fails closed.
 - HMR is not a `Document.use` product API.
 - Product code does not import `ux_channel` (attach via `App.use_channel`).
-- Full contract: [../FLOW.md](../FLOW.md).
+- Full contract: [../OWNERSHIP.md](../OWNERSHIP.md).

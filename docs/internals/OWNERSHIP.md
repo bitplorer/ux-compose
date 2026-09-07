@@ -1,9 +1,9 @@
-# System Flow Map (explanation slot)
+# Ownership contract (explanation slot)
 
-> **Diátaxis:** explanation · **Canonical ownership:** [../FLOW.md](../FLOW.md) · **Layer:** ux-compose  
+> **Diátaxis:** explanation · **Canonical ownership:** [../OWNERSHIP.md](../OWNERSHIP.md) · **Layer:** ux-compose  
 > Map: [../INDEX.md](../INDEX.md).
 
-Same contract as [../FLOW.md](../FLOW.md). If they disagree, **FLOW.md wins**.
+Same contract as [../OWNERSHIP.md](../OWNERSHIP.md). If they disagree, **OWNERSHIP.md wins**.
 
 ---
 
@@ -69,6 +69,6 @@ See [../guides/CLI.md](../guides/CLI.md).
 
 ## 7. Product host (Clock A)
 
-Canonical: [../FLOW.md](../FLOW.md) §7. Spec: [../reference/host.md](../reference/host.md).
-If they disagree, **FLOW.md / reference/host.md win**.
+Canonical: [../OWNERSHIP.md](../OWNERSHIP.md) §7. Spec: [../reference/host.md](../reference/host.md).
+If they disagree, **OWNERSHIP.md / reference/host.md win**.
 

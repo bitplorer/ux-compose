@@ -74,7 +74,7 @@ class Otp(Component):
     code = RefState("")
     err = RefState("")
     ok = MorphState(False)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def on_verify(self, code: str) -> str | None:
         """Host seam. Return None to accept, or an error string.
@@ -90,8 +90,8 @@ class Otp(Component):
         digits = "".join(c for c in str(raw or "") if c.isdigit())[:6]
         self.code = digits
 
-    def _tick(self):
-        self.stamp = "b" if self.stamp == "a" else "a"
+    def _mark_dirty(self):
+        self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self):
         if bool(self.ok):
@@ -154,7 +154,7 @@ class Otp(Component):
         if field in ("code", ""):
             self._take(code=str(raw or ""))
             self.err = ""
-            self._tick()
+            self._mark_dirty()
             return update_with(self)
         return None
 
@@ -164,17 +164,17 @@ class Otp(Component):
         digits = str(self.code or "")
         if len(digits) != 6:
             self.err = "Enter all six digits."
-            self._tick()
+            self._mark_dirty()
             return update_with(self, extra_ops=[notify("Check the code")])
         refused = self.on_verify(digits)
         if refused:
             self.err = refused
-            self._tick()
+            self._mark_dirty()
             return update_with(self, extra_ops=[notify(refused)])
         self.ok = True
         self.code = ""
         self.err = ""
-        self._tick()
+        self._mark_dirty()
         return update_with(self, extra_ops=[notify("Code accepted")])
 
     @action(caps=())
@@ -182,5 +182,5 @@ class Otp(Component):
         self.ok = False
         self.code = ""
         self.err = ""
-        self._tick()
+        self._mark_dirty()
         return update_with(self)

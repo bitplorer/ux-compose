@@ -35,7 +35,7 @@ uxdom add component Card
 ```
 
 Product apps use `uxcompose build` for CSS. ux-dom does not compile CSS.
-See `docs/FLOW.md`.
+See `docs/OWNERSHIP.md`.
 
 `uxcompose serve dev` is origin + ui + channel, clocks on.
 `uxcompose serve prod` is one process, clocks off, disk CSS.

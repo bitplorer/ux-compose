@@ -136,8 +136,8 @@ class Cart(Component):
 
     id = "cart"
     # MorphState default plane is session — Channel refuses quantity values there.
-    # Stamp is a non-quantity dirty tick so auto-morph still fires.
-    stamp = MorphState("idle")
+    # dirty is a non-quantity MorphState so auto-morph still fires.
+    dirty = MorphState("idle")
     notice = RefState("")
     lines = RefState(())  # tuple of (sku, qty)
 
@@ -231,7 +231,7 @@ class Cart(Component):
             next_rows.append((sku, 1))
         self.lines = tuple(next_rows)
         self.notice = f"Added {prod['name']}"
-        self.stamp = "bag"
+        self.dirty = "bag"
         plan = None
         if scene is not None and rise is not None:
             try:
@@ -245,7 +245,7 @@ class Cart(Component):
         rows = [(s, q) for s, q in self._rows() if s != sku]
         self.lines = tuple(rows)
         self.notice = "Removed"
-        self.stamp = "bag" if rows else "idle"
+        self.dirty = "bag" if rows else "idle"
         return update_with(self, extra_ops=[notify("Removed")])
 
     @action(caps=())
@@ -263,7 +263,7 @@ class Cart(Component):
         total = self.subtotal()
         self.lines = ()
         self.notice = f"Order placed · {_money(total)}"
-        self.stamp = "placed"
+        self.dirty = "placed"
         plan = None
         if scene is not None and fade is not None:
             try:

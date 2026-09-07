@@ -40,20 +40,20 @@ from ux_compose import (
     header,
 )
 
-from examples._common import act, maybe_plan, tick
+from examples._common import act, optional_plan, mark_dirty
 
 
 class Counter(Component):
     """Increment is public. Reset is Cap-protected (Authority Clock).
 
     ``n`` is RefState because Channel's session plane refuses quantity
-    MorphState values. ``stamp`` is the dirty tick so the unit still morphs.
+    MorphState values. ``dirty`` is the qualitative MorphState so the unit still morphs.
     """
 
     id = "counter"
     n = RefState(0)
     last = RefState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         n = int(self.n or 0)
@@ -77,17 +77,17 @@ class Counter(Component):
             ),
         )
         if HAS_DOM:
-            return div(*body, id=self.id, className="widget", data_stamp=str(self.stamp))
+            return div(*body, id=self.id, className="widget", data_dirty=str(self.dirty))
         return f'<div id="{self.id}" class="widget" data-n="{n}">n={n}</div>'
 
     @action(caps=())
     def inc(self, sku: str = ""):
         self.n = int(self.n or 0) + 1
         self.last = sku or "inc"
-        tick(self)
+        mark_dirty(self)
         return update_with(
             self,
-            maybe_plan("counter-inc", f"#{self.id}", ms=120),
+            optional_plan("counter-inc", f"#{self.id}", ms=120),
             extra_ops=[notify(f"n={self.n}")],
         )
 
@@ -95,7 +95,7 @@ class Counter(Component):
     def dec(self):
         self.n = max(0, int(self.n or 0) - 1)
         self.last = "dec"
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(f"n={self.n}")])
 
     @action(caps=("admin.reset",))
@@ -103,7 +103,7 @@ class Counter(Component):
         """Fails closed offline under strict_caps; live path needs a minted Cap."""
         self.n = 0
         self.last = ""
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("reset")])
 
 
@@ -150,12 +150,12 @@ class Toggle(Component):
 
 
 class Planes(Component):
-    """Side-by-side: mutating only RefState does not morph unless we tick."""
+    """Side-by-side: mutating only RefState does not morph unless we mark_dirty."""
 
     id = "planes"
     shown = MorphState("hello")
     silent = RefState(0)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         kids = (
@@ -170,12 +170,12 @@ class Planes(Component):
             ),
             div(
                 act("planes.morph_only", "Change shown", kind="secondary"),
-                act("planes.ref_only", "Bump silent (no tick)", kind="ghost"),
-                act("planes.ref_and_tick", "Bump silent + tick", kind="primary"),
+                act("planes.ref_only", "Bump silent (no mark_dirty)", kind="ghost"),
+                act("planes.ref_and_mark_dirty", "Bump silent + mark_dirty", kind="primary"),
                 className="row-actions",
             ),
             p(
-                "Without a stamp tick, RefState memory changes but the patch "
+                "Without mark_dirty, RefState memory changes but the patch "
                 "may still look like the previous render if you forget to morph.",
                 className="muted",
             ),
@@ -192,13 +192,13 @@ class Planes(Component):
     @action(caps=())
     def ref_only(self):
         self.silent = int(self.silent or 0) + 1
-        # Intentionally no stamp — teaching: view will not change.
+        # Intentionally no mark_dirty — teaching: view will not change.
         return update_with(self)
 
     @action(caps=())
-    def ref_and_tick(self):
+    def ref_and_mark_dirty(self):
         self.silent = int(self.silent or 0) + 1
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 

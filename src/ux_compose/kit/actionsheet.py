@@ -70,13 +70,13 @@ class ActionSheet(Component):
 
     open = MorphState(False)
     picked = RefState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def on_pick(self, key: str) -> str:
         return key.replace("-", " ")
 
-    def _tick(self):
-        self.stamp = "b" if self.stamp == "a" else "a"
+    def _mark_dirty(self):
+        self.dirty = "b" if self.dirty == "a" else "a"
 
     def _chrome(self):
         return overlay_chrome(self.id, kind="actionsheet")
@@ -150,13 +150,13 @@ class ActionSheet(Component):
     @action(caps=())
     def open_sheet(self):
         self.open = True
-        self._tick()
+        self._mark_dirty()
         return update_with(self, self._chrome().open_plan())
 
     @action(caps=())
     def close(self):
         self.open = False
-        self._tick()
+        self._mark_dirty()
         return update_with(self)
 
     @action(caps=())
@@ -166,12 +166,12 @@ class ActionSheet(Component):
             return update_with(self)
         self.picked = key
         self.open = False
-        self._tick()
+        self._mark_dirty()
         return update_with(self, extra_ops=[notify(self.on_pick(key))])
 
     @action(caps=("orders.archive",))
     def archive(self, key: str = ""):
         self.picked = key or "archive"
         self.open = False
-        self._tick()
+        self._mark_dirty()
         return update_with(self, extra_ops=[notify("archived")])

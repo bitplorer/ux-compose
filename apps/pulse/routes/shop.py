@@ -22,7 +22,7 @@ def _money(cents: int) -> str:
 
 class Shop(Component):
     id = "shop"
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     notice = RefState("")
     lines = RefState(())
     confirm_open = MorphState(False)
@@ -42,7 +42,7 @@ class Shop(Component):
         if qty > 0:
             lines.append((sku, qty))
         self.lines = tuple(lines)
-        self.stamp = "a" if self.stamp == "b" else "b"
+        self.dirty = "a" if self.dirty == "b" else "b"
 
     def render(self):
         if not (HAS_DOM and div is not None):
@@ -91,7 +91,7 @@ class Shop(Component):
             div(
                 div(
                     h1("Atelier objects", className="font-serif text-3xl tracking-tight"),
-                    p("Commerce · Morph stamp · Cap-gated checkout", className="text-sm text-stone-500"),
+                    p("Commerce · Morph dirty · Cap-gated checkout", className="text-sm text-stone-500"),
                 ),
                 div(
                     span(total, className="font-serif text-3xl"),
@@ -127,7 +127,7 @@ class Shop(Component):
     def clear(self):
         self.lines = ()
         self.notice = "Cart cleared"
-        self.stamp = "a" if self.stamp == "b" else "b"
+        self.dirty = "a" if self.dirty == "b" else "b"
         return update_with(self)
 
     @action(caps=())
@@ -149,5 +149,5 @@ class Shop(Component):
         self.lines = ()
         self.confirm_open = False
         self.notice = f"Order placed · {total}"
-        self.stamp = "a" if self.stamp == "b" else "b"
+        self.dirty = "a" if self.dirty == "b" else "b"
         return update_with(self, extra_ops=[notify("Order placed")])

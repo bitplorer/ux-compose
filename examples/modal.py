@@ -31,7 +31,7 @@ from ux_compose import (
     header,
 )
 
-from examples._common import act, maybe_plan
+from examples._common import act, optional_plan
 
 
 class ConfirmModal(Component):
@@ -87,7 +87,7 @@ class ConfirmModal(Component):
         self.body = body or "This cannot be undone."
         return update_with(
             self,
-            maybe_plan("modal-open", f"#{self.id}", ms=140),
+            optional_plan("modal-open", f"#{self.id}", ms=140),
             extra_ops=[notify(f"Opened: {self.title}")],
         )
 

@@ -54,9 +54,9 @@ def test_index_owns_product_build_and_compiler():
     assert "leftover `uxdom build`" not in text
 
 
-def test_internals_flow_defers_to_canonical():
-    text = (ROOT / "docs" / "internals" / "FLOW.md").read_text(encoding="utf-8")
-    assert "FLOW.md wins" in text or "../FLOW.md" in text
+def test_internals_ownership_defers_to_canonical():
+    text = (ROOT / "docs" / "internals" / "OWNERSHIP.md").read_text(encoding="utf-8")
+    assert "OWNERSHIP.md wins" in text or "../OWNERSHIP.md" in text
     assert "ux_compose.tailwind" in text
     assert "create-app · build · serve · deploy" in text
 
@@ -69,7 +69,7 @@ def test_webassets_lives_on_compose():
     src = (ROOT / "src" / "ux_compose" / "scaffold.py").read_text(encoding="utf-8")
     assert "from ux_compose import WebAssets" in src
     assert "from ux_dom import WebAssets" not in src
-    doc = (ROOT / "docs" / "FLOW.md").read_text(encoding="utf-8")
+    doc = (ROOT / "docs" / "OWNERSHIP.md").read_text(encoding="utf-8")
     assert "WebAssets" in doc
     assert "ux_compose.assets" in doc or "asset layout" in doc.lower()
     dx = (ROOT / "docs" / "guides" / "DX.md").read_text(encoding="utf-8")
@@ -107,7 +107,7 @@ def test_directory_routes_lives_on_compose():
     build = (ROOT / "src" / "ux_compose" / "build.py").read_text(encoding="utf-8")
     assert "from ux_compose.routing.core import DirectoryRoutes" in build
     assert "from ux_dom.routing.core import DirectoryRoutes" not in build
-    flow = (ROOT / "docs" / "FLOW.md").read_text(encoding="utf-8")
+    flow = (ROOT / "docs" / "OWNERSHIP.md").read_text(encoding="utf-8")
     assert "DirectoryRoutes + thin adapters" in flow
     assert callable(DirectoryRoutes)
     assert callable(DirectoryASGI)

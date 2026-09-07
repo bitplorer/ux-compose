@@ -3,7 +3,7 @@
 > **Diátaxis:** how-to · **Canonical:** `docs/guides/serve-hmr-tunnel.md` · **Layer:** ux-compose
 > Architecture: [../internals/hmr.md](../internals/hmr.md)
 > Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md)
-> Ownership: [../FLOW.md](../FLOW.md) · CLI: [CLI.md](CLI.md)
+> Ownership: [../OWNERSHIP.md](../OWNERSHIP.md) · CLI: [CLI.md](CLI.md)
 
 ## Commands
 

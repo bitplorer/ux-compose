@@ -1,6 +1,6 @@
 """Drop-in toast host — server list is authority.
 
-Items live in RefState. ``stamp`` is the qualitative dirty tick so the
+Items live in RefState. ``dirty`` is the qualitative MorphState so the
 unit morphs. Push is public. The stack is a fixed corner — the card is
 the demo controls.
 
@@ -66,11 +66,11 @@ class Toast(Component):
     )
 
     items = RefState(())
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     _seq = RefState(0)
 
-    def _tick(self):
-        self.stamp = "b" if self.stamp == "a" else "a"
+    def _mark_dirty(self):
+        self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self):
         rows = list(self.items or ())[-4:]
@@ -126,7 +126,7 @@ class Toast(Component):
         self._seq = int(self._seq or 0) + 1
         row = {"id": str(self._seq), "message": message or "Saved"}
         self.items = tuple(self.items or ()) + (row,)
-        self._tick()
+        self._mark_dirty()
         return update_with(self, extra_ops=[notify(row["message"])])
 
     @action(caps=())
@@ -134,11 +134,11 @@ class Toast(Component):
         self.items = tuple(
             row for row in (self.items or ()) if str(row.get("id")) != str(id)
         )
-        self._tick()
+        self._mark_dirty()
         return update_with(self)
 
     @action(caps=())
     def clear(self):
         self.items = ()
-        self._tick()
+        self._mark_dirty()
         return update_with(self)

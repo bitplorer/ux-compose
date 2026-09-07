@@ -38,20 +38,64 @@ def notify(message: str, **kwargs) -> Any:
     return {"op": "notify", "message": message, **kwargs}
 
 
+def _live_channel() -> Any:
+    """Isolation: Channel instance from App.use_channel, never ux_channel import."""
+    try:
+        from ux_compose.wire.caps import live_channel
+
+        return live_channel()
+    except Exception:
+        return None
+
+
+def _minted_attrs(verb: str, args: dict) -> dict | None:
+    channel = _live_channel()
+    if channel is None:
+        return None
+    from ux_compose.wire.caps import control_attrs
+
+    minted = control_attrs(channel, verb, **args)
+    cap = str(minted.get("data-channel-cap") or "").strip()
+    if not cap:
+        raise RuntimeError(
+            f"live Channel mint for {verb!r} returned empty Cap; "
+            "refusing no-cap attrs (Cap Host would toast missing capability)"
+        )
+    return minted
+
+
 def bind(action_obj, **kwargs):
-    """Symbol-safe UI attrs. Prefers ux_behavior.bind / .ui when available."""
+    """Symbol-safe UI attrs. Prefers ux_behavior.bind / .ui when available.
+
+    When Cap Host is live, never return Behavior bind attrs without Cap
+    enrichment — mint via ``wire.caps.control_attrs``. Empty mint fails
+    loud (no silent dual-attr fallback that would toast missing capability).
+    """
+    verb = None
+    attrs = None
     try:
         from ux_behavior.action import bind as _b
 
-        return _b(action_obj, **kwargs)
+        attrs = _b(action_obj, **kwargs)
+        verb = attrs.get("data-ux-action") or attrs.get("data-channel-action")
     except Exception:
-        pass
-    ui = getattr(action_obj, "ui", None)
-    if callable(ui):
-        try:
-            return ui(**kwargs)
-        except Exception:
-            pass
+        attrs = None
+    if attrs is None:
+        ui = getattr(action_obj, "ui", None)
+        if callable(ui):
+            try:
+                attrs = ui(**kwargs)
+                verb = attrs.get("data-ux-action") or attrs.get("data-channel-action")
+            except Exception:
+                attrs = None
+    if attrs is not None:
+        if verb:
+            minted = _minted_attrs(str(verb), kwargs)
+            if minted is not None:
+                merged = dict(attrs)
+                merged.update(minted)
+                return merged
+        return attrs
     if isinstance(action_obj, str):
         verb = action_obj
     elif callable(action_obj):
@@ -73,9 +117,12 @@ def _action_attrs(verb: str, args: dict) -> dict:
     """Mirror ``ux_behavior.action_ui_attrs``: both progressive and live names.
 
     ``data-ux-action`` is the L1/offline stamp. ``data-channel-action`` is
-    what ``ux-channel.js`` click-binds. No ``ux_channel`` import — the names
-    are the documented triad, not a wire dependency.
+    what ``ux-channel.js`` click-binds. When a live Channel is registered,
+    mint ``data-channel-cap`` via wire.caps (no ``ux_channel`` import).
     """
+    minted = _minted_attrs(verb, args)
+    if minted is not None:
+        return minted
     attrs = {"data-ux-action": verb, "data-channel-action": verb}
     if args:
         attrs["data-channel-args"] = json.dumps(

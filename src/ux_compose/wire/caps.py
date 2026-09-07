@@ -10,7 +10,117 @@ is Host-internal (specialist contract — do not change Behavior).
 from __future__ import annotations
 
 import asyncio
+import json
+from contextvars import ContextVar
 from typing import Any, Mapping, Optional
+
+_PROCESS_CHANNEL: Any = None
+_LIVE: ContextVar[Any] = ContextVar("ux_compose_live_channel", default=None)
+
+
+def register_live_channel(channel: Any) -> None:
+    """Process + ContextVar registry so helpers.control can mint without App in scope.
+
+    Set from ``App.use_channel``. ``channel=None`` clears the live door
+    (offline helpers keep dual action attrs, no Cap).
+    """
+    global _PROCESS_CHANNEL
+    _PROCESS_CHANNEL = channel
+    _LIVE.set(channel)
+
+
+def live_channel() -> Any:
+    """Return the Channel registered by ``App.use_channel``, or None."""
+    ctx = _LIVE.get()
+    if ctx is not None:
+        return ctx
+    return _PROCESS_CHANNEL
+
+
+def _hyphenate_keys(mapping: Mapping[str, Any]) -> dict[str, str]:
+    return {str(k).replace("_", "-"): str(v) for k, v in mapping.items()}
+
+
+def _cap_token(raw: Mapping[str, Any]) -> str:
+    return str(raw.get("data-channel-cap") or "").strip()
+
+
+def _as_attr_map(result: Any) -> dict[str, str]:
+    if result is None:
+        return {}
+    if isinstance(result, Mapping):
+        return _hyphenate_keys(result)
+    as_dict = getattr(result, "as_dict", None)
+    if callable(as_dict):
+        raw = as_dict()
+        if isinstance(raw, Mapping):
+            return _hyphenate_keys(raw)
+    as_ux = getattr(result, "as_ux_dom", None)
+    if callable(as_ux):
+        raw = as_ux()
+        if isinstance(raw, Mapping):
+            return _hyphenate_keys(raw)
+    return {}
+
+
+def _call_control(control_fn: Any, action: str, args: Mapping[str, Any]) -> Any:
+    payload = dict(args)
+    try:
+        return control_fn(action, trust=payload if payload else None)
+    except TypeError:
+        pass
+    try:
+        return control_fn(action, **payload)
+    except TypeError:
+        return control_fn(action)
+
+
+def control_attrs(channel: Any, action: str, **args: Any) -> dict[str, str]:
+    """Mint Channel control attrs for *action*; merge progressive data-ux-*.
+
+    Isolation door: duck-type ``channel.control(action, …).as_dict()``
+    (underscore keys become hyphen). If ``control`` is absent, duck-type
+    ``channel.mint``. Never re-implements Cap crypto.
+    """
+    if channel is None:
+        raise RuntimeError(
+            "control_attrs requires a live Channel. Call App.use_channel() first "
+            "(Level 2). Offline Level 1 has no Caps to mint."
+        )
+    raw: dict[str, str] = {}
+    control_fn = getattr(channel, "control", None)
+    if callable(control_fn):
+        try:
+            raw = _as_attr_map(_call_control(control_fn, str(action), args))
+        except Exception:
+            raw = {}
+    if not _cap_token(raw):
+        mint_fn = getattr(channel, "mint", None)
+        if callable(mint_fn):
+            token = str(mint_fn(str(action), dict(args)) or "").strip()
+            if token:
+                raw.setdefault("data-channel-action", str(action))
+                raw["data-channel-cap"] = token
+                if args and "data-channel-args" not in raw:
+                    raw["data-channel-args"] = json.dumps(
+                        {k: str(v) for k, v in args.items()},
+                        separators=(",", ":"),
+                        ensure_ascii=True,
+                    )
+        elif not raw:
+            raise TypeError(
+                "channel has no control() or mint() — pass the Channel from use_channel()"
+            )
+    if not _cap_token(raw):
+        raise RuntimeError(
+            f"control_attrs failed to mint a Cap for {action!r}. "
+            "Channel is live — refusing empty Cap (Cap Host would toast missing capability)."
+        )
+    raw.setdefault("data-ux-action", str(action))
+    raw.setdefault("data-channel-action", str(action))
+    for k, v in args.items():
+        raw.setdefault(f"data-ux-arg-{k}", str(v))
+    return raw
 
 
 def mint_cap(
@@ -209,6 +319,9 @@ def bridge_actions(behavior: Any, channel: Any) -> list[str]:
 
 
 __all__ = [
+    "register_live_channel",
+    "live_channel",
+    "control_attrs",
     "mint_cap",
     "submit_intent",
     "async_submit_intent",

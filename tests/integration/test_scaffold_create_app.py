@@ -49,6 +49,7 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     hello = (root / "routes" / "hello.py").read_text(encoding="utf-8")
     css = (root / "assets" / "css" / "input.css").read_text(encoding="utf-8")
     req = (root / "requirements.txt").read_text(encoding="utf-8")
+    readme = (root / "README.md").read_text(encoding="utf-8")
 
     assert "BASE_DIR" in settings
     assert "from ux_compose import WebAssets" in settings

@@ -145,8 +145,9 @@ def test_doctor_treats_unset_cek_as_require_when_channel_live():
 
 def test_doctor_fail_loud_when_stack_incomplete(monkeypatch):
     """Missing specialists are hard diagnostics (unless --no-fail / fail=False)."""
-    from ux_compose import doctor as doctor_mod
+    import importlib
 
+    doctor_mod = importlib.import_module("ux_compose.doctor")
     monkeypatch.setattr(
         doctor_mod,
         "_detect_capabilities",

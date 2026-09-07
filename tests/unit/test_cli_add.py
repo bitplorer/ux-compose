@@ -77,10 +77,11 @@ def test_copy_tabs_into_app(tmp_path: Path):
 
 def test_copy_refuses_without_dom(tmp_path: Path, monkeypatch):
     monkeypatch.setattr("ux_compose.kit.copy.HAS_DOM", False)
+    root = _fake_app(tmp_path)
     with pytest.raises(KitCopyError, match=r"requires ux-dom"):
-        copy_component("toast", root=_fake_app(tmp_path))
+        copy_component("toast", root=root)
     with pytest.raises(KitCopyError, match=r"requires ux-dom"):
-        copy_component("tabs", root=_fake_app(tmp_path))
+        copy_component("tabs", root=root)
 
 
 def test_copy_login_into_app(tmp_path: Path):

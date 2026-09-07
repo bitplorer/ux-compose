@@ -16,7 +16,7 @@ Public names only: `Component`, `MorphState`, `RefState`, `action`, `control`,
 | Kind | Field |
 |------|--------|
 | Open / value / query / named step / named band | `MorphState` (qualitative) |
-| Magnitude, lists, money | `RefState` + `stamp = MorphState("idle")` |
+| Magnitude, lists, money | `RefState` + `dirty = MorphState("idle")` |
 | One-shot message | `notify(...)` |
 | Protected verb | `@action(caps=("…",))` |
 
@@ -233,13 +233,13 @@ class ConfirmModal(Component):
 
 ## Counter (live-safe)
 
-Magnitude lives in `RefState`. A qualitative `stamp` is the dirty tick so the
+Magnitude lives in `RefState`. A qualitative `dirty` MorphState marks the unit so the
 unit still morphs. Reset is Cap-protected (Authority Clock).
 
 ```python
 from ux_compose import (
     HAS_DOM, Component, MorphState, RefState, action, notify, update_with,
-    div, h2, p, span, button, control,
+    mark_dirty, div, h2, p, span, button, control,
 )
 
 
@@ -247,10 +247,7 @@ class Counter(Component):
     id = "counter"
     n = RefState(0)
     last = RefState("")
-    stamp = MorphState("idle")
-
-    def _tick(self):
-        self.stamp = "tock" if self.stamp == "tick" else "tick"
+    dirty = MorphState("idle")
 
     def render(self):
         n = int(self.n or 0)
@@ -272,21 +269,21 @@ class Counter(Component):
     def inc(self, sku: str = ""):
         self.n = int(self.n or 0) + 1
         self.last = sku or "inc"
-        self._tick()
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(f"n={self.n}")])
 
     @action(caps=())
     def dec(self):
         self.n = max(0, int(self.n or 0) - 1)
         self.last = "dec"
-        self._tick()
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(f"n={self.n}")])
 
     @action(caps=("admin.reset",))
     def reset(self):
         self.n = 0
         self.last = ""
-        self._tick()
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("reset")])
 ```
 

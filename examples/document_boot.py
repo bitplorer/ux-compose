@@ -44,7 +44,7 @@ except Exception:
 class Badge(Component):
     id = "badge"
     count = RefState(0)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         n = int(self.count or 0)
@@ -60,7 +60,7 @@ class Badge(Component):
     @action(caps=())
     def inc(self):
         self.count = int(self.count or 0) + 1
-        self.stamp = "tock" if self.stamp == "tick" else "tick"
+        self.dirty = "tock" if self.dirty == "tick" else "tick"
         plan = None
         if scene is not None and rise is not None:
             try:

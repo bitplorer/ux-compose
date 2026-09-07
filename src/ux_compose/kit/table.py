@@ -101,15 +101,15 @@ class Table(Component):
     cleared = MorphState(False)
     sort = MorphState("name")
     selected = RefState(())
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def on_archive(self, skus: tuple[str, ...]) -> str:
         """Host seam. Return toast copy after the Cap spent."""
         n = len(skus)
         return f"Archived {n} piece" if n == 1 else f"Archived {n} pieces"
 
-    def _tick(self):
-        self.stamp = "b" if self.stamp == "a" else "a"
+    def _mark_dirty(self):
+        self.dirty = "b" if self.dirty == "a" else "a"
 
     def _rows(self):
         key = str(self.sort or "name")
@@ -212,7 +212,7 @@ class Table(Component):
         elif sku and sku in known:
             cur.add(sku)
         self.selected = tuple(sorted(cur))
-        self._tick()
+        self._mark_dirty()
         return update_with(self)
 
     @action(caps=("items.archive",))
@@ -224,5 +224,5 @@ class Table(Component):
         self.items = remaining
         self.cleared = True
         self.selected = ()
-        self._tick()
+        self._mark_dirty()
         return update_with(self, extra_ops=[notify(self.on_archive(skus))])

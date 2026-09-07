@@ -132,7 +132,7 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 |----------|--------|
 | **New** | [START_HERE.md](START_HERE.md) · [docs/guides/PATH.md](docs/guides/PATH.md) |
 | **Pick-and-use UI** | [docs/guides/UI.md](docs/guides/UI.md) |
-| **Ownership / boundaries** | [docs/FLOW.md](docs/FLOW.md) |
+| **Ownership / boundaries** | [docs/OWNERSHIP.md](docs/OWNERSHIP.md) |
 | **CLI** | [docs/guides/CLI.md](docs/guides/CLI.md) |
 | **Contributor / agent** | [CONTRIBUTING.md](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md) |
 | **Need a map** | [docs/INDEX.md](docs/INDEX.md) |
@@ -158,7 +158,7 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 - Authors do not import `ux_channel` outside compose `wire/`
 - Do not reimplement specialists in this repo
 
-Full law: [docs/FLOW.md](docs/FLOW.md). Examples: [examples/README.md](examples/README.md).
+Full law: [docs/OWNERSHIP.md](docs/OWNERSHIP.md). Examples: [examples/README.md](examples/README.md).
 
 **Notes:** ux-dom requires Python ≥3.14 (L1 offline can run 3.11+). Product Cap: `app.use_cek()` (default `require` — cek-runtime Host via Channel). `mode="adapt"` is compare-only lab. Headless `use_channel()` boots Channel without HTTP for mint/submit tests.
 
@@ -173,7 +173,7 @@ Canonical CLI / DX / testing pages live under `docs/guides/`. Root files such as
 | Tutorial | [START_HERE.md](START_HERE.md) · [docs/START_HERE.md](docs/START_HERE.md) · [docs/guides/PATH.md](docs/guides/PATH.md) |
 | How-to | [docs/guides/UI.md](docs/guides/UI.md) · [docs/guides/SNIPPETS.md](docs/guides/SNIPPETS.md) · [docs/guides/CLI.md](docs/guides/CLI.md) · [docs/guides/serve-hmr-tunnel.md](docs/guides/serve-hmr-tunnel.md) · [docs/guides/TESTING.md](docs/guides/TESTING.md) |
 | Reference | [docs/reference/README.md](docs/reference/README.md) |
-| Explanation | [docs/FLOW.md](docs/FLOW.md) · [docs/internals/hmr.md](docs/internals/hmr.md) · [docs/adr/0005-serve-dev-split.md](docs/adr/0005-serve-dev-split.md) |
+| Explanation | [docs/OWNERSHIP.md](docs/OWNERSHIP.md) · [docs/internals/hmr.md](docs/internals/hmr.md) · [docs/adr/0005-serve-dev-split.md](docs/adr/0005-serve-dev-split.md) |
 
 ## API
 

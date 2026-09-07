@@ -89,11 +89,11 @@ PATTERNS: list[dict[str, Any]] = [
         "counter",
         "Foundation",
         "Counter",
-        "RefState magnitude · MorphState stamp · Cap-protected reset",
+        "RefState magnitude · MorphState dirty · Cap-protected reset",
         "The hello path. Increment is public. Reset is authority.",
         ("Ops-as-data", "Cap Law", "Progressive Superpower"),
         "n lives in RefState because Channel's session plane refuses quantity "
-        "MorphState values. stamp is a qualitative dirty tick so the unit still "
+        "MorphState values. dirty is a qualitative MorphState so the unit still "
         "morphs. Return update_with(self, plan) — never mix html= onto the Plan (XOR). "
         "The same class is valid at L1 dispatch and L3 Channel+Motion.",
         Counter,
@@ -116,11 +116,11 @@ PATTERNS: list[dict[str, Any]] = [
         "Foundation",
         "Morph vs Ref",
         "What dirties a unit",
-        "RefState memory is silent. Without a stamp tick the view will not change.",
+        "RefState memory is silent. Without mark_dirty the view will not change.",
         ("Ops-as-data",),
-        "Three verbs: change shown (MorphState), bump silent without tick, bump "
-        "silent and tick. This is the most common authoring bug — lists and "
-        "counters must tick when their payload lives in RefState.",
+        "Three verbs: change shown (MorphState), bump silent without mark_dirty, bump "
+        "silent and mark_dirty. This is the most common authoring bug — lists and "
+        "counters must mark_dirty when their payload lives in RefState.",
         Planes,
         file="examples/foundation.py",
     ),
@@ -214,7 +214,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Mobile tab bar. Same encoding as Tabs — one MorphState key.",
         ("Ops-as-data",),
         "A fifth item becomes overflow, not a fifth tab. Badge counts live on the "
-        "destination unit (RefState + stamp), never on the nav chrome.",
+        "destination unit (RefState + dirty), never on the nav chrome.",
         BottomNav,
         file="examples/shell.py",
     ),
@@ -237,7 +237,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Kebab menu",
         "Opening is public. Destructive verbs still take Caps on their own unit.",
         ("Ops-as-data", "Cap Law"),
-        "last chosen key is RefState + stamp. Overflow records intent; it does "
+        "last chosen key is RefState + dirty. Overflow records intent; it does "
         "not spend authority. Archive lives on the table with records.archive.",
         OverflowMenu,
         file="examples/shell.py",
@@ -249,7 +249,7 @@ PATTERNS: list[dict[str, Any]] = [
         "One-shot messages",
         "notify() is the Op. This unit shows a short stack.",
         ("Ops-as-data",),
-        "Items in RefState, stamp dirties. Push is public. Domain success still "
+        "Items in RefState, dirty MorphState dirties. Push is public. Domain success still "
         "goes through notify so agents and the browser share the same Op.",
         Toasts,
         file="examples/overlays.py",
@@ -273,7 +273,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Index as RefState",
         "Media viewer. Index is a magnitude — not MorphState.",
         ("Ops-as-data",),
-        "open/close qualitative; prev/next tick the stamp. Slides are Host data.",
+        "open/close qualitative; prev/next mark_dirty. Slides are Host data.",
         Lightbox,
         file="examples/overlays.py",
     ),
@@ -342,7 +342,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Radio name + checkbox set",
         "Finish is one name. Extras are a tuple of names.",
         ("Ops-as-data",),
-        "Radio value MorphState. Checkbox set RefState + stamp. Neither is a "
+        "Radio value MorphState. Checkbox set RefState + dirty. Neither is a "
         "quantity. Same encoding as any multi-select.",
         ChoiceGroup,
         file="examples/fields.py",
@@ -378,7 +378,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Filenames in RefState",
         "The Component never holds bytes. Count is derived.",
         ("Ops-as-data", "Cap Law"),
-        "Add/remove names and tick. A real upload-commit would take a Cap; "
+        "Add/remove names and mark_dirty. A real upload-commit would take a Cap; "
         "listing files is public. Host owns the store.",
         FileDrop,
         file="examples/fields.py",
@@ -423,11 +423,11 @@ PATTERNS: list[dict[str, Any]] = [
         "autosave",
         "Forms",
         "Autosave",
-        "Dirty flag · draft silent",
+        "Unsaved flag · draft silent",
         "Debounce is Host. Behavior holds the window.",
         ("Ops-as-data",),
-        "dirty MorphState, draft RefState, saved is a name (clean / just-now / "
-        "dirty). Save is public here; a billed persist would take a Cap.",
+        "unsaved MorphState, draft RefState, dirty is the morph flag, saved is a "
+        "name (clean / just-now / unsaved). Save is public here; a billed persist would take a Cap.",
         Autosave,
         file="examples/fields.py",
     ),
@@ -505,7 +505,7 @@ PATTERNS: list[dict[str, Any]] = [
         "kanban",
         "Collections",
         "Kanban",
-        "Three columns, one stamp",
+        "Three columns, one dirty",
         "Moving a card is public. Archiving would take a Cap.",
         ("Ops-as-data",),
         "Each column is a RefState tuple of ids. move rewrites membership and ticks.",
@@ -519,7 +519,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Index silent · keyed slides",
         "Media strip. Index is a magnitude. Captions are Host data.",
         ("Morph-then-Play",),
-        "id=slide-{sku} survives morph. next/prev tick the stamp. Dots are named "
+        "id=slide-{sku} survives morph. next/prev mark_dirty. Dots are named "
         "jumps posting n as an action arg — not MorphState(int).",
         Carousel,
         file="examples/feeds.py",
@@ -567,7 +567,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Moving a row is public. Archiving it would take a Cap.",
         ("Morph-then-Play",),
         "order is a RefState tuple. id=ord-{sku} is presence. Up/down rewrite "
-        "membership and tick. Same shape as kanban.move for a single list.",
+        "membership and mark_dirty. Same shape as kanban.move for a single list.",
         ReorderList,
         file="examples/feeds.py",
     ),
@@ -614,7 +614,7 @@ PATTERNS: list[dict[str, Any]] = [
         "MorphState + Cap checkout + optional Plan",
         "The elevated cart. Last sku is silent. Checkout is orders.place.",
         ("Cap Law", "Morph-then-Play", "Progressive Superpower"),
-        "The product bag: lines in RefState, stamp as MorphState so Channel "
+        "The product bag: lines in RefState, dirty as MorphState so Channel "
         "session accepts it. checkout is orders.place — the host mints.",
         ShopCart,
         file="examples/cart.py",
@@ -626,7 +626,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Magnitude in RefState",
         "PDP quantity. Never MorphState(int) on the Channel session plane.",
         ("Cap Law",),
-        "The same encoding as the product bag: stamp dirties, qty is silent.",
+        "The same encoding as the product bag: dirty MorphState dirties, qty is silent.",
         Stepper,
         file="examples/systems.py",
     ),
@@ -648,7 +648,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Ids silent · heart public",
         "Saving is not placing. Heart/unheart is public.",
         ("Ops-as-data",),
-        "ids RefState + stamp. Checkout remains a Cap on the cart unit. Same "
+        "ids RefState + dirty. Checkout remains a Cap on the cart unit. Same "
         "shape as a multi-select of catalog keys.",
         Wishlist,
         file="examples/commerce_more.py",
@@ -694,7 +694,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Commerce",
         "Compare",
         "Max three ids",
-        "Selection is a list — RefState + stamp.",
+        "Selection is a list — RefState + dirty.",
         ("Ops-as-data",),
         "LIMIT is a Host constant. Toggle refuses a fourth. Same encoding as "
         "wishlist with a ceiling.",
@@ -752,7 +752,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Systems",
         "Notification center",
         "Badge from RefState",
-        "Unread count is magnitude — stamp + RefState.",
+        "Unread count is magnitude — dirty + RefState.",
         ("Ops-as-data",),
         "Open is MorphState. Mark-read ticks the badge to zero.",
         NotifyCenter,
@@ -900,7 +900,7 @@ PATTERNS: list[dict[str, Any]] = [
         "kpi",
         "Systems",
         "KPI strip",
-        "Magnitudes silent · stamp dirties",
+        "Magnitudes silent · dirty MorphState dirties",
         "Dashboard numbers from Host DB, never from the session plane.",
         ("Ops-as-data",),
         "bag / held / placed are RefState. A real dashboard sources them from "

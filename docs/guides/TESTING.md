@@ -100,7 +100,7 @@ Pen-style tests are **defensive unit checks** (sanitization, isolation), not a s
 
 Raise `cov-fail-under` as specialists are pinned in CI.
 
-See also: `docs/FLOW.md`, `docs/guides/CLI.md`, `docs/internals/hmr.md`,
+See also: `docs/OWNERSHIP.md`, `docs/guides/CLI.md`, `docs/internals/hmr.md`,
 `docs/reference/host.md`.
 
 Clock A (payload law, path law, host bind) is locked in `tests/unit/test_host.py`.

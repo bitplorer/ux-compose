@@ -1,4 +1,4 @@
-"""OWN/REG — FLOW law: product lifecycle is compose-only; HMR is delivery."""
+"""OWN/REG — OWNERSHIP law: product lifecycle is compose-only; HMR is delivery."""
 from __future__ import annotations
 
 import inspect
@@ -7,8 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def test_flow_doc_declares_ownership_law():
-    text = (ROOT / "docs" / "FLOW.md").read_text(encoding="utf-8")
+def test_ownership_doc_declares_ownership_law():
+    text = (ROOT / "docs" / "OWNERSHIP.md").read_text(encoding="utf-8")
     assert "ux-dom" in text and "RENDER" in text
     assert "ux-compose" in text and "PRODUCT" in text
     assert "create-app" in text

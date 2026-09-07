@@ -2,7 +2,7 @@
 
 > **Diátaxis:** reference · **Canonical:** `docs/reference/host.md` · **Layer:** ux-compose
 > Map: [INDEX.md](../INDEX.md). Decision: [adr/0002-product-host.md](../adr/0002-product-host.md).
-> Ownership: [FLOW.md](../FLOW.md) §7. How-to: [guides/HOST.md](../guides/HOST.md).
+> Ownership: [OWNERSHIP.md](../OWNERSHIP.md) §7. How-to: [guides/HOST.md](../guides/HOST.md).
 
 HTTP Product host (Clock A) ≠ CEK Cap Host (cek-runtime via `wire/cek`).
 
@@ -277,7 +277,7 @@ quietly add a second pipeline.
 |-----|------|
 | [adr/0002-product-host.md](../adr/0002-product-host.md) | Why |
 | [guides/HOST.md](../guides/HOST.md) | Author recipes |
-| [FLOW.md](../FLOW.md) §7 | Ownership pointer |
+| [OWNERSHIP.md](../OWNERSHIP.md) §7 | Ownership pointer |
 | [guides/PATH.md](../guides/PATH.md) | Product path tutorial |
 | ux-dom `response/starlette.py` | `HTMLResponse` / `StreamingResponse` adapters |
 | ux-dom `response/serialize.py` | `prepare_html_body` / `prepare_html_stream` / CSP stamp |

@@ -82,7 +82,7 @@ class Command(Component):
 
     open = MorphState(False)
     query = RefState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def on_run(self, key: str) -> str:
         """Host seam. Return toast copy. Demo stand-in echoes the key."""
@@ -102,8 +102,8 @@ class Command(Component):
             if q in row[0].lower() or q in row[1].lower() or q in row[2].lower()
         )
 
-    def _tick(self):
-        self.stamp = "b" if self.stamp == "a" else "a"
+    def _mark_dirty(self):
+        self.dirty = "b" if self.dirty == "a" else "a"
 
     def _resting(self):
         return [
@@ -198,21 +198,21 @@ class Command(Component):
     def open_pal(self):
         self.open = True
         self.query = ""
-        self._tick()
+        self._mark_dirty()
         return update_with(self)
 
     @action(caps=())
     def close(self):
         self.open = False
         self.query = ""
-        self._tick()
+        self._mark_dirty()
         return update_with(self)
 
     @action(caps=())
     def type_query(self, q: str = ""):
         self._take_q(q=q)
         self.open = True
-        self._tick()
+        self._mark_dirty()
         return update_with(self)
 
     @action(caps=())
@@ -220,7 +220,7 @@ class Command(Component):
         raw = value if value != "" else kwargs.get(field, kwargs.get("q", ""))
         if field in ("q", "query"):
             self.query = "" if raw is None else str(raw)
-            self._tick()
+            self._mark_dirty()
             return update_with(self)
         return None
 
@@ -233,5 +233,5 @@ class Command(Component):
         msg = self.on_run(key)
         self.open = False
         self.query = ""
-        self._tick()
+        self._mark_dirty()
         return update_with(self, extra_ops=[notify(msg)])

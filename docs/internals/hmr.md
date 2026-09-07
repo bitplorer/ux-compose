@@ -3,7 +3,7 @@
 > **Diátaxis:** explanation · **Canonical:** `docs/internals/hmr.md` · **Layer:** ux-compose
 > Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md)
 > How-to: [../guides/serve-hmr-tunnel.md](../guides/serve-hmr-tunnel.md)
-> Ownership: [FLOW.md](../FLOW.md)
+> Ownership: [OWNERSHIP.md](../OWNERSHIP.md)
 
 This is the source of truth for `uxcompose serve`.
 It is **not** Next.js Fast Refresh. A page unit is a Python class.

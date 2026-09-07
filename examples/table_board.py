@@ -26,7 +26,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, tick
+from examples._common import act, mark_dirty
 
 ROWS = (
     ("linen-01", "Work shirt", "cut", "48"),
@@ -40,7 +40,7 @@ class DataTable(Component):
     id = "table"
     sort = MorphState("name")
     selected = RefState(())
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def _rows(self):
         idx = {"name": 1, "stage": 2, "price": 3}.get(str(self.sort or "name"), 1)
@@ -98,14 +98,14 @@ class DataTable(Component):
         elif sku:
             cur.add(sku)
         self.selected = tuple(sorted(cur))
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=("records.archive",))
     def bulk_archive(self):
         n = len(self.selected or ())
         self.selected = ()
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(f"archived {n}")])
 
 
@@ -114,7 +114,7 @@ class Kanban(Component):
     cut = RefState(("linen-01", "clay-04"))
     make = RefState(("oak-02",))
     keep = RefState(("wool-03",))
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     COLS = ("cut", "make", "keep")
 
     def _col(self, name: str):
@@ -144,7 +144,7 @@ class Kanban(Component):
             )
         kids = (
             header(
-                p("Three RefState columns, one stamp", className="kicker"),
+                p("Three RefState columns, one dirty", className="kicker"),
                 h2("Kanban", className="widget-title"),
             ),
             div(*cols, className="kanban"),
@@ -160,7 +160,7 @@ class Kanban(Component):
         for col in self.COLS:
             setattr(self, col, tuple(x for x in self._col(col) if x != sku))
         setattr(self, to, tuple(self._col(to) + [sku]))
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(f"{sku} → {to}")])
 
 

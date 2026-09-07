@@ -81,7 +81,7 @@ class PullRefresh(Component):
 
     items = RefState(None)
     phase = MorphState("idle")  # idle | refreshing | caught
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     _cursor = RefState(0)
 
     def on_refresh(self):
@@ -91,8 +91,8 @@ class PullRefresh(Component):
         take = rest[:1]
         return tuple(take + have)
 
-    def _tick(self):
-        self.stamp = "b" if self.stamp == "a" else "a"
+    def _mark_dirty(self):
+        self.dirty = "b" if self.dirty == "a" else "a"
 
     def _rows(self):
         rows = self.items
@@ -140,11 +140,11 @@ class PullRefresh(Component):
     @action(caps=())
     def refresh(self):
         self.phase = "refreshing"
-        self._tick()
+        self._mark_dirty()
         nxt = self.on_refresh()
         self.items = nxt
         self.phase = "caught" if set(self.MORE).issubset(set(nxt)) else "idle"
-        self._tick()
+        self._mark_dirty()
         return update_with(
             self,
             _plan("pr-refresh", f"#{self.id}"),

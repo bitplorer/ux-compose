@@ -31,7 +31,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, field, tick
+from examples._common import act, field, mark_dirty
 
 
 class SignupForm(Component):
@@ -102,7 +102,7 @@ class Wizard(Component):
     step = MorphState("who")
     name = RefState("")
     piece = RefState("linen")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     STEPS = ("who", "piece", "review")
 
@@ -161,14 +161,14 @@ class Wizard(Component):
         if not str(self.name or "").strip():
             return update_with(self, extra_ops=[notify("name required")])
         self.step = "piece"
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
     def choose(self, piece: str = "linen"):
         self.piece = piece
         self.step = "review"
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
@@ -182,7 +182,7 @@ class Wizard(Component):
     def place(self):
         self.step = "who"
         self.name = ""
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("placed")])
 
 
@@ -197,7 +197,7 @@ class Search(Component):
     query = MorphState("")
     hits = RefState(())
     req = RefState(0)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     CATALOG = ("Work shirt", "Serving board", "Throw", "Pourer", "Oak stool", "Wool cap")
 
     def render(self):
@@ -244,7 +244,7 @@ class Search(Component):
         if token != self.req:
             return []
         self.hits = found
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 

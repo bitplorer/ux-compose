@@ -29,11 +29,11 @@ from ux_compose.routing import DirectoryASGI, DirectoryRoutes, RouterHooks
 from ux_compose.author import (
     act,
     field,
-    maybe_fade,
-    maybe_plan,
-    maybe_slide,
+    mark_dirty,
+    optional_fade,
+    optional_plan,
+    optional_slide,
     status,
-    tick,
 )
 from ux_compose.attach_notes import AttachNote, attach_notes
 
@@ -102,12 +102,12 @@ __all__ = [
     "update_with",
     "morph_play",
     "act",
-    "tick",
+    "mark_dirty",
     "field",
     "status",
-    "maybe_plan",
-    "maybe_fade",
-    "maybe_slide",
+    "optional_plan",
+    "optional_fade",
+    "optional_slide",
     "AttachNote",
     "attach_notes",
     "Level",

@@ -79,13 +79,13 @@ class ContextMenu(Component):
 
     open = MorphState(False)
     ran = RefState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def on_run(self, key: str) -> str:
         return key.replace("-", " ")
 
-    def _tick(self):
-        self.stamp = "b" if self.stamp == "a" else "a"
+    def _mark_dirty(self):
+        self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self):
         is_open = bool(self.open)
@@ -145,13 +145,13 @@ class ContextMenu(Component):
     @action(caps=())
     def open_menu(self):
         self.open = True
-        self._tick()
+        self._mark_dirty()
         return update_with(self, _plan("ctx-open", f"#{self.id}"))
 
     @action(caps=())
     def close(self):
         self.open = False
-        self._tick()
+        self._mark_dirty()
         return update_with(self)
 
     @action(caps=())
@@ -161,5 +161,5 @@ class ContextMenu(Component):
             return update_with(self)
         self.ran = key
         self.open = False
-        self._tick()
+        self._mark_dirty()
         return update_with(self, extra_ops=[notify(self.on_run(key))])

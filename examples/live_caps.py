@@ -34,7 +34,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, tick
+from examples._common import act, mark_dirty
 
 
 class LiveOrder(Component):
@@ -76,7 +76,7 @@ class LiveOrder(Component):
     def place(self):
         self.status = "placed"
         self.note = "Cap accepted. Order is on the table."
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("placed")])
 
     @action(caps=())

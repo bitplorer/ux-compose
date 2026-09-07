@@ -5,7 +5,7 @@
 **Time:** ~5 minutes to scaffold + serve; ~15 minutes for levels 0–2.
 
 Mental model + install (not a second 5-minute path): [docs/START_HERE.md](docs/START_HERE.md).
-Ownership law: [docs/FLOW.md](docs/FLOW.md). **Map:** [docs/INDEX.md](docs/INDEX.md).
+Ownership law: [docs/OWNERSHIP.md](docs/OWNERSHIP.md). **Map:** [docs/INDEX.md](docs/INDEX.md).
 **Cookbook:** [docs/guides/SNIPPETS.md](docs/guides/SNIPPETS.md) — App, Cart, levels, bind, surfaces, build(), XOR.
 **Product path:** [docs/guides/PATH.md](docs/guides/PATH.md) — scaffold → serve dev → HMR → Tailwind → composition → control flow → motion → live.
 **Production CSS:** [docs/guides/TAILWIND.md](docs/guides/TAILWIND.md) — minify to `/css/output.css`, link, deploy.
@@ -127,7 +127,7 @@ print(app.dispatch("cart.add", sku="tee"))
 | Production CSS (Tailwind minify) | [docs/guides/TAILWIND.md](docs/guides/TAILWIND.md) |
 | Pick-and-use UI | [docs/guides/UI.md](docs/guides/UI.md) |
 | Public-API cookbook | [docs/guides/SNIPPETS.md](docs/guides/SNIPPETS.md) |
-| Ownership law (authoritative) | [docs/FLOW.md](docs/FLOW.md) |
+| Ownership law (authoritative) | [docs/OWNERSHIP.md](docs/OWNERSHIP.md) |
 | Mental model + install | [docs/START_HERE.md](docs/START_HERE.md) |
 | CLI reference | [docs/guides/CLI.md](docs/guides/CLI.md) |
 | DX principles | [docs/guides/DX.md](docs/guides/DX.md) |

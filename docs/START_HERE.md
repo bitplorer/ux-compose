@@ -21,7 +21,7 @@ ux-compose   → create-app · build · serve · deploy
                DirectoryRoutes · WebAssets · Tailwind · App · HMR
 ```
 
-Full map: [FLOW.md](FLOW.md).
+Full map: [OWNERSHIP.md](OWNERSHIP.md).
 
 ---
 
@@ -114,7 +114,7 @@ HMR is `uxcompose serve dev`, not a Document API.
 
 | Goal | Doc |
 |------|-----|
-| Ownership law (authoritative) | [FLOW.md](FLOW.md) |
+| Ownership law (authoritative) | [OWNERSHIP.md](OWNERSHIP.md) |
 | CLI reference | [guides/CLI.md](guides/CLI.md) |
 | Serve / HMR | [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) |
 | HMR architecture | [internals/hmr.md](internals/hmr.md) |

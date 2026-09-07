@@ -27,7 +27,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, maybe_fade, maybe_plan
+from examples._common import act, optional_fade, optional_plan
 
 TABS = (
     ("cut", "Cut", "The pattern book. Tabs morph one region; they do not remount the page."),
@@ -79,7 +79,7 @@ class Tabs(Component):
         self.tab = tab
         return update_with(
             self,
-            maybe_fade("tab-in", f"#tab-{tab}", ms=100),
+            optional_fade("tab-in", f"#tab-{tab}", ms=100),
             extra_ops=[notify(tab)],
         )
 
@@ -138,7 +138,7 @@ class Accordion(Component):
             cur.add(key)
         self.open_ids = tuple(sorted(cur))
         plan = (
-            maybe_plan("acc-open", f"#acc-{key}", ms=120) if opening and key else None
+            optional_plan("acc-open", f"#acc-{key}", ms=120) if opening and key else None
         )
         return update_with(self, plan)
 
@@ -241,12 +241,12 @@ class Drawer(Component):
     def open_drawer(self, which: str = "filters"):
         self.open = True
         self.which = which
-        return update_with(self, maybe_plan("drawer-open", f"#{self.id}", ms=160))
+        return update_with(self, optional_plan("drawer-open", f"#{self.id}", ms=160))
 
     @action(caps=())
     def close(self):
         self.open = False
-        return update_with(self, maybe_fade("drawer-close", f"#{self.id}", ms=100))
+        return update_with(self, optional_fade("drawer-close", f"#{self.id}", ms=100))
 
 
 def demo() -> None:

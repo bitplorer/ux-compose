@@ -29,14 +29,14 @@ from ux_compose import (
     control,
 )
 
-from examples._common import act, field, tick
+from examples._common import act, field, mark_dirty
 
 
 class Chat(Component):
     id = "chat"
     lines = RefState(("Atelier: the table is set.",))
     typing = MorphState(False)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         lis = [li(x, className="hit") for x in (self.lines or ())]
@@ -73,7 +73,7 @@ class Chat(Component):
         text = (text or "").strip() or "…"
         self.lines = tuple(self.lines or ()) + (f"You: {text}",)
         self.typing = False
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("sent")])
 
     @action(caps=())
@@ -85,7 +85,7 @@ class Chat(Component):
     def peer_done(self):
         self.typing = False
         self.lines = tuple(self.lines or ()) + ("Atelier: held until you place.",)
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 
@@ -94,7 +94,7 @@ class NotifyCenter(Component):
     open = MorphState(False)
     unread = RefState(3)
     items = RefState(("Order reserved.", "Throw restocked.", "Cap minted for checkout."))
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         n = int(self.unread or 0)
@@ -131,7 +131,7 @@ class NotifyCenter(Component):
     @action(caps=())
     def mark_read(self):
         self.unread = 0
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 
@@ -303,7 +303,7 @@ class Stepper(Component):
 
     id = "stepper"
     qty = RefState(1)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         q = int(self.qty or 1)
@@ -326,13 +326,13 @@ class Stepper(Component):
     @action(caps=())
     def inc(self):
         self.qty = min(9, int(self.qty or 1) + 1)
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
     def dec(self):
         self.qty = max(1, int(self.qty or 1) - 1)
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 
@@ -371,7 +371,7 @@ class Rating(Component):
 class Chips(Component):
     id = "chips"
     tags = RefState(("linen", "quiet"))
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         chips = [
@@ -403,13 +403,13 @@ class Chips(Component):
     def add(self, tag: str = ""):
         if tag and tag not in (self.tags or ()):
             self.tags = tuple(self.tags or ()) + (tag,)
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
     def remove(self, tag: str = ""):
         self.tags = tuple(t for t in (self.tags or ()) if t != tag)
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 
@@ -417,7 +417,7 @@ class InlineEdit(Component):
     id = "inline"
     editing = MorphState(False)
     text = RefState("Work shirt")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         if self.editing:
@@ -456,7 +456,7 @@ class InlineEdit(Component):
         if text:
             self.text = text
         self.editing = False
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("saved")])
 
 

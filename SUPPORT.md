@@ -5,7 +5,7 @@
 | You want | Go here |
 |----------|---------|
 | Five minutes | [START_HERE.md](START_HERE.md) |
-| Ownership | [docs/FLOW.md](docs/FLOW.md) |
+| Ownership | [docs/OWNERSHIP.md](docs/OWNERSHIP.md) |
 | CLI | [docs/guides/CLI.md](docs/guides/CLI.md) |
 | Map | [docs/INDEX.md](docs/INDEX.md) |
 | Vulnerability | [SECURITY.md](SECURITY.md) only |

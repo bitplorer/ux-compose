@@ -28,7 +28,7 @@ except Exception:
 class Index(Component):
     id = "livecounter"
     n = RefState(0)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         val = int(self.n or 0)
@@ -45,7 +45,7 @@ class Index(Component):
     @action(caps=())
     def inc(self):
         self.n = int(self.n or 0) + 1
-        self.stamp = "tock" if self.stamp == "tick" else "tick"
+        self.dirty = "tock" if self.dirty == "tick" else "tick"
         plan = None
         if scene is not None and rise is not None:
             try:

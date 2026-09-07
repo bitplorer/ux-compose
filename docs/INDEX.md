@@ -1,7 +1,7 @@
 # ux-compose documentation index
 
 **Start:** [../START_HERE.md](../START_HERE.md) · mental model: [START_HERE.md](START_HERE.md)
-**Ownership SSoT:** [FLOW.md](FLOW.md)
+**Ownership SSoT:** [OWNERSHIP.md](OWNERSHIP.md)
 **Docs landing:** [README.md](README.md)
 
 This layer owns composition + product CLI (`uxcompose`).
@@ -54,7 +54,7 @@ Full cookbook: [guides/SNIPPETS.md](guides/SNIPPETS.md) · product path: [guides
 | You are… | Start (≤ 2 clicks from repo root) |
 |----------|-----------------------------------|
 | **First time** | [../START_HERE.md](../START_HERE.md) · [guides/PATH.md](guides/PATH.md) |
-| **Ownership / boundaries** | [FLOW.md](FLOW.md) · [ARCHITECTURE.md](ARCHITECTURE.md) |
+| **Ownership / boundaries** | [OWNERSHIP.md](OWNERSHIP.md) · [ARCHITECTURE.md](ARCHITECTURE.md) |
 | **CLI surface** | [guides/CLI.md](guides/CLI.md) |
 | **Serve / HMR** | [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [internals/hmr.md](internals/hmr.md) |
 | **Pick-and-use UI** | [guides/UI.md](guides/UI.md) |
@@ -62,9 +62,9 @@ Full cookbook: [guides/SNIPPETS.md](guides/SNIPPETS.md) · product path: [guides
 | **Maintainer / agent** | [../AGENTS.md](../AGENTS.md) · [reference/host.md](reference/host.md) · [../CONTRIBUTING.md](../CONTRIBUTING.md) |
 
 ```text
-New user:     START_HERE → FLOW → serve dev → examples/
-Builder:      FLOW → CLI → serve-hmr-tunnel → DX → TESTING
-Maintainer:   FLOW · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005 · AGENTS
+New user:     START_HERE → OWNERSHIP → serve dev → examples/
+Builder:      OWNERSHIP → CLI → serve-hmr-tunnel → DX → TESTING
+Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005 · AGENTS
 ```
 
 ---
@@ -112,8 +112,8 @@ Maintainer:   FLOW · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005 · A
 | Doc | Topic |
 |-----|--------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Shape: one door, attach notes, OverlayChrome |
-| [FLOW.md](FLOW.md) | Ownership law (authoritative) |
-| [internals/FLOW.md](internals/FLOW.md) | Same contract in the explanation slot |
+| [OWNERSHIP.md](OWNERSHIP.md) | Ownership law (authoritative) |
+| [internals/OWNERSHIP.md](internals/OWNERSHIP.md) | Same contract in the explanation slot |
 | [internals/c4.md](internals/c4.md) | C4-style context |
 | [internals/hmr.md](internals/hmr.md) | origin + ui + channel, three clocks |
 | [adr/README.md](adr/README.md) | ADR slot |

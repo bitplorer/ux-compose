@@ -74,13 +74,13 @@ class Typeahead(Component):
 
     query = RefState("")
     value = MorphState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def on_pick(self, label: str) -> str:
         return label
 
-    def _tick(self):
-        self.stamp = "b" if self.stamp == "a" else "a"
+    def _mark_dirty(self):
+        self.dirty = "b" if self.dirty == "a" else "a"
 
     def _hits(self):
         q = str(self.query or "").strip().lower()
@@ -173,7 +173,7 @@ class Typeahead(Component):
     @action(caps=())
     def query_hits(self, q: str = "", **kwargs):
         self._take_q(q=q, **kwargs)
-        self._tick()
+        self._mark_dirty()
         return update_with(self._hits_slot())
 
     @action(caps=())
@@ -184,5 +184,5 @@ class Typeahead(Component):
             return update_with(self)
         self.value = key
         self.query = key
-        self._tick()
+        self._mark_dirty()
         return update_with(self, extra_ops=[notify(self.on_pick(key))])

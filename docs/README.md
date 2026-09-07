@@ -1,7 +1,7 @@
 # ux-compose documentation
 
 **Composition + delivery root** for the UX stack.
-**Ownership SSoT:** [FLOW.md](FLOW.md)
+**Ownership SSoT:** [OWNERSHIP.md](OWNERSHIP.md)
 **Map (audience + Diátaxis):** [INDEX.md](INDEX.md)
 
 This file is the GitHub `docs/` landing. It is not the map — [INDEX.md](INDEX.md) is.
@@ -20,14 +20,14 @@ This file is the GitHub `docs/` landing. It is not the map — [INDEX.md](INDEX.
 
 ```text
 New user:     START_HERE → FLOW (ownership) → README quick start → examples/
-Builder:      FLOW → CLI → DX → examples/README → TESTING
-Maintainer:   FLOW · resilience/MATRIX · AGENTS
+Builder:      OWNERSHIP → CLI → DX → examples/README → TESTING
+Maintainer:   OWNERSHIP · resilience/MATRIX · AGENTS
 ```
 
 | Audience | Start |
 |----------|--------|
 | **First time** | [../START_HERE.md](../START_HERE.md) · [START_HERE.md](START_HERE.md) |
-| **Ownership / boundaries** | [FLOW.md](FLOW.md) |
+| **Ownership / boundaries** | [OWNERSHIP.md](OWNERSHIP.md) |
 | **CLI surface** | [guides/CLI.md](guides/CLI.md) |
 | **DX principles** | [guides/DX.md](guides/DX.md) |
 | **Tests / quality** | [guides/TESTING.md](guides/TESTING.md) |

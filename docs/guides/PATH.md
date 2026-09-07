@@ -1,7 +1,7 @@
 # Product path — ux-compose
 
 > **Diátaxis:** tutorial · how-to · **Layer:** ux-compose
-> Map: [../INDEX.md](../INDEX.md) · Ownership: [../FLOW.md](../FLOW.md)
+> Map: [../INDEX.md](../INDEX.md) · Ownership: [../OWNERSHIP.md](../OWNERSHIP.md)
 > Widgets: [UI.md](UI.md) · Public-API index: [SNIPPETS.md](SNIPPETS.md)
 
 This page is the executed prompt: take a first-time author from `uxcompose create-app`
@@ -342,5 +342,5 @@ uxcompose deploy --provider docker
 | CLI | [CLI.md](CLI.md) |
 | Production CSS | [TAILWIND.md](TAILWIND.md) |
 | Pick-and-use widgets | [UI.md](UI.md) |
-| Ownership law | [../FLOW.md](../FLOW.md) |
+| Ownership law | [../OWNERSHIP.md](../OWNERSHIP.md) |
 | 5-minute door | [../../START_HERE.md](../../START_HERE.md) |

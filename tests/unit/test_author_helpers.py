@@ -1,19 +1,19 @@
 """Author helpers are the public form of examples/_common — same objects."""
 from __future__ import annotations
 
-from ux_compose.author import act, field, status, tick
+from ux_compose.author import act, field, mark_dirty, status
 
 
-class _Stamp:
-    stamp = "tick"
+class _Dirty:
+    dirty = "tick"
 
 
-def test_tick_flips_qualitative_stamp():
-    comp = _Stamp()
-    tick(comp)
-    assert comp.stamp == "tock"
-    tick(comp)
-    assert comp.stamp == "tick"
+def test_mark_dirty_flips_qualitative_dirty():
+    comp = _Dirty()
+    mark_dirty(comp)
+    assert comp.dirty == "tock"
+    mark_dirty(comp)
+    assert comp.dirty == "tick"
 
 
 def test_act_string_fallback_has_action_and_hidden():

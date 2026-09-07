@@ -3,7 +3,7 @@
 The elevated cart lives in ``apps/atelier_shop/shop.py`` (and ``examples/cart.py``
 as the L1 teaching form). These units cover the rest of a storefront:
 
-    wishlist     ids in RefState + stamp; heart is public
+    wishlist     ids in RefState + dirty; heart is public
     coupon       code MorphState (string); redeem is a Cap
     checkout     named steps; place is orders.place
     stock        qty RefState; band is a derived name
@@ -38,7 +38,7 @@ from ux_compose import (
     control,
 )
 
-from examples._common import act, field, tick, status
+from examples._common import act, field, mark_dirty, status
 
 
 CATALOG = {
@@ -54,7 +54,7 @@ class Wishlist(Component):
 
     id = "wishlist"
     ids = RefState(("linen",))
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         have = tuple(self.ids or ())
@@ -95,7 +95,7 @@ class Wishlist(Component):
         elif sku in CATALOG:
             cur.add(sku)
         self.ids = tuple(s for s in CATALOG if s in cur)
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(sku)])
 
 
@@ -110,7 +110,7 @@ class Coupon(Component):
     applied = MorphState(False)
     off = RefState(0)
     error = MorphState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     VALID = {"HOUSE10": 10, "LINEN": 8}
 
     def render(self):
@@ -154,7 +154,7 @@ class Coupon(Component):
             self.error = ""
         else:
             self.error = "Unknown code"
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("checked")])
 
     @action(caps=())
@@ -163,7 +163,7 @@ class Coupon(Component):
         self.applied = False
         self.off = 0
         self.error = ""
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=("coupons.redeem",))
@@ -171,12 +171,12 @@ class Coupon(Component):
         code = str(self.code or "").upper()
         if code not in self.VALID:
             self.error = "Check a valid code first"
-            tick(self)
+            mark_dirty(self)
             return update_with(self, extra_ops=[notify("blocked")])
         self.applied = True
         self.off = self.VALID[code]
         self.error = ""
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(f"off {self.off}")])
 
 
@@ -191,7 +191,7 @@ class CheckoutFlow(Component):
     name = RefState("")
     ship = MorphState("house")
     pay = MorphState("cap")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     STEPS = ("who", "ship", "pay", "review")
 
     def render(self):
@@ -265,7 +265,7 @@ class CheckoutFlow(Component):
         if self.step == "who" and not str(self.name or "").strip():
             return update_with(self, extra_ops=[notify("name required")])
         self.step = order[min(i + 1, len(order) - 1)]
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
@@ -289,7 +289,7 @@ class CheckoutFlow(Component):
     def place(self):
         self.step = "who"
         self.name = ""
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("placed")])
 
 
@@ -303,7 +303,7 @@ class StockBadge(Component):
     id = "stock"
     qty = RefState(3)
     band = MorphState("low")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def _band(self, n: int) -> str:
         if n <= 0:
@@ -346,7 +346,7 @@ class StockBadge(Component):
         n = max(0, int(self.qty or 0) - 1)
         self.qty = n
         self.band = self._band(n)
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify(str(n))])
 
     @action(caps=())
@@ -354,16 +354,16 @@ class StockBadge(Component):
         n = int(self.qty or 0) + 5
         self.qty = n
         self.band = self._band(n)
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 
 class CompareTray(Component):
-    """Up to three skus. Selection is a list — RefState + stamp. Not MorphState(int)."""
+    """Up to three skus. Selection is a list — RefState + dirty. Not MorphState(int)."""
 
     id = "compare"
     ids = RefState(("linen", "oak"))
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     LIMIT = 3
 
     def render(self):
@@ -412,13 +412,13 @@ class CompareTray(Component):
         elif sku in CATALOG and len(cur) < self.LIMIT:
             cur.append(sku)
         self.ids = tuple(cur)
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
     def clear(self):
         self.ids = ()
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 

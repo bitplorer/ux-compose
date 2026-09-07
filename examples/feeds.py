@@ -3,7 +3,7 @@
 Collections that are not a shelf, table, or kanban. Encoding is unchanged:
 
     filter / phase / open     MorphState (names, never ints)
-    items / order / index     RefState + stamp
+    items / order / index     RefState + dirty
     one-shot                  notify
     moderate / delete         Cap
 
@@ -36,15 +36,15 @@ from ux_compose import (
     control,
 )
 
-from examples._common import act, field, tick, maybe_plan, maybe_slide, status
+from examples._common import act, field, mark_dirty, optional_plan, optional_slide, status
 
 
 class Carousel(Component):
-    """Index is a magnitude — RefState + stamp. Captions are Host data."""
+    """Index is a magnitude — RefState + dirty. Captions are Host data."""
 
     id = "carousel"
     index = RefState(0)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     SLIDES = (
         ("linen", "Work shirt", "Washed flax, open collar."),
         ("oak", "Serving board", "Quarter-sawn, oil finish."),
@@ -97,17 +97,17 @@ class Carousel(Component):
     @action(caps=())
     def next(self):
         self.index = (int(self.index or 0) + 1) % len(self.SLIDES)
-        tick(self)
+        mark_dirty(self)
         return update_with(
-            self, maybe_slide("car-next", f"#{self.id}", direction="next", ms=180)
+            self, optional_slide("car-next", f"#{self.id}", direction="next", ms=180)
         )
 
     @action(caps=())
     def prev(self):
         self.index = (int(self.index or 0) - 1) % len(self.SLIDES)
-        tick(self)
+        mark_dirty(self)
         return update_with(
-            self, maybe_slide("car-prev", f"#{self.id}", direction="prev", ms=180)
+            self, optional_slide("car-prev", f"#{self.id}", direction="prev", ms=180)
         )
 
     @action(caps=())
@@ -116,9 +116,9 @@ class Carousel(Component):
             self.index = int(n) % len(self.SLIDES)
         except ValueError:
             self.index = 0
-        tick(self)
+        mark_dirty(self)
         return update_with(
-            self, maybe_slide("car-go", f"#{self.id}", direction="next", ms=160)
+            self, optional_slide("car-go", f"#{self.id}", direction="next", ms=160)
         )
 
 
@@ -137,7 +137,7 @@ class Comments(Component):
         )
     )
     reply_to = MorphState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     _seq = RefState(2)
 
     def render(self):
@@ -195,7 +195,7 @@ class Comments(Component):
             row["text"] = f"↳ {text}"
         self.lines = tuple(self.lines or ()) + (row,)
         self.reply_to = ""
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("posted")])
 
     @action(caps=("comments.moderate",))
@@ -204,7 +204,7 @@ class Comments(Component):
         if rows:
             rows = rows[:-1]
         self.lines = tuple(rows)
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("hidden")])
 
 
@@ -221,7 +221,7 @@ class Timeline(Component):
             ("cut", "Cut", "Second shirt."),
         )
     )
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         f = str(self.filt or "all")
@@ -256,7 +256,7 @@ class Timeline(Component):
     @action(caps=())
     def filter(self, key: str = "all"):
         self.filt = key if key in {"all", "cut", "make", "keep"} else "all"
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 
@@ -269,7 +269,7 @@ class EmptyRetry(Component):
     id = "emptyretry"
     phase = MorphState("empty")
     body = RefState("")
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
 
     def render(self):
         phase = str(self.phase or "empty")
@@ -311,27 +311,27 @@ class EmptyRetry(Component):
     def load(self):
         self.phase = "loading"
         self.body = ""
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
     def fail(self):
         self.phase = "error"
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("error")])
 
     @action(caps=())
     def ready(self):
         self.phase = "ready"
         self.body = "Quiet pieces for a working house."
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
     @action(caps=())
     def reset(self):
         self.phase = "empty"
         self.body = ""
-        tick(self)
+        mark_dirty(self)
         return update_with(self)
 
 
@@ -340,7 +340,7 @@ class ReorderList(Component):
 
     id = "reorder"
     order = RefState(("linen", "oak", "wool", "clay"))
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     NAMES = {"linen": "Work shirt", "oak": "Serving board", "wool": "Throw", "clay": "Pourer"}
 
     def render(self):
@@ -379,7 +379,7 @@ class ReorderList(Component):
         rows.pop(i)
         rows.insert(j, sku)
         self.order = tuple(rows)
-        tick(self)
+        mark_dirty(self)
 
     @action(caps=())
     def up(self, sku: str = ""):
@@ -399,7 +399,7 @@ class ActivityFeed(Component):
     items = RefState(("Reserved the throw.", "Oiled the oak board."))
     cursor = MorphState("p1")
     has_more = MorphState(True)
-    stamp = MorphState("idle")
+    dirty = MorphState("idle")
     REST = ("Minted a Cap for checkout.", "Marked the work shirt.", "Folded the linen.")
 
     def render(self):
@@ -430,7 +430,7 @@ class ActivityFeed(Component):
         self.items = tuple(have + take)
         self.has_more = bool(rest)
         self.cursor = "end" if not rest else "p2"
-        tick(self)
+        mark_dirty(self)
         return update_with(self, extra_ops=[notify("more")])
 
 

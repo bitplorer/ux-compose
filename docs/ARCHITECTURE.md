@@ -1,7 +1,7 @@
 # Architecture — ux-compose shape
 
 > **Diátaxis:** explanation · **Canonical:** `docs/ARCHITECTURE.md` · **Layer:** ux-compose
-> Ownership law stays [FLOW.md](FLOW.md). Host spec stays [reference/host.md](reference/host.md).
+> Ownership law stays [OWNERSHIP.md](OWNERSHIP.md). Host spec stays [reference/host.md](reference/host.md).
 > Decision: [adr/0004-clarity-and-residuals.md](adr/0004-clarity-and-residuals.md).
 > Map: [INDEX.md](INDEX.md).
 
@@ -16,7 +16,7 @@ It names the doors so a new contributor cannot invent a second one.
 ```text
 Author  →  ux_compose (this package root)
               │
-              ├─ author helpers   act tick field status maybe_*
+              ├─ author helpers   act mark_dirty field status optional_*
               ├─ composition      App Component MorphState @action helpers
               ├─ product host     create-app → serve dev → build → serve prod
               ├─ scan step        App.mount  (called by build())

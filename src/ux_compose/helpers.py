@@ -9,6 +9,7 @@ When absent, helpers emit plain dict Ops for the pure-shim path.
 """
 from __future__ import annotations
 
+import json
 from typing import Any, List, Optional
 
 try:
@@ -65,18 +66,31 @@ def bind(action_obj, **kwargs):
         raise TypeError(
             f"bind requires @action method or str, got {type(action_obj).__name__}"
         )
-    attrs = {"data-ux-action": verb}
-    for k, v in kwargs.items():
+    return _action_attrs(verb, kwargs)
+
+
+def _action_attrs(verb: str, args: dict) -> dict:
+    """Mirror ``ux_behavior.action_ui_attrs``: both progressive and live names.
+
+    ``data-ux-action`` is the L1/offline stamp. ``data-channel-action`` is
+    what ``ux-channel.js`` click-binds. No ``ux_channel`` import — the names
+    are the documented triad, not a wire dependency.
+    """
+    attrs = {"data-ux-action": verb, "data-channel-action": verb}
+    if args:
+        attrs["data-channel-args"] = json.dumps(
+            {k: str(v) for k, v in args.items()},
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+    for k, v in args.items():
         attrs[f"data-ux-arg-{k}"] = str(v)
     return attrs
 
 
 def control(action: str, **args) -> dict:
     """Progressive control attrs (string action name). Prefer bind() / .ui in new code."""
-    attrs = {"data-ux-action": action}
-    for k, v in args.items():
-        attrs[f"data-ux-arg-{k}"] = str(v)
-    return attrs
+    return _action_attrs(action, args)
 
 
 def _serialize_tree(tree: Any) -> str:

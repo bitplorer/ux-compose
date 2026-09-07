@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Fragment / L1 live-client: when `build(document=None)` and Channel is
+  attached, compose injects `/ux-channel/static/ux-channel.js` (+ optional
+  `ux-bridge.js`) and `data-channel-endpoint="/ux-channel/action"` via
+  `LiveClientMiddleware` (string shell, not a synthesized Document).
+  `control()` / offline `bind` emit both `data-ux-action` and
+  `data-channel-action`. Scaffold `document.py` uses
+  `Document.use(…, Channel.optional())` from `ux_dom.runtime`.
+
 - `build(cek="require")` (default): after `use_channel`, attach product Cap
   Host through `App.use_cek` (cek-runtime). Skip when `live="null"` / no
   Channel. Scaffold emits `cek="require"` so authors never hand-wire.

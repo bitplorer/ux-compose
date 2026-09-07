@@ -107,7 +107,7 @@ uxcompose build
 - `MorphState` mutation means this unit must repaint.
 - `render()` returns a **ux-dom tag tree** with Tailwind `className`.
 - `@action(caps=())` is public. Non-empty caps need a live Cap (or fail closed).
-- `control("hello.inc")` stamps `data-ux-action` (+ args) on the button.
+- `control("hello.inc")` stamps `data-ux-action` and `data-channel-action` (+ args) on the button.
 - `update_with(self, extra_ops=[notify(...)])` morphs live `render()` HTML (XOR-safe).
 
 ```python

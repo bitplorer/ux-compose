@@ -91,6 +91,8 @@ def test_protected_action_strict_offline():
 def test_control_attrs_offline():
     attrs = control("add", sku="tee")
     assert "data_action" in attrs or "data-ux-action" in attrs or "data-action" in attrs
+    assert attrs.get("data-ux-action") == "add"
+    assert attrs.get("data-channel-action") == "add"
 
 
 def test_update_with_produces_morph():

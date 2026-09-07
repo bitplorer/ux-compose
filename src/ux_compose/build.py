@@ -194,6 +194,13 @@ def build(
         wrap=author_document,
         resolve_unit=_resolve,
     )
+    # L1 / Py3.13 fragment GET: author Document/wrap is absent, Cap Host is
+    # live. Inject Channel client tags (public URLs only) — never a
+    # synthesized Document wrap (str → script src). live=null skips.
+    if author_document is None and getattr(app, "_channel", None) is not None:
+        from ux_compose.live_client import attach_live_client
+
+        asgi = attach_live_client(asgi)
     if bundle is not None and core.records:
         bundle.route_table = core.route_table()
 

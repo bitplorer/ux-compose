@@ -164,6 +164,7 @@ Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs,
 | Path / stem / JSON / stream / wrap? | `src/ux_compose/routing/core.py` |
 | No-Starlette degrade? | `src/ux_compose/routing/asgi.py` |
 | Orchestra (`wrap=` vs `document=`)? | `src/ux_compose/build.py`, `surfaces_host.py` |
+| Fragment live-client (`document=None`)? | `src/ux_compose/live_client.py` |
 | Channel attach? | `src/ux_compose/wire/boot.py` only |
 | Scaffold? | `src/ux_compose/scaffold.py` |
 | Fitness tests? | `tests/unit/test_host.py` |
@@ -204,6 +205,14 @@ FastAPI is **not** given `default_response_class=HTMLResponse`. Author
   **only** the author `document=` (`wrap=`). DirectoryASGI has no middleware;
   doctor reports CSP middleware is not attached.
 - HTMX is opt-in (`build(use_htmx=True)` / `Document.use(Htmx())`).
+- Py3.14 `Document.use(XElement(), Csp.auto(), Channel.optional())` (the
+  `ux_dom.runtime` alias, not `ux_channel.Channel`) is the full shell.
+- L1 / Py3.13 fragment GET (`document=None` / `wrap=None`) with Channel
+  attached: compose `LiveClientMiddleware` inserts `/ux-channel/static/ux-channel.js`
+  and `data-channel-endpoint="/ux-channel/action"` (string shell, not a
+  synthesized Document — a positional `str` on `<body>` is script `src`).
+  `live="null"` is unchanged. Complete documents and `/css` are not
+  double-wrapped.
 
 ---
 

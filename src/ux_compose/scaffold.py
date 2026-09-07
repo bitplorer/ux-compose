@@ -3,7 +3,7 @@
 Emits the locked product path:
 
 - settings.py          environment SSoT (BASE_DIR, DEBUG, WebAssets)
-- document.py          Document SSoT + .use(XElement, Csp)
+- document.py          Document SSoT + .use(XElement, Csp, Channel.optional)
 - app.py               composition root via build(host=, live=, level=, document=, cek=)
 - routes/index.py      GET / alias so the app root is not 404
 - routes/hello.py      page unit (module stem == class name)
@@ -132,20 +132,26 @@ SETTINGS_PY = dedent('''\
 DOCUMENT_PY = dedent('''\
     """Document SSoT — one HTML shell for every GET.
 
-    .use(XElement, Csp) attaches runtimes. HTMX is opt-in via build(use_htmx=True).
-    The host wraps render() with this Document. Component.render() stays a
+    Py3.14 Document.use(XElement(), Csp.auto(), Channel.optional()) is the
+    full shell (CSP + Channel client tags). Channel is the ux_dom.runtime
+    alias — never ux_channel.Channel. Isolation: this module never imports
+    ux_channel.
+
+    When ux-dom is absent (L1 / Py3.13 HTML-string fallback), document=None
+    and compose injects the live-client on fragment GET if Channel is attached.
+    HTMX is opt-in via build(use_htmx=True). Component.render() stays a
     fragment (the morph payload) — never put the stylesheet link inside render().
-    Isolation: this module never imports ux_channel.
     """
     from __future__ import annotations
 
     try:
         from ux_dom import Document
-        from ux_dom.runtime import XElement, Csp
+        from ux_dom.runtime import XElement, Csp, Channel
         from ux_dom.dom import link, meta, title
 
         from settings import OUTPUT_CSS
 
+        _plugins = (XElement(), Csp.auto(), Channel.optional())
         document = Document(
             head=[
                 meta(charset="utf-8"),
@@ -155,7 +161,7 @@ DOCUMENT_PY = dedent('''\
             ],
             body=[],
             ensure_csrf_token=False,
-        ).use(XElement(), Csp.auto())
+        ).use(*[p for p in _plugins if p is not None])
 
     except Exception:  # ux-dom not installed — L1 HTML-string fallback still works
         document = None
@@ -166,8 +172,9 @@ ROUTES_HELLO_PY = dedent('''\
     """Page unit — module stem matches class name (hello.py → Hello).
 
     Author contract: return ux-dom tag trees with Tailwind className.
-    control() emits semantic data-ux-* attrs. HTMX is opt-in at Document layer.
-    render() stays a fragment (the morph payload). The host wraps Document.
+    control() emits data-ux-action + data-channel-action (live click bind).
+    HTMX is opt-in at Document layer. render() stays a fragment (the morph
+    payload). Py3.14 host wraps Document; L1 fragment GET uses compose live-client.
     """
     from __future__ import annotations
 
@@ -297,7 +304,8 @@ README = dedent('''\
     ## Mental model
 
     - `settings.py` — environment (BASE_DIR, DEBUG, WebAssets on ux-compose)
-    - `document.py` — Document SSoT + `.use(XElement, Csp)`; host wraps GET
+    - `document.py` — Document SSoT + `.use(XElement, Csp, Channel.optional)`;
+      Py3.14 full shell. L1 fragment GET uses compose live-client.
     - `app.py` — composition root: `build(host=, live=, level=, document=, cek=)`
     - `routes/index.py` — GET `/` (index alias; keep `/hello`)
     - `routes/hello.py` — page unit (`render()` is a fragment; host wraps Document)

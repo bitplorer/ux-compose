@@ -397,6 +397,7 @@ def mount_surfaces(
         try:
             from ux_compose.surfaces_host import attach_page_router
 
+            wrap = getattr(compose_app, "_author_document", None) if compose_app is not None else None
             table = attach_page_router(
                 asgi_app=asgi_app,
                 package_dir=package_dir,
@@ -405,10 +406,18 @@ def mount_surfaces(
                 fail_closed=fail_closed,
                 host=host,
                 document=getattr(compose_app, "_document", None) if compose_app is not None else None,
-                wrap=getattr(compose_app, "_author_document", None) if compose_app is not None else None,
+                wrap=wrap,
             )
             if table:
                 bundle.route_table = table
+            if (
+                wrap is None
+                and compose_app is not None
+                and getattr(compose_app, "_channel", None) is not None
+            ):
+                from ux_compose.live_client import attach_live_client
+
+                attach_live_client(asgi_app)
         except ImportError:
             if fail_closed:
                 raise

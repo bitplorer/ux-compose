@@ -8,6 +8,8 @@ Authors never import this. Maintainers always do.
 open() creates the process. bind() mounts Document (CSP/static) then pages.
 ``wrap=`` is the author HTML shell (None = fragment, no synthesized wrap).
 Channel is attached by build() *before* bind(), once the ASGI object exists.
+When wrap is None and Channel is live, build() attaches LiveClientMiddleware
+(public Channel JS URLs) — never a synthesized Document wrap.
 """
 from __future__ import annotations
 

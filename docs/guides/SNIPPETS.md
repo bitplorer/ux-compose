@@ -153,7 +153,7 @@ Authors do not import ux_channel outside compose wire/. Channel attach is App.us
 app = App.boot("Shop", level=1)          # offline MorphState + @action
 # app.use_channel(asgi_app=api)          # Level 2 — live Caps, Isolation-safe
 # app.use_motion()                       # Level 3 — Morph-then-Play
-# app.use_cek(mode="adapt")              # optional
+# app.use_cek()                          # product Cap (cek-runtime Host via Channel)
 ```
 
 ### Morph-then-Play (XOR)
@@ -249,7 +249,7 @@ print(int(app.level), app.level.label)   # 1 offline interactive
 app.use_host("fastapi")                  # auto | fastapi | asgi
 # app.use_channel(asgi_app=api)          # Level 2 — Isolation-safe wire/ import
 # app.use_motion()                       # Level 3
-# app.use_cek(mode="adapt")              # optional; mode="require" raises if missing
+# app.use_cek()                          # product Cap; mode="adapt" is compare-only lab
 
 assert Level.L1.value == 1
 ```

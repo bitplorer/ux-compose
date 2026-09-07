@@ -346,7 +346,7 @@ def build_asgi():
     UX.use_channel(asgi_app=asgi)
     UX.use_motion()
     try:
-        UX.use_cek(mode="adapt")
+        UX.use_cek()
     except Exception:
         pass
     if DOCUMENT is not None and hasattr(DOCUMENT, "mount"):

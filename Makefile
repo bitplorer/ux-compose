@@ -16,8 +16,9 @@ specialists: venv314
 	$(PY314) -m pip install \
 	  "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git" \
 	  "ux-motion @ git+https://github.com/bitplorer/ux-motion.git" \
-	  "ux-channel @ git+https://github.com/bitplorer/ux-channel.git#subdirectory=python" \
+	  "ux-channel @ git+https://github.com/bitplorer/ux-channel.git@662ad6805d62de584f23fcbb14d8ee841a24660c#subdirectory=python" \
 	  "ux-dom @ git+https://github.com/bitplorer/ux-dom.git" \
+	  "cek-host>=0.1.3" "cek-surface>=0.1.3" \
 	  fastapi uvicorn pytest pytest-cov httpx
 	$(PY314) -m pip install -e ".[dev]"
 

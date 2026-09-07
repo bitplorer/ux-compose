@@ -230,6 +230,7 @@ app, asgi, bundle = build(
     live="auto",    # auto | channel | null
     level="auto",
     base="routes",
+    cek="require",  # product Cap Host via App.use_cek (skip if live=null)
 )
 print(app.name, app.level, bundle)
 ```

@@ -442,7 +442,14 @@ def build_asgi():
                 slug = "shop"
             elif name in MINT:
                 intent_name = "liveorder.place" if name == "liveorder.place_minted" else name
-                result = await UX.submit_intent_async(intent_name, mint=True, args=args)
+                once = intent_name in {
+                    "liveorder.place",
+                    "cart.checkout",
+                    "checkout.place",
+                }
+                result = await UX.submit_intent_async(
+                    intent_name, mint=True, once=once, args=args
+                )
                 _collect_ops(last_ops, result)
                 ok = bool(getattr(result, "ok", False))
                 if not ok:

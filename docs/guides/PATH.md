@@ -29,7 +29,7 @@ tour, open [UI.md](UI.md).
 
 | # | Job | You leave with |
 |---|-----|----------------|
-| 1 | [Scaffold](#1-scaffold) | `settings.py` + `document.py` + `app.py` + `routes/hello.py` |
+| 1 | [Scaffold](#1-scaffold) | `settings.py` + `document.py` + `app.py` + `routes/index.py` + `routes/hello.py` |
 | 2 | [Hello page unit](#2-hello-page-unit) | A Component that morphs |
 | 3 | [Serve](#3-serve) | HTTP on the product CLI |
 | 4 | [HMR + tunnel](#4-hmr-and-tunnel) | Browser morph + optional public URL |
@@ -82,6 +82,7 @@ myapp/
   assets/css/input.css
   routes/
     __init__.py
+    index.py          # GET / (alias so the app root is not 404)
     hello.py          # page unit: stem == class name; render() is a fragment
 ```
 
@@ -285,6 +286,7 @@ app, asgi, bundle = build(
     live="auto",
     level="auto",
     base="routes",
+    cek="require",
 )
 ```
 

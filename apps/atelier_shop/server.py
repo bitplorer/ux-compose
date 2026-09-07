@@ -384,8 +384,11 @@ def build_asgi():
                     body=f"{n} piece(s) · {total}. The host will mint a Cap for checkout.",
                 )
             elif name == "cart.checkout":
-                # Live Cap path: Host mints a real Cap, then submits Intent.
-                result = await UX.submit_intent_async("cart.checkout", mint=True, args={})
+                # Live Cap path: Host mints a once Cap, then submits Intent.
+                cap = UX.mint_cap("cart.checkout", {}, once=True)
+                result = await UX.submit_intent_async(
+                    "cart.checkout", cap=cap, args={}
+                )
                 ok = bool(getattr(result, "ok", False))
                 if not ok:
                     flash = "Checkout refused — no Cap."

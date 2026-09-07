@@ -12,6 +12,7 @@
         live="auto",   # auto|channel|null
         level="auto",
         document=document,
+        cek="require",  # product Cap Host after use_channel
     )
 
 Orchestra only: host.open → L1 boot → document → channel on asgi →
@@ -88,6 +89,7 @@ def build(
     use_htmx: bool = False,
     asgi_app: Any = None,
     document: Any = None,
+    cek: str = "require",
 ) -> BuildResult:
     """Boot specialists + mount page units. Host and live set only here.
 
@@ -100,6 +102,13 @@ def build(
       - ``"auto"`` — Channel when ux_channel importable
       - ``"channel"`` — prefer Channel
       - ``"null"`` — offline Behavior only
+
+    cek:
+      - ``"require"`` — product Cap Host (cek-runtime via ``App.use_cek``).
+        Default. Skipped when ``live="null"`` or Channel did not attach.
+        Cap Host ≠ HTTP Product host (ADR 0002).
+      - ``"adapt"`` — compare-only lab
+      - ``"off"`` — do not attach Cap Host (honest off; see ``App.use_cek``)
     """
     from ux_compose import App
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks
@@ -135,6 +144,16 @@ def build(
             app.use_channel()
         except Exception:
             if live_l == "channel":
+                raise
+
+    # Product Cap Host: App door → Channel → CekHostCapService → cek-runtime.
+    # Isolation: no ux_channel import here. Skip when live=null / no channel.
+    if live_l != "null" and getattr(app, "_channel", None) is not None:
+        cek_l = (cek or "require").strip().lower() or "require"
+        try:
+            app.use_cek(mode=cek_l)
+        except Exception:
+            if live_l == "channel" and cek_l not in ("off", "0", "false", "no", "adapt"):
                 raise
 
     pinned = None if auto_level else max(0, min(3, int(level)))

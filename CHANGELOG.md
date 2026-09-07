@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `build(cek="require")` (default): after `use_channel`, attach product Cap
+  Host through `App.use_cek` (cek-runtime). Skip when `live="null"` / no
+  Channel. Scaffold emits `cek="require"` so authors never hand-wire.
+- `create-app` emits `routes/index.py` so GET `/` is not 404; `/hello` stays.
+- `uxcompose build` names the cwd in `FileNotFoundError` and finds the app
+  root from `--app path/to/app:asgi` when not already in the app directory.
+- Cap Law demos/tests show `mint_cap(action, {}, once=True)` where once
+  matters (checkout/place). Default remains `once=False`.
 - `uxcompose serve restart-channel`: one-shot Channel RAM drop for a
   running `serve dev` (pidfile + SIGUSR1). Not a sticky flag.
 - Ownable kit (`uxcompose add`): login, tabs, accordion, dropdown, dialog, sheet,
@@ -19,6 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Channel pin: `31a60bdd40a1b52aea1fd13159ad09c293c63fd6` (Makefile + CI).
+  Soft Cap install: `cek-host>=0.1.3`.
 - Nomen cut: `maybe_*` → `optional_*`; MorphState `stamp` / helper `tick` →
   `dirty` / `mark_dirty`; kit Cap `flow.finish` → `stepper.finish`;
   `docs/FLOW.md` → `docs/OWNERSHIP.md`.

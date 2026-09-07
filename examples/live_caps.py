@@ -119,8 +119,12 @@ def demo() -> None:
     else:
         refused = live.submit_intent("liveorder.place", mint=False)
         print("no cap ok?", getattr(refused, "ok", None))
-        placed = live.submit_intent("liveorder.place", mint=True)
-        print("minted ok?", getattr(placed, "ok", None))
+        # Default mint is once=False (reusable). Checkout spends once.
+        cap = live.mint_cap("liveorder.place", {}, once=True)
+        placed = live.submit_intent("liveorder.place", cap=cap)
+        print("minted once ok?", getattr(placed, "ok", None))
+        replay = live.submit_intent("liveorder.place", cap=cap)
+        print("replay ok?", getattr(replay, "ok", None))
 
     report = doctor([], fail=False)
     print("Doctor", report.ok, report.capabilities)

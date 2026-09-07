@@ -4,7 +4,8 @@ Emits the locked product path:
 
 - settings.py          environment SSoT (BASE_DIR, DEBUG, WebAssets)
 - document.py          Document SSoT + .use(XElement, Csp)
-- app.py               composition root via build(host=, live=, level=, document=)
+- app.py               composition root via build(host=, live=, level=, document=, cek=)
+- routes/index.py      GET / alias so the app root is not 404
 - routes/hello.py      page unit (module stem == class name)
 - assets/css/input.css Tailwind tokens + @source
 - requirements.txt     so ``uxcompose deploy`` is not a lie
@@ -75,6 +76,7 @@ APP_PY = dedent('''\
             base="routes",
             use_htmx=use_htmx,
             document=document,
+            cek="require",
         )
         asgi = _mount_css(asgi)
         return app, asgi, bundle
@@ -215,6 +217,44 @@ ROUTES_HELLO_PY = dedent('''\
 ''')
 
 
+ROUTES_INDEX_PY = dedent('''\
+    """Page unit — index.py → GET /. Keep /hello; the app root is not 404.
+
+    Path law: index.py / route.py map to the folder prefix (here ``/``).
+    Isolation: this module never imports ux_channel.
+    """
+    from __future__ import annotations
+
+    from ux_compose import Component
+
+    try:
+        from ux_compose import a, div, p, HAS_DOM
+    except Exception:
+        HAS_DOM = False
+        a = div = p = None  # type: ignore
+
+
+    class Index(Component):
+        id = "index"
+
+        def render(self):
+            href = "/hello"
+            if HAS_DOM and div is not None:
+                return div(
+                    p("Hello lives at /hello."),
+                    a("Open hello", href=href),
+                    id=self.id,
+                    className="flex flex-col gap-2 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm",
+                )
+            return (
+                f'<div id="index">'
+                f'<meta http-equiv="refresh" content="0;url={href}">'
+                f'<a href="{href}">hello</a>'
+                f"</div>"
+            )
+''')
+
+
 INPUT_CSS = dedent('''\
     @import "tailwindcss";
     @source "../../**/*.{py,html,js}";
@@ -243,6 +283,9 @@ REQUIREMENTS = dedent('''\
     ux-behavior
     fastapi
     uvicorn[standard]
+    # Product Cap Host (optional; build(cek="require") uses it when Channel is live)
+    # cek-host>=0.1.3
+    # cek-surface>=0.1.3
 ''')
 
 
@@ -255,7 +298,8 @@ README = dedent('''\
 
     - `settings.py` — environment (BASE_DIR, DEBUG, WebAssets on ux-compose)
     - `document.py` — Document SSoT + `.use(XElement, Csp)`; host wraps GET
-    - `app.py` — composition root: `build(host=, live=, level=, document=)`
+    - `app.py` — composition root: `build(host=, live=, level=, document=, cek=)`
+    - `routes/index.py` — GET `/` (index alias; keep `/hello`)
     - `routes/hello.py` — page unit (`render()` is a fragment; host wraps Document)
     - `assets/css/input.css` — Tailwind tokens; compile with `uxcompose build`
 
@@ -270,6 +314,7 @@ README = dedent('''\
         live="auto",     # auto | channel | null
         level={level_repr_py},
         document=document,
+        cek="require",   # product Cap Host via App.use_cek (skip if live=null)
     )
     ```
 
@@ -288,6 +333,10 @@ README = dedent('''\
 
     `uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`).
     Output: `assets/static/file/css/output.css`, linked as `/css/output.css`.
+
+    Product Cap Host (optional): `pip install 'cek-host>=0.1.3' 'cek-surface>=0.1.3'`
+    plus ux-channel. `build(cek="require")` attaches it through `App.use_cek()`
+    when Channel is live — do not import `ux_channel` in product files.
 
     ## Laws
 
@@ -352,6 +401,7 @@ def create_app(
     routes = root / "routes"
     routes.mkdir(exist_ok=True)
     (routes / "__init__.py").write_text("", encoding="utf-8")
+    (routes / "index.py").write_text(ROUTES_INDEX_PY, encoding="utf-8")
     (routes / "hello.py").write_text(ROUTES_HELLO_PY, encoding="utf-8")
 
     css_dir = root / "assets" / "css"

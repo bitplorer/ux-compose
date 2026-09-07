@@ -5,7 +5,7 @@ PY314 ?= /tmp/ux314venv/bin/python
 PY312 ?= /tmp/ux312venv/bin/python
 VENV  ?= /tmp/ux314venv
 
-.PHONY: test test-matrix coverage test314 test312 venv314 specialists examples doctor shop studio pulse
+.PHONY: test test-matrix coverage test314 test312 venv314 specialists examples doctor shop studio pulse test-cto test-cto-fragment-law cek-repro-morph-shell
 
 venv314:
 	python3.14 -m venv --without-pip $(VENV) || true
@@ -23,23 +23,44 @@ specialists: venv314
 	$(PY314) -m pip install -e ".[dev]"
 
 test:
-	PYTHONPATH=src:. python -m pytest tests/ -q
+	PYTHONPATH=src:. python -m pytest tests/ -q -m "not cto_red"
 
 test-matrix:
 	PYTHONPATH=src:. python -m pytest \
-	  tests/unit tests/integration tests/regression \
-	  tests/concurrency tests/load tests/property tests/security -q
+	  tests/unit tests/integration tests/regression tests/feature \
+	  tests/concurrency tests/load tests/property tests/security -q -m "not cto_red"
+
+# CTO gates (scaffold fragment, Cap mint / fail-closed, green fragment-law).
+# Excludes the nested-shell assertion, which is expected RED until the
+# morph-shell fix PR. Isolation: product never imports ux_channel.
+test-cto:
+	PYTHONPATH=src:. python -m pytest tests/feature -q -m "not cto_red"
+
+# Nested-shell / fragment-law: morph HTML for #hello must not embed outer
+# brand chrome. EXPECTED RED against full-shell-in-render (stunning pattern).
+test-cto-fragment-law:
+	PYTHONPATH=src:. python -m pytest tests/feature -q -m cto_red --tb=short
+
+# Optional sibling live repro (not a product import; do not require ux_channel).
+# Clone https://github.com/bitplorer/cek-auto-suite next to this repo.
+cek-repro-morph-shell:
+	@test -f ../cek-auto-suite/repro_morph_shell.py || { \
+	  echo "missing ../cek-auto-suite/repro_morph_shell.py"; \
+	  echo "clone https://github.com/bitplorer/cek-auto-suite next to ux-compose"; \
+	  exit 2; }
+	python ../cek-auto-suite/repro_morph_shell.py
 
 coverage:
-	PYTHONPATH=src:. python -m pytest tests/ -q --cov=ux_compose --cov-report=term-missing
+	PYTHONPATH=src:. python -m pytest tests/ -q --cov=ux_compose --cov-report=term-missing -m "not cto_red"
 
 test314:
-	cd $(CURDIR) && PYTHONPATH=src:. $(PY314) -m pytest tests/ -q
+	cd $(CURDIR) && PYTHONPATH=src:. $(PY314) -m pytest tests/ -q -m "not cto_red"
 
 test312:
 	PYTHONPATH=src $(PY312) -m pytest \
 	  tests/test_offline.py tests/test_offline_cart.py tests/test_doctor_laws.py \
-	  tests/test_cold_isolation.py tests/test_return_algebra.py tests/test_xor_helpers.py -q
+	  tests/test_cold_isolation.py tests/test_return_algebra.py tests/test_xor_helpers.py \
+	  tests/feature -q -m "not cto_red"
 
 examples:
 	$(PY314) examples/foundation.py

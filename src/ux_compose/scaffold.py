@@ -94,7 +94,7 @@ APP_PY = dedent('''\
                 print(" ", op)
         except Exception as exc:
             print(" dispatch:", exc)
-        report = doctor([], fail=False, bundle=bundle)
+        report = doctor([], fail=False, bundle=bundle, app=app)
         print("Doctor surfaces:", report.surfaces)
         print("Doctor routes:", report.routes)
         if asgi is not None:
@@ -284,15 +284,22 @@ INPUT_CSS = dedent('''\
 ''')
 
 
-REQUIREMENTS = dedent('''\
+# Channel pin matches Makefile / CI (≥ 31a60bd — CEK adapter). VCS so
+# ``pip install -r requirements.txt`` boots Cap require without tribal pins.
+CHANNEL_VCS_PIN = "31a60bdd40a1b52aea1fd13159ad09c293c63fd6"
+
+REQUIREMENTS = dedent(f'''\
     ux-compose
-    ux-dom
     ux-behavior
     fastapi
     uvicorn[standard]
-    # Product Cap Host (optional; build(cek="require") uses it when Channel is live)
-    # cek-host>=0.1.3
-    # cek-surface>=0.1.3
+    # Product Cap Host — L2 on Python 3.13+. build(cek="require") needs these.
+    ux-channel @ git+https://github.com/bitplorer/ux-channel.git@{CHANNEL_VCS_PIN}#subdirectory=python
+    cek-host>=0.1.3
+    cek-surface>=0.1.3
+    # Document SSoT needs Python ≥3.14. Bare ux-dom is unsatisfiable on 3.13.
+    # Uncomment on 3.14:
+    # ux-dom
 ''')
 
 
@@ -330,6 +337,15 @@ README = dedent('''\
 
     ## Product path
 
+    One Product. Two Python floors — `pip install -r requirements.txt` is enough.
+
+    **Python 3.13 — L2 Cap (no Document).** Channel pin ≥ 31a60bd plus
+    `cek-host>=0.1.3` / `cek-surface>=0.1.3` boot `build(cek="require")`.
+    `document.py` stays `document = None` until ux-dom is present.
+
+    **Python 3.14 — Document SSoT.** Uncomment `ux-dom` in `requirements.txt`,
+    reinstall. Cap require is unchanged. Isolation: never import `ux_channel`.
+
     ```bash
     pip install -r requirements.txt
     uxcompose serve dev
@@ -341,10 +357,6 @@ README = dedent('''\
 
     `uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`).
     Output: `assets/static/file/css/output.css`, linked as `/css/output.css`.
-
-    Product Cap Host (optional): `pip install 'cek-host>=0.1.3' 'cek-surface>=0.1.3'`
-    plus ux-channel. `build(cek="require")` attaches it through `App.use_cek()`
-    when Channel is live — do not import `ux_channel` in product files.
 
     ## Laws
 

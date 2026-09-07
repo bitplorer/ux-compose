@@ -27,7 +27,7 @@ def test_create_app_layout(tmp_path):
     assert "asgi" in text
     assert "document=document" in text
     assert "from document import document" in text
-    assert 'cek="require"' in text or "app.use_cek(" in text
+    assert 'cek="require"' in text
     assert "import ux_channel" not in text
     assert "from ux_channel" not in text
     assert (root / "routes" / "index.py").is_file()
@@ -72,12 +72,36 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     assert "@source" in css
 
     assert "ux-compose" in req
+    assert "ux-behavior" in req
+    assert "fastapi" in req
+    assert "uvicorn" in req
+    active = [
+        ln.strip()
+        for ln in req.splitlines()
+        if ln.strip() and not ln.strip().startswith("#")
+    ]
+    assert any(ln == "ux-compose" or ln.startswith("ux-compose") for ln in active)
+    assert any("ux-behavior" in ln for ln in active)
+    assert any("fastapi" in ln for ln in active)
+    assert any(ln.startswith("uvicorn") for ln in active)
+    assert any(ln.startswith("cek-host") and ">=0.1.3" in ln for ln in active)
+    assert any(ln.startswith("cek-surface") and ">=0.1.3" in ln for ln in active)
+    assert any("ux-channel" in ln for ln in active)
+    assert any("31a60bd" in ln for ln in active), "Channel VCS pin must be ≥ 31a60bd"
+    # Bare ux-dom is unsatisfiable on 3.13; keep it commented / optional.
+    assert not any(
+        ln == "ux-dom" or ln.startswith("ux-dom==") or ln.startswith("ux-dom ")
+        for ln in active
+    )
     assert "ux-dom" in req
-    assert "cek-host>=0.1.3" in req
+    assert "3.14" in req
 
     readme = (root / "README.md").read_text(encoding="utf-8")
     assert "cek-host>=0.1.3" in readme
-    assert "use_cek" in readme or 'cek="require"' in readme or "cek=" in readme
+    assert 'cek="require"' in readme
+    assert "3.13" in readme
+    assert "3.14" in readme
+    assert "L2" in readme
 
 
 def test_create_app_isolation_and_single_document(tmp_path):
@@ -119,3 +143,39 @@ def test_create_app_discovers_root_and_hello(tmp_path):
     paths = {r.path for r in core.discover()}
     assert "/" in paths
     assert "/hello" in paths
+
+
+def _active_requirement_lines(text: str) -> list[str]:
+    return [
+        ln.strip()
+        for ln in text.splitlines()
+        if ln.strip() and not ln.strip().startswith("#")
+    ]
+
+
+def test_create_app_requirements_boot_cap_require(tmp_path):
+    """pip install -r requirements.txt must name Cap require deps, not tribal knowledge."""
+    root = create_app(tmp_path / "caps", name="caps")
+    req = (root / "requirements.txt").read_text(encoding="utf-8")
+    app_py = (root / "app.py").read_text(encoding="utf-8")
+    active = _active_requirement_lines(req)
+
+    assert 'cek="require"' in app_py
+    assert any(ln.startswith("cek-host") and ">=0.1.3" in ln for ln in active)
+    assert any(ln.startswith("cek-surface") and ">=0.1.3" in ln for ln in active)
+    assert any("ux-channel" in ln and "31a60bd" in ln for ln in active)
+    assert "subdirectory=python" in req
+    assert any(ln.startswith("fastapi") for ln in active)
+    assert any(ln.startswith("uvicorn") for ln in active)
+    assert any("ux-compose" in ln for ln in active)
+    assert any("ux-behavior" in ln for ln in active)
+    assert not any(
+        ln == "ux-dom" or ln.startswith("ux-dom==") or ln.startswith("ux-dom ")
+        for ln in active
+    )
+    assert "ux-dom" in req
+    assert "3.14" in req
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "3.13" in readme and "3.14" in readme
+    assert "L2" in readme
+    assert 'cek="require"' in readme

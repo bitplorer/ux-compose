@@ -16,7 +16,7 @@ specialists and must **not** reimplement them.
 | Layer | Owns | Must **not** own |
 |-------|------|------------------|
 | **ux-dom** | HTML/CSS/JS trees, `Document`, serialize, pure discovery, `uxdom`, package static | Intent, Cap, Result ops, MorphState, motion IR, product CLI, Tailwind compiler, app asset layout |
-| **ux-channel** | Intent / Result / Cap / wire / peers / host runtime | HTML trees, CSS |
+| **ux-channel** | Intent / Result / Cap / wire / peers / Cap Host (cek-runtime; ≠ HTTP Product host) | HTML trees, CSS |
 | **ux-behavior** | Product behavior, Morph/Ref, `@action`, validation | Raw HTML construction, wire codecs |
 | **ux-motion** | Presence / transition plans as data (IR v1) | Product behavior, DOM construction |
 | **ux-compose** (this repo) | Author composition + product CLI (`uxcompose`: create-app, build, serve, deploy, doctor) + Tailwind compiler + **WebAssets layout** | Re-implementing Document serialize |
@@ -98,6 +98,9 @@ Cold import never pulls the wire. `App.use_channel(asgi_app=…)` is the live do
 `app.use_motion()` is the motion door. Level 1 code remains correct at L2/L3.
 
 ## Product host (Clock A)
+
+HTTP Product host (Clock A / ADR 0002) ≠ CEK Cap Host (cek-runtime via
+`wire/cek`; channel ADR 0009 / 0010).
 
 Read [docs/reference/host.md](docs/reference/host.md) **before** changing
 `routing/`, `build.py`, `scaffold.py`, or `wire/boot.py`. Decision:

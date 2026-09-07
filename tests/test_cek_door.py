@@ -40,6 +40,15 @@ def _assert_product_cap(caps, registry=None) -> None:
     assert ssot == "cek-runtime" or flag is True or honest is True
 
 
+def _assert_off_is_honest(app) -> None:
+    """Forbidden: _cek=='off' while registry._caps is CekHostCapService / cek-runtime."""
+    if app._cek != "off":
+        return
+    caps = _registry_caps(app)
+    assert type(caps).__name__ != "CekHostCapService"
+    assert getattr(caps, "kernel_ssot", None) != "cek-runtime"
+
+
 def test_use_cek_and_attach_cek_default_mode_is_require():
     from ux_compose.app import App
     from ux_compose.wire.cek import attach_cek
@@ -49,11 +58,60 @@ def test_use_cek_and_attach_cek_default_mode_is_require():
 
 
 @needs_channel
-def test_use_cek_off_is_noop():
+def test_use_cek_off_refuses_after_live_cap_host():
+    """Post-boot off must refuse (or not lie): never _cek=='off' + CekHostCapService."""
+    from ux_compose import App
+    from ux_compose.wire.cek import attach_cek
+
+    app = App.boot("T", strict_caps=False).use_channel()
+    if app._channel is None:
+        pytest.skip("Channel did not boot")
+    caps = _registry_caps(app)
+    live = type(caps).__name__ == "CekHostCapService" or getattr(caps, "kernel_ssot", None) == "cek-runtime"
+    if not live and HAS_CEK:
+        app.use_cek()
+        live = True
+    if live:
+        with pytest.raises(RuntimeError, match=r'ChannelConfig\(cek="off"\)'):
+            app.use_cek(mode="off")
+        with pytest.raises(RuntimeError, match=r'ChannelConfig\(cek="off"\)'):
+            attach_cek(app._channel, mode="off")
+        assert app._cek != "off"
+        _assert_product_cap(_registry_caps(app), app._channel.registry)
+        _assert_off_is_honest(app)
+    else:
+        app.use_cek(mode="off")
+        assert app._cek == "off"
+        _assert_off_is_honest(app)
+
+
+@needs_channel
+def test_use_cek_off_does_not_autoboot_then_label_off():
+    """off must not auto use_channel() into default require then label off."""
     from ux_compose import App
 
-    app = App.boot("T", strict_caps=False).use_channel().use_cek(mode="off")
-    assert app._cek in (None, "off")
+    app = App.boot("T", strict_caps=False)
+    assert app._channel is None
+    app.use_cek(mode="off")
+    assert app._channel is None
+    assert app._cek == "off"
+    _assert_off_is_honest(app)
+
+
+@needs_channel
+def test_use_cek_off_ok_when_channel_booted_off():
+    """Honest off: ChannelConfig(cek='off') at boot, then use_cek(off)."""
+    from ux_compose import App
+    from ux_channel import ChannelConfig
+
+    app = App.boot("T", strict_caps=False)
+    app.use_channel(config=ChannelConfig.development(cek="off"))
+    if app._channel is None:
+        pytest.skip("Channel did not boot")
+    app.use_cek(mode="off")
+    assert app._cek == "off"
+    _assert_off_is_honest(app)
+    assert type(_registry_caps(app)).__name__ != "CekHostCapService"
 
 
 @needs_channel

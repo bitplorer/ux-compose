@@ -63,6 +63,14 @@ wrap trees and pass everything else through. Compose must keep the L1 HTML
 - GET wrap is the author Document (`wrap=`). Synthesized Document is
   mount-only. Motion runtimes are instances.
 
+## Not Cap Host
+
+This ADR is the **HTTP Product host** (Clock A: page GET). It is not the
+**CEK Cap Host** (cek-runtime via `wire/cek`):
+
+- [ux-channel ADR 0009 — Channel Cap machine is cek-runtime Host](https://github.com/bitplorer/ux-channel/blob/main/SPEC/architecture/ADR/0009-channel-cek-runtime-host-cut2.md)
+- [ux-channel ADR 0010 — Default decide is cek-runtime Host](https://github.com/bitplorer/ux-channel/blob/main/SPEC/architecture/ADR/0010-channel-cek-runtime-default-cut3.md)
+
 ## Non-goals
 
 - Content negotiation (`Accept: application/json` on GET /hello).

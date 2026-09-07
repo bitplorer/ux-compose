@@ -32,6 +32,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI py3.12 offline-shim job and Makefile `test312`.
 - Optional `_LocalBehavior` / specialist soft-import shims on the product path.
 - `build()` / `surfaces` auto-attach of live-client when no Document is given.
+- Parallel HTML-string helpers (`html_escape` / `html_attrs`) and dict-Op
+  fallbacks. Morph HTML serializes through ux-dom; Ops are ux-behavior.
+- Optional motion swallows (`optional_*` returning None / `scene is None`).
+  Those names still exist; they import and use ux-motion.
 
 ### Fixed
 

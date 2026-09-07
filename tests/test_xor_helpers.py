@@ -14,6 +14,9 @@ def test_update_with_emits_morph_then_plan():
     class C(Component):
         id = "panel"
 
+        def render(self):
+            return '<div id="panel"></div>'
+
     ops = update_with(C(), {"v": "1", "id": "fade"}, extra_ops=[notify("done")])
     assert len(ops) >= 2
     # First should be morph (or real update Op)

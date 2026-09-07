@@ -77,8 +77,9 @@ def attach_channel(
         from ux_channel import Channel, ChannelConfig  # Isolation: only here
     except ImportError as e:
         raise ImportError(
-            "ux-channel is not installed. Level 2 (live Caps) requires: "
-            "pip install ux-channel"
+            "ux-channel is required (Python ≥3.14). "
+            "ux-compose hard-depends on the pinned specialist stack. "
+            "Isolation: attach only through App.use_channel (wire/)."
         ) from e
 
     behavior = getattr(app, "_behavior", None)
@@ -164,7 +165,8 @@ def attach_motion(document: Any = None) -> tuple[Any, Any]:
         from ux_motion import Motion, MotionChannel  # Isolation: only here
     except ImportError as e:
         raise ImportError(
-            "ux-motion is not installed. Level 3 requires: pip install ux-motion"
+            "ux-motion is required (Python ≥3.14). "
+            "ux-compose hard-depends on the pinned specialist stack."
         ) from e
     motion = _as_runtime(Motion)
     channel = _as_runtime(MotionChannel)
@@ -188,18 +190,17 @@ def attach_document_runtimes(
     """
     try:
         from ux_dom.runtime import XElement, Csp  # type: ignore
-    except ImportError:
-        # Dom not installed — caller handles
-        return document
+    except ImportError as exc:
+        raise ImportError(
+            "ux-dom is required (Python ≥3.14). "
+            "ux-compose hard-depends on the pinned specialist stack."
+        ) from exc
 
     runtimes: list[Any] = [XElement(), Csp.auto()]
     if htmx:
-        try:
-            from ux_dom.runtime import Htmx  # type: ignore
+        from ux_dom.runtime import Htmx  # type: ignore
 
-            runtimes.insert(1, Htmx())
-        except ImportError:
-            pass
+        runtimes.insert(1, Htmx())
     if motion:
         motion_rt, channel_rt = attach_motion()
         runtimes.extend([motion_rt, channel_rt])

@@ -36,6 +36,8 @@ from apps.atelier_studio.chrome import (
 )
 from examples.catalog import PATTERNS, all_components, by_slug
 from apps.atelier_shop.shop import catalog_grid
+from ux_dom import Document
+from ux_dom.runtime import XElement, Htmx
 
 try:
     from fastapi import FastAPI, Request
@@ -44,14 +46,6 @@ try:
 except ImportError:  # pragma: no cover
     HAS_FASTAPI = False
     FastAPI = None  # type: ignore
-
-try:
-    from ux_dom import Document
-    from ux_dom.runtime import XElement, Htmx
-    HAS_DOM = True
-except ImportError:
-    HAS_DOM = False
-    Document = None  # type: ignore
 
 
 _IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -167,8 +161,6 @@ def _parse_action_args(ctype: str, raw: bytes) -> dict[str, Any]:
 
 
 def _document():
-    if not HAS_DOM:
-        return None
     return Document(head=[], body=[], ensure_csrf_token=False).use(
         XElement(),
         Htmx(),

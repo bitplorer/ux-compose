@@ -11,7 +11,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -57,9 +56,7 @@ class Toasts(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def push(self, message: str = "Saved"):
@@ -97,9 +94,7 @@ class Confirm(Component):
                 p("Destroying a row is an authority event.", className="lede"),
                 act("confirm.ask", "Delete the oak board…", kind="secondary", id="oak-02"),
             )
-            if HAS_DOM:
-                return div(*kids, id=self.id, className="widget", data_open="0")
-            return f'<div id="{self.id}" hidden></div>'
+            return div(*kids, id=self.id, className="widget", data_open="0")
         kids = (
             header(h2("Delete this piece?")),
             p(f"Target {self.target or 'row'}. This cannot be undone.", className="lede"),
@@ -109,15 +104,13 @@ class Confirm(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(
-                *kids,
-                id=self.id,
-                className="widget dialog",
-                role="dialog",
-                data_open="1",
-            )
-        return f'<div id="{self.id}" role="dialog"></div>'
+        return div(
+            *kids,
+            id=self.id,
+            className="widget dialog",
+            role="dialog",
+            data_open="1",
+        )
 
     @action(caps=())
     def ask(self, id: str = ""):
@@ -170,12 +163,10 @@ class Lightbox(Component):
             ),
             stage,
         )
-        if HAS_DOM:
-            attrs = {"id": self.id, "className": "widget"}
-            if self.open:
-                attrs["data_channel_on"] = "swipe.horizontal threshold:48"
-            return div(*kids, **attrs)
-        return f'<div id="{self.id}"></div>'
+        attrs = {"id": self.id, "className": "widget"}
+        if self.open:
+            attrs["data_channel_on"] = "swipe.horizontal threshold:48"
+        return div(*kids, **attrs)
 
     @action(caps=())
     def open_box(self, index: str = "0"):
@@ -249,9 +240,7 @@ class Palette(Component):
             ),
             finder,
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def open_pal(self):
@@ -290,9 +279,7 @@ class Banner(Component):
                 p("A one-shot flag. Not a second Document.", className="lede"),
                 act("banner.dismiss", "Dismiss", kind="text"),
             )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def dismiss(self):

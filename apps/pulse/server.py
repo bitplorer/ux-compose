@@ -26,9 +26,10 @@ from ux_compose import (
     meta,
     link,
     script,
-    HAS_DOM as COMPOSE_HAS_DOM,
 )
 from ux_compose.helpers import _serialize_tree
+from ux_dom import Document
+from ux_dom.runtime import XElement, Htmx
 
 PACKAGE = Path(__file__).resolve().parent
 STATIC = PACKAGE / "static"
@@ -41,14 +42,6 @@ try:
 except ImportError:  # pragma: no cover
     HAS_FASTAPI = False
     FastAPI = None  # type: ignore
-
-try:
-    from ux_dom import Document
-    from ux_dom.runtime import XElement, Htmx
-    HAS_DOM = True
-except ImportError:
-    HAS_DOM = False
-    Document = None  # type: ignore
 
 
 _IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -115,8 +108,6 @@ async def _parse_action_args(request: Any) -> dict[str, Any]:
 
 
 def _document(*, use_htmx: bool = False):
-    if not HAS_DOM or Document is None:
-        return None
     runtimes = [XElement()]
     if use_htmx:
         runtimes.append(Htmx())
@@ -200,16 +191,9 @@ def build():
     asgi = FastAPI(title="Pulse") if HAS_FASTAPI else None
 
     app = App.boot("Pulse", level="auto")
-    if document is not None:
-        app.use_dom(document)
-    try:
-        app.use_channel(asgi_app=asgi) if asgi is not None else app.use_channel()
-    except Exception:
-        pass
-    try:
-        app.use_motion()
-    except Exception:
-        pass
+    app.use_dom(document)
+    app.use_channel(asgi_app=asgi) if asgi is not None else app.use_channel()
+    app.use_motion()
 
     bundle = app.mount(
         PACKAGE,
@@ -298,7 +282,7 @@ def build():
             "label": getattr(app.level, "label", ""),
             "surfaces": list(getattr(app, "_pulse_registry", {}).keys()),
             "fastapi": True,
-            "dom": HAS_DOM,
+            "dom": True,
         }
 
     return app, asgi, bundle
@@ -313,7 +297,7 @@ if __name__ == "__main__":
     print("  Level:", int(UX.level), getattr(UX.level, "label", ""))
     print("  Surfaces:", list(getattr(UX, "_pulse_registry", {}).keys()))
     print("  Routes:", [r.get("path") for r in (BUNDLE.route_table or [])])
-    print("  Document:", HAS_DOM)
+    print("  Document:", True)
     print("  FastAPI:", asgi is not None)
     report = doctor([], fail=False, bundle=BUNDLE)
     print("  Doctor surfaces:", report.surfaces)

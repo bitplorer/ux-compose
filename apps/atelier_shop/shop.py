@@ -15,7 +15,6 @@ from ux_compose import (
     notify,
     update_with,
     control,
-    HAS_DOM,
     div,
     span,
     h2,
@@ -96,8 +95,6 @@ def _product(sku: str) -> dict[str, Any]:
 
 def _mark(kind: str):
     """Sparse monochrome SVG — no emoji."""
-    if not HAS_DOM:
-        return ""
     if kind == "board":
         return svg(
             rect(x="8", y="18", width="48", height="28", rx="4", fill="none", stroke="currentColor", stroke_width="1.5"),

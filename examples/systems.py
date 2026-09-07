@@ -9,7 +9,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -55,18 +54,15 @@ class Chat(Component):
                 data_ux="1",
                 data_target="#stage",
                 className="stack",
-            )
-            if HAS_DOM
-            else p(""),
+            ),
+
             div(
                 act("chat.peer_type", "Peer types", kind="ghost"),
                 act("chat.peer_done", "Peer sends", kind="secondary"),
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def send(self, text: str = ""):
@@ -119,9 +115,7 @@ class NotifyCenter(Component):
             ),
             panel,
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_unread=str(n))
-        return f'<div id="{self.id}">{n}</div>'
+        return div(*kids, id=self.id, className="widget", data_unread=str(n))
 
     @action(caps=())
     def toggle(self):
@@ -170,9 +164,7 @@ class Tree(Component):
             ul(*items, className="bag-lines"),
             p(f"Selected {self.selected}", className="muted"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def toggle(self, id: str = ""):
@@ -209,9 +201,7 @@ class Skeleton(Component):
                 p(str(self.body or "Four objects. Linen, oak, wool, clay."), className="lede"),
                 act("skeleton.reload", "Reload", kind="ghost"),
             )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def arrive(self):
@@ -250,9 +240,7 @@ class Consent(Component):
                     className="row-actions",
                 ),
             )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{self.choice}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def decide(self, value: str = "allow"):
@@ -288,9 +276,7 @@ class Theme(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{self.locale}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def set_locale(self, locale: str = "en"):
@@ -319,9 +305,7 @@ class Stepper(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{q}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def inc(self):
@@ -358,9 +342,7 @@ class Rating(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{cur}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def set(self, value: str = "three"):
@@ -395,9 +377,7 @@ class Chips(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def add(self, tag: str = ""):
@@ -429,7 +409,7 @@ class InlineEdit(Component):
                 data_ux="1",
                 data_target="#stage",
                 className="stack",
-            ) if HAS_DOM else p("")
+            )
         else:
             body = div(
                 p(str(self.text or ""), className="lede"),
@@ -442,9 +422,7 @@ class InlineEdit(Component):
             ),
             body,
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def edit(self):

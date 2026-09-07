@@ -21,7 +21,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -70,9 +69,7 @@ class MotionBox(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_pose=pose)
-        return f'<div id="{self.id}">{pose}</div>'
+        return div(*kids, id=self.id, className="widget", data_pose=pose)
 
     @action(caps=())
     def hop(self):
@@ -118,9 +115,7 @@ class ShareSeat(Component):
                 kind="primary",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{self.place}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def fly(self):

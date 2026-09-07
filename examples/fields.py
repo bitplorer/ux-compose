@@ -26,7 +26,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -95,9 +94,7 @@ class ChoiceGroup(Component):
             p("Extras", className="kicker"),
             div(*checks, className="row-actions"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{finish}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def set_finish(self, key: str = "oil"):
@@ -155,17 +152,14 @@ class Combobox(Component):
                 data_ux="1",
                 data_target="#stage",
                 className="stack",
-            )
-            if HAS_DOM
-            else p(""),
+            ),
+
             ul(*rows, className="palette-list")
             if self.open and rows
             else (p("No matches.", className="muted") if self.open else span("", className="sr")),
             act("combobox.clear", "Clear", kind="text"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{val}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def type(self, q: str = ""):
@@ -223,9 +217,7 @@ class DateField(Component):
             p(f"ISO on the Host plane · {self.iso}", className="lede"),
             div(*segs, className="seg"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_window=win)
-        return f'<div id="{self.id}">{win}</div>'
+        return div(*kids, id=self.id, className="widget", data_window=win)
 
     @action(caps=())
     def set_window(self, key: str = "today"):
@@ -273,9 +265,7 @@ class FileDrop(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget file-drop")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget file-drop")
 
     @action(caps=())
     def add(self, name: str = ""):
@@ -331,9 +321,7 @@ class SliderField(Component):
             div(className=f"bar bar-{band}"),
             div(*segs, className="seg"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}">{v}</div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def set(self, n: str = "40"):
@@ -377,9 +365,8 @@ class OtpGate(Component):
                 data_ux="1",
                 data_target="#stage",
                 className="stack",
-            )
-            if HAS_DOM
-            else p(""),
+            ),
+
             div(
                 act("otpgate.type", "Fill 2468", kind="ghost", code="2468"),
                 act("otpgate.verify", "Verify (Cap)", kind="primary"),
@@ -389,9 +376,7 @@ class OtpGate(Component):
             p(str(self.error), className="error", role="alert") if self.error else p(""),
             status("Gate open.", kind="ok") if self.ok else p(""),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def type(self, code: str = ""):
@@ -448,17 +433,14 @@ class PasswordField(Component):
                 data_ux="1",
                 data_target="#stage",
                 className="stack",
-            )
-            if HAS_DOM
-            else p(""),
+            ),
+
             div(
                 act("password.toggle", "Hide" if shown else "Reveal", kind="ghost"),
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def set(self, secret: str = ""):
@@ -503,18 +485,15 @@ class Autosave(Component):
                 data_ux="1",
                 data_target="#stage",
                 className="stack",
-            )
-            if HAS_DOM
-            else p(""),
+            ),
+
             div(
                 act("autosave.type", "Edit a line", kind="ghost", text="Held until you place."),
                 act("autosave.save", "Save now", kind="primary"),
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_unsaved="1" if self.unsaved else "0")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget", data_unsaved="1" if self.unsaved else "0")
 
     @action(caps=())
     def type(self, text: str = ""):
@@ -563,9 +542,8 @@ class LimitedNote(Component):
                 data_ux="1",
                 data_target="#stage",
                 className="stack",
-            )
-            if HAS_DOM
-            else p(""),
+            ),
+
             div(
                 act("limited.type", "Short line", kind="ghost", text="Please oil the board."),
                 act("limited.type", "Over-limit", kind="ghost", text="x" * 90),
@@ -573,9 +551,7 @@ class LimitedNote(Component):
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def type(self, text: str = ""):

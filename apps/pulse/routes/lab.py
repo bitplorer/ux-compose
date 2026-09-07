@@ -2,12 +2,7 @@
 from __future__ import annotations
 
 from ux_compose import Component, MorphState, RefState, action, control, notify, update_with
-
-try:
-    from ux_compose import div, span, h1, h3, p, button, section, HAS_DOM
-except Exception:
-    HAS_DOM = False
-    div = span = h1 = h3 = p = button = section = None  # type: ignore
+from ux_compose import div, span, h1, h3, p, button, section
 
 
 class Lab(Component):
@@ -22,8 +17,6 @@ class Lab(Component):
     toast = RefState("")
 
     def render(self):
-        if not (HAS_DOM and div is not None):
-            return f'<section id="lab">lab tab={self.tab}</section>'
 
         tabs = []
         for key, label in (("counter", "Counter"), ("form", "Form"), ("toast", "Toast")):

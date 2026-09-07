@@ -273,6 +273,9 @@ def test_intent_without_cap_fails_minted_cap_from_control_ok(_restore_live_chann
         id = "hello"
         n = MorphState(0)
 
+        def render(self):
+            return f'<div id="hello">{self.n}</div>'
+
         @action(caps=())
         def inc(self):
             self.n = int(self.n or 0) + 1

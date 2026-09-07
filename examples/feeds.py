@@ -16,7 +16,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -85,14 +84,12 @@ class Carousel(Component):
             ),
             div(*dots, className="seg"),
         )
-        if HAS_DOM:
-            return div(
-                *kids,
-                id=self.id,
-                className="widget",
-                data_channel_on="swipe.horizontal threshold:48",
-            )
-        return f'<div id="{self.id}">{sku}</div>'
+        return div(
+            *kids,
+            id=self.id,
+            className="widget",
+            data_channel_on="swipe.horizontal threshold:48",
+        )
 
     @action(caps=())
     def next(self):
@@ -168,18 +165,15 @@ class Comments(Component):
                 data_ux="1",
                 data_target="#stage",
                 className="stack",
-            )
-            if HAS_DOM
-            else p(""),
+            ),
+
             div(
                 act("comments.post", "Post a stand-in", kind="ghost", text="Ship to the house."),
                 act("comments.moderate", "Hide last (Cap)", kind="text"),
                 className="row-actions",
             ),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def reply(self, key: str = ""):
@@ -249,9 +243,7 @@ class Timeline(Component):
             ),
             ul(*lis, className="bag-lines"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def filter(self, key: str = "all"):
@@ -303,9 +295,7 @@ class EmptyRetry(Component):
             ),
             *inner,
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget", data_phase=phase)
-        return f'<div id="{self.id}">{phase}</div>'
+        return div(*kids, id=self.id, className="widget", data_phase=phase)
 
     @action(caps=())
     def load(self):
@@ -366,9 +356,7 @@ class ReorderList(Component):
             p("Moving a row is public. Archiving it would take a Cap.", className="lede"),
             ul(*lis, className="bag-lines"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     def _move(self, sku: str, delta: int):
         rows = list(self.order or ())
@@ -418,9 +406,7 @@ class ActivityFeed(Component):
             ul(*lis, className="hit-list"),
             more,
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def more(self):

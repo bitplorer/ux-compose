@@ -2,12 +2,7 @@
 from __future__ import annotations
 
 from ux_compose import Component, MorphState, action, control, update_with, doctor
-
-try:
-    from ux_compose import div, span, h1, h3, p, button, section, article, ul, li, HAS_DOM
-except Exception:
-    HAS_DOM = False
-    div = span = h1 = h3 = p = button = section = article = ul = li = None  # type: ignore
+from ux_compose import div, span, h1, h3, p, button, section, article, ul, li
 
 
 class Settings(Component):
@@ -17,8 +12,6 @@ class Settings(Component):
     def render(self):
         report = doctor([], fail=False)
         caps = report.capabilities or {}
-        if not (HAS_DOM and div is not None):
-            return f'<section id="settings">L{report.level_available}</section>'
 
         rows = [
             li(

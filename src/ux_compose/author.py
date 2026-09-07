@@ -11,7 +11,7 @@ from typing import Any, Optional
 
 from ux_compose.dom import button, form, input_, span
 from ux_compose.helpers import control
-from ux_motion import scene, rise, fade, slide  # type: ignore
+from ux_motion import scene, rise, fade, slide, tokens  # type: ignore
 
 
 def mark_dirty(comp: Any, *, on: str = "tick", off: str = "tock") -> None:
@@ -21,30 +21,20 @@ def mark_dirty(comp: Any, *, on: str = "tick", off: str = "tock") -> None:
 
 
 def optional_plan(name: str, target: str, *, ms: int = 140):
-    try:
-        return scene(name).enter(target, rise.enter(ms=ms))
-    except Exception:
-        return None
+    """Motion IR via ux-motion. Public name kept; not an optional fork."""
+    return scene(name).enter(target, rise.enter(ms=ms))
 
 
 def optional_fade(name: str, target: str, *, ms: int = 120):
-    try:
-        return scene(name).enter(target, fade.enter(ms=ms))
-    except Exception:
-        return None
+    """Motion IR via ux-motion. Public name kept; not an optional fork."""
+    return scene(name).enter(target, fade.enter(ms=ms))
 
 
 def optional_slide(name: str, target: str, *, direction: str = "next", ms: int = 180):
-    try:
-        from ux_motion import tokens as _tok
-        dist = float(_tok.dist("md"))
-    except Exception:
-        dist = 24.0
+    """Motion IR via ux-motion. Public name kept; not an optional fork."""
+    dist = float(tokens.dist("md"))
     x = -dist if direction == "prev" else dist
-    try:
-        return scene(name).enter(target, slide.enter(x=x, ms=ms))
-    except Exception:
-        return None
+    return scene(name).enter(target, slide.enter(x=x, ms=ms))
 
 
 def act(

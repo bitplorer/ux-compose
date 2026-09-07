@@ -9,7 +9,6 @@ Run:
 from __future__ import annotations
 
 from ux_compose import (
-    HAS_DOM,
     App,
     Component,
     MorphState,
@@ -81,9 +80,7 @@ class DataTable(Component):
             ul(*body, className="bag-lines"),
             p(f"{len(sel)} selected", className="muted"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def sort_by(self, key: str = "name"):
@@ -149,9 +146,7 @@ class Kanban(Component):
             ),
             div(*cols, className="kanban"),
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="widget")
-        return f'<div id="{self.id}"></div>'
+        return div(*kids, id=self.id, className="widget")
 
     @action(caps=())
     def move(self, sku: str = "", to: str = "make"):

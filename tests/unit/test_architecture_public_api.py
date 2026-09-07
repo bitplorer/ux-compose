@@ -1,4 +1,4 @@
-"""Capability baseline: public names are only added, never removed."""
+"""Capability baseline: required names stay; nomen-cut helpers replace maybe_*/tick."""
 from __future__ import annotations
 
 import ux_compose as ux
@@ -48,6 +48,11 @@ def test_author_helpers_are_public_and_match_common():
 
     assert ux.act is common_act
     assert ux.mark_dirty is common_mark_dirty
+
+
+def test_nomen_cut_drops_maybe_and_tick_names():
+    leftover = {"tick", "maybe_plan", "maybe_fade", "maybe_slide"} & set(ux.__all__)
+    assert not leftover, leftover
 
 
 def test_common_keeps_scene_rise_names():

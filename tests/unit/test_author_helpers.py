@@ -30,3 +30,11 @@ def test_field_and_status_offline_strings():
     st = s if isinstance(s, str) else str(s)
     assert "oak" in ft
     assert "saved" in st
+
+
+def test_stepper_finish_cap_is_stepper_finish():
+    from ux_compose.kit.stepper import Stepper
+
+    caps = tuple(getattr(Stepper.finish, "_ux_behavior_caps", ()) or getattr(Stepper.finish, "_ux_caps", ()) or ())
+    assert caps == ("stepper.finish",)
+    assert "flow.finish" not in caps

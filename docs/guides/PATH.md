@@ -108,6 +108,7 @@ uxcompose build
 - `render()` returns a **ux-dom tag tree** with Tailwind `className`.
 - `@action(caps=())` is public. Non-empty caps need a live Cap (or fail closed).
 - `control("hello.inc")` stamps `data-ux-action` and `data-channel-action` (+ args) on the button.
+- `control("hello.pulse")` is the gated twin: `@action(caps=("pulse",))` fail-closes without a minted Cap.
 - `update_with(self, extra_ops=[notify(...)])` morphs live `render()` HTML (XOR-safe).
 
 ```python
@@ -123,38 +124,49 @@ except Exception:
 class Hello(Component):
     id = "hello"
     n = MorphState(0)
+    pulses = MorphState(0)
 
     def render(self):
         n = int(self.n or 0)
-        attrs = control("hello.inc")
+        pulses = int(self.pulses or 0)
+        inc_attrs = control("hello.inc")
+        pulse_attrs = control("hello.pulse")
         if HAS_DOM and div is not None:
+            btn = (
+                "rounded-full bg-stone-900 text-stone-50 "
+                "px-4 py-2 text-sm font-medium hover:bg-stone-800"
+            )
             return div(
                 span(str(n), className="text-2xl font-semibold tabular-nums"),
-                button(
-                    "+1",
-                    type="button",
-                    className=(
-                        "rounded-full bg-stone-900 text-stone-50 "
-                        "px-4 py-2 text-sm font-medium hover:bg-stone-800"
-                    ),
-                    **attrs,
-                ),
+                button("+1", type="button", className=btn, **inc_attrs),
+                span(str(pulses), className="text-2xl font-semibold tabular-nums"),
+                button("pulse", type="button", className=btn, **pulse_attrs),
                 id=self.id,
                 className=(
                     "flex items-center gap-3 rounded-2xl "
                     "border border-stone-200 bg-white p-6 shadow-sm"
                 ),
             )
-        attr_str = " ".join(f'{k}="{v}"' for k, v in attrs.items())
+        inc_str = " ".join(f'{k}="{v}"' for k, v in inc_attrs.items())
+        pulse_str = " ".join(f'{k}="{v}"' for k, v in pulse_attrs.items())
         return (
-            f'<div id="hello"><span>{n}</span>'
-            f"<button {attr_str}>+1</button></div>"
+            f'<div id="hello" class="flex items-center gap-3">'
+            f"<span>{n}</span>"
+            f"<button {inc_str}>+1</button>"
+            f"<span>{pulses}</span>"
+            f"<button {pulse_str}>pulse</button>"
+            f"</div>"
         )
 
     @action(caps=())
     def inc(self):
         self.n = int(self.n or 0) + 1
         return update_with(self, extra_ops=[notify("incremented")])
+
+    @action(caps=("pulse",))
+    def pulse(self):
+        self.pulses = int(self.pulses or 0) + 1
+        return update_with(self, extra_ops=[notify("pulsed")])
 ```
 
 Page-unit law: `routes/hello.py` exports class `Hello`. The stem matches the

@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose.helpers import control
 from ux_compose.doctor import scan_isolation
+from ux_compose.scaffold import ROUTES_HELLO_PY, create_app
 
 HAS_CHANNEL = importlib.util.find_spec("ux_channel") is not None
 HAS_BEHAVIOR = importlib.util.find_spec("ux_behavior") is not None
@@ -178,4 +179,128 @@ def test_intent_without_cap_fails_closed_for_caps_required_action():
     assert attrs["data-channel-action"] == "cart.checkout"
 
     ok = app.submit_intent("cart.checkout", cap=cap, args={})
+    assert getattr(ok, "ok", True) is True
+
+
+def _load_scaffold_hello(root: Path):
+    path = root / "routes" / "hello.py"
+    spec = importlib.util.spec_from_file_location("cto_hello_pulse", path)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _hello_html(mod, *, force_html: bool = False) -> str:
+    if force_html:
+        mod.HAS_DOM = False
+    tree = mod.Hello().render()
+    if not isinstance(tree, str):
+        from ux_compose.helpers import _serialize_tree
+
+        return _serialize_tree(tree)
+    return tree
+
+
+def _refused_unauthorized(result) -> bool:
+    blob = (
+        str(getattr(result, "error", None) or "")
+        + " "
+        + str(getattr(result, "reason", None) or "")
+        + " "
+        + str(result)
+    ).lower()
+    return (
+        getattr(result, "ok", None) is False
+        and (
+            "unauthor" in blob
+            or "cap" in blob
+            or "authority" in blob
+            or "permission" in blob
+        )
+    )
+
+
+def test_scaffold_hello_source_has_pulse_cap_control():
+    """create-app hello teaches gated pulse without importing ux_channel."""
+    src = ROUTES_HELLO_PY
+    assert "pulses = MorphState" in src
+    assert '@action(caps=("pulse",))' in src
+    assert 'control("hello.pulse")' in src
+    assert "import ux_channel" not in src
+    assert "from ux_channel" not in src
+
+
+def test_scaffold_hello_render_mints_pulse_cap_attrs(tmp_path):
+    """Cap mint attrs present for hello.pulse on both render paths."""
+    from ux_compose.wire.caps import register_live_channel
+
+    root = create_app(tmp_path / "mint", name="mint", level=1, host="asgi")
+    mod = _load_scaffold_hello(root)
+    ch = _FakeChannel(cap="tok.pulse.mint")
+    register_live_channel(ch)
+    try:
+        live = _hello_html(mod)
+        html = _hello_html(mod, force_html=True)
+    finally:
+        register_live_channel(None)
+    for blob in (live, html):
+        assert 'data-channel-action="hello.pulse"' in blob
+        assert 'data-ux-action="hello.pulse"' in blob
+        assert "data-channel-cap" in blob
+        assert "tok.pulse.mint" in blob
+
+
+def test_scaffold_hello_pulse_dispatch_fail_closed_without_cap(tmp_path):
+    """Offline strict_caps: hello.pulse refuses; public hello.inc still dispatches."""
+    from ux_compose import App
+
+    root = create_app(tmp_path / "strict", name="strict", level=1, host="asgi")
+    mod = _load_scaffold_hello(root)
+    app = App.boot("HelloPulse", strict_caps=True).use_behavior()
+    app.add(mod.Hello)
+    ops = app.dispatch("hello.inc")
+    assert ops, "public hello.inc must still dispatch"
+    raised = False
+    try:
+        app.dispatch("hello.pulse")
+    except Exception as exc:
+        blob = type(exc).__name__ + " " + str(exc)
+        raised = (
+            "Cap" in blob
+            or "Authority" in blob
+            or "Permission" in blob
+            or "cap" in blob.lower()
+        )
+    assert raised, "hello.pulse dispatch must fail closed without Cap"
+
+
+@pytest.mark.skipif(not (HAS_CHANNEL and HAS_BEHAVIOR), reason="ux-channel + ux-behavior")
+def test_scaffold_hello_pulse_intent_without_cap_unauthorized_mint_ok(tmp_path):
+    """Live Cap Host: hello.pulse Intent without cap is unauthorized; minted cap is ok."""
+    from ux_compose import App
+    from ux_compose.helpers import control as live_control
+    from ux_compose.wire.caps import register_live_channel
+
+    root = create_app(tmp_path / "live", name="live", level=1, host="asgi")
+    mod = _load_scaffold_hello(root)
+    app = App.boot("HelloPulse", strict_caps=True)
+    app.add(mod.Hello)
+    app.use_channel()
+    if app._channel is None:
+        pytest.skip("Channel did not boot")
+    register_live_channel(app._channel)
+
+    refused = app.submit_intent("hello.pulse", args={})
+    assert _refused_unauthorized(refused), (
+        f"Intent without cap must be unauthorized, got {refused!r}"
+    )
+
+    attrs = live_control("hello.pulse")
+    cap = attrs.get("data-channel-cap")
+    assert isinstance(cap, str) and cap.strip(), attrs
+    assert attrs["data-channel-action"] == "hello.pulse"
+    assert attrs["data-ux-action"] == "hello.pulse"
+
+    ok = app.submit_intent("hello.pulse", cap=cap, args={})
     assert getattr(ok, "ok", True) is True

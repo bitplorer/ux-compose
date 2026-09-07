@@ -91,7 +91,7 @@ Python < 3.14.
 | Gate | File | Expectation |
 |------|------|-------------|
 | Scaffold hello HTML fallback is a fragment (`id=hello`, no document chrome) | `test_cto_scaffold_hello_fragment.py` | GREEN |
-| `control()` mints Cap when Cap Host is live; Intent/dispatch fail-closed without cap for caps-required actions | `test_cto_cap_mint_fail_closed.py` | GREEN (live Intent skips without ux-channel) |
+| `control()` mints Cap when Cap Host is live; official `hello.pulse` Intent/dispatch fail-closed without cap | `test_cto_cap_mint_fail_closed.py` | GREEN (live Intent skips without ux-channel) |
 | Morph payload for `#X` must not embed outer shell/brand chrome | `test_cto_fragment_law.py` | GREEN (scaffold/fragment Hello + nested-shell `cto_red`) |
 | GET `/` `/hello` CSS/JS presence | `test_cto_css_js_smoke.py` | GREEN source contract; ASGI GET skips without fastapi |
 

@@ -127,22 +127,31 @@ class App:
         return self
 
     def use_cek(self, *, mode: str = "require") -> "App":
-        """Attach product Cap (cek-runtime Host via Channel).
+        """Attach product Cap Host (cek-runtime via Channel).
+
+        Cap Host ≠ HTTP Product host (Clock A / ADR 0002).
 
         mode:
-          off     — no-op
+          off     — not a silent no-op after require. Refuses if Cap Host
+                    is already live; boot ChannelConfig(cek="off") instead.
+                    Does not auto use_channel() into default require then
+                    label off.
           adapt   — compare-only lab; Channel CapService remains authority
-          require — product Cap (cek-runtime Host via Channel). Default.
+          require — product Cap Host (cek-runtime via Channel). Default.
                     Unknown values resolve to require.
         """
+        resolved = (mode or "require").strip().lower()
+        is_off = resolved in ("off", "0", "false", "no")
         if self._channel is None:
+            if is_off:
+                self._cek = "off"
+                return self
             self.use_channel()
         try:
             from ux_compose.wire.cek import attach_cek
             self._cek = attach_cek(self._channel, mode=mode)
         except ImportError as exc:
-            resolved = (mode or "require").strip().lower()
-            if resolved not in ("adapt", "off", "0", "false", "no"):
+            if not is_off and resolved != "adapt":
                 raise
             self._note("use_cek", "cek_host", exc)
             self._cek = None

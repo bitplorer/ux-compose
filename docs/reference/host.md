@@ -4,6 +4,8 @@
 > Map: [INDEX.md](../INDEX.md). Decision: [adr/0002-product-host.md](../adr/0002-product-host.md).
 > Ownership: [FLOW.md](../FLOW.md) §7. How-to: [guides/HOST.md](../guides/HOST.md).
 
+HTTP Product host (Clock A) ≠ CEK Cap Host (cek-runtime via `wire/cek`).
+
 This is the fitness function for page HTTP. If code and this page disagree,
 **code wins** — then this page is updated in the same change.
 

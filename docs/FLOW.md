@@ -84,6 +84,8 @@ See [guides/CLI.md](guides/CLI.md).
 
 ## 7. Product host (Clock A)
 
+HTTP Product host (Clock A) ≠ CEK Cap Host (cek-runtime via `wire/cek`).
+
 Page GET is one pipeline. Authors never implement it. Spec:
 [reference/host.md](reference/host.md) · decision: [adr/0002-product-host.md](adr/0002-product-host.md)
 · recipes: [guides/HOST.md](guides/HOST.md).

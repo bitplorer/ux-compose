@@ -1,5 +1,8 @@
 """Optional CEK door — Isolation-safe, progressive, degrade if cek_host absent.
 
+Attaches the **Cap Host** (cek-runtime via Channel façade). That noun is
+not the HTTP Product host (Clock A / compose ADR 0002).
+
 Product code never imports cek_host / cek_surface. Authors reach this only
 through App.use_cek() or this module (wire/).
 """
@@ -8,21 +11,46 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+_OFF_ALIASES = ("off", "0", "false", "no")
+_OFF_REFUSE = (
+    'use_cek(off) cannot leave Cap Host live (CekHostCapService / '
+    'kernel_ssot="cek-runtime"). Boot ChannelConfig(cek="off") instead.'
+)
+
+
+def _cap_host_is_live(channel: Any) -> bool:
+    if channel is None:
+        return False
+    caps = getattr(getattr(channel, "registry", None), "_caps", None)
+    if caps is None:
+        return False
+    if type(caps).__name__ == "CekHostCapService":
+        return True
+    return getattr(caps, "kernel_ssot", None) == "cek-runtime"
+
 
 def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
-    """Attach CEK Cap adapter to a live Channel.
+    """Attach CEK Cap Host adapter to a live Channel.
+
+    Cap Host (cek-runtime via Channel) ≠ HTTP Product host (Clock A).
 
     mode:
-      off     — no-op
+      off     — not a silent no-op after require. Refuses if Cap Host is
+                already live; boot ChannelConfig(cek="off") instead.
+                Does not restore via apply_host_adapter (that path is not
+                a restore). Honest no-op only when classic CapService is
+                already on registry._caps.
       adapt   — compare-only lab; Channel CapService remains authority
-      require — product Cap (cek-runtime Host via Channel). Default.
+      require — product Cap Host (cek-runtime via Channel). Default.
                 Unknown values resolve to require.
 
     Returns the resolved mode string, or None when the specialist is absent
     and mode is not require (progressive degrade).
     """
     resolved = (mode or "require").strip().lower()
-    if resolved in ("off", "0", "false", "no"):
+    if resolved in _OFF_ALIASES:
+        if _cap_host_is_live(channel):
+            raise RuntimeError(_OFF_REFUSE)
         return "off"
     if resolved not in ("adapt", "require"):
         resolved = "require"

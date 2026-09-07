@@ -16,6 +16,7 @@ __all__ = [
     "scan_isolation",
     "scan_kit_product_imports",
     "scan_leftover_aliases",
+    "scan_render_chrome",
     "scan_cek_host",
 ]
 
@@ -132,6 +133,88 @@ def scan_kit_product_imports(paths: Iterable[str | Path]) -> list[str]:
                 diagnostics.append(
                     f"residual in {p}: `from {mod} import {names}`. Use `uxcompose add`."
                 )
+    return diagnostics
+
+
+_RENDER_CHROME_SKIP = ("/tests/", "/src/ux_compose/", "site-packages")
+_STUNNING_ROOT = "stunning-root"
+_NAV_CLASS = (
+    'class="nav"',
+    "class='nav'",
+    'className="nav"',
+    "className='nav'",
+)
+_BRAND_MARKS = (
+    "class=\"brand\"",
+    "class='brand'",
+    "className=\"brand\"",
+    "className='brand'",
+    "StunningCek",
+)
+
+
+def _is_routes_file(path: Path) -> bool:
+    parts = Path(_norm(path)).parts
+    return "routes" in parts and path.suffix == ".py"
+
+
+def _render_chunks(src: str) -> list[str]:
+    try:
+        tree = ast.parse(src)
+    except Exception:
+        return []
+    chunks: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "render":
+            chunk = ast.get_source_segment(src, node)
+            if not chunk:
+                lines = src.splitlines()
+                start = max(0, (node.lineno or 1) - 1)
+                end = node.end_lineno or start + 1
+                chunk = "\n".join(lines[start:end])
+            if chunk:
+                chunks.append(chunk)
+    return chunks
+
+
+def scan_render_chrome(paths: Iterable[str | Path]) -> list[str]:
+    """Teach: GET chrome belongs on ``wrap=``, not inside ``routes/*.py`` render().
+
+    Residual (not fail-closed). Flags ``stunning-root`` and ``class="nav"``
+    + brand patterns that nest chrome into morph payloads.
+    """
+    diagnostics: list[str] = []
+    teach = (
+        "GET chrome belongs on build(wrap=wrap_get_chrome) / shell.py, "
+        "not in render(). Morph payloads stay fragments."
+    )
+    for raw in paths:
+        p = Path(raw)
+        if not p.exists() or not _is_routes_file(p):
+            continue
+        sp = _norm(p)
+        if any(token in sp for token in _RENDER_CHROME_SKIP):
+            continue
+        try:
+            src = p.read_text(encoding="utf-8")
+        except Exception:
+            continue
+        for chunk in _render_chunks(src):
+            hits: list[str] = []
+            if _STUNNING_ROOT in chunk:
+                hits.append(_STUNNING_ROOT)
+            nav = any(token in chunk for token in _NAV_CLASS)
+            brand = any(token in chunk for token in _BRAND_MARKS)
+            if nav and brand:
+                hits.append('class="nav" brand')
+            elif nav:
+                hits.append('class="nav"')
+            if not hits:
+                continue
+            diagnostics.append(
+                f"residual in {p}: render() contains GET chrome ({', '.join(hits)}). {teach}"
+            )
+            break
     return diagnostics
 
 
@@ -270,6 +353,7 @@ def doctor(
         diagnostics.extend(scan_dual_document(expanded))
         diagnostics.extend(scan_kit_product_imports(expanded))
         diagnostics.extend(scan_leftover_aliases(expanded))
+        diagnostics.extend(scan_render_chrome(expanded))
     teaching = _teaching_for_level(level, caps)
     surface_ids: list[str] = []
     route_paths: list[str] = []

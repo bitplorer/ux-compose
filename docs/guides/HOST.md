@@ -33,6 +33,25 @@ swallow the fragment. If Channel is attached with `document=None`, compose
 injects the Cap live client (public `/ux-channel/static/ux-channel.js` URLs)
 so fragment GETs are not script-less. `live="null"` stays a bare fragment.
 
+Py3.13 / Document-absent brand chrome is `build(wrap=)`, not ASGI
+middleware and not chrome inside `render()` (morph would nest the brand):
+
+```python
+from functools import partial
+from ux_compose.build import build
+from ux_compose.chrome import wrap_get_chrome
+
+app, asgi, bundle = build(
+    PACKAGE,
+    document=None,
+    wrap=partial(wrap_get_chrome, brand="Acme"),
+)
+```
+
+`create-app` emits `shell.py` and passes it as `wrap=` when `document` is
+None. GET HTML may contain the brand once. `update_with` morph HTML must
+not.
+
 ```python
 from ux_compose import Component, MorphState, action, div, span, update_with
 

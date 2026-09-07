@@ -80,6 +80,7 @@ These strings are not the product path. Doctor flags them in app trees.
 | `host="batteries"` / `DirectoryRouter` | `host="auto"` |
 | Teaching `App.mount` as the product path | `build()` |
 | root `swipe.*` on an overlay card | swipe on dismiss |
+| `stunning-root` / nav brand in `render()` | `build(wrap=wrap_get_chrome)` |
 
 Doctor flags these in product trees. Deleting the aliases is a capability drop.
 

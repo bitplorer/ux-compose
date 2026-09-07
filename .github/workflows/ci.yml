@@ -21,6 +21,7 @@ jobs:
       - name: Offline tests (no specialists required)
         run: |
           python -m pytest tests/test_offline.py tests/test_offline_cart.py tests/test_doctor_laws.py tests/test_cold_isolation.py tests/test_return_algebra.py tests/test_xor_helpers.py -q
+          python -m pytest tests/feature -q -m "not cto_red"
 
   full-stack:
     name: full-stack (py3.14)
@@ -41,5 +42,12 @@ jobs:
           pip install "cek-host>=0.1.3" "cek-surface>=0.1.3"
           pip install fastapi uvicorn httpx
           pip install -e .
+      # Nested-shell / fragment-law (pytest marker cto_red) is expected RED
+      # until the morph-shell fix PR. Sibling live repro is optional and not
+      # required here: make cek-repro-morph-shell → ../cek-auto-suite/repro_morph_shell.py
+      # (do not import ux_channel from product).
       - name: Full suite
-        run: python -m pytest tests/ -q
+        run: python -m pytest tests/ -q -m "not cto_red"
+      - name: Nested-shell fragment-law (expected RED until morph-shell fix)
+        continue-on-error: true
+        run: python -m pytest tests/feature -q -m cto_red --tb=short

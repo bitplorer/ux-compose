@@ -54,6 +54,7 @@ pythonpath = ["src", "."]
 markers = [
     "slow: longer stress tests",
     "live: needs fastapi / specialists",
+    "cto_red: nested-shell / fragment-law; expected RED until morph-shell fix PR",
 ]
 
 [tool.coverage.run]

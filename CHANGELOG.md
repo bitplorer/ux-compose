@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Official `create-app` hello teaches Cap mint + fail-closed
+  `hello.pulse` (`@action(caps=("pulse",))`, `control("hello.pulse")`)
+  on both the Py3.13 HTML-string path and the Py3.14 DOM path.
+  `render()` stays a `#hello` fragment (no nav / brand / stunning-root).
 - Fragment / L1 live-client: when `build(document=None)` and Channel is
   attached, compose injects `/ux-channel/static/ux-channel.js` (+ optional
   `ux-bridge.js`) and `data-channel-endpoint="/ux-channel/action"` via

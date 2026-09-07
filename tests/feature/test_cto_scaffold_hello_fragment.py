@@ -53,6 +53,20 @@ def test_scaffold_routes_hello_py_source_is_fragment():
     assert "id=self.id" in ROUTES_HELLO_PY or 'id="hello"' in ROUTES_HELLO_PY
 
 
+def test_scaffold_hello_source_teaches_gated_pulse_without_shell_chrome():
+    """Official hello: MorphState pulses + @action(caps=('pulse',)) + control mint."""
+    src = ROUTES_HELLO_PY
+    assert "pulses = MorphState" in src
+    assert '@action(caps=("pulse",))' in src
+    assert "def pulse" in src
+    assert 'control("hello.pulse")' in src
+    assert "import ux_channel" not in src
+    assert "from ux_channel" not in src
+    _assert_hello_source_is_fragment(src, label="ROUTES_HELLO_PY pulse")
+    assert "nav(" not in src
+    assert "<nav" not in src.lower()
+
+
 def test_scaffold_html_fallback_root_is_hello_not_document():
     """L1 / Py3.13 string fallback: ``<div id="hello" …>`` — not a shell."""
     src = ROUTES_HELLO_PY
@@ -80,18 +94,37 @@ def test_create_app_emitted_hello_is_fragment(tmp_path):
     assert "from ux_channel" not in hello
 
 
+def _hello_html(mod, *, force_html: bool = False) -> str:
+    if force_html:
+        mod.HAS_DOM = False
+    tree = mod.Hello().render()
+    if not isinstance(tree, str):
+        from ux_compose.helpers import _serialize_tree
+
+        return _serialize_tree(tree)
+    return tree
+
+
 def test_create_app_hello_render_html_fallback_is_fragment(tmp_path):
     """Runtime render() on the emitted Hello: fragment root id=hello."""
     root = create_app(tmp_path / "rt", name="rt", level=1, host="asgi")
     mod = _load_hello(root)
-    hello_cls = getattr(mod, "Hello")
-    inst = hello_cls()
-    tree = inst.render()
-    if not isinstance(tree, str):
-        from ux_compose.helpers import _serialize_tree
-
-        html = _serialize_tree(tree)
-    else:
-        html = tree
+    html = _hello_html(mod)
     assert_html_is_fragment(html, target_id="hello")
     assert first_id(html) == "hello"
+
+
+def test_create_app_hello_both_paths_emit_pulse_control(tmp_path):
+    """Py3.13 HTML-string path and Py3.14 DOM path both stamp hello.pulse."""
+    root = create_app(tmp_path / "pulse_paths", name="pulse_paths", level=1, host="asgi")
+    mod = _load_hello(root)
+    live = _hello_html(mod)
+    assert "hello.pulse" in live
+    assert 'data-channel-action="hello.pulse"' in live or "hello.pulse" in live
+    assert_html_is_fragment(live, target_id="hello")
+    html = _hello_html(mod, force_html=True)
+    assert isinstance(html, str)
+    assert 'data-channel-action="hello.pulse"' in html
+    assert_html_is_fragment(html, target_id="hello")
+    assert "stunning-root" not in html
+    assert "StunningCek" not in html

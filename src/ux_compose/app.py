@@ -126,14 +126,23 @@ class App:
             self._note("use_motion", "L3", exc)
         return self
 
-    def use_cek(self, *, mode: str = "adapt") -> "App":
+    def use_cek(self, *, mode: str = "require") -> "App":
+        """Attach product Cap (cek-runtime Host via Channel).
+
+        mode:
+          off     — no-op
+          adapt   — compare-only lab; Channel CapService remains authority
+          require — product Cap (cek-runtime Host via Channel). Default.
+                    Unknown values resolve to require.
+        """
         if self._channel is None:
             self.use_channel()
         try:
             from ux_compose.wire.cek import attach_cek
             self._cek = attach_cek(self._channel, mode=mode)
         except ImportError as exc:
-            if mode == "require":
+            resolved = (mode or "require").strip().lower()
+            if resolved not in ("adapt", "off", "0", "false", "no"):
                 raise
             self._note("use_cek", "cek_host", exc)
             self._cek = None

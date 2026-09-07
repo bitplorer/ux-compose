@@ -9,22 +9,23 @@ from __future__ import annotations
 from typing import Any, Optional
 
 
-def attach_cek(channel: Any, *, mode: str = "adapt") -> Optional[str]:
+def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
     """Attach CEK Cap adapter to a live Channel.
 
     mode:
       off     — no-op
-      adapt   — Host adapter live; Channel CapService remains authority
-      require — CapService replaced by cek_host.Host (hard fail if missing)
+      adapt   — compare-only lab; Channel CapService remains authority
+      require — product Cap (cek-runtime Host via Channel). Default.
+                Unknown values resolve to require.
 
     Returns the resolved mode string, or None when the specialist is absent
     and mode is not require (progressive degrade).
     """
-    resolved = (mode or "off").strip().lower()
-    if resolved in ("", "off", "0", "false", "no"):
+    resolved = (mode or "require").strip().lower()
+    if resolved in ("off", "0", "false", "no"):
         return "off"
     if resolved not in ("adapt", "require"):
-        resolved = "adapt"
+        resolved = "require"
 
     if channel is None:
         if resolved == "require":
@@ -37,7 +38,7 @@ def attach_cek(channel: Any, *, mode: str = "adapt") -> Optional[str]:
         if resolved == "require":
             raise ImportError(
                 "CEK require mode needs ux-channel with the CEK adapter. "
-                "Stay at Channel Caps (mode='off' or omit use_cek)."
+                "Stay at Channel Caps (mode='off')."
             )
         return None
 
@@ -53,10 +54,24 @@ def attach_cek(channel: Any, *, mode: str = "adapt") -> Optional[str]:
 
     cfg = getattr(channel, "config", None)
     if cfg is not None:
+        # ChannelConfig is frozen; setattr is a no-op. replace() so the
+        # author's mode reaches apply_host_adapter (Cap decide stays there).
         try:
-            setattr(cfg, "cek", resolved)
+            from dataclasses import is_dataclass, replace
+
+            if is_dataclass(cfg) and "cek" in getattr(cfg, "__dataclass_fields__", {}):
+                cfg = replace(cfg, cek=resolved)
+                try:
+                    object.__setattr__(channel, "config", cfg)
+                except Exception:
+                    pass
+            else:
+                object.__setattr__(cfg, "cek", resolved)
         except Exception:
-            pass
+            try:
+                setattr(cfg, "cek", resolved)
+            except Exception:
+                pass
     registry = getattr(channel, "registry", None)
     if registry is None:
         if resolved == "require":

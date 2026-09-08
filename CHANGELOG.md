@@ -41,6 +41,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `ux_compose.chrome.brand_wrap(document, brand=…)` — Document-path GET
+  nav brand (`wrap(child)`). Clock A GET includes brand once; Clock B morph
+  HTML has brand=0. `Component.render()` stays a fragment. Optional
+  `uxcompose create-app --brand LABEL` wires `wrap=`. Not a
+  `wrap_get_chrome` / `shell.py` Document-absent string shell.
 - `create-app` `requirements.txt` pins the full specialist stack (CI SHAs)
   plus `cek-host>=0.1.3` / `cek-surface>=0.1.3`. Doctor fail-loud when
   `cek=require` and Channel is live but `registry._caps` is not

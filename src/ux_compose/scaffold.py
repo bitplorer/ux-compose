@@ -33,8 +33,7 @@ APP_PY = dedent('''\
 
     from ux_compose.build import build
     from ux_compose import doctor
-
-    from document import document
+    {chrome_import}from document import document
     from settings import webassets
 
     PACKAGE = Path(__file__).resolve().parent
@@ -72,7 +71,7 @@ APP_PY = dedent('''\
             base="routes",
             use_htmx=use_htmx,
             document=document,
-            wrap=document,
+            wrap={wrap_expr},
             cek="require",
         )
         asgi = _mount_css(asgi)
@@ -295,19 +294,23 @@ README = dedent('''\
 
     ```python
     from ux_compose.build import build
-    from document import document
+    {readme_chrome_import}from document import document
     app, asgi, bundle = build(
         Path(__file__).parent,
         host="{host}",   # auto | fastapi | asgi
         live="auto",     # auto | channel | null
         level={level_repr_py},
         document=document,
-        wrap=document,
+        wrap={wrap_expr},
         cek="require",   # product Cap Host via App.use_cek (skip if live=null)
     )
     ```
 
     Host is set **only** in `build(host=...)` — swap without rewriting page units.
+
+    GET brand chrome (optional): `wrap=brand_wrap(document, brand="Acme")`
+    from `ux_compose.chrome`. Keep `render()` a fragment — never put nav brand
+    inside `routes/*.py`.
 
     ## Product path
 
@@ -344,11 +347,14 @@ def create_app(
     name: str = "myapp",
     level: int | str = "auto",
     host: str = "auto",
+    brand: str | None = None,
 ) -> Path:
     """Create a progressive app with locked product path.
 
     host: ``auto`` | ``fastapi`` | ``asgi`` — gateway at composition root only.
     level: ``auto`` or 0..3 progressive floor.
+    brand: optional GET-only nav label via ``brand_wrap`` (Document path).
+      ``None`` keeps ``wrap=document``. Never embeds chrome in ``render()``.
     """
     root = Path(dest)
     root.mkdir(parents=True, exist_ok=True)
@@ -367,12 +373,24 @@ def create_app(
         level_boot = str(lv)
         level_repr_py = str(lv)
 
+    brand_label = str(brand).strip() if brand else ""
+    if brand_label:
+        chrome_import = "from ux_compose.chrome import brand_wrap\n"
+        wrap_expr = f"brand_wrap(document, brand={brand_label!r})"
+        readme_chrome_import = "from ux_compose.chrome import brand_wrap\n"
+    else:
+        chrome_import = ""
+        wrap_expr = "document"
+        readme_chrome_import = ""
+
     (root / "app.py").write_text(
         APP_PY.format(
             name=name,
             level_repr=level_repr,
             level_boot=level_boot,
             host=host_l,
+            chrome_import=chrome_import,
+            wrap_expr=wrap_expr,
         ),
         encoding="utf-8",
     )
@@ -384,6 +402,8 @@ def create_app(
             level_repr=level_repr,
             level_repr_py=level_repr_py,
             host=host_l,
+            wrap_expr=wrap_expr,
+            readme_chrome_import=readme_chrome_import,
         ),
         encoding="utf-8",
     )

@@ -185,7 +185,7 @@ def scan_render_chrome(paths: Iterable[str | Path]) -> list[str]:
     """
     diagnostics: list[str] = []
     teach = (
-        "GET chrome belongs on Document / build(wrap=document), "
+        "GET chrome belongs on Document / build(wrap=brand_wrap(document, brand=...)), "
         "not in render(). Morph payloads stay fragments."
     )
     for raw in paths:

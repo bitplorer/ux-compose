@@ -60,9 +60,19 @@ def test_helpers_use_specialist_facades_not_parallel_shims():
     assert type(plan).__name__ in {"Scene", "Plan"} or hasattr(plan, "enter") or hasattr(plan, "ops")
 
 
-def test_chrome_module_removed():
-    with pytest.raises(ModuleNotFoundError):
-        __import__("ux_compose.chrome")
+def test_chrome_is_document_path_brand_wrap_not_string_shell():
+    """GET chrome is Document-path brand_wrap. wrap_get_chrome stays gone."""
+    from ux_compose import chrome as chrome_mod
+    from ux_compose.chrome import brand_wrap
+
+    assert callable(brand_wrap)
+    assert not hasattr(chrome_mod, "wrap_get_chrome")
+    src = (ROOT / "src" / "ux_compose" / "chrome.py").read_text(encoding="utf-8")
+    assert "wrap_get_chrome" not in src
+    assert "<!DOCTYPE html>" not in src
+    assert "HAS_DOM" not in src
+    with pytest.raises(TypeError, match="callable Document"):
+        brand_wrap(None)
 
 
 def test_use_channel_fail_loud(monkeypatch):

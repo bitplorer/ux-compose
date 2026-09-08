@@ -7,7 +7,7 @@ Composition root. Imports specialists. Sole product CLI: uxcompose.
 
 Every block is meant to run (or to be the exact fragment you drop into a running app). Names are public exports. If code and this page disagree, **code wins**.
 
-**13 snippets** covering install, core usage, fail-closed errors, live/async, CLI, host payload, and the usage patterns that keep layers from leaking.
+**14 snippets** covering install, core usage, fail-closed errors, live/async, CLI, host payload, GET brand chrome, and the usage patterns that keep layers from leaking.
 
 ### Public names in this cookbook
 
@@ -25,6 +25,7 @@ Every block is meant to run (or to be the exact fragment you drop into a running
 - [morph_play helper](#co-morph-play)
 - [scan / validate / mount surfaces](#co-surfaces)
 - [build() composition root](#co-build)
+- [GET brand chrome (Document path)](#co-brand)
 - [use_host / use_channel / use_motion](#co-host)
 - [HTML / JSON / stream from render()](#co-payload)
 - [Pattern: progressive levels 0–3](#co-pattern-levels)
@@ -235,7 +236,31 @@ app, asgi, bundle = build(
 print(app.name, app.level, bundle)
 ```
 
-Product path: `build(..., document=document, wrap=document)`. Morph stays a fragment.
+Product path is `build(..., document=document, wrap=document)`. Morph stays a fragment.
+GET brand chrome: `wrap=brand_wrap(document, brand="Acme")` from
+`ux_compose.chrome` — still outside `render()`.
+
+### GET brand chrome (Document path)
+
+<a id="co-brand"></a>
+
+Nav brand belongs on Clock A wrap, never inside `Component.render()`.
+
+```python
+from pathlib import Path
+from ux_compose.build import build
+from ux_compose.chrome import brand_wrap
+from document import document
+
+app, asgi, bundle = build(
+    Path(__file__).parent,
+    document=document,
+    wrap=brand_wrap(document, brand="Acme"),
+)
+```
+
+`uxcompose create-app myapp --brand Acme` wires the same `wrap=`. Hello
+`render()` stays a fragment (GET brand=1, morph brand=0).
 
 ### use_host / use_channel / use_motion
 

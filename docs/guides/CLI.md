@@ -12,6 +12,7 @@
 
 ```bash
 uxcompose create-app myapp --host auto --level auto
+# optional GET brand (outside render()):  --brand Acme
 cd myapp
 uxcompose serve dev
 uxcompose build

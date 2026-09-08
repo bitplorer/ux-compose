@@ -34,7 +34,21 @@ swallow the fragment. Product path is `build(document=, wrap=document)`.
 stays a bare fragment.
 
 GET chrome belongs on the author Document, not inside `render()` (morph
-would nest the brand).
+would nest the brand). Use `brand_wrap` so nav brand is GET-only:
+
+```python
+from ux_compose.chrome import brand_wrap
+from document import document
+
+app, asgi, bundle = build(
+    PACKAGE,
+    document=document,
+    wrap=brand_wrap(document, brand="Acme"),
+)
+```
+
+`Component.render()` stays the `#hello` fragment. Clock A GET includes the
+brand once; Clock B morph HTML has brand=0.
 
 ```python
 from ux_compose import Component, MorphState, action, div, span, update_with

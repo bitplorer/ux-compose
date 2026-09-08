@@ -5,7 +5,8 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value`` (last command). Caps: none. A11y (APG Toolbar):
 ``role=toolbar`` labelled; each cluster ``role=group``; ``role=separator``
-between groups. Last command ``aria-pressed``. Overflow is a later polish —
+between groups. Last command ``aria-current`` (not ``aria-pressed`` —
+one-shot commands are not toggles). Overflow is a later polish —
 this bar stays one row that wraps. Not ToggleGroup (exclusive radios) and
 not Tabs (panels).
 """
@@ -80,7 +81,7 @@ class Toolbar(Component):
                     lab,
                     type="button",
                     className=self.class_btn_on if key == val else self.class_btn,
-                    aria_pressed="true" if key == val else "false",
+                    **({"aria_current": "true"} if key == val else {}),
                     **bind(self.run, key=key),
                 )
                 for key, lab in items

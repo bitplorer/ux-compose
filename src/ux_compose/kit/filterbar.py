@@ -5,9 +5,9 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``which`` (named filter), ``dirty``. RefState: ``query``.
 Caps: none. A11y: region ``role=search``; label ``for`` ↔ query id
-``{id}-q``; chips ``role=radiogroup`` / ``radio`` ``aria-checked``.
-Hits are a list. Not SearchBar (listbox typeahead) — this is chrome
-that filters a known set in place.
+``{id}-q``; chips ``role=radiogroup`` / ``radio`` ``aria-checked``;
+selected ``tabindex=0`` others ``-1``. Hits are a list. Not SearchBar
+(listbox typeahead) — this is chrome that filters a known set in place.
 """
 
 from __future__ import annotations
@@ -122,6 +122,7 @@ class FilterBar(Component):
                     id=f"{self.id}-opt-{k}",
                     role="radio",
                     aria_checked="true" if on else "false",
+                    tabindex="0" if on else "-1",
                     className=self.class_chip_on if on else self.class_chip,
                     **bind(self.choose, key=k),
                 )

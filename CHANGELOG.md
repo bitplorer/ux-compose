@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- Kit Batch A APG holds: menubar submenu ids ``{id}-m-{key}`` stay in the
+  tree with ``hidden`` when closed (no dangling ``aria-controls``). Toolbar
+  one-shot commands use ``aria-current``, not ``aria-pressed``. Filterbar
+  radios rove ``tabindex``.
+
 ### Added
 
 - Kit Batch A chrome P1: `menubar`, `toolbar`, `togglegroup`, `spinbutton`,

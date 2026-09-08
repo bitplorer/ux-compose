@@ -6,7 +6,8 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 MorphState: ``open`` (submenu key or ""), ``value`` (last command).
 Caps: none. A11y (APG Menubar): ``role=menubar`` labelled; top items
 ``role=menuitem`` ``aria-haspopup=true`` ``aria-expanded`` ``aria-controls``
-the submenu id ``{id}-m-{key}``. Submenu ``role=menu`` / ``menuitem``.
+the submenu id ``{id}-m-{key}``. Submenus stay in the tree with ``hidden``
+when closed (honest APG — not omitted). Submenu ``role=menu`` / ``menuitem``.
 Escape on scrim. Not Navbar (landmark links) and not NavMenu (one disclosure).
 """
 
@@ -91,7 +92,7 @@ class Menubar(Component):
         opened = str(self.open or "")
         val = str(self.value or "")
         tops = []
-        panel = span("", className=self.class_sr)
+        panels = []
         for key, lab, items in self._menus():
             on = key == opened
             menu_id = f"{self.id}-m-{key}"
@@ -108,18 +109,25 @@ class Menubar(Component):
                     **bind(self.open_menu, key=key),
                 )
             )
-            if on:
-                rows = [
-                    button(
-                        item_lab,
-                        type="button",
-                        role="menuitem",
-                        className=self.class_item,
-                        **bind(self.choose, menu=key, item=item_key),
-                    )
-                    for item_key, item_lab in items
-                ]
-                panel = div(*rows, id=menu_id, className=self.class_menu, role="menu", aria_label=lab)
+            rows = [
+                button(
+                    item_lab,
+                    type="button",
+                    role="menuitem",
+                    className=self.class_item,
+                    **bind(self.choose, menu=key, item=item_key),
+                )
+                for item_key, item_lab in items
+            ]
+            menu_attrs = {
+                "id": menu_id,
+                "className": self.class_menu,
+                "role": "menu",
+                "aria_label": lab,
+            }
+            if not on:
+                menu_attrs["hidden"] = True
+            panels.append(div(*rows, **menu_attrs))
         scrim = (
             button(
                 span("Close menu", className=self.class_sr),
@@ -140,7 +148,7 @@ class Menubar(Component):
             scrim,
             div(
                 div(*tops, className=self.class_bar, role="menubar", aria_label="Desk"),
-                panel,
+                *panels,
                 className=self.class_wrap,
             ),
             id=self.id,

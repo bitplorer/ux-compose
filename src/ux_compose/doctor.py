@@ -326,8 +326,9 @@ def _teaching_for_level(level: int, caps: dict) -> list[str]:
     )
     if not stack_ok:
         lines.append(
-            "Complete install first: pip install ux-compose (Python ≥3.14) "
-            "pulls ux-dom, ux-channel, ux-behavior, and ux-motion. "
+            "Complete install first: pip install -e \".[dev]\" (clone) or "
+            "pip install -r requirements.txt (create-app). Python ≥3.14. "
+            "That pulls ux-dom, ux-channel, ux-behavior, and ux-motion. "
             "Levels are additive after the stack is present — not an unlock ladder."
         )
     else:

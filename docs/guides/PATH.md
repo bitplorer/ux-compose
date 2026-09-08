@@ -63,10 +63,11 @@ Product CSS is `uxcompose build` (`ux_compose.tailwind` finds the CLI).
 
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate
-pip install ux-compose   # hard-depends on ux-dom + ux-channel + ux-behavior + ux-motion
+pip install -e ".[serve]"    # from this repo; pulls pinned hard-deps
 
 uxcompose create-app myapp --name Shop --level 1 --host auto
 cd myapp
+pip install -r requirements.txt
 ```
 
 What landed:

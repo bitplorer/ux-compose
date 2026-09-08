@@ -42,7 +42,7 @@ class ProbeResult:
     def level_available(self) -> int:
         """Highest attach level the present stack can support.
 
-        Incomplete install is fail-loud via ``unlock_messages`` / doctor.
+        Incomplete install is fail-loud via ``incomplete_stack_messages`` / doctor.
         L0–L3 are attach APIs on a complete install, not package unlocks.
         """
         s = self.specialists
@@ -76,7 +76,7 @@ class ProbeResult:
     def has_motion(self) -> bool:
         return bool(self.specialists.get("ux_motion"))
 
-    def unlock_messages(self, *, requested_level: int = 3) -> list[str]:
+    def incomplete_stack_messages(self, *, requested_level: int = 3) -> list[str]:
         """Fail-loud diagnostics when the pinned stack is incomplete.
 
         Levels are additive attach APIs after a complete install — not

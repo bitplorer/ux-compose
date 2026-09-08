@@ -9,9 +9,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-UX_DOM_SHA = "25338a6d624b764bb79615de52fca48084ce2c55"
+UX_DOM_SHA = "e8be99a52bfecd6026c200fa1c3dc6a74f87aacb"
 UX_CHANNEL_SHA = "31a60bdd40a1b52aea1fd13159ad09c293c63fd6"
-UX_BEHAVIOR_SHA = "76adc72ff8e8d2f6a784d8b988b720934bd8a612"
+UX_BEHAVIOR_SHA = "793f120e3b1388925772cd069b070d7918b78baa"
 UX_MOTION_SHA = "67ff3f0c4912b70b7056f8226a6f226b6fe93f60"
 
 
@@ -25,6 +25,40 @@ def test_pyproject_requires_314_and_pins_specialists():
     assert "cek-host>=0.1.3" in text
     assert "cek-surface>=0.1.3" in text
     assert 'subdirectory=python' in text
+    assert "25338a6" not in text
+    assert "76adc72" not in text
+
+
+def test_pin_ssot_lockstep_makefile_scaffold_ci():
+    """pyproject / Makefile / scaffold / CI tell one pin story."""
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    scaffold = (ROOT / "src" / "ux_compose" / "scaffold.py").read_text(encoding="utf-8")
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    nook = (ROOT / "apps" / "nook" / "requirements.txt").read_text(encoding="utf-8")
+    for sha in (UX_DOM_SHA, UX_CHANNEL_SHA, UX_BEHAVIOR_SHA, UX_MOTION_SHA):
+        assert sha in makefile
+        assert sha in scaffold
+        assert sha in nook
+    assert "git+https://github.com/bitplorer/ux-compose.git@" in scaffold
+    assert "git+https://github.com/bitplorer/ux-compose.git@" in nook
+    assert "25338a6" not in makefile
+    assert "76adc72" not in makefile
+    assert "25338a6" not in scaffold
+    assert "76adc72" not in scaffold
+    assert 'python-version: "3.14"' in ci
+    assert "3.12" not in ci
+    assert "offline-shim" not in ci
+    assert 'pip install -e ".[dev]"' in ci
+    assert "25338a6" not in ci
+    assert "76adc72" not in ci
+    assert "PYTHONPATH=src:. $(PY314) -m uvicorn apps.pulse.server:app" in makefile
+
+
+def test_probe_exposes_incomplete_stack_messages():
+    from ux_compose.dx.probe import ProbeResult
+
+    assert hasattr(ProbeResult, "incomplete_stack_messages")
+    assert not hasattr(ProbeResult, "unlock_messages")
 
 
 def test_specialist_extras_are_empty_aliases():

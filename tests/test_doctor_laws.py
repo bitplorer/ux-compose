@@ -164,3 +164,7 @@ def test_doctor_fail_loud_when_stack_incomplete(monkeypatch):
     assert any("incomplete stack" in d.lower() for d in report.diagnostics)
     assert any("ux-dom" in d for d in report.diagnostics)
     assert any("Complete install first" in t for t in report.teaching)
+    teaching = " ".join(report.teaching)
+    assert 'pip install -e ".[dev]"' in teaching
+    assert "pip install -r requirements.txt" in teaching
+    assert "pip install ux-compose" not in teaching

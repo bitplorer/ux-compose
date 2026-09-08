@@ -257,14 +257,15 @@ INPUT_CSS = dedent('''\
 ''')
 
 
-# Pins match Makefile / CI / pyproject.toml (CI SSOT).
+# Pins match Makefile / pyproject.toml (SSOT). CI installs via pip install -e ".[dev]".
 CHANNEL_VCS_PIN = "31a60bdd40a1b52aea1fd13159ad09c293c63fd6"
-BEHAVIOR_VCS_PIN = "76adc72ff8e8d2f6a784d8b988b720934bd8a612"
+BEHAVIOR_VCS_PIN = "793f120e3b1388925772cd069b070d7918b78baa"
 MOTION_VCS_PIN = "67ff3f0c4912b70b7056f8226a6f226b6fe93f60"
-DOM_VCS_PIN = "25338a6d624b764bb79615de52fca48084ce2c55"
+DOM_VCS_PIN = "e8be99a52bfecd6026c200fa1c3dc6a74f87aacb"
+COMPOSE_VCS_PIN = "e6b5ea4318389cf827992bf6cd6186bca8eda3a0"
 
 REQUIREMENTS = dedent(f'''\
-    ux-compose
+    ux-compose @ git+https://github.com/bitplorer/ux-compose.git@{COMPOSE_VCS_PIN}
     ux-dom @ git+https://github.com/bitplorer/ux-dom.git@{DOM_VCS_PIN}
     ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@{BEHAVIOR_VCS_PIN}
     ux-motion @ git+https://github.com/bitplorer/ux-motion.git@{MOTION_VCS_PIN}

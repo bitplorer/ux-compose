@@ -89,7 +89,10 @@ def test_create_app_teaches_document_and_settings(tmp_path):
         for ln in req.splitlines()
         if ln.strip() and not ln.strip().startswith("#")
     ]
-    assert any(ln == "ux-compose" or ln.startswith("ux-compose") for ln in active)
+    assert any(
+        "ux-compose" in ln and "git+https://github.com/bitplorer/ux-compose.git@" in ln
+        for ln in active
+    )
     assert any("ux-behavior" in ln for ln in active)
     assert any("fastapi" in ln for ln in active)
     assert any(ln.startswith("uvicorn") for ln in active)
@@ -97,9 +100,14 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     assert any(ln.startswith("cek-surface") and ">=0.1.3" in ln for ln in active)
     assert any("ux-channel" in ln for ln in active)
     assert any("31a60bd" in ln for ln in active), "Channel VCS pin must be ≥ 31a60bd"
-    assert any("ux-dom" in ln and "25338a6" in ln for ln in active)
+    assert any("ux-dom" in ln and "e8be99a" in ln for ln in active)
     assert any("ux-motion" in ln and "67ff3f0" in ln for ln in active)
-    assert any("ux-behavior" in ln and "76adc72" in ln for ln in active)
+    assert any("ux-behavior" in ln and "793f120" in ln for ln in active)
+    assert "subdirectory=python" in req
+    assert not any(
+        ln in {"ux-dom", "ux-behavior", "ux-channel", "ux-motion", "ux-compose"}
+        for ln in active
+    )
     assert "3.13" not in req
 
     assert 'cek="require"' in readme
@@ -169,13 +177,20 @@ def test_create_app_requirements_boot_cap_require(tmp_path):
     assert any(ln.startswith("cek-host") and ">=0.1.3" in ln for ln in active)
     assert any(ln.startswith("cek-surface") and ">=0.1.3" in ln for ln in active)
     assert any("ux-channel" in ln and "31a60bd" in ln for ln in active)
-    assert any("ux-dom" in ln and "25338a6" in ln for ln in active)
-    assert any("ux-behavior" in ln and "76adc72" in ln for ln in active)
+    assert any("ux-dom" in ln and "e8be99a" in ln for ln in active)
+    assert any("ux-behavior" in ln and "793f120" in ln for ln in active)
     assert any("ux-motion" in ln and "67ff3f0" in ln for ln in active)
     assert "subdirectory=python" in req
     assert any(ln.startswith("fastapi") for ln in active)
     assert any(ln.startswith("uvicorn") for ln in active)
-    assert any("ux-compose" in ln for ln in active)
+    assert any(
+        "ux-compose" in ln and "git+https://github.com/bitplorer/ux-compose.git@" in ln
+        for ln in active
+    )
+    assert not any(
+        ln in {"ux-dom", "ux-behavior", "ux-channel", "ux-motion", "ux-compose"}
+        for ln in active
+    )
     assert "3.13" not in req
     readme = (root / "README.md").read_text(encoding="utf-8")
     assert "3.13" not in readme

@@ -43,7 +43,7 @@ Compose is allowed to look like “the product” to authors. It must **import**
 
 ## Install
 
-Python **≥ 3.14**. `pip install -e .` pulls the pinned stack (ux-dom,
+Python **≥ 3.14**. `pip install -e ".[serve]"` pulls the pinned stack (ux-dom,
 ux-channel, ux-behavior, ux-motion, cek-host, cek-surface). Missing
 specialists fail loud — there is no optional L1 / Document-absent floor.
 

@@ -63,8 +63,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \\
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -U pip \\
-    && pip install --no-cache-dir -r requirements.txt \\
-    && pip install --no-cache-dir "uvicorn[standard]" fastapi ux-compose ux-dom ux-behavior
+    && pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 

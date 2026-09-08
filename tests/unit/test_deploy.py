@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import pytest
 
-from ux_compose.deploy import format_deploy_result, prepare_deploy
+from ux_compose.deploy import _DOCKERFILE, format_deploy_result, prepare_deploy
 
 
 def test_checklist_needs_app_root(tmp_path, monkeypatch):
@@ -26,3 +26,10 @@ def test_checklist_with_app_py(tmp_path, monkeypatch):
     assert result.instructions
     text = format_deploy_result(result)
     assert "uxcompose deploy" in text or "provider" in text
+
+
+def test_dockerfile_relies_on_honest_requirements_txt():
+    """Image install is pip -r only — no bare PyPI ux-* names."""
+    assert "pip install --no-cache-dir -r requirements.txt" in _DOCKERFILE
+    assert "ux-compose ux-dom ux-behavior" not in _DOCKERFILE
+    assert "FROM python:3.14-slim" in _DOCKERFILE

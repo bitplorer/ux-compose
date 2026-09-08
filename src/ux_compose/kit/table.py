@@ -3,6 +3,12 @@
 Host seam: override ``ROWS`` / ``COLUMNS`` and ``on_archive(skus)``.
 Archiving spends a Cap. Selecting is public.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+MorphState: ``sort``, ``cleared``, ``dirty``. RefState: ``items``, ``selected``.
+Caps: ``items.archive`` on ``archive``. ``toggle_row`` / ``toggle_all`` / ``sort_by`` are public.
+A11y (APG Table): native ``<table>``, ``scope=col`` on ``th``. Row activation
+calls ``toggle_row`` (one sku). Header checkbox is ``toggle_all`` — it is not
+a body click and does not share the row bind. ``aria-selected`` on the row.
 """
 
 from __future__ import annotations
@@ -20,6 +26,12 @@ from ux_compose import (
     h2,
     p,
     span,
+    table,
+    tbody,
+    td,
+    th,
+    thead,
+    tr,
 )
 
 
@@ -49,10 +61,7 @@ class Table(Component):
     )
     class_toolbar = "flex flex-wrap items-center justify-between gap-3"
     class_wrap = "overflow-x-auto"
-    class_grid = "flex min-w-[28rem] flex-col gap-0.5"
-    class_head = (
-        "grid grid-cols-[2.75rem_1fr_5.5rem_4.2rem] items-center gap-2 px-1.5 pb-2"
-    )
+    class_table = "w-full min-w-[28rem] border-separate border-spacing-y-0.5 text-left"
     class_th = (
         "min-h-11 cursor-pointer border-0 bg-transparent p-0 text-left text-xs "
         "font-semibold uppercase tracking-widest text-stone-400"
@@ -61,16 +70,10 @@ class Table(Component):
         "min-h-11 cursor-pointer border-0 bg-transparent p-0 text-left text-xs "
         "font-semibold uppercase tracking-widest text-stone-900"
     )
-    class_tr = (
-        "grid grid-cols-[2.75rem_1fr_5.5rem_4.2rem] items-center gap-2 rounded-xl "
-        "px-1.5 py-1.5 hover:bg-stone-50"
-    )
-    class_tr_on = (
-        "grid grid-cols-[2.75rem_1fr_5.5rem_4.2rem] items-center gap-2 rounded-xl "
-        "bg-stone-100 px-1.5 py-1.5"
-    )
-    class_td = "text-sm"
-    class_td_price = "text-sm tabular-nums"
+    class_tr = "rounded-xl hover:bg-stone-50"
+    class_tr_on = "rounded-xl bg-stone-100"
+    class_td = "px-1.5 py-2 text-sm"
+    class_td_price = "px-1.5 py-2 text-sm tabular-nums"
     class_check = (
         "flex h-11 w-11 cursor-pointer items-center justify-center rounded-full "
         "border-0 bg-transparent p-0"
@@ -133,40 +136,57 @@ class Table(Component):
     def render(self):
         sel = set(self.selected or ())
         sort = str(self.sort or "name")
-        heads = []
+        known = [row[0] for row in self._rows()]
+        all_on = bool(known) and set(known) <= sel
+        heads = [
+            th(
+                button(
+                    span("On" if all_on else "Off", className=self.class_sr),
+                    span("✓" if all_on else "", className=self.class_box_on if all_on else self.class_box),
+                    type="button",
+                    className=self.class_check,
+                    aria_label="Select all rows",
+                    **bind(self.toggle_all),
+                ),
+                scope="col",
+                className="w-11 px-1.5",
+            )
+        ]
         for key, label in self.COLUMNS:
             on = key == sort
             heads.append(
-                button(
-                    f"{label} ▾" if on else label,
-                    type="button",
-                    className=self.class_th_on if on else self.class_th,
-                    **bind(self.sort_by, key=key),
+                th(
+                    button(
+                        f"{label} ▾" if on else label,
+                        type="button",
+                        className=self.class_th_on if on else self.class_th,
+                        **bind(self.sort_by, key=key),
+                    ),
+                    scope="col",
                 )
             )
         body = []
         for sku, cols in self._rows():
             on = sku in sel
             cells = [
-                span(
+                td(
                     self._cell(k, cols),
                     className=self.class_td_price if k == "price" else self.class_td,
                 )
                 for k, _ in self.COLUMNS
             ]
             body.append(
-                div(
-                    button(
+                tr(
+                    td(
                         span("On" if on else "Off", className=self.class_sr),
                         span("✓" if on else "", className=self.class_box_on if on else self.class_box),
-                        type="button",
-                        className=self.class_check,
-                        aria_pressed="true" if on else "false",
-                        **bind(self.toggle_row, sku=sku),
+                        className="px-1.5",
                     ),
                     *cells,
                     id=f"row-{sku}",
                     className=self.class_tr_on if on else self.class_tr,
+                    aria_selected="true" if on else "false",
+                    **bind(self.toggle_row, sku=sku),
                 )
             )
         empty = not body
@@ -185,14 +205,16 @@ class Table(Component):
                 className=self.class_toolbar,
             ),
             div(
-                div(
-                    div(*heads, className=self.class_head),
-                    *body,
-                    p("Nothing on the table.", className=self.class_lede) if empty else span("", className=self.class_sr),
-                    className=self.class_grid,
+                table(
+                    thead(tr(*heads)),
+                    tbody(*body) if body else tbody(
+                        tr(td("Nothing on the table.", className=self.class_lede, colspan=str(1 + len(self.COLUMNS))))
+                    ),
+                    className=self.class_table,
                 ),
                 className=self.class_wrap,
             ),
+            p("", className=self.class_sr) if empty else span("", className=self.class_sr),
             id=self.id,
             className=self.class_card,
         )
@@ -212,6 +234,15 @@ class Table(Component):
         elif sku and sku in known:
             cur.add(sku)
         self.selected = tuple(sorted(cur))
+        self._mark_dirty()
+        return update_with(self)
+
+    @action(caps=())
+    def toggle_all(self):
+        """Header checkbox. Never shares ``toggle_row`` — body click is one sku."""
+        known = {row[0] for row in self._rows()}
+        cur = set(self.selected or ())
+        self.selected = () if known and known <= cur else tuple(sorted(known))
         self._mark_dirty()
         return update_with(self)
 

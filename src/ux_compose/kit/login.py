@@ -4,6 +4,12 @@ Show/Hide and tab switches attach live form values onto RefState *before*
 the morph, so the new input paints with ``value=``. The secret never lives
 on MorphState.
 
+MorphState: ``mode``, ``show_password``, ``submitting``, ``authed``, ``error_dirty``.
+RefState: ``email``, ``password``, ``name``, field/form errors.
+Caps: ``auth.login`` / ``auth.signup`` on ``submit``. Reveal and mode are public.
+A11y: label ``html_for`` ↔ control ``id``; ``aria-invalid`` + ``aria-describedby``
+on errors. Tabs ``role=tablist``.
+
 Host seam: override ``authenticate()``. Validation and reveal stay here.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 """
@@ -222,17 +228,22 @@ class Login(Component):
                 button(
                     "Sign in",
                     type="button",
+                    role="tab",
+                    aria_selected="false" if is_signup else "true",
                     className=self.class_tab_on if not is_signup else self.class_tab,
                     **bind(self.set_mode, mode="login"),
                 ),
                 button(
                     "Sign up",
                     type="button",
+                    role="tab",
+                    aria_selected="true" if is_signup else "false",
                     className=self.class_tab_on if is_signup else self.class_tab,
                     **bind(self.set_mode, mode="signup"),
                 ),
                 className=self.class_tabs,
                 role="tablist",
+                aria_label="Account mode",
             ),
         ]
 
@@ -299,20 +310,25 @@ class Login(Component):
         return div(*kids, id=self.id, className=self.class_card)
 
     def _field(self, name, caption, input_type, value, error, *, placeholder="", autocomplete="off"):
+        fid = f"login-{name}"
+        err_id = f"{fid}-err"
         kids = [
-            label(caption, className=self.class_label),
+            label(caption, className=self.class_label, html_for=fid),
             input_(
                 type=input_type,
                 name=name,
+                id=fid,
                 value=value,
                 placeholder=placeholder,
                 autocomplete=autocomplete,
                 className=self.class_input_err if error else self.class_input,
+                aria_invalid="true" if error else "false",
+                **({"aria_describedby": err_id} if error else {}),
                 **bind(self.set_field, field=name),
             ),
         ]
         if error:
-            kids.append(span(error, className=self.class_hint_err, role="alert"))
+            kids.append(span(error, id=err_id, className=self.class_hint_err, role="alert"))
         return div(*kids, className=self.class_field)
 
     def _password_field(self, value, error, show):
@@ -322,7 +338,7 @@ class Login(Component):
             else f"{self.class_input} {self.class_input_pw}"
         )
         kids = [
-            label("Password", className=self.class_label),
+            label("Password", className=self.class_label, html_for="login-password"),
             div(
                 input_(
                     type="text" if show else "password",
@@ -332,6 +348,8 @@ class Login(Component):
                     placeholder="At least 8 characters",
                     autocomplete="current-password",
                     className=inp,
+                    aria_invalid="true" if error else "false",
+                    **({"aria_describedby": "login-password-err"} if error else {}),
                     **bind(self.set_field, field="password"),
                 ),
                 button(
@@ -344,7 +362,7 @@ class Login(Component):
             ),
         ]
         if error:
-            kids.append(span(error, className=self.class_hint_err, role="alert"))
+            kids.append(span(error, id="login-password-err", className=self.class_hint_err, role="alert"))
         if str(self.mode or "") == "signup" and not error:
             kids.append(span(
                 "Use 8+ characters with at least one number.",

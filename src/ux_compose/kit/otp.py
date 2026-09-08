@@ -119,19 +119,22 @@ class Otp(Component):
             h2("Enter the code", className=self.class_title),
             p("Six digits. They attach before the morph.", className=self.class_lede),
             form(
-                label("One-time code", className=self.class_label),
+                label("One-time code", className=self.class_label, html_for="otp-code"),
                 input_(
                     type="text",
                     name="code",
+                    id="otp-code",
                     value=code,
                     maxlength="6",
                     inputmode="numeric",
                     autocomplete="one-time-code",
                     placeholder="••••••",
                     className=self.class_input_err if err else self.class_input,
+                    aria_invalid="true" if err else "false",
+                    **({"aria_describedby": "otp-code-err"} if err else {}),
                     **bind(self.set_field, field="code"),
                 ),
-                span(err, className=self.class_hint_err, role="alert") if err else span(
+                span(err, id="otp-code-err", className=self.class_hint_err, role="alert") if err else span(
                     "Use 123456 in the demo. 000000 is refused.",
                     className=self.class_hint,
                 ),

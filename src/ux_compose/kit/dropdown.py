@@ -2,6 +2,9 @@
 
 Host seam: override ``OPTIONS``. Click-away is a scrim on this unit.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+MorphState: ``open``, ``value``. Caps: none. A11y: trigger ``aria-haspopup=listbox``
+``aria-expanded`` ``aria-controls``; options ``aria-selected``. Escape on scrim.
 """
 
 from __future__ import annotations
@@ -105,7 +108,7 @@ class Dropdown(Component):
                     )
                 )
         menu = (
-            div(*options, className=self.class_menu, role="listbox")
+            div(*options, id=f"{self.id}-list", className=self.class_menu, role="listbox")
             if is_open
             else span("", className=self.class_sr)
         )
@@ -115,6 +118,7 @@ class Dropdown(Component):
                 type="button",
                 className=self.class_scrim,
                 aria_label="Close menu",
+                data_channel_on="click keydown.escape",
                 **bind(self.toggle),
             )
             if is_open
@@ -134,9 +138,11 @@ class Dropdown(Component):
                         aria_hidden="true",
                     ),
                     type="button",
+                    id=f"{self.id}-trigger",
                     className=self.class_trigger_open if is_open else self.class_trigger,
                     aria_expanded="true" if is_open else "false",
                     aria_haspopup="listbox",
+                    aria_controls=f"{self.id}-list",
                     **bind(self.toggle),
                 ),
                 menu,

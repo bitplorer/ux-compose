@@ -1,18 +1,12 @@
-"""Drop-in dialog — public ask, Cap-protected confirm.
+"""Drop-in alert dialog — interrupting confirm. Same Host shape as Dialog.
 
-Host seam: override ``on_confirm()``. Opening is public. Destroying is authority.
+Host seam: override ``on_confirm()``. Opening is public. Confirm is a Cap.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
-MorphState: ``open``. RefState: ``title``, ``body``, ``target``.
-Caps: ``items.delete`` on ``confirm`` only. ``ask`` / ``cancel`` are public.
-A11y (APG Dialog): ``role=dialog`` ``aria-modal`` ``aria-labelledby``
-``aria-describedby``. Panel ``tabindex=-1`` + autofocus on Keep. Escape
-and scrim dismiss via OverlayChrome ``dismiss_on()``. Focus trap/restore
-is Channel when live.
-
-Live: the root ``id`` is the region. Channel picks it up.
-Swipe lives on dismiss, not the root and not confirm. OverlayChrome
-owns scrim/panel/dismiss ids, dismiss grammar, and the open plan.
+MorphState: ``open``. RefState: ``title``, ``body``. Caps: ``items.delete``
+on ``confirm``. A11y (APG Alert Dialog): ``role=alertdialog`` ``aria-modal``
+labelledby + describedby. OverlayChrome owns scrim/panel/dismiss + Escape.
+Not a second Host — Dialog's sibling with a louder role.
 """
 
 from __future__ import annotations
@@ -35,14 +29,10 @@ from ux_compose import (
 )
 
 
-class Dialog(Component):
-    """Confirm overlay. Target id is silent RefState.
+class AlertDialog(Component):
+    """Must-answer overlay. ``role=alertdialog`` so AT announces immediately."""
 
-    Override ``on_confirm(target)`` in the product. Demo stand-in notifies.
-    The resting card stays in flow; the overlay is presence on top of it.
-    """
-
-    id = "dialog"
+    id = "alertdialog"
 
     class_card = (
         "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 "
@@ -53,54 +43,40 @@ class Dialog(Component):
     class_lede = "m-0 text-sm leading-relaxed text-stone-500"
     class_btn_ghost = (
         "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full "
-        "border border-stone-200 bg-white px-5 text-sm font-medium text-stone-900 "
-        "hover:bg-stone-100"
+        "border border-stone-200 bg-white px-5 text-sm font-medium text-stone-900 hover:bg-stone-100"
     )
     class_btn_danger = (
         "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full "
         "border-0 bg-rose-800 px-5 text-sm font-medium text-rose-50 hover:bg-rose-700"
     )
     class_scrim = "fixed inset-0 z-40 cursor-pointer border-0 bg-stone-900/40"
-    class_stage = (
-        "pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4"
-    )
+    class_stage = "pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4"
     class_panel = (
-        "pointer-events-auto flex w-[min(28rem,calc(100vw-2rem))] "
-        "flex-col gap-3 rounded-3xl bg-white px-7 py-6 shadow-xl"
+        "pointer-events-auto flex w-[min(28rem,calc(100vw-2rem))] flex-col gap-3 "
+        "rounded-3xl bg-white px-7 py-6 shadow-xl"
     )
     class_actions = "mt-3 flex justify-end gap-2"
     class_sr = "sr-only"
 
     open = MorphState(False)
-    title = RefState("Delete this piece?")
-    body = RefState("This cannot be undone.")
-    target = RefState("")
+    title = RefState("This cannot be undone")
+    body = RefState("The oak board leaves the catalog.")
 
-    def on_confirm(self, target: str) -> str:
-        """Host seam. Return the toast copy. Called after the Cap spent."""
-        return f"Deleted {target}" if target else "Deleted"
+    def on_confirm(self) -> str:
+        return "Deleted"
 
     def _chrome(self):
         return overlay_chrome(self.id, kind="dialog")
 
-    def _resting(self):
-        return [
-            span("Authority", className=self.class_kicker),
-            h2("Confirm a delete", className=self.class_title),
-            p("Asking is public. Confirming spends a Cap.", className=self.class_lede),
-            button(
-                "Delete the oak board…",
-                type="button",
-                className=self.class_btn_danger,
-                **bind(self.ask, id="oak-02"),
-            ),
-        ]
-
     def render(self):
-        kids = list(self._resting())
+        kids = [
+            span("Interrupt", className=self.class_kicker),
+            h2("Alert dialog", className=self.class_title),
+            p("Asking is public. Confirming spends a Cap.", className=self.class_lede),
+            button("Delete the board…", type="button", className=self.class_btn_danger, **bind(self.ask)),
+        ]
         if bool(self.open):
             ch = self._chrome()
-            who = str(self.target or "row")
             title_id = f"{self.id}-title"
             desc_id = f"{self.id}-desc"
             kids.extend([
@@ -115,16 +91,8 @@ class Dialog(Component):
                 ),
                 div(
                     div(
-                        h2(
-                            str(self.title or "Confirm"),
-                            className=self.class_title,
-                            id=title_id,
-                        ),
-                        p(
-                            str(self.body or f"Target {who}. This cannot be undone."),
-                            className=self.class_lede,
-                            id=desc_id,
-                        ),
+                        h2(str(self.title or "Confirm"), id=title_id, className=self.class_title),
+                        p(str(self.body or ""), id=desc_id, className=self.class_lede),
                         div(
                             button(
                                 "Keep it",
@@ -135,18 +103,12 @@ class Dialog(Component):
                                 data_channel_on=ch.dismiss_on(),
                                 **bind(self.cancel),
                             ),
-                            button(
-                                "Delete",
-                                type="button",
-                                id=f"{self.id}-confirm",
-                                className=self.class_btn_danger,
-                                **bind(self.confirm),
-                            ),
+                            button("Delete", type="button", className=self.class_btn_danger, **bind(self.confirm)),
                             className=self.class_actions,
                         ),
                         id=ch.panel_id,
                         className=self.class_panel,
-                        role="dialog",
+                        role="alertdialog",
                         aria_modal="true",
                         aria_labelledby=title_id,
                         aria_describedby=desc_id,
@@ -164,25 +126,16 @@ class Dialog(Component):
         )
 
     @action(caps=())
-    def ask(self, id: str = "", title: str = "", body: str = ""):
-        self.target = id
-        if title:
-            self.title = title
-        if body:
-            self.body = body
+    def ask(self):
         self.open = True
         return update_with(self, self._chrome().open_plan())
 
     @action(caps=())
     def cancel(self):
         self.open = False
-        self.target = ""
         return update_with(self)
 
     @action(caps=("items.delete",))
     def confirm(self):
-        gone = str(self.target or "")
-        msg = self.on_confirm(gone)
         self.open = False
-        self.target = ""
-        return update_with(self, extra_ops=[notify(msg)])
+        return update_with(self, extra_ops=[notify(self.on_confirm())])

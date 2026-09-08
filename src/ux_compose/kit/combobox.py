@@ -3,6 +3,10 @@
 Query is RefState so the typed filter attaches on morph. Value is a name.
 Host seam: override ``OPTIONS``.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+MorphState: ``value``, ``open``, ``dirty``. RefState: ``query``. Caps: none.
+A11y (APG Combobox): input ``role=combobox`` ``aria-expanded`` ``aria-controls``
+``aria-autocomplete=list``. Options ``role=option``. Label ``for`` ↔ input id.
 """
 
 from __future__ import annotations
@@ -20,6 +24,7 @@ from ux_compose import (
     form,
     h2,
     input_,
+    label,
     li,
     p,
     span,
@@ -119,6 +124,8 @@ class Combobox(Component):
                 button(
                     x,
                     type="button",
+                    role="option",
+                    aria_selected="true" if x == val else "false",
                     className=self.class_row_on if x == val else self.class_row,
                     **bind(self.pick, key=x),
                 ),
@@ -127,29 +134,39 @@ class Combobox(Component):
             for i, x in enumerate(hits[:6])
         ]
         listing = span("", className=self.class_sr)
+        list_id = f"{self.id}-list"
         if is_open:
             listing = (
-                ul(*rows, className=self.class_list, role="listbox")
+                ul(*rows, id=list_id, className=self.class_list, role="listbox")
                 if rows
                 else p(
                     f"No matches for “{q}”." if q else "No matches.",
+                    id=list_id,
                     className=self.class_empty,
+                    role="status",
                 )
             )
         chosen = f"Chosen · {val}" if val else "Nothing chosen yet."
+        field_id = f"{self.id}-q"
         return div(
             span("Find", className=self.class_kicker),
             h2("Search the catalog", className=self.class_title),
             p(chosen, className=self.class_lede),
             div(
                 form(
+                    label("Filter pieces", html_for=field_id, className=self.class_kicker),
                     input_(
                         type="search",
                         name="q",
+                        id=field_id,
                         value=q,
                         placeholder="Filter pieces",
                         autocomplete="off",
                         className=self.class_input,
+                        role="combobox",
+                        aria_expanded="true" if is_open else "false",
+                        aria_autocomplete="list",
+                        aria_controls=list_id,
                         **bind(self.set_field, field="q"),
                     ),
                     button(

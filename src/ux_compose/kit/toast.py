@@ -4,6 +4,10 @@ Items live in RefState. ``dirty`` is the qualitative MorphState so the
 unit morphs. Push is open mint / no Cap predicate. The stack is a fixed
 corner — the card is the demo controls.
 
+MorphState: ``dirty``. RefState: ``items``, ``_seq``. Caps: none (push is
+open mint). A11y: live region ``aria-live=polite`` ``aria-relevant=additions``.
+Each item ``role=status``.
+
 ``bind(self.push, message=…)`` seals ``message`` into the control Cap.
 Intent POST with ``args={}`` is 401 (sealed-args mismatch) under Cap Host
 require. Replay html-unescaped ``data-channel-args`` with the minted
@@ -95,7 +99,7 @@ class Toast(Component):
             )
             for row in rows
         ]
-        stack = ul(*lis, className=self.class_stack) if lis else span("", className="sr-only")
+        stack = ul(*lis, className=self.class_stack, aria_live="polite", aria_relevant="additions") if lis else span("", className="sr-only")
         status = (
             p(f"{n} notice" + ("" if n == 1 else "s") + " on the stack.", className=self.class_lede)
             if n

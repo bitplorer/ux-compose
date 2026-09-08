@@ -1,5 +1,8 @@
 """Drop-in typeahead — live filter on ``input delay:``.
 
+MorphState: ``value``, ``dirty``. RefState: ``query``. Caps: none.
+A11y: label ``for`` ↔ input id; ``aria-autocomplete`` ``aria-controls``.
+
 Unlike Combobox, there is no Filter submit. The field *is* the control.
 Host seam: override ``OPTIONS`` and ``on_pick(label)``.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -19,6 +22,7 @@ from ux_compose import (
     div,
     h2,
     input_,
+    label,
     li,
     p,
     span,
@@ -133,6 +137,7 @@ class Typeahead(Component):
                 className=self.class_lede,
             ),
             p(f"Picked · {val}" if val else "Nothing picked.", className=self.class_choice),
+            label("Filter pieces", html_for=f"{self.id}-q", className=self.class_kicker),
             input_(
                 type="search",
                 id=f"{self.id}-q",

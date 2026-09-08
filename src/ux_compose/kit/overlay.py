@@ -1,9 +1,16 @@
 """Shared overlay chrome — ids, edge, swipe-on-dismiss, open plan.
 
-Dialog / Sheet / ActionSheet take ids, dismiss grammar, and open plan
-from this primitive. Markup and Tailwind stay on the widget. The defect
-this exists to stop is copy-pasted scrim/panel/dismiss ids plus a root
-swipe token that swallows row clicks.
+Dialog / Sheet / ActionSheet / AlertDialog / Command take ids, dismiss
+grammar, and open plan from this primitive. Markup and Tailwind stay on
+the widget. The defect this exists to stop is copy-pasted scrim/panel/
+dismiss ids plus a root swipe token that swallows row clicks.
+
+``kind="drawer"`` is the Sheet edge (right) — not a second Host.
+
+MorphState: none (ids + grammar only). Caps: none. Keyboard: Escape is
+appended on ``dismiss_on()`` (public close). Focus: callers set
+``tabindex="-1"`` on the panel and autofocus the first control; trap/
+restore is Channel when live. ``aria-modal`` lives on the widget.
 
 Isolation Law: this module never imports ux_channel or CEK.
 """
@@ -83,6 +90,10 @@ class OverlayChrome:
         """
         return EDGE_SWIPE.get(self.edge, "click swipe.down")
 
+    def dismiss_on(self) -> str:
+        """Dismiss grammar plus Escape. Close is Morph, never a Cap spend."""
+        return f"{self.swipe_on_dismiss()} keydown.escape"
+
     def swipe_on_handle(self) -> str:
         """Handle grammar. Bottom sheets add vertical so row clicks survive."""
         return HANDLE_SWIPE.get(self.edge, self.swipe_on_dismiss())
@@ -115,6 +126,11 @@ class OverlayChrome:
             return plan
         except Exception:
             return None
+
+
+    def focus_attrs(self) -> dict[str, str]:
+        """Panel attrs: tabindex so Channel can restore focus into the overlay."""
+        return {"tabindex": "-1"}
 
 
 def overlay(root_id: str, *, kind: Optional[str] = None, edge: Optional[str] = None) -> OverlayChrome:

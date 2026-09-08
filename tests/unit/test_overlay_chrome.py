@@ -31,6 +31,8 @@ def test_handle_grammar_adds_vertical_on_bottom():
     assert "threshold:48" in handle
     assert handle.startswith("click")
     assert action.swipe_on_dismiss() == "click swipe.down"
+    assert "keydown.escape" in action.dismiss_on()
+    assert action.dismiss_on().startswith("click")
 
 
 def test_shipped_slide_distances():
@@ -47,6 +49,14 @@ def test_open_plan_degrades_without_motion():
     assert plan is None or hasattr(plan, "enter")
 
 
+def test_drawer_kind_is_sheet_edge_not_a_second_host():
+    assert overlay("filters", kind="drawer").edge == "right"
+    from ux_compose.kit.drawer import Drawer
+    from ux_compose.kit.sheet import Sheet
+
+    assert Drawer is Sheet
+
+
 def test_dialog_sheet_actionsheet_take_chrome_from_primitive():
     from ux_compose.kit.actionsheet import ActionSheet
     from ux_compose.kit.dialog import Dialog
@@ -59,6 +69,7 @@ def test_dialog_sheet_actionsheet_take_chrome_from_primitive():
     assert sheet._chrome() == overlay(sheet.id, kind="sheet")
     assert action._chrome() == overlay(action.id, kind="actionsheet")
     assert dialog._chrome().swipe_on_dismiss() == "click swipe.down"
+    assert "keydown.escape" in dialog._chrome().dismiss_on()
     assert sheet._chrome().swipe_on_dismiss() == "click swipe.right"
     assert action._chrome().swipe_on_handle() == (
         "click swipe.down swipe.vertical threshold:48"

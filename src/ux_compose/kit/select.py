@@ -2,6 +2,11 @@
 
 Host seam: override ``GROUPS``. Distinct from Dropdown: a form field with groups.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+MorphState: ``open``, ``value``. Caps: none. A11y (APG Select-Only Combobox):
+trigger ``aria-haspopup=listbox`` ``aria-expanded`` ``aria-controls``
+``aria-labelledby``. Listbox + ``role=option`` ``aria-selected``. Escape /
+scrim close is public Morph. Label ``for`` ↔ trigger id.
 """
 
 from __future__ import annotations
@@ -111,7 +116,7 @@ class Select(Component):
                         )
                     )
         menu = (
-            div(*menu_kids, className=self.class_menu, role="listbox")
+            div(*menu_kids, id=f"{self.id}-list", className=self.class_menu, role="listbox")
             if is_open
             else span("", className=self.class_sr)
         )
@@ -121,25 +126,31 @@ class Select(Component):
                 type="button",
                 className=self.class_scrim,
                 aria_label="Close",
+                data_channel_on="click keydown.escape",
                 **bind(self.toggle),
             )
             if is_open
             else span("", className=self.class_sr)
         )
+        trigger_id = f"{self.id}-trigger"
+        label_id = f"{self.id}-label"
         return div(
             span("Field", className=self.class_kicker),
             h2("Material", className=self.class_title),
             p("Grouped options. The value is a name.", className=self.class_lede),
-            span("Finish", className=self.class_label),
+            span("Finish", id=label_id, className=self.class_label),
             scrim,
             div(
                 button(
                     span(shown, className="" if val else self.class_ph),
                     span("▾", className=self.class_caret + (" rotate-180" if is_open else ""), aria_hidden="true"),
                     type="button",
+                    id=trigger_id,
                     className=self.class_trigger_open if is_open else self.class_trigger,
                     aria_expanded="true" if is_open else "false",
                     aria_haspopup="listbox",
+                    aria_controls=f"{self.id}-list",
+                    aria_labelledby=label_id,
                     **bind(self.toggle),
                 ),
                 menu,

@@ -2,6 +2,11 @@
 
 Host seam: override ``ITEMS``. Opening a tab is not an authority event.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+MorphState: ``tab``. Caps: none. A11y (APG Tabs): ``role=tablist`` / ``tab`` /
+``tabpanel``. Selected tab ``tabindex=0`` others ``-1``. ``aria-controls``
+points at the panel id; panel ``aria-labelledby`` the tab. Arrow keys are
+Channel when ``keydown`` is live; select stays a public Morph action.
 """
 
 from __future__ import annotations
@@ -95,26 +100,33 @@ class Tabs(Component):
         segs = []
         for k, lab, _t, _b in self._items():
             on = k == key
+            tab_id = f"{self.id}-tab-{k}"
             segs.append(
                 button(
                     lab,
                     type="button",
+                    id=tab_id,
                     role="tab",
                     aria_selected="true" if on else "false",
+                    aria_controls=f"tab-{k}",
+                    tabindex="0" if on else "-1",
                     className=self.class_tab_on if on else self.class_tab,
                     **bind(self.select, tab=k),
                 )
             )
+        panel_id = f"tab-{key}"
         return div(
             span("Workspace", className=self.class_kicker),
-            nav(*segs, className=self.class_tablist, role="tablist"),
+            nav(*segs, className=self.class_tablist, role="tablist", aria_label="Workspace"),
             section(
                 span(f"Panel · {label}", className=self.class_kicker),
                 h2(title, className=self.class_title),
                 p(body, className=self.class_lede),
-                id=f"tab-{key}",
+                id=panel_id,
                 className=self.class_panel,
                 role="tabpanel",
+                aria_labelledby=f"{self.id}-tab-{key}",
+                tabindex="0",
             ),
             id=self.id,
             className=self.class_card,

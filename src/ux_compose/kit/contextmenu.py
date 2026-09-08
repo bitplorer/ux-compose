@@ -3,8 +3,11 @@
 Host seam: override ``ITEMS`` and ``on_run(key)``.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
-Longpress lives on the *trigger*, not the host, so menu items do not inherit it.
-The menu is a floating panel (list-none), not a native tab/list.
+MorphState: ``open``, ``dirty``. RefState: ``ran``. Caps: none.
+A11y (APG Menu): trigger ``aria-haspopup=menu`` ``aria-expanded``; panel
+``role=menu`` ``menuitem``. Escape on scrim. Longpress lives on the *trigger*,
+not the host, so menu items do not inherit it. The menu is a floating panel
+(list-none), not a native tab/list.
 """
 
 from __future__ import annotations
@@ -111,6 +114,7 @@ class ContextMenu(Component):
                     type="button",
                     className=self.class_scrim,
                     aria_label="Close menu",
+                    data_channel_on="click keydown.escape",
                     **bind(self.close),
                 ),
                 ul(*rows, className=self.class_menu, role="menu"),
@@ -129,6 +133,8 @@ class ContextMenu(Component):
                     span("Opens the same menu.", className="text-xs text-stone-400"),
                     type="button",
                     className=self.class_canvas,
+                    aria_haspopup="menu",
+                    aria_expanded="true" if is_open else "false",
                     data_channel_on="click longpress delay:480",
                     **bind(self.open_menu),
                 ),

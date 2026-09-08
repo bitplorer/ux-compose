@@ -2,6 +2,11 @@
 
 Swipe lives on the handle and Cancel, not the root. OverlayChrome owns
 scrim/panel/dismiss ids, handle grammar, and the open plan.
+
+MorphState: ``open``, ``dirty``. RefState: ``picked``. Caps: ``orders.archive``
+on archive row. A11y: ``role=dialog`` ``aria-modal`` labelledby. Escape on
+scrim/Cancel via ``dismiss_on()``. Handle keeps swipe.vertical so row clicks
+survive.
 """
 
 from __future__ import annotations
@@ -103,6 +108,7 @@ class ActionSheet(Component):
                     id=ch.scrim_id,
                     className=self.class_scrim,
                     aria_label="Close",
+                    data_channel_on=ch.dismiss_on(),
                     **bind(self.close),
                 ),
                 div(
@@ -124,7 +130,7 @@ class ActionSheet(Component):
                         type="button",
                         id=f"{self.id}-cancel",
                         className=self.class_btn_ghost + " mt-1 text-stone-500",
-                        data_channel_on=ch.swipe_on_dismiss(),
+                        data_channel_on=ch.dismiss_on(),
                         **bind(self.close),
                     ),
                     id=ch.panel_id,
@@ -132,6 +138,7 @@ class ActionSheet(Component):
                     role="dialog",
                     aria_modal="true",
                     aria_labelledby=f"{self.id}-title",
+                    **ch.focus_attrs(),
                 ),
             ]
         return div(

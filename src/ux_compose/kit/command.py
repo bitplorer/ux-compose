@@ -2,9 +2,15 @@
 
 Host seam: override ``COMMANDS`` and ``on_run(key)``. Opening is public.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+MorphState: ``open``, ``dirty``. RefState: ``query``. Caps: none.
+A11y: ``role=dialog`` ``aria-modal`` labelledby; search ``role=combobox``.
+Escape / scrim via OverlayChrome. Focus: panel tabindex + input autofocus.
 """
 
 from __future__ import annotations
+
+from ux_compose.kit.overlay import overlay as overlay_chrome
 
 from ux_compose import (
     Component,
@@ -19,6 +25,7 @@ from ux_compose import (
     form,
     h2,
     input_,
+    label,
     li,
     p,
     span,
@@ -105,6 +112,9 @@ class Command(Component):
     def _mark_dirty(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
+    def _chrome(self):
+        return overlay_chrome(self.id, kind="dialog")
+
     def _resting(self):
         return [
             span("Jump", className=self.class_kicker),
@@ -123,13 +133,17 @@ class Command(Component):
         q = str(self.query or "")
         kids = list(self._resting())
         if is_open:
+            ch = self._chrome()
             hits = self._hits()
+            list_id = f"{self.id}-list"
+            title_id = f"{self.id}-title"
             rows = [
                 li(
                     button(
                         span(label),
                         span(hint, className=self.class_hint),
                         type="button",
+                        role="option",
                         className=self.class_row,
                         **bind(self.run, key=key),
                     ),
@@ -138,32 +152,43 @@ class Command(Component):
                 for key, label, hint in hits[:7]
             ]
             listing = (
-                ul(*rows, className=self.class_list, role="listbox")
+                ul(*rows, id=list_id, className=self.class_list, role="listbox")
                 if rows
                 else p(
                     f"No commands match “{q}”." if q else "No commands.",
+                    id=list_id,
                     className=self.class_lede,
+                    role="status",
                 )
             )
             kids.extend([
                 button(
                     span("Close", className=self.class_sr),
                     type="button",
+                    id=ch.scrim_id,
                     className=self.class_scrim,
                     aria_label="Close",
+                    data_channel_on=ch.dismiss_on(),
                     **bind(self.close),
                 ),
                 div(
                     span("Jump", className=self.class_kicker),
-                    h2("Command palette", className=self.class_title),
+                    h2("Command palette", id=title_id, className=self.class_title),
                     form(
+                        label("Filter commands", html_for=f"{self.id}-q", className=self.class_sr),
                         input_(
                             type="search",
                             name="q",
+                            id=f"{self.id}-q",
                             value=q,
                             placeholder="Filter commands",
                             autocomplete="off",
+                            autofocus=True,
                             className=self.class_input,
+                            role="combobox",
+                            aria_expanded="true",
+                            aria_autocomplete="list",
+                            aria_controls=list_id,
                             **bind(self.set_field, field="q"),
                         ),
                         button(
@@ -176,9 +201,20 @@ class Command(Component):
                         className=self.class_form,
                     ),
                     listing,
+                    button(
+                        "Close",
+                        type="button",
+                        id=ch.dismiss_id,
+                        className=self.class_btn_ghost,
+                        data_channel_on=ch.dismiss_on(),
+                        **bind(self.close),
+                    ),
+                    id=ch.panel_id,
                     className=self.class_panel,
                     role="dialog",
                     aria_modal="true",
+                    aria_labelledby=title_id,
+                    **ch.focus_attrs(),
                 ),
             ])
         return div(
@@ -199,7 +235,7 @@ class Command(Component):
         self.open = True
         self.query = ""
         self._mark_dirty()
-        return update_with(self)
+        return update_with(self, self._chrome().open_plan())
 
     @action(caps=())
     def close(self):

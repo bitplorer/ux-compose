@@ -89,6 +89,8 @@ def test_dialog_ask_then_cap():
     html = _html(app, "dialog")
     assert "Delete" in html
     assert 'role="dialog"' in html
+    assert "aria-describedby" in html
+    assert "keydown.escape" in html
     assert "Delete the oak board" in html
     assert "Keep it" in html
     app.dispatch("dialog.confirm")
@@ -243,6 +245,12 @@ def test_table_sort_select_archive():
     app.dispatch("table.toggle_row", sku="oak-02")
     inst = app.behavior.get("table")
     assert "oak-02" in tuple(inst.selected or ())
+    assert len(tuple(inst.selected or ())) == 1
+    app.dispatch("table.toggle_all")
+    assert len(tuple(inst.selected or ())) == 4
+    app.dispatch("table.toggle_all")
+    assert tuple(inst.selected or ()) == ()
+    app.dispatch("table.toggle_row", sku="oak-02")
     app.dispatch("table.archive")
     html = _html(app, "table")
     assert "Serving board" not in html

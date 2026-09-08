@@ -91,6 +91,7 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     ]
     assert any(
         "ux-compose" in ln and "git+https://github.com/bitplorer/ux-compose.git@" in ln
+        and "6d61c9e" in ln
         for ln in active
     )
     assert any("ux-behavior" in ln for ln in active)
@@ -185,6 +186,7 @@ def test_create_app_requirements_boot_cap_require(tmp_path):
     assert any(ln.startswith("uvicorn") for ln in active)
     assert any(
         "ux-compose" in ln and "git+https://github.com/bitplorer/ux-compose.git@" in ln
+        and "6d61c9e" in ln
         for ln in active
     )
     assert not any(

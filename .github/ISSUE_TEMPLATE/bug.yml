@@ -10,7 +10,7 @@ body:
   - type: dropdown
     id: level
     attributes:
-      label: Progressive level
+      label: Attach level (complete install / hard-deps)
       options: ["0 Document", "1 behavior", "2 channel", "3 motion"]
     validations: {required: true}
   - type: textarea

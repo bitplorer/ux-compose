@@ -8,12 +8,12 @@
 **Pulse** (`apps/pulse`) is the locked product-path showcase:
 
 - Page units under `routes/` (home, shop, lab, settings)
-- `App.mount` + progressive L0–L3
-- Document shell when ux-dom present
+- `App.mount` + progressive L0–L3 (complete install; attach APIs)
+- Document shell (ux-dom hard dep)
 - `/api/health`, `/api/doctor`, POST `/action/{name}`
 
 ```bash
-pip install -e ".[dev,serve]" fastapi uvicorn ux-dom ux-behavior
+pip install -e ".[dev,serve]"
 
 PYTHONPATH=src:. uxcompose serve dev apps.pulse.server:app --host 0.0.0.0 --port 8080
 #   uxcompose serve prod apps.pulse.server:app
@@ -94,7 +94,7 @@ Python ≥3.14 with the pinned specialist stack.
 | Morph payload for `#X` must not embed outer shell/brand chrome | `test_cto_fragment_law.py` | GREEN (scaffold/fragment Hello + nested-shell `cto_red`) |
 | Document-path `brand_wrap`: GET brand=1, morph brand=0; no brand in `render()` | `test_cto_brand_wrap.py` | GREEN |
 | GET `/` `/hello` CSS/JS presence | `test_cto_css_js_smoke.py` | GREEN source contract; ASGI GET skips without fastapi |
-| Kit copy refuses without ux-dom; render() is DOM-only | `test_cto_kit_has_dom_false.py` | GREEN (copy fail-loud when `HAS_DOM=False`) |
+| Kit copy refuses without ux-dom; render() is DOM-only | `test_cto_kit_has_dom_false.py` | GREEN (`HAS_DOM=False` gate is fail-loud incomplete-stack, not a Document-absent product path) |
 
 The nested-shell tests use an in-repo `FullShellHello` fixture that mirrors the
 broken StunningCek pattern (full shell in `render()`, `update_with` targets

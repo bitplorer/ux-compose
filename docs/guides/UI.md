@@ -21,7 +21,7 @@ Public names only: `Component`, `MorphState`, `RefState`, `action`, `control`,
 | Protected verb | `@action(caps=("…",))` |
 
 Channel's session plane **refuses quantity MorphState**. The live-safe form is
-what the studio uses, so unlocking L2 does not rewrite the widget.
+what the studio uses, so attaching Channel does not rewrite the widget.
 
 Register and drive from the backend:
 
@@ -56,7 +56,7 @@ flipping a switch is not an authority event.
 
 ```python
 from ux_compose import (
-    HAS_DOM, Component, MorphState, action, notify, update_with,
+    Component, MorphState, action, notify, update_with,
     div, h2, p, button, control,
 )
 
@@ -67,7 +67,7 @@ class Toggle(Component):
     def render(self):
         on = bool(self.on)
         label = "Turn off" if on else "Turn on"
-        kids = (
+        return div(
             h2("Quiet hours"),
             p("Notifications hush after dusk." if on else "Notifications reach the table."),
             button(
@@ -76,16 +76,11 @@ class Toggle(Component):
                 className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50",
                 **control("toggle.flip"),
             ),
+            id=self.id,
+            className="rounded-2xl border border-stone-200 bg-white p-6",
+            data_on="1" if on else "0",
+            aria_pressed="true" if on else "false",
         )
-        if HAS_DOM:
-            return div(
-                *kids,
-                id=self.id,
-                className="rounded-2xl border border-stone-200 bg-white p-6",
-                data_on="1" if on else "0",
-                aria_pressed="true" if on else "false",
-            )
-        return str(getattr(self, "id", ""))
 
     @action(caps=())
     def flip(self):
@@ -102,7 +97,7 @@ later without rewrite. Opening a tab is public.
 
 ```python
 from ux_compose import (
-    HAS_DOM, Component, MorphState, action, notify, update_with,
+    Component, MorphState, action, notify, update_with,
     div, h2, p, section, button, control,
 )
 
@@ -133,7 +128,7 @@ class Tabs(Component):
             )
             for key, label, _ in TABS
         ]
-        kids = (
+        return div(
             h2("Tabs"),
             div(*segs, className="flex gap-2", role="tablist"),
             section(
@@ -143,10 +138,9 @@ class Tabs(Component):
                 className="mt-4",
                 role="tabpanel",
             ),
+            id=self.id,
+            className="rounded-2xl border border-stone-200 bg-white p-6",
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="rounded-2xl border border-stone-200 bg-white p-6")
-        return str(getattr(self, "id", ""))
 
     @action(caps=())
     def select(self, tab: str = "cut"):
@@ -165,7 +159,7 @@ The destructive confirm is Cap-protected.
 
 ```python
 from ux_compose import (
-    HAS_DOM, Component, MorphState, RefState, action, notify, update_with,
+    Component, MorphState, RefState, action, notify, update_with,
     div, h2, p, button, control,
 )
 
@@ -177,8 +171,6 @@ class ConfirmModal(Component):
     body = RefState("")
 
     def render(self):
-        if not HAS_DOM:
-            return str(getattr(self, "id", ""))
         if not self.open:
             return div(
                 h2("Modal"),
@@ -238,7 +230,7 @@ unit still morphs. Reset is Cap-protected (Authority Clock).
 
 ```python
 from ux_compose import (
-    HAS_DOM, Component, MorphState, RefState, action, notify, update_with,
+    Component, MorphState, RefState, action, notify, update_with,
     mark_dirty, div, h2, p, span, button, control,
 )
 
@@ -251,7 +243,7 @@ class Counter(Component):
 
     def render(self):
         n = int(self.n or 0)
-        kids = (
+        return div(
             h2("Counter"),
             p(span(str(n), className="text-2xl font-semibold tabular-nums")),
             div(
@@ -260,10 +252,9 @@ class Counter(Component):
                 button("Reset", type="button", **control("counter.reset")),
                 className="flex gap-2",
             ),
+            id=self.id,
+            className="rounded-2xl border border-stone-200 bg-white p-6",
         )
-        if HAS_DOM:
-            return div(*kids, id=self.id, className="rounded-2xl border border-stone-200 bg-white p-6")
-        return str(n)
 
     @action(caps=())
     def inc(self, sku: str = ""):
@@ -292,18 +283,14 @@ class Counter(Component):
 ## Cart
 
 The elevated mental model. Public `add`, Cap-protected `checkout`. Motion is
-additive — if `scene` is missing, the same action still morphs.
+additive attach (`App.use_motion()`) — the same action still morphs without a
+Plan. ux-motion is a hard dependency.
 
 ```python
 from ux_compose import (
-    HAS_DOM, Component, MorphState, RefState, action, notify, update_with,
-    control, div, h1, span, button,
+    Component, MorphState, RefState, action, notify, update_with,
+    control, div, h1, span, button, scene, rise,
 )
-
-try:
-    from ux_compose import scene, rise
-except Exception:
-    scene = rise = None
 
 
 class Cart(Component):
@@ -313,31 +300,24 @@ class Cart(Component):
 
     def render(self):
         last = self.last_sku or ""
-        if HAS_DOM:
-            return div(
-                h1(f"Items: {self.count}"),
-                span(last, className="text-sm text-stone-500"),
-                button(
-                    "+ tee",
-                    type="button",
-                    className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50",
-                    **control("cart.add", sku="tee"),
-                ),
-                id=self.id,
-                className="rounded-2xl border border-stone-200 bg-white p-6",
-            )
-        return str(getattr(self, "id", ""))
+        return div(
+            h1(f"Items: {self.count}"),
+            span(last, className="text-sm text-stone-500"),
+            button(
+                "+ tee",
+                type="button",
+                className="rounded-full bg-stone-900 px-4 py-2 text-sm text-stone-50",
+                **control("cart.add", sku="tee"),
+            ),
+            id=self.id,
+            className="rounded-2xl border border-stone-200 bg-white p-6",
+        )
 
     @action(caps=())
     def add(self, sku: str = ""):
         self.count = int(self.count) + 1
         self.last_sku = sku
-        plan = None
-        if scene is not None and rise is not None:
-            try:
-                plan = scene("cart-pop").enter(f"#{self.id}", rise.enter(ms=160))
-            except Exception:
-                plan = None
+        plan = scene("cart-pop").enter(f"#{self.id}", rise.enter(ms=160))
         return update_with(self, plan, extra_ops=[notify(f"Added {sku}")])
 
     @action(caps=("orders.place",))

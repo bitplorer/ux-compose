@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ux-compose"
 version = "0.1.0"
-description = "Pure-Python composition root that fully harnesses ux-dom + ux-behavior + ux-motion + ux-channel into a progressive, isolation-enforced, server-driven hypermedia framework."
+description = "Pure-Python composition root that harnesses pinned ux-dom + ux-behavior + ux-motion + ux-channel (hard dependencies, Python ≥3.14) into an isolation-enforced, server-driven hypermedia framework with additive levels 0–3."
 readme = "README.md"
 requires-python = ">=3.14"
 license = {text = "MIT"}

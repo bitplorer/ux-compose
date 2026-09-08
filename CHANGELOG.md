@@ -72,6 +72,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Docs/docstrings honesty scrub after #48: kill residual optional-deps /
+  unlock-ladder / `HAS_DOM` soft speech. Hard-deps fail loud (Python ≥3.14,
+  pinned specialists). Levels 0–3 are additive attach APIs on a complete
+  install — not an optional-package unlock ladder. No Document-absent L1
+  / HTML-string fallback product speech.
+
 - Vocab: `@action(caps=())` is **open mint / no Cap predicate** (Intent still
   requires the control-minted cap under Cap Host require). Scaffold
   `ROUTES_HELLO_PY`, PATH, and HOST no longer call `caps=()` "public".

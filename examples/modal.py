@@ -5,9 +5,9 @@ Demonstrates:
 - MorphState for open/closed presence
 - RefState for silent payload
 - Public open + Cap-protected confirm
-- update_with for XOR-safe morph (+ optional motion)
+- update_with for XOR-safe morph (+ motion Plan)
 - Progressive Superpower: same class at L1–L3
-- render() returns ux-dom tags (HTML string fallback without ux-dom)
+- render() returns ux-dom tag trees only (no HTML-string fallback)
 
 Id is ``demomodal`` so it does not collide with the product shop's confirm-modal.
 

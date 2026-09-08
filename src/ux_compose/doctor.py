@@ -440,7 +440,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         for d in res.diagnostics:
             print(f"    - {d}")
         return 0 if args.no_fail or not hard else 1
-    print("  Isolation: OK — product autonomy and offline progressive path protected.")
+    print("  Isolation: OK — product autonomy and additive levels on a complete install.")
     return 0
 
 

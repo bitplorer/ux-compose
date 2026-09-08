@@ -332,6 +332,6 @@ If you are rewriting the Cart to 'go live', you have violated the contract. Atta
 # L2  + Channel + Caps + control()          ← App.use_channel
 # L3  + Motion / Scenes                     ← App.use_motion + update_with
 #
-# Progressive Superpower Contract: L1 code stays correct when you unlock L2/L3.
+# Progressive Superpower Contract: L1 code stays correct at higher levels (attach Channel/Motion).
 # HTMX is never auto-attached; Document.use(Htmx()) is explicit.
 ```

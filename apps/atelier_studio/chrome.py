@@ -22,7 +22,7 @@ from examples.catalog import GROUPS, PATTERNS
 
 # Styles: apps/atelier_studio/static/css/atelier.css (linked by host).
 # Do NOT put CSS or client JS strings here — specialists + static assets only.
-# Progressive base = native form POST. Channel/Motion via Document contributions.
+# Complete-install base = native form POST. Channel/Motion attach via Document contributions.
 
 def html_of(tree: Any) -> str:
     if tree is None:

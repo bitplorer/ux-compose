@@ -137,7 +137,7 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 
 ## Progressive levels
 
-| Level | What you get | Unlock |
+| Level | What you get | Attach |
 |-------|----------------|--------|
 | **0** | Static Document | complete install |
 | **1** | Offline MorphState + `@action` | `App.boot` |

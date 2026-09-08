@@ -3,8 +3,8 @@ Full progressive boot with Document SSoT (requires ux-dom, Python ≥3.14).
 
 Demonstrates:
 - Exactly one Document owns the HTML shell
-- Progressive unlock: Behavior → Channel → Motion
-- Unified Component with MorphState + update_with + optional scene
+- Progressive levels (attach on complete install): Behavior → Channel → Motion
+- Unified Component with MorphState + update_with + scene Plan
 - Isolation: product code never imports channel/CEK
 
 Run (Python 3.14 venv with specialists):

@@ -6,7 +6,7 @@ from enum import IntEnum
 
 
 class Level(IntEnum):
-    """Progressive disclosure levels. Higher levels are pure additive unlocks.
+    """Progressive disclosure levels. Higher levels are additive attach APIs.
 
     L0 — Document + static Components + page-unit routing (ux_compose.routing)
     L1 — + Behavior + MorphState + @action (offline interactive)
@@ -15,6 +15,7 @@ class Level(IntEnum):
 
     Progressive Superpower Contract: complete install first. Code written
     at L1 remains correct at L2/L3 — levels are additive, zero rewrite.
+    Not an optional-package unlock ladder.
     """
 
     L0 = 0  # Document + static Components + page-unit routing

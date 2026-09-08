@@ -1,1 +1,1 @@
-"""Atelier — linen & object shop. Progressive L1 Component code, L3 host."""
+"""Atelier — linen & object shop. L1 Component code, L3 host (complete install; attach Channel/Motion)."""

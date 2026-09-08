@@ -4,13 +4,14 @@
 
 ## Setup
 
-Python **≥ 3.11** (full stack **≥ 3.14** because ux-dom). Layout: `src/ux_compose`.
+Python **≥ 3.14**. Hard-deps: pinned ux-dom / ux-channel / ux-behavior /
+ux-motion. Layout: `src/ux_compose`. Missing specialists fail loud — there
+is no optional-package unlock ladder.
 
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-# specialists as needed:
-pip install -e ".[full]"   # or pin git URLs as in README
+# `[full]` is an empty alias; specialists are hard dependencies.
 ```
 
 ## Quality gate

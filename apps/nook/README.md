@@ -2,6 +2,8 @@
 
 A quiet house desk. Authored in ux-compose. Every kit component sits in a real room — not a kitchen-sink gallery.
 
+Python **≥ 3.14** with the pinned specialist stack (ux-dom, ux-channel, ux-behavior, ux-motion). Missing specialists fail loud — there is no Document-absent floor.
+
 ## Rooms
 
 | Path | Kit used |
@@ -18,10 +20,11 @@ A quiet house desk. Authored in ux-compose. Every kit component sits in a real r
 - No viewport `sm:` inside cards. Containment is `min-w-0` + `overflow-x-hidden` + wrap.
 - Channel grammar already on the kit: `swipe.horizontal`, `click swipe.left/right`, `input delay:`.
 - Isolation: this package never imports `ux_channel`.
+- GET chrome lives on Document wrap (`document_wrap`); `render()` stays a fragment.
 
 ## Run
 
-From the ux-compose repo (Python ≥ 3.14 for the full stack):
+From the ux-compose repo (Python ≥ 3.14):
 
 ```bash
 PYTHONPATH=src:. python -m uvicorn apps.nook.server:app --host 0.0.0.0 --port 8080
@@ -33,7 +36,7 @@ Or the Makefile target:
 make nook
 ```
 
-Create-app path (page units under `routes/`):
+Create-app path (page units under `routes/`, composition root `app.py`):
 
 ```bash
 uxcompose serve dev apps.nook.app:asgi

@@ -15,10 +15,6 @@ from pathlib import Path
 from ux_compose import (
     App,
     doctor,
-    HAS_DOM as COMPOSE_HAS_DOM,
-    html,
-    head,
-    body,
     title,
     meta,
     link,
@@ -34,6 +30,7 @@ from ux_compose import (
     div,
     aside,
 )
+from ux_compose.chrome import GET_CHROME_ATTR
 from ux_compose.helpers import _serialize_tree
 from ux_dom import Document
 from ux_dom.runtime import XElement, Htmx
@@ -131,7 +128,31 @@ def _sniff_multipart(raw: bytes) -> dict[str, Any]:
 
 
 def _document():
-    return Document(head=[], body=[], ensure_csrf_token=False).use(
+    return Document(
+        head=[
+            meta(charset="utf-8"),
+            meta(name="viewport", content="width=device-width, initial-scale=1"),
+            meta(name="color-scheme", content="light only"),
+            title("Atelier — Linen & Object"),
+            meta(name="theme-color", content="#f3efe6"),
+            link(rel="icon", type="image/svg+xml", href="/favicon.svg"),
+            link(rel="preconnect", href="https://fonts.googleapis.com"),
+            link(
+                rel="preconnect",
+                href="https://fonts.gstatic.com",
+                crossorigin="anonymous",
+            ),
+            link(
+                rel="stylesheet",
+                href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap",
+            ),
+            link(rel="stylesheet", href="/static/css/atelier.css"),
+            script(src="/static/idiomorph.min.js"),
+            script(src="/ux-pkg/ux-motion/static/ux-motion-player.js"),
+        ],
+        body=[],
+        ensure_csrf_token=False,
+    ).use(
         XElement(),
         Htmx(),
     )
@@ -143,8 +164,7 @@ DOCUMENT = _document()
 _STATIC = Path(__file__).resolve().parent / "static"
 _IDIOMORPH = _STATIC / "idiomorph.min.js"
 UX = App.boot("Atelier", strict_caps=True)
-if DOCUMENT is not None:
-    UX.use_dom(DOCUMENT)
+UX.use_dom(DOCUMENT)
 UX.use_behavior()
 UX.add(Cart, ConfirmModal)
 
@@ -168,93 +188,71 @@ def _html(tree: Any) -> str:
     return _serialize_tree(tree)
 
 
-def _page(*, flash: str = "") -> str:
+def _html_response(tree: Any, *, status_code: int = 200):
+    if HAS_FASTAPI:
+        return HTMLResponse(_html(tree), status_code=status_code)
+    return _html(tree)
+
+
+def _stage_trees():
     cart = _inst("cart")
     modal = _inst("confirm-modal")
-    level = int(UX.level)
-    label = UX.level.label
     cart_tree = cart.render() if cart is not None else aside(id="cart", className="bag")
     modal_tree = (
         modal.render() if modal is not None else div(id="confirm-modal", hidden=True)
     )
-    flash_nodes = [p(flash, className="bag-notice", role="status")] if flash else []
-    if COMPOSE_HAS_DOM and html is not None:
-        tree = html(
-            head(
-                meta(charset="utf-8"),
-                meta(name="viewport", content="width=device-width, initial-scale=1"),
-                meta(name="color-scheme", content="light only"),
-                title("Atelier — Linen & Object"),
-                meta(name="theme-color", content="#f3efe6"),
-                link(rel="icon", type="image/svg+xml", href="/favicon.svg"),
-                link(rel="preconnect", href="https://fonts.googleapis.com"),
-                link(
-                    rel="preconnect",
-                    href="https://fonts.gstatic.com",
-                    crossorigin="anonymous",
-                ),
-                link(
-                    rel="stylesheet",
-                    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap",
-                ),
-                link(rel="stylesheet", href="/static/css/atelier.css"),
-                script(src="/static/idiomorph.min.js"),
-                script(src="/ux-pkg/ux-motion/static/ux-motion-player.js"),
-            ),
-            body(
-                header(
-                    a("Atelier", span("Linen & Object"), href="/", className="brand"),
-                    div(
-                        "Studio table · ",
-                        span(f"L{level} {label}", className="level-chip"),
-                        className="nav-meta",
-                    ),
-                    className="top wrap",
-                ),
-                main(
-                    section(
-                        p("Table of the week", className="kicker"),
-                        h1("Quiet pieces for a working house."),
-                        p(
-                            "Four objects. Linen, oak, wool, clay. The bag lives on this page; placing an order is a capability, not a click.",
-                            className="lede",
-                        ),
-                        className="hero",
-                    ),
-                    *flash_nodes,
-                    div(
-                        catalog_grid(),
-                        cart_tree,
-                        id="stage",
-                        className="stage",
-                    ),
-                    className="wrap",
-                ),
-                footer(
-                    span("Atelier · capability-secured checkout"),
-                    span("No account. Host mints the Cap."),
-                    className="foot wrap",
-                ),
-                modal_tree,
-            ),
-            lang="en",
-            style="color-scheme: light only",
-        )
-        return "<!doctype html>\n" + _html(tree)
-    cart_html = _html(cart_tree)
-    modal_html = _html(modal_tree)
-    flash_html = f'<p class="bag-notice" role="status">{flash}</p>' if flash else ""
-    return (
-        "<!doctype html><html lang='en' style='color-scheme:light only'><head><meta charset='utf-8'/>"
-        "<meta name='color-scheme' content='light only'/>"
-        "<title>Atelier — Linen & Object</title>"
-        '<link rel="stylesheet" href="/static/css/atelier.css"/>'
-        "</head><body>"
-        + flash_html
-        + f'<div id="stage" class="stage">{_html(catalog_grid())}{cart_html}</div>'
-        + modal_html
-        + "</body></html>"
+    stage = div(
+        catalog_grid(),
+        cart_tree,
+        id="stage",
+        className="stage",
     )
+    return stage, modal_tree
+
+
+def _wrap_get(child: Any, *, flash: str = ""):
+    """Document GET chrome — header/hero/footer live outside the stage fragment."""
+    level = int(UX.level)
+    label = UX.level.label
+    flash_nodes = [p(flash, className="bag-notice", role="status")] if flash else []
+    _, modal_tree = _stage_trees()
+    return DOCUMENT(
+        header(
+            a("Atelier", span("Linen & Object"), href="/", className="brand"),
+            div(
+                "Studio table · ",
+                span(f"L{level} {label}", className="level-chip"),
+                className="nav-meta",
+            ),
+            className="top wrap",
+            **{GET_CHROME_ATTR: True},
+        ),
+        main(
+            section(
+                p("Table of the week", className="kicker"),
+                h1("Quiet pieces for a working house."),
+                p(
+                    "Four objects. Linen, oak, wool, clay. The bag lives on this page; placing an order is a capability, not a click.",
+                    className="lede",
+                ),
+                className="hero",
+            ),
+            *flash_nodes,
+            child,
+            className="wrap",
+        ),
+        footer(
+            span("Atelier · capability-secured checkout"),
+            span("No account. Host mints the Cap."),
+            className="foot wrap",
+        ),
+        modal_tree,
+    )
+
+
+def _page(*, flash: str = ""):
+    stage, _modal = _stage_trees()
+    return _wrap_get(stage, flash=flash)
 
 
 def _wants_fragment(request: Optional[Any]) -> bool:
@@ -264,24 +262,10 @@ def _wants_fragment(request: Optional[Any]) -> bool:
     return str(hx).lower() in {"1", "true", "yes"}
 
 
-def _fragment_or_page(request, *, flash: str = "") -> str:
+def _fragment_or_page(request, *, flash: str = ""):
+    stage, modal_tree = _stage_trees()
     if _wants_fragment(request):
-        cart = _inst("cart")
-        modal = _inst("confirm-modal")
-        if COMPOSE_HAS_DOM and div is not None:
-            stage = div(
-                catalog_grid(),
-                cart.render() if cart is not None else "",
-                id="stage",
-                className="stage",
-            )
-            return _html(stage) + _html(modal.render() if modal is not None else "")
-        cart_html = _html(cart.render()) if cart is not None else ""
-        modal_html = _html(modal.render()) if modal is not None else ""
-        return (
-            f'<div id="stage" class="stage">{_html(catalog_grid())}{cart_html}</div>'
-            f"{modal_html}"
-        )
+        return _html(stage) + _html(modal_tree)
     return _page(flash=flash)
 
 
@@ -292,19 +276,12 @@ def build_asgi():
     # Channel via wire door — Isolation held. Behavior.attach owns Channel.boot.
     UX.use_channel(asgi_app=asgi)
     UX.use_motion()
-    try:
-        UX.use_cek()
-    except Exception:
-        pass
-    if DOCUMENT is not None and hasattr(DOCUMENT, "mount"):
-        try:
-            DOCUMENT.mount(asgi)
-        except Exception:
-            pass
+    UX.use_cek()
+    DOCUMENT.mount(asgi)
 
     @asgi.get("/", response_class=HTMLResponse)
     def index():
-        return HTMLResponse(_page())
+        return _html_response(_page())
 
     @asgi.get("/health")
     def health():
@@ -314,7 +291,7 @@ def build_asgi():
             "app": "Atelier",
             "level": int(UX.level),
             "label": UX.level.label,
-            "document": DOCUMENT is not None,
+            "document": True,
             "channel": UX._channel is not None,
             "motion": bool(getattr(UX, "_motion", False)),
             "player": "/ux-pkg/ux-motion/static/ux-motion-player.js",
@@ -394,7 +371,7 @@ def build_asgi():
         except Exception as exc:
             flash = str(exc)
         html = _fragment_or_page(request, flash=flash)
-        return HTMLResponse(html)
+        return _html_response(html)
 
     @asgi.post("/intent/{action}")
     async def intent_api(action: str, request: Request):
@@ -437,7 +414,7 @@ app = asgi  # uvicorn apps.atelier_shop.server:app
 
 if __name__ == "__main__":
     print("Level:", int(UX.level), UX.level.label)
-    print("Document SSoT:", DOCUMENT is not None)
+    print("Document SSoT:", True)
     print("FastAPI:", asgi is not None)
     if asgi is not None:
         print("Routes:", [getattr(r, "path", None) for r in asgi.routes])

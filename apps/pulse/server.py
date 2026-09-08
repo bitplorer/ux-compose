@@ -1,10 +1,11 @@
 """Pulse host — live showcase of the locked ux-compose product path.
 
-- Page units under routes/ via App.mount + DirectoryRoutes (RouterHooks)
+- Page units under routes/ via build(document=, wrap=, cek=require)
 - Document SSoT (ux-dom hard dep; XElement default; HTMX opt-in)
-- Progressive attach order: Behavior → Channel → Motion (level=auto)
+- Additive attach: Behavior → Channel → Motion → Cap Host on a complete install
 - Isolation Law: never imports ux_channel directly
 - Style: Tailwind utility className (CDN stand-in for TailwindStyle/WebAssets)
+- GET chrome via Document wrap; HX / morph stays fragment-only
 
 Serve:
   PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080
@@ -18,30 +19,41 @@ from urllib.parse import parse_qs
 
 from ux_compose import (
     App,
+    a,
+    div,
     doctor,
-    html,
-    head,
-    body,
-    title,
-    meta,
+    footer,
+    header,
     link,
+    main,
+    meta,
+    nav,
+    p,
     script,
+    span,
+    title,
 )
+from ux_compose.build import build as compose_build
+from ux_compose.chrome import GET_CHROME_ATTR
 from ux_compose.helpers import _serialize_tree
+from ux_compose.routing.core import apply_html_document
 from ux_dom import Document
-from ux_dom.runtime import XElement, Htmx
+from ux_dom.runtime import Channel, Csp, XElement
 
 PACKAGE = Path(__file__).resolve().parent
 STATIC = PACKAGE / "static"
 
 try:
-    from fastapi import FastAPI, Request
-    from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+    from fastapi import Request
+    from fastapi.responses import HTMLResponse, JSONResponse
     from fastapi.staticfiles import StaticFiles
     HAS_FASTAPI = True
 except ImportError:  # pragma: no cover
     HAS_FASTAPI = False
-    FastAPI = None  # type: ignore
+    Request = None  # type: ignore
+    HTMLResponse = None  # type: ignore
+    JSONResponse = None  # type: ignore
+    StaticFiles = None  # type: ignore
 
 
 _IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -78,12 +90,12 @@ def _parse_multipart(ctype: str, raw: bytes) -> dict[str, Any]:
         part = part.lstrip(b"\r\n")
         if not part or part.startswith(b"--"):
             continue
-        header, sep2, body_b = part.partition(b"\r\n\r\n")
+        header_b, sep2, body_b = part.partition(b"\r\n\r\n")
         if not sep2:
-            header, sep2, body_b = part.partition(b"\n\n")
+            header_b, sep2, body_b = part.partition(b"\n\n")
         if not sep2:
             continue
-        hm = re.search(br'name="([^"]+)"', header)
+        hm = re.search(br'name="([^"]+)"', header_b)
         if not hm:
             continue
         name = hm.group(1).decode("utf-8", "replace")
@@ -107,51 +119,86 @@ async def _parse_action_args(request: Any) -> dict[str, Any]:
     return _clean_args({k: v[0] if v else "" for k, v in parsed.items()})
 
 
-def _document(*, use_htmx: bool = False):
-    runtimes = [XElement()]
-    if use_htmx:
-        runtimes.append(Htmx())
-    return Document(head=[], body=[], ensure_csrf_token=False).use(*runtimes)
+def _document():
+    plugins = (XElement(), Csp.auto(), Channel.optional())
+    return Document(
+        head=[
+            meta(charset="utf-8"),
+            meta(name="viewport", content="width=device-width, initial-scale=1"),
+            title("Pulse · ux-compose"),
+            link(rel="preconnect", href="https://fonts.googleapis.com"),
+            link(rel="preconnect", href="https://fonts.gstatic.com", crossorigin="anonymous"),
+            link(
+                rel="stylesheet",
+                href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap",
+            ),
+            script(src="https://cdn.tailwindcss.com"),
+        ],
+        body=[],
+        ensure_csrf_token=False,
+    ).use(*[p for p in plugins if p is not None])
 
 
-def _shell(main_html: str, *, path: str = "/") -> str:
-    nav = []
-    for href, label in NAV:
-        cur = ' aria-current="page"' if path.rstrip("/") == href.rstrip("/") or (
-            href != "/" and path.startswith(href)
-        ) else ""
-        if href == "/" and path in ("/", "/home"):
-            cur = ' aria-current="page"'
-        nav.append(f'<a href="{href}"{cur}>{label}</a>')
-    return f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pulse · ux-compose</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <!-- Style: Tailwind utilities (stand-in for TailwindStyle/WebAssets) -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Control: stack-native data-ux-action. HTMX is opt-in via Document.use(Htmx()). -->
-</head>
-<body class="bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100">
-  <div class="mx-auto max-w-5xl">
-    <header class="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-stone-200/80 bg-stone-50/90 px-4 py-4 backdrop-blur dark:border-stone-800 dark:bg-stone-950/90">
-      <a class="font-serif text-lg tracking-tight" href="/">Pulse <span class="text-amber-700 dark:text-amber-400">compose</span></a>
-      <nav class="flex flex-wrap gap-1">{''.join(nav)}</nav>
-    </header>
-    <main id="main">{main_html}</main>
-    <footer class="border-t border-stone-200 px-4 py-6 text-sm text-stone-500 dark:border-stone-800">
-      ux-compose · page units · RouterHooks · progressive L0–L3 · Isolation Law · HTMX opt-in
-    </footer>
-  </div>
-</body>
-</html>"""
+def _pulse_wrap(document: Any):
+    """GET chrome (nav + foot) outside Component.render(). Morph stays a fragment."""
+    if document is None or not callable(document):
+        raise TypeError(
+            "Pulse wrap requires a callable Document. "
+            "Product path is build(document=, wrap=_pulse_wrap(document))."
+        )
+
+    def wrap(child: Any = None):
+        links = [a(label, href=href) for href, label in NAV]
+        chrome = header(
+            a(
+                "Pulse ",
+                span("compose", className="text-amber-700 dark:text-amber-400"),
+                href="/",
+                className="font-serif text-lg tracking-tight",
+            ),
+            nav(*links, className="flex flex-wrap gap-1"),
+            className=(
+                "sticky top-0 z-20 flex items-center justify-between gap-4 "
+                "border-b border-stone-200/80 bg-stone-50/90 px-4 py-4 backdrop-blur "
+                "dark:border-stone-800 dark:bg-stone-950/90"
+            ),
+            **{GET_CHROME_ATTR: True},
+        )
+        foot = footer(
+            "ux-compose · page units · additive L0–L3 attach · Isolation Law · HTMX opt-in",
+            className="border-t border-stone-200 px-4 py-6 text-sm text-stone-500 dark:border-stone-800",
+        )
+        inner = main(child, id="main") if child is not None else main(id="main")
+        return document(
+            div(
+                chrome,
+                inner,
+                foot,
+                className=(
+                    "mx-auto max-w-5xl bg-stone-50 text-stone-900 antialiased "
+                    "dark:bg-stone-950 dark:text-stone-100"
+                ),
+            )
+        )
+
+    return wrap
 
 
-def _render_surface(app: App, surface_id: str) -> str:
+def _html(tree: Any) -> str:
+    if tree is None:
+        return ""
+    if isinstance(tree, str):
+        return tree
+    return _serialize_tree(tree)
+
+
+def _html_response(tree: Any, *, status_code: int = 200):
+    if not HAS_FASTAPI:
+        return _html(tree)
+    return HTMLResponse(_html(tree), status_code=status_code)
+
+
+def _render_surface(app: App, surface_id: str):
     behavior = getattr(app, "_behavior", None) or getattr(app, "behavior", None)
     inst = None
     if behavior is not None and hasattr(behavior, "components"):
@@ -163,64 +210,53 @@ def _render_surface(app: App, surface_id: str) -> str:
         reg = getattr(app, "_pulse_registry", {}) or {}
         inst = reg.get(surface_id)
     if inst is None:
-        return f'<p class="text-stone-500">Surface {surface_id!r} not mounted.</p>'
-    tree = inst.render()
-    if hasattr(tree, "__iter__") and not isinstance(tree, (str, bytes)):
-        try:
-            return _serialize_tree(tree)
-        except Exception:
-            return str(tree)
-    return str(tree)
+        return p(f"Surface {surface_id!r} not mounted.", className="text-stone-500")
+    return inst.render()
 
 
 def _page_for_path(path: str) -> str:
-    p = (path or "/").rstrip("/") or "/"
-    if p in ("/", "/home"):
+    pth = (path or "/").rstrip("/") or "/"
+    if pth in ("/", "/home"):
         return "home"
-    if p.startswith("/shop"):
+    if pth.startswith("/shop"):
         return "shop"
-    if p.startswith("/lab"):
+    if pth.startswith("/lab"):
         return "lab"
-    if p.startswith("/settings"):
+    if pth.startswith("/settings"):
         return "settings"
     return "home"
 
 
 def build():
-    document = _document(use_htmx=False)
-    asgi = FastAPI(title="Pulse") if HAS_FASTAPI else None
-
-    app = App.boot("Pulse", level="auto")
-    app.use_dom(document)
-    app.use_channel(asgi_app=asgi) if asgi is not None else app.use_channel()
-    app.use_motion()
-
-    bundle = app.mount(
+    document = _document()
+    wrap = _pulse_wrap(document)
+    app, asgi, bundle = compose_build(
         PACKAGE,
-        asgi_app=asgi,
+        name="Pulse",
+        host="auto",
+        live="auto",
+        level="auto",
         base="routes",
         fail_closed=False,
-        bind_pages=bool(asgi is not None),
+        document=document,
+        wrap=wrap,
+        cek="require",
     )
     app._pulse_registry = dict(bundle.unit_registry or {})
     app._pulse_bundle = bundle
+    app._pulse_wrap = wrap
 
-    if asgi is None:
-        return app, None, bundle
+    if asgi is None or not hasattr(asgi, "get"):
+        return app, asgi, bundle
 
-    if STATIC.exists():
+    if STATIC.exists() and StaticFiles is not None:
         asgi.mount("/static", StaticFiles(directory=str(STATIC)), name="static")
 
     @asgi.get("/")
-    @asgi.get("/home")
-    @asgi.get("/shop")
-    @asgi.get("/lab")
-    @asgi.get("/settings")
-    async def pages(request: Request):
-        path = request.url.path
-        sid = _page_for_path(path)
-        inner = _render_surface(app, sid)
-        return HTMLResponse(_shell(inner, path=path))
+    async def root():
+        # /home is the DirectoryRoutes page; / aliases the live Home fragment.
+        tree = _render_surface(app, "home")
+        return _html_response(apply_html_document(wrap, tree))
 
     @asgi.post("/action/{name:path}")
     async def action_door(name: str, request: Request):
@@ -234,18 +270,21 @@ def build():
             except Exception:
                 sid = "home"
             action_name = f"{sid}.{name}"
+        sealed = dict(args)
+        cap = sealed.pop("cap", None)
         try:
-            if action_name.endswith("checkout") and hasattr(app, "submit_intent_async"):
-                cap = app.mint_cap(action_name, args or {}, once=True)
-                result = await app.submit_intent_async(
-                    action_name, cap=cap, args=args
-                )
-                if not getattr(result, "ok", True):
-                    app.dispatch(action_name, **args)
+            if action_name.endswith("checkout"):
+                if not cap:
+                    cap = app.mint_cap(action_name, sealed, once=True)
+                await app.submit_intent_async(action_name, cap=cap, args=sealed)
+                # Cap refuse must not fall through to dispatch.
             else:
-                app.dispatch(action_name, **args)
+                app.dispatch(action_name, **sealed)
         except Exception as exc:
-            return HTMLResponse(f'<p class="text-stone-500">Action error: {exc}</p>', status_code=400)
+            return _html_response(
+                p(f"Action error: {exc}", className="text-stone-500"),
+                status_code=400,
+            )
 
         ref_path = "/"
         try:
@@ -258,8 +297,8 @@ def build():
             sid = action_name.split(".", 1)[0]
         inner = _render_surface(app, sid)
         if request.headers.get("hx-request"):
-            return HTMLResponse(inner)
-        return HTMLResponse(_shell(inner, path=ref_path))
+            return _html_response(inner)
+        return _html_response(apply_html_document(wrap, inner))
 
     @asgi.get("/api/doctor")
     def api_doctor():

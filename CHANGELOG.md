@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- apps: Bucket B host sync (Document path + Cap Host require; kill HAS_DOM/HTML-string soft shells) after #52.
+
 ### BREAKING
 
 - **Python floor is ≥3.14.** ux-compose hard-depends on pinned ux-dom,

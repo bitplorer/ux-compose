@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from ux_compose import Component, div
 
-from ..chrome import hero
-from ..theme import CARD
+from apps.nook.chrome import hero
+from apps.nook.theme import CARD
 
 
 class Visit(Component):

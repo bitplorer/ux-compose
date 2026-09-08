@@ -2,6 +2,11 @@
 
 Host seam: override ``on_pick(day)``. Quantity never lives on MorphState.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+MorphState: ``month``, ``day``. Caps: none. A11y (APG Date Picker grid):
+``role=grid``; weekday ``role=columnheader``; days ``role=row`` /
+``gridcell``; selected day ``aria-selected``.
+Picking a day is public.
 """
 
 from __future__ import annotations
@@ -69,7 +74,8 @@ class Calendar(Component):
         "rounded-full border border-stone-200 bg-white px-4 text-sm font-medium "
         "text-stone-900 hover:bg-stone-100"
     )
-    class_grid = "grid grid-cols-7 gap-1"
+    class_grid = "flex flex-col gap-1"
+    class_row = "grid grid-cols-7 gap-1"
     class_dow = "py-2 text-center text-xs font-medium uppercase tracking-widest text-stone-400"
     class_empty = "min-h-11"
     class_day = (
@@ -97,22 +103,32 @@ class Calendar(Component):
         y, m = _parse_month(month)
         selected = str(self.day or "")
         weeks = _cal.monthcalendar(y, m)
-        cells = [span(name, className=self.class_dow) for name in _WEEKDAYS]
+        header = [
+            span(name, className=self.class_dow, role="columnheader")
+            for name in _WEEKDAYS
+        ]
+        rows = [div(*header, className=self.class_row, role="row")]
         for week in weeks:
+            cells = []
             for d in week:
                 if not d:
-                    cells.append(span("", className=self.class_empty))
+                    cells.append(div(span("", className=self.class_empty), role="gridcell"))
                     continue
                 key = f"{y:04d}-{m:02d}-{d:02d}"
                 on = key == selected
                 cells.append(
-                    button(
-                        str(d),
-                        type="button",
-                        className=self.class_day_on if on else self.class_day,
-                        **bind(self.pick, day=key),
+                    div(
+                        button(
+                            str(d),
+                            type="button",
+                            className=self.class_day_on if on else self.class_day,
+                            aria_selected="true" if on else "false",
+                            **bind(self.pick, day=key),
+                        ),
+                        role="gridcell",
                     )
                 )
+            rows.append(div(*cells, className=self.class_row, role="row"))
         picked = selected or "Nothing chosen"
         return div(
             span("Date", className=self.class_kicker),
@@ -122,7 +138,12 @@ class Calendar(Component):
                 button("Next", type="button", className=self.class_btn_ghost, **bind(self.next)),
                 className=self.class_head,
             ),
-            div(*cells, className=self.class_grid),
+            div(
+                *rows,
+                className=self.class_grid,
+                role="grid",
+                aria_label=self._month_label(),
+            ),
             p(picked, className=self.class_lede),
             id=self.id,
             className=self.class_card,

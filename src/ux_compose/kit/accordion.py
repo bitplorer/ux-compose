@@ -112,7 +112,7 @@ class Accordion(Component):
                         aria_labelledby=btn_id,
                     ) if is_open else span("", className=self.class_sr, id=panel_id),
                     className=self.class_item,
-                    id=f"acc-{key}",
+                    id=f"{self.id}-{key}",
                 )
             )
         return div(

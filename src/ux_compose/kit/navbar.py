@@ -5,7 +5,8 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``, ``active``. Caps: none. A11y (APG Navigation):
 ``nav`` ``aria-label``, hamburger ``aria-expanded`` ``aria-controls``,
-``aria-current=page`` on the active link.
+``aria-current=page`` on the active link. Desktop links and the mobile
+menu are two trees — never reuse one VDOM list.
 """
 
 from __future__ import annotations
@@ -64,14 +65,11 @@ class Navbar(Component):
     def _links(self):
         return tuple(self.LINKS)
 
-    def render(self):
-        cur = str(self.active or self._links()[0][0])
-        is_open = bool(self.open)
-        panel_id = f"{self.id}-menu"
-        items = []
+    def _link_nodes(self, cur: str):
+        nodes = []
         for key, lab, href in self._links():
             on = key == cur
-            items.append(
+            nodes.append(
                 a(
                     lab,
                     href=href,
@@ -80,15 +78,21 @@ class Navbar(Component):
                     **bind(self.select, key=key),
                 )
             )
+        return nodes
+
+    def render(self):
+        cur = str(self.active or self._links()[0][0])
+        is_open = bool(self.open)
+        panel_id = f"{self.id}-menu"
         panel = (
-            div(*items, id=panel_id, className=self.class_panel, role="menu")
+            div(*self._link_nodes(cur), id=panel_id, className=self.class_panel, role="menu")
             if is_open
             else span("", id=panel_id, className=self.class_sr)
         )
         return div(
             nav(
                 span("Lumen", className=self.class_brand),
-                div(*items, className=self.class_links),
+                div(*self._link_nodes(cur), className=self.class_links),
                 button(
                     "Menu" if not is_open else "Close",
                     type="button",

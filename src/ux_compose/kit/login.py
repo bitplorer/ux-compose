@@ -8,7 +8,9 @@ MorphState: ``mode``, ``show_password``, ``submitting``, ``authed``, ``error_dir
 RefState: ``email``, ``password``, ``name``, field/form errors.
 Caps: ``auth.login`` / ``auth.signup`` on ``submit``. Reveal and mode are public.
 A11y: label ``html_for`` ↔ control ``id``; ``aria-invalid`` + ``aria-describedby``
-on errors. Tabs ``role=tablist``.
+on errors. Mode tabs ``role=tablist`` with ``{id}-tab-{mode}`` /
+``{id}-p-{mode}`` ``aria-controls`` + ``tabpanel``. Inactive panel stays
+in the tree with ``hidden``.
 
 Host seam: override ``authenticate()``. Validation and reveal stay here.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -34,6 +36,7 @@ from ux_compose import (
     label,
     p,
     h1,
+    section,
 )
 
 
@@ -228,16 +231,22 @@ class Login(Component):
                 button(
                     "Sign in",
                     type="button",
+                    id=f"{self.id}-tab-login",
                     role="tab",
                     aria_selected="false" if is_signup else "true",
+                    aria_controls=f"{self.id}-p-login",
+                    tabindex="0" if not is_signup else "-1",
                     className=self.class_tab_on if not is_signup else self.class_tab,
                     **bind(self.set_mode, mode="login"),
                 ),
                 button(
                     "Sign up",
                     type="button",
+                    id=f"{self.id}-tab-signup",
                     role="tab",
                     aria_selected="true" if is_signup else "false",
+                    aria_controls=f"{self.id}-p-signup",
+                    tabindex="0" if is_signup else "-1",
                     className=self.class_tab_on if is_signup else self.class_tab,
                     **bind(self.set_mode, mode="signup"),
                 ),
@@ -272,7 +281,7 @@ class Login(Component):
             show_pw,
         ))
 
-        kids.append(form(
+        form_tree = form(
             *fields,
             button(
                 submit_label,
@@ -280,9 +289,21 @@ class Login(Component):
                 className=self.class_submit,
                 **bind(self.submit),
             ),
-            id="login-form",
+            id=f"{self.id}-form",
             className=self.class_form,
-        ))
+        )
+        active_mode = "signup" if is_signup else "login"
+        for mode in ("login", "signup"):
+            on = mode == active_mode
+            panel_attrs = {
+                "id": f"{self.id}-p-{mode}",
+                "role": "tabpanel",
+                "aria_labelledby": f"{self.id}-tab-{mode}",
+                "tabindex": "0" if on else "-1",
+            }
+            if not on:
+                panel_attrs["hidden"] = True
+            kids.append(section(form_tree, **panel_attrs) if on else section(**panel_attrs))
 
         if is_signup:
             kids.append(p(

@@ -2,6 +2,9 @@
 
 Host seam: override ``PLANS`` and ``on_choose(key)``. Picking is public.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+MorphState: ``value``. Caps: none. A11y (APG Radio Group): ``role=radiogroup``;
+each plan ``role=radio`` ``aria-checked``; selected ``tabindex=0`` others ``-1``.
 """
 
 from __future__ import annotations
@@ -101,8 +104,10 @@ class Plans(Component):
                 button(
                     *kids,
                     type="button",
+                    role="radio",
+                    aria_checked="true" if on else "false",
+                    tabindex="0" if on else "-1",
                     className=self.class_plan_on if on else self.class_plan,
-                    aria_pressed="true" if on else "false",
                     **bind(self.choose, key=key),
                 )
             )
@@ -111,7 +116,7 @@ class Plans(Component):
             span("Join", className=self.class_kicker),
             h2("Choose a desk", className=self.class_title),
             p(f"Selected · {chosen}. Picking is public.", className=self.class_lede),
-            div(*cards, className=self.class_grid, role="radiogroup"),
+            div(*cards, className=self.class_grid, role="radiogroup", aria_label="Choose a desk"),
             id=self.id,
             className=self.class_card,
             data_value=val,

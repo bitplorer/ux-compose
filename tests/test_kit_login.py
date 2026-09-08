@@ -54,6 +54,14 @@ def test_toggle_hide_keeps_value():
 
 def test_set_mode_keeps_typed_values():
     app = _boot(strict_caps=False)
+    html = _html(app)
+    assert 'id="login-tab-login"' in html
+    assert 'aria-controls="login-p-login"' in html
+    assert 'id="login-p-login"' in html
+    assert 'role="tabpanel"' in html
+    assert 'id="login-tab-signup"' in html
+    assert 'aria-controls="login-p-signup"' in html
+    assert 'id="login-p-signup"' in html
     app.dispatch(
         "login.set_mode",
         mode="signup",
@@ -66,6 +74,8 @@ def test_set_mode_keeps_typed_values():
     assert "you@atelier.test" in html
     assert "password12" in html
     assert 'name="name"' in html
+    assert 'aria-selected="true"' in html
+    assert 'id="login-p-signup"' in html
 
 
 def test_submit_validates():

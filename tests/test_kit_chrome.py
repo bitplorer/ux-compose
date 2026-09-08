@@ -46,10 +46,17 @@ def test_tabs_select_morphs_panel():
     html = _html(app, "tabs")
     assert "Overview" in html
     assert "A quiet desk" in html
+    assert 'id="tabs-tab-overview"' in html
+    assert 'aria-controls="tabs-p-overview"' in html
+    assert 'id="tabs-p-overview"' in html
+    assert 'id="tabs-p-work"' in html
+    assert html.count('role="tabpanel"') == 3
     app.dispatch("tabs.select", tab="work")
     html = _html(app, "tabs")
     assert "What is open" in html
     assert 'data-tab="work"' in html or "Work" in html
+    assert 'aria-controls="tabs-p-work"' in html
+    assert 'id="tabs-p-work"' in html
     app.dispatch("tabs.select", tab="nope")
     inst = app.behavior.get("tabs")
     assert str(inst.tab) == "overview"
@@ -59,11 +66,16 @@ def test_accordion_toggle_set():
     app = _boot(Accordion, strict_caps=False)
     inst = app.behavior.get("accordion")
     assert "fit" in tuple(inst.open_ids or ())
+    html = _html(app, "accordion")
+    assert 'id="accordion-fit"' in html
+    assert 'id="accordion-h-fit"' in html
+    assert 'aria-controls="accordion-p-fit"' in html
     app.dispatch("accordion.toggle", key="finish")
     opened = set(inst.open_ids or ())
     assert "fit" in opened and "finish" in opened
     html = _html(app, "accordion")
     assert "Wax, then rest" in html
+    assert 'id="accordion-finish"' in html
     app.dispatch("accordion.toggle", key="fit")
     assert "fit" not in set(inst.open_ids or ())
 
@@ -237,6 +249,21 @@ def test_command_filter_and_run():
     assert not bool(inst.open)
 
 
+def test_command_sign_out_is_cap():
+    app = _boot(Command, strict_caps=True)
+    with pytest.raises(Exception):
+        app.dispatch("command.sign_out")
+    open_mint = _boot(Command, strict_caps=False)
+    open_mint.dispatch("command.open_pal")
+    html = _html(open_mint, "command")
+    assert "command.sign_out" in html
+    open_mint.dispatch("command.run", key="sign-out")
+    inst = open_mint.behavior.get("command")
+    assert bool(inst.open)
+    open_mint.dispatch("command.sign_out")
+    assert not bool(inst.open)
+
+
 def test_table_sort_select_archive():
     app = _boot(Table, strict_caps=False)
     app.dispatch("table.sort_by", key="price")
@@ -322,12 +349,33 @@ def test_combobox_attach_query_then_pick():
     assert "Oak serving board" in html
     assert "Wool throw" not in html
     assert 'value="oak"' in html
+    assert 'id="combobox-form"' in html
+    assert 'id="combobox-opt-0"' in html
     app.dispatch("combobox.pick", key="Oak serving board")
     inst = app.behavior.get("combobox")
     assert str(inst.value) == "Oak serving board"
     assert not bool(inst.open)
     app.dispatch("combobox.clear")
     assert str(inst.query or "") == ""
+
+
+def test_combobox_accordion_ids_follow_instance():
+    class Find(Combobox):
+        id = "find"
+
+    class Guide(Accordion):
+        id = "guide"
+
+    app = _boot(Find, Guide, strict_caps=False)
+    app.dispatch("find.type_query", q="oak")
+    combo = _html(app, "find")
+    assert 'id="find-form"' in combo
+    assert 'id="find-q"' in combo
+    assert 'id="find-opt-0"' in combo
+    acc = _html(app, "guide")
+    assert 'id="guide-fit"' in acc
+    assert 'id="guide-h-fit"' in acc
+    assert 'id="guide-p-fit"' in acc
 
 
 HAS_CHANNEL = importlib.util.find_spec("ux_channel") is not None

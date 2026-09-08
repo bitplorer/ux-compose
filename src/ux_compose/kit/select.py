@@ -6,7 +6,7 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 MorphState: ``open``, ``value``. Caps: none. A11y (APG Select-Only Combobox):
 trigger ``aria-haspopup=listbox`` ``aria-expanded`` ``aria-controls``
 ``aria-labelledby``. Listbox + ``role=option`` ``aria-selected``. Escape /
-scrim close is public Morph. Label ``for`` ↔ trigger id.
+scrim close is public Morph. Label ``html_for`` ↔ trigger ``id``.
 """
 
 from __future__ import annotations
@@ -23,6 +23,7 @@ from ux_compose import (
     h2,
     p,
     span,
+    label,
 )
 
 
@@ -138,7 +139,7 @@ class Select(Component):
             span("Field", className=self.class_kicker),
             h2("Material", className=self.class_title),
             p("Grouped options. The value is a name.", className=self.class_lede),
-            span("Finish", id=label_id, className=self.class_label),
+            label("Finish", html_for=trigger_id, id=label_id, className=self.class_label),
             scrim,
             div(
                 button(

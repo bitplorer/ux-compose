@@ -3,7 +3,8 @@
 Host seam: override ``COMMANDS`` and ``on_run(key)``. Opening is public.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
-MorphState: ``open``, ``dirty``. RefState: ``query``. Caps: none.
+MorphState: ``open``, ``dirty``. RefState: ``query``. Caps: ``auth.logout``
+on ``sign_out``. Other ``run`` keys are open mint.
 A11y: ``role=dialog`` ``aria-modal`` labelledby; search ``role=combobox``.
 Escape / scrim via OverlayChrome. Focus: panel tabindex + input autofocus.
 """
@@ -137,20 +138,22 @@ class Command(Component):
             hits = self._hits()
             list_id = f"{self.id}-list"
             title_id = f"{self.id}-title"
-            rows = [
-                li(
-                    button(
-                        span(label),
-                        span(hint, className=self.class_hint),
-                        type="button",
-                        role="option",
-                        className=self.class_row,
-                        **bind(self.run, key=key),
-                    ),
-                    id=f"cmd-{key}",
+            rows = []
+            for key, caption, hint in hits[:7]:
+                verb = bind(self.sign_out) if key == "sign-out" else bind(self.run, key=key)
+                rows.append(
+                    li(
+                        button(
+                            span(caption),
+                            span(hint, className=self.class_hint),
+                            type="button",
+                            role="option",
+                            className=self.class_row,
+                            **verb,
+                        ),
+                        id=f"cmd-{key}",
+                    )
                 )
-                for key, label, hint in hits[:7]
-            ]
             listing = (
                 ul(*rows, id=list_id, className=self.class_list, role="listbox")
                 if rows
@@ -263,10 +266,21 @@ class Command(Component):
     @action(caps=())
     def run(self, key: str = "", q: str = ""):
         self._take_q(q=q)
-        keys = {row[0] for row in self._commands()}
+        if key == "sign-out":
+            return update_with(self)
+        keys = {row[0] for row in self._commands() if row[0] != "sign-out"}
         if key not in keys:
             return update_with(self)
         msg = self.on_run(key)
+        self.open = False
+        self.query = ""
+        self._mark_dirty()
+        return update_with(self, extra_ops=[notify(msg)])
+
+    @action(caps=("auth.logout",))
+    def sign_out(self, q: str = ""):
+        self._take_q(q=q)
+        msg = self.on_run("sign-out")
         self.open = False
         self.query = ""
         self._mark_dirty()

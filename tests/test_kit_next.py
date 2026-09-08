@@ -118,6 +118,10 @@ def test_calendar_month_and_pick():
     html = _html(app, "calendar")
     assert "August 2026" in html
     assert "26" in html
+    assert 'role="grid"' in html
+    assert 'aria-selected="true"' in html
+    assert 'role="row"' in html
+    assert 'role="gridcell"' in html
     app.dispatch("calendar.next")
     html = _html(app, "calendar")
     assert "September 2026" in html
@@ -127,6 +131,7 @@ def test_calendar_month_and_pick():
     assert str(inst.day) == "2026-09-03"
     html = _html(app, "calendar")
     assert "2026-09-03" in html
+    assert 'aria-selected="true"' in html
 
 
 def test_select_grouped_choose():
@@ -135,6 +140,8 @@ def test_select_grouped_choose():
     assert "Choose a material" in html
     app.dispatch("select.toggle")
     html = _html(app, "select")
+    assert 'for="select-trigger"' in html
+    assert 'id="select-trigger"' in html
     assert "Cloth" in html
     assert "Oak" in html
     app.dispatch("select.choose", key="oak")
@@ -174,6 +181,9 @@ def test_plans_choose():
     html = _html(app, "plans")
     assert "Atelier" in html
     assert "$96" in html
+    assert 'role="radiogroup"' in html
+    assert 'role="radio"' in html
+    assert 'aria-checked="true"' in html
     app.dispatch("plans.choose", key="house")
     inst = app.behavior.get("plans")
     assert str(inst.value) == "house"

@@ -40,6 +40,7 @@ def test_actionsheet_open_pick_close():
     assert 'id="actionsheet-panel"' in html
     assert 'id="actionsheet-scrim"' in html
     assert 'id="actionsheet-dismiss"' in html
+    assert "autofocus" in html
     assert "relative" not in ActionSheet.class_card
     app.dispatch("actionsheet.pick", key="share")
     inst = app.behavior.get("actionsheet")
@@ -70,6 +71,8 @@ def test_contextmenu_longpress_attr_on_trigger_only():
     # host must not broadcast longpress to items
     assert html.count("click longpress") == 1
     assert "keydown.escape" in html
+    assert 'aria-controls="contextmenu-menu"' in html
+    assert 'id="contextmenu-menu"' in html
     app.dispatch("contextmenu.run", key="rename")
     inst = app.behavior.get("contextmenu")
     assert str(inst.ran) == "rename"

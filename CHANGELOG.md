@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Kit APG residuals after #59: namespaced tabs/login tabpanels (`{id}-tab-{k}` /
+  `{id}-p-{k}`, inactive `hidden`); calendar/datepicker `role=grid` + `row` /
+  `gridcell` + `aria-selected`; alertdialog Escape/scrim do not dismiss;
+  table row select binds the checkbox, not the `<tr>`; actionsheet autofocus
+  on open; navbar builds two link trees. Ride-along: fileupload demo names
+  `sketch.png`; combobox/accordion ids follow the instance id; select
+  `label for`; plans radio APG; contextmenu `aria-controls`; command Sign out
+  spends `auth.logout`.
+
 ### Added
 
 - Kit expansion: harden existing widgets (ARIA APG, label↔id, Escape dismiss,

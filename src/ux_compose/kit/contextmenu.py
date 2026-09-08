@@ -4,10 +4,10 @@ Host seam: override ``ITEMS`` and ``on_run(key)``.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``, ``dirty``. RefState: ``ran``. Caps: none.
-A11y (APG Menu): trigger ``aria-haspopup=menu`` ``aria-expanded``; panel
-``role=menu`` ``menuitem``. Escape on scrim. Longpress lives on the *trigger*,
-not the host, so menu items do not inherit it. The menu is a floating panel
-(list-none), not a native tab/list.
+A11y (APG Menu): trigger ``aria-haspopup=menu`` ``aria-expanded``
+``aria-controls``; panel ``role=menu`` ``menuitem``. Escape on scrim.
+Longpress lives on the *trigger*, not the host, so menu items do not
+inherit it. The menu is a floating panel (list-none), not a native tab/list.
 """
 
 from __future__ import annotations
@@ -93,6 +93,7 @@ class ContextMenu(Component):
     def render(self):
         is_open = bool(self.open)
         ran = str(self.ran or "")
+        menu_id = f"{self.id}-menu"
         layer = []
         if is_open:
             rows = [
@@ -117,7 +118,7 @@ class ContextMenu(Component):
                     data_channel_on="click keydown.escape",
                     **bind(self.close),
                 ),
-                ul(*rows, className=self.class_menu, role="menu"),
+                ul(*rows, id=menu_id, className=self.class_menu, role="menu"),
             ]
         return div(
             span("Hold or click", className=self.class_kicker),
@@ -135,6 +136,7 @@ class ContextMenu(Component):
                     className=self.class_canvas,
                     aria_haspopup="menu",
                     aria_expanded="true" if is_open else "false",
+                    aria_controls=menu_id,
                     data_channel_on="click longpress delay:480",
                     **bind(self.open_menu),
                 ),

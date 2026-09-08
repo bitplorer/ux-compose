@@ -26,8 +26,7 @@ from ux_dom.runtime import XElement, Htmx, Csp
 
 
 def build_app():
-    """Compose Document + progressive App via build(). Returns (app, asgi, bundle, document)."""
-    document = None
+    """Compose Document + App via build(). Returns (app, asgi, bundle, document)."""
     document = Document(head=[], body=[], ensure_csrf_token=False).use(
         XElement(),
         Htmx(),
@@ -50,24 +49,19 @@ def build_app():
             return {
                 "level": int(app.level),
                 "label": app.level.label,
-                "document": document is not None,
+                "document": True,
             }
 
     return app, asgi, bundle, document
 
 
-try:
-    app, asgi, bundle, document = build_app()
-except Exception:
-    app = asgi = bundle = document = None
+app, asgi, bundle, document = build_app()
 
 
 if __name__ == "__main__":
-    if app is None:
-        raise SystemExit("build() failed")
     print("Level:", int(app.level), f"({app.level.label})")
-    print("Document SSoT:", document is not None)
-    print("ASGI:", type(asgi).__name__ if asgi is not None else None)
+    print("Document SSoT:", app._document is document)
+    print("ASGI:", type(asgi).__name__)
 
     ops = app.dispatch("livecounter.inc")
     print("Dispatch ops:")
@@ -77,7 +71,6 @@ if __name__ == "__main__":
     report = doctor([], fail=False, bundle=bundle)
     print("Doctor capabilities:", report.capabilities)
     print("Progressive L" + str(report.level_available))
-    print("Routes:", [r.get("path") for r in (bundle.route_table or [])] if bundle else [])
+    print("Routes:", [r.get("path") for r in (bundle.route_table or [])])
 
-    if asgi is not None:
-        print("Serve with: uxcompose serve examples.live_asgi:asgi")
+    print("Serve with: uxcompose serve examples.live_asgi:asgi")

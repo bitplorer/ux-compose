@@ -12,8 +12,8 @@ Don't:
     return scene("pop").enter("#box", rise.enter(ms=140), html=self.render())
 
 The helper serializes live render() into the morph patch. The Plan carries
-recipes only. Without ux-motion, ``scene`` is None and the same action still
-morphs — Progressive Superpower.
+recipes only. ux-motion is a hard dependency; L1 dispatch still morphs
+without attaching Motion (Progressive Superpower).
 
 Run:
   PYTHONPATH=src:. python examples/motion_xor.py
@@ -81,12 +81,7 @@ class MotionBox(Component):
     @action(caps=())
     def rest(self):
         self.pose = "rest"
-        plan = None
-        if scene is not None and fade is not None:
-            try:
-                plan = scene("box-rest").enter("#motionbox-face", fade.enter(ms=140))
-            except Exception:
-                plan = None
+        plan = scene("box-rest").enter("#motionbox-face", fade.enter(ms=140))
         return update_with(self, plan)
 
 
@@ -121,26 +116,20 @@ class ShareSeat(Component):
     def fly(self):
         going_to_bag = self.place != "bag"
         self.place = "bag" if going_to_bag else "shelf"
-        plan = None
-        if scene is not None and rise is not None:
-            try:
-                leave, arrive = (
-                    ("#from-linen", "#to-linen") if going_to_bag else ("#to-linen", "#from-linen")
-                )
-                plan = (
-                    scene("line-to-bag")
-                    .share("sku-linen", leave=leave, arrive=arrive, recipe=rise.enter(ms=120))
-                    .enter(f"#{self.id}", rise.enter(ms=140))
-                )
-            except Exception:
-                plan = None
+        leave, arrive = (
+            ("#from-linen", "#to-linen") if going_to_bag else ("#to-linen", "#from-linen")
+        )
+        plan = (
+            scene("line-to-bag")
+            .share("sku-linen", leave=leave, arrive=arrive, recipe=rise.enter(ms=120))
+            .enter(f"#{self.id}", rise.enter(ms=140))
+        )
         return update_with(self, plan, extra_ops=[notify(self.place)])
 
 
 def demo() -> None:
     app = App.boot("Motion", strict_caps=False)
     app.add(MotionBox, ShareSeat)
-    print("motion available", scene is not None)
     print("hop", app.dispatch("motionbox.hop"))
     print("share", app.dispatch("share.fly"))
 

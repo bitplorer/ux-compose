@@ -1,7 +1,7 @@
 """Navigation — region swap, master/detail, shared-element seat.
 
 The page does not remount. One Component owns ``mode``. Detail payload is
-RefState. Motion Plan (when present) is exit/enter recipes with no html=.
+RefState. Motion Plan is exit/enter recipes with no html=.
 
 Run:
   PYTHONPATH=src:. python examples/navigation.py
@@ -71,19 +71,14 @@ class ShopView(Component):
         return section(*kids, id=self.id, className="widget list")
 
     def _plan(self, kind: str):
-        if scene is None:
-            return None
-        try:
-            if kind == "to_detail" and fade and rise:
-                return (
-                    scene("to-detail")
-                    .exit(f"#{self.id}", fade.exit(ms=120))
-                    .enter(f"#{self.id}", rise.enter(ms=160))
-                )
-            if kind == "to_list" and fade:
-                return scene("to-list").enter(f"#{self.id}", fade.enter(ms=140))
-        except Exception:
-            return None
+        if kind == "to_detail":
+            return (
+                scene("to-detail")
+                .exit(f"#{self.id}", fade.exit(ms=120))
+                .enter(f"#{self.id}", rise.enter(ms=160))
+            )
+        if kind == "to_list":
+            return scene("to-list").enter(f"#{self.id}", fade.enter(ms=140))
         return None
 
     @action(caps=())

@@ -2,8 +2,8 @@
 Elevated Cart example — demonstrates the frozen mental model.
 
 Progressive Superpower Contract:
-  Level 1 offline path works without Channel or Motion.
-  Unlocking L2/L3 is pure additive (zero rewrite of this Cart class).
+  Level 1 offline dispatch is valid. Channel and Motion are additive attach
+  (zero rewrite of this Cart class).
 
 Run:
   PYTHONPATH=src python examples/cart.py
@@ -48,11 +48,11 @@ class Cart(Component):
             className="cart",
         )
 
-    @action(caps=())  # public
+    @action(caps=())  # open mint / no Cap predicate
     def add(self, sku: str = ""):
         self.count = int(self.count) + 1
         self.last_sku = sku
-        # Prefer update_with when combining state + (optional) motion.
+        # Prefer update_with when combining state + a motion Plan.
         # Offline: produces morph + notify. Live+Motion: same call, XOR-safe.
         plan = scene("cart-pop").enter(f"#{self.id}", rise.enter(ms=160))
         return update_with(self, plan, extra_ops=[notify(f"Added {sku}")])
@@ -63,7 +63,7 @@ class Cart(Component):
 
 
 if __name__ == "__main__":
-    # Level 1 — offline interactive (no Channel required)
+    # Level 1 — offline interactive (Channel is an additive attach)
     app = App.boot("Shop", strict_caps=False)
     app.add(Cart)
 
@@ -92,6 +92,6 @@ if __name__ == "__main__":
     print("Capabilities:", report.capabilities)
     print("Progressive level available: L" + str(report.level_available))
 
-    # Progressive unlock (zero rewrite of Cart)
-    # app.use_channel()   # Level 2 when Channel available
-    # app.use_motion()    # Level 3 when Motion available
+    # Additive attach (zero rewrite of Cart)
+    # app.use_channel()   # Level 2 — attach Channel
+    # app.use_motion()    # Level 3 — attach Motion

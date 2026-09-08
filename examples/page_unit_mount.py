@@ -37,26 +37,22 @@ PACKAGE = Path(__file__).resolve().parent / "page_unit_demo"
 def build(*, level: int = 1, with_asgi: bool = False):
     asgi = None
     if with_asgi:
-        try:
-            from fastapi import FastAPI
+        from fastapi import FastAPI
 
-            asgi = FastAPI(title="page-unit-demo")
-        except ImportError:
-            print("FastAPI not installed — continuing without ASGI router")
+        asgi = FastAPI(title="page-unit-demo")
 
     app = App.boot("PageUnitDemo", level=level)
 
     # Progressive levels are additive attach APIs — same page unit, zero rewrite
     if level >= 2:
-        try:
-            app.use_channel(asgi_app=asgi) if asgi is not None else app.use_channel()
-        except Exception as exc:
-            print(f"  channel unlock skipped: {exc}")
+        if asgi is not None:
+            app.use_channel(asgi_app=asgi)
+        else:
+            app.use_channel()
+        print("  channel attached")
     if level >= 3:
-        try:
-            app.use_motion()
-        except Exception as exc:
-            print(f"  motion unlock skipped: {exc}")
+        app.use_motion()
+        print("  motion attached")
 
     bundle = app.mount(
         PACKAGE,

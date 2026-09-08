@@ -57,7 +57,6 @@ class Cart(Component):
 
 
 if __name__ == "__main__":
-    document = None
     document = Document(head=[], body=[], ensure_csrf_token=False).use(
         XElement(),
         Htmx(),
@@ -65,13 +64,12 @@ if __name__ == "__main__":
     )
 
     app = App.boot("Shop", strict_caps=False)
-    if document is not None:
-        app.use_dom(document)
+    app.use_dom(document)
     app.use_behavior().use_channel().use_motion()
     app.add(Cart)
 
     print("Level:", int(app.level), f"({app.level.label})")
-    print("Document SSoT:", document is not None and app._document is document)
+    print("Document SSoT:", app._document is document)
 
     ops = app.dispatch("cart.add", sku="tee")
     print("add →")
@@ -80,8 +78,7 @@ if __name__ == "__main__":
 
     # Cap Law offline under strict
     strict = App.boot("Shop", strict_caps=True)
-    if document is not None:
-        strict.use_dom(document)
+    strict.use_dom(document)
     strict.use_behavior()
     strict.add(Cart)
     try:
@@ -90,16 +87,14 @@ if __name__ == "__main__":
     except Exception as e:
         print("Cap Law:", type(e).__name__, "— checkout refused offline under strict_caps")
 
-    # Full page render when Document present
-    if document is not None:
-        inst = Cart()
-        inst.count = 1
-        inst.last_sku = "tee"
-        body = inst.render()
-        page = document(body)
-        html = str(page)
-        print("HTML head snippet:", html[:120].replace("\n", " "))
-        print("HTML contains cart:", 'id="cart"' in html or "cart" in html)
+    inst = Cart()
+    inst.count = 1
+    inst.last_sku = "tee"
+    body = inst.render()
+    page = document(body)
+    html = str(page)
+    print("HTML head snippet:", html[:120].replace("\n", " "))
+    print("HTML contains cart:", 'id="cart"' in html or "cart" in html)
 
     report = doctor([], fail=False)
     print("Doctor ok:", report.ok)

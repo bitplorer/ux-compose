@@ -20,10 +20,13 @@ class KitCopyError(RuntimeError):
     pass
 
 
+_KIT_MODULE_IMPORT = re.compile(r"from ux_compose\.kit\.([a-zA-Z0-9_]+) import")
 _IMPORT_REWRITES = [
-    (re.compile(r"from ux_compose\.kit\.([a-zA-Z0-9_]+) import"), r"from .\1 import"),
+    (_KIT_MODULE_IMPORT, r"from .\1 import"),
     (re.compile(r"from ux_compose\.kit import"), "from . import"),
 ]
+# catalog/copy are CLI internals, not ownable widgets.
+_TOOLING_STEMS = frozenset({"catalog", "copy"})
 
 
 def find_app_root(start: Optional[Path] = None) -> Path:
@@ -47,6 +50,83 @@ def _rewrite(text: str) -> str:
     for pat, repl in _IMPORT_REWRITES:
         text = pat.sub(repl, text)
     return text
+
+
+def _sibling_stems(text: str) -> tuple[str, ...]:
+    """Kit modules whose imports ``_rewrite`` turns into ``from .<stem>``."""
+    seen: set[str] = set()
+    stems: list[str] = []
+    for match in _KIT_MODULE_IMPORT.finditer(text):
+        stem = match.group(1)
+        if stem in _TOOLING_STEMS or stem in seen:
+            continue
+        seen.add(stem)
+        stems.append(stem)
+    return tuple(stems)
+
+
+def _apply_ownable_banner(text: str, module: str, stem: str) -> str:
+    banner = (
+        f'"""Ownable copy of {module} — edit freely.\n\n'
+        f"Copied by ``uxcompose add {stem}``. "
+        f"Regenerate with ``uxcompose add {stem} --force``.\n"
+    )
+    if text.startswith('"""'):
+        end = text.find('"""', 3)
+        if end != -1:
+            original = text[3:end].strip()
+            rest = text[end + 3 :].lstrip("\n")
+            return banner + "\n" + original + '\n"""\n\n' + rest
+    return text
+
+
+def _write_ownable_copy(src: Path, dest: Path, *, module: str, stem: str) -> None:
+    dest.write_text(
+        _apply_ownable_banner(_rewrite(src.read_text(encoding="utf-8")), module, stem),
+        encoding="utf-8",
+    )
+
+
+def _copy_rewritten_siblings(
+    text: str,
+    *,
+    kit_dir: Path,
+    dest_dir: Path,
+    force: bool,
+    seen: set[str],
+    written: dict[str, Path | None],
+    parent_stem: str,
+) -> None:
+    """Copy kit modules that rewritten relative imports need (transitive)."""
+    for stem in _sibling_stems(text):
+        if stem in seen:
+            continue
+        seen.add(stem)
+        src = kit_dir / f"{stem}.py"
+        if not src.is_file():
+            raise KitCopyError(
+                f"rewrote import of ux_compose.kit.{stem} but "
+                f"{src.name} is not a kit module"
+            )
+        original = src.read_text(encoding="utf-8")
+        dest = dest_dir / f"{stem}.py"
+        if not dest.exists() or force:
+            _write_ownable_copy(
+                src,
+                dest,
+                module=f"ux_compose.kit.{stem}",
+                stem=parent_stem,
+            )
+            written[stem] = dest
+        _copy_rewritten_siblings(
+            original,
+            kit_dir=kit_dir,
+            dest_dir=dest_dir,
+            force=force,
+            seen=seen,
+            written=written,
+            parent_stem=parent_stem,
+        )
 
 
 def _ensure_pkg(path: Path) -> None:
@@ -139,23 +219,19 @@ def copy_component(
     if dest.exists() and not force:
         raise KitCopyError(f"{dest} exists (use --force)")
 
-    text = src.read_text(encoding="utf-8")
-    text = _rewrite(text)
-    banner = (
-        f'"""Ownable copy of {meta["module"]} — edit freely.\n\n'
-        f"Copied by ``uxcompose add {stem}``. "
-        f"Regenerate with ``uxcompose add {stem} --force``.\n"
-    )
-    # Replace the opening docstring with the ownable banner + original body.
-    if text.startswith('"""'):
-        end = text.find('"""', 3)
-        if end != -1:
-            original = text[3:end].strip()
-            rest = text[end + 3 :].lstrip("\n")
-            text = banner + "\n" + original + '\n"""\n\n' + rest
-    dest.write_text(text, encoding="utf-8")
+    original = src.read_text(encoding="utf-8")
+    _write_ownable_copy(src, dest, module=meta["module"], stem=stem)
 
     written: dict[str, Path | None] = {"py": dest, "css": None, "page": None, "base": None}
+    _copy_rewritten_siblings(
+        original,
+        kit_dir=src.parent,
+        dest_dir=dest_dir,
+        force=force,
+        seen={stem},
+        written=written,
+        parent_stem=stem,
+    )
 
     if as_page or meta.get("page"):
         routes = app_root / "routes"

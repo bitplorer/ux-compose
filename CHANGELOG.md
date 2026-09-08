@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Kit Batch A APG holds: menubar submenu ids ``{id}-m-{key}`` stay in the
+  tree with ``hidden`` when closed (no dangling ``aria-controls``). Toolbar
+  one-shot commands use ``aria-current``, not ``aria-pressed``. Filterbar
+  radios rove ``tabindex``.
 - Kit Batch D APG holds: FAB menu id ``{id}-menu`` stays in the tree with
   ``hidden`` when closed (no dangling ``aria-controls``). Resizable split
   chips are ``role=radio`` ``aria-checked`` inside the radiogroup.

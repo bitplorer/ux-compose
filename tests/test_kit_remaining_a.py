@@ -136,11 +136,18 @@ def test_menubar_apg_and_choose():
     assert 'id="menubar-file"' in html
     assert 'aria-controls="menubar-m-file"' in html
     assert "File" in html
+    # Closed: every submenu id stays in the tree (tabs-before-#60 dangling-id hole).
+    assert 'id="menubar-m-file"' in html
+    assert 'id="menubar-m-edit"' in html
+    assert 'id="menubar-m-view"' in html
+    assert html.count('role="menu"') == 3
+    assert "hidden" in html
 
     app.dispatch("menubar.open_menu", key="file")
     html = _html(app, "menubar")
     assert 'aria-expanded="true"' in html
     assert 'id="menubar-m-file"' in html
+    assert 'id="menubar-m-edit"' in html
     assert 'role="menu"' in html
     assert "New desk" in html
     assert "keydown.escape" in html
@@ -152,6 +159,9 @@ def test_menubar_apg_and_choose():
     html = _html(app, "menubar")
     assert 'data-value="new"' in html
     assert 'aria-expanded="false"' in html
+    assert 'id="menubar-m-file"' in html
+    assert 'id="menubar-m-edit"' in html
+    assert 'id="menubar-m-view"' in html
 
 
 def test_toolbar_apg_and_run():
@@ -170,7 +180,8 @@ def test_toolbar_apg_and_run():
     assert str(inst.value) == "undo"
     html = _html(app, "toolbar")
     assert 'data-value="undo"' in html
-    assert 'aria-pressed="true"' in html
+    assert "aria-pressed" not in html
+    assert 'aria-current="true"' in html
 
 
 def test_togglegroup_radiogroup_exclusive():
@@ -246,6 +257,8 @@ def test_filterbar_labeled_query_and_named_filter():
     assert 'for="filterbar-q"' in html or 'id="filterbar-q"' in html
     assert 'role="radiogroup"' in html
     assert "Linen" in html
+    assert 'tabindex="0"' in html
+    assert 'tabindex="-1"' in html
 
     app.dispatch("filterbar.choose", key="oak")
     inst = app.behavior.get("filterbar")
@@ -267,14 +280,19 @@ def test_a11y_smoke_chrome_a():
     menubar = _html(app, "menubar")
     assert 'role="menubar"' in menubar
     assert 'aria-controls="menubar-m-file"' in menubar
+    assert 'id="menubar-m-file"' in menubar
+    assert 'id="menubar-m-edit"' in menubar
+    assert 'id="menubar-m-view"' in menubar
     app.dispatch("menubar.open_menu", key="edit")
     menubar = _html(app, "menubar")
     assert 'id="menubar-m-edit"' in menubar
+    assert 'id="menubar-m-file"' in menubar
     assert 'role="menu"' in menubar
 
     toolbar = _html(app, "toolbar")
     assert 'role="toolbar"' in toolbar
     assert 'role="separator"' in toolbar
+    assert "aria-pressed" not in toolbar
 
     group = _html(app, "togglegroup")
     assert 'role="radiogroup"' in group
@@ -293,6 +311,8 @@ def test_a11y_smoke_chrome_a():
     filt = _html(app, "filterbar")
     assert 'id="filterbar-q"' in filt
     assert 'role="radiogroup"' in filt
+    assert 'tabindex="0"' in filt
+    assert 'tabindex="-1"' in filt
 
 
 def test_chrome_a_caps_are_empty():

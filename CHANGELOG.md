@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   radiogroup, spinbutton valuemin/now/max, theme radiogroup ≠ switch).
   Spinbutton magnitude is RefState. Caps stay off chrome. Isolation: kit
   still never imports `ux_channel`.
+- Kit Batch B product: `chat`, `questionnaire`. Chat log is `role=log`;
+  composer label↔id; send is public. Questionnaire is fieldset radiogroups;
+  submit spends `form.submit`.
 - Kit expansion: harden existing widgets (ARIA APG, label↔id, Escape dismiss,
   table row-select vs header select-all, overlay focus attrs) and add P0 +
   cheap P1 cards (`navbar`, `navmenu`, `usermenu`, `popover`, `tooltip`,

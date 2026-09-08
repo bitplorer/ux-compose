@@ -1,6 +1,6 @@
 """Chrome widgets — Tabs, Accordion, Dropdown, Drawer.
 
-99% of product chrome is open/value MorphState + public @action.
+99% of product chrome is open/value MorphState + open-mint @action.
 No Caps unless the verb spends money, deletes, or changes identity.
 
 Stable ids on panels (``#tab-cut``) let Motion stagger later without rewrite.
@@ -30,7 +30,7 @@ from examples._common import act, optional_fade, optional_plan
 
 TABS = (
     ("cut", "Cut", "The pattern book. Tabs morph one region; they do not remount the page."),
-    ("make", "Make", "Actions stay on the same Component. Motion, when unlocked, is a Plan."),
+    ("make", "Make", "Actions stay on the same Component. Motion, when attached, is a Plan."),
     ("keep", "Keep", "Caps stay off chrome. Opening a tab is not an authority event."),
 )
 

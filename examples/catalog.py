@@ -1,7 +1,7 @@
 """Pattern catalog — 99% use-case map.
 
-Isolation-safe. Importing this module loads example Components only
-(no Document, no Channel). The studio host registers every class once.
+Isolation-safe. Importing this module loads example Components only;
+the studio host attaches Document / Channel and registers every class once.
 """
 from __future__ import annotations
 
@@ -720,8 +720,8 @@ PATTERNS: list[dict[str, Any]] = [
         "XOR-safe hop",
         "Plan has no html=. Patch is live render().",
         ("XOR", "Morph-then-Play"),
-        "update_with(self, scene(...).enter(#id, rise.enter())). Without ux-motion "
-        "the morph still lands. Zero rewrite at L3.",
+        "update_with(self, scene(...).enter(#id, rise.enter())). Morph lands at L1; "
+        "attach Motion for the Plan. Zero rewrite at L3.",
         MotionBox,
         file="examples/motion_xor.py",
     ),

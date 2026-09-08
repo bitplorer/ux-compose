@@ -12,7 +12,7 @@ Product code never imports ux_channel. Host mints through ``App.mint_cap`` /
 ``App.submit_intent`` (wire/ door). After ``use_channel``, ``App.dispatch``
 is Host-internal (specialist contract) — live verification is submit_intent.
 
-This example stays L1-runnable. The studio host demonstrates mint vs refuse.
+Offline Cap Law runs at L1. After use_channel, live mint/refuse is fail-loud.
 
 Run:
   PYTHONPATH=src:. python examples/live_caps.py
@@ -82,10 +82,10 @@ class LiveOrder(Component):
     def place_minted(self):
         """Studio host intercepts this name and calls submit_intent(mint=True).
 
-        Offline it is just a public stand-in so the file still runs at L1.
+        Offline this is an open-mint stand-in so the file still runs at L1.
         """
         self.status = "placed"
-        self.note = "Host-mint path (studio). Offline this is a public stand-in."
+        self.note = "Host-mint path (studio). Offline this is an open-mint stand-in."
         return update_with(self, extra_ops=[notify("minted-path")])
 
     @action(caps=())
@@ -99,7 +99,7 @@ def demo() -> None:
     app = App.boot("Caps", strict_caps=False)
     app.add(LiveOrder)
     print("prepare", app.dispatch("liveorder.prepare"))
-    print("public mint-path", app.dispatch("liveorder.place_minted"))
+    print("open-mint path", app.dispatch("liveorder.place_minted"))
 
     strict = App.boot("Caps", strict_caps=True)
     strict.add(LiveOrder)
@@ -109,21 +109,22 @@ def demo() -> None:
     except Exception as exc:
         print("Cap Law:", type(exc).__name__, "— place refused offline under strict_caps")
 
-    # Live mint path (degrades if Channel absent)
+    # Live mint path — Channel is a hard dep after use_channel
     live = App.boot("Caps", strict_caps=True)
     live.add(LiveOrder)
     live.use_channel()
     if live._channel is None:
-        print("Channel absent — live mint skipped (progressive)")
-    else:
-        refused = live.submit_intent("liveorder.place", mint=False)
-        print("no cap ok?", getattr(refused, "ok", None))
-        # Default mint is once=False (reusable). Checkout spends once.
-        cap = live.mint_cap("liveorder.place", {}, once=True)
-        placed = live.submit_intent("liveorder.place", cap=cap)
-        print("minted once ok?", getattr(placed, "ok", None))
-        replay = live.submit_intent("liveorder.place", cap=cap)
-        print("replay ok?", getattr(replay, "ok", None))
+        raise RuntimeError(
+            "Channel missing after use_channel — ux-channel is a hard dependency"
+        )
+    refused = live.submit_intent("liveorder.place", mint=False)
+    print("no cap ok?", getattr(refused, "ok", None))
+    # Default mint is once=False (reusable). Checkout spends once.
+    cap = live.mint_cap("liveorder.place", {}, once=True)
+    placed = live.submit_intent("liveorder.place", cap=cap)
+    print("minted once ok?", getattr(placed, "ok", None))
+    replay = live.submit_intent("liveorder.place", cap=cap)
+    print("replay ok?", getattr(replay, "ok", None))
 
     report = doctor([], fail=False)
     print("Doctor", report.ok, report.capabilities)

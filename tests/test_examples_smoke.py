@@ -92,6 +92,36 @@ def test_examples_never_import_channel():
     assert violations == [], violations
 
 
+_SOFT_FLOOR = (
+    "document = None",
+    "if document is not None",
+    "unlock skipped",
+    "Channel absent — live mint skipped",
+    "when unlocked",
+    "Unlocking L2",
+    "no Channel required",
+    "when Channel available",
+    "degrades if Channel absent",
+    "app = asgi = bundle = document = None",
+    "if scene is None",
+    "if scene is not None",
+    "Without ux-motion",
+)
+
+
+def test_examples_no_document_absent_or_unlock_soft():
+    """Examples must not teach Document-absent / unlock / optional-motion floors."""
+    root = ROOT / "examples"
+    hits = []
+    for p in root.rglob("*.py"):
+        text = p.read_text(encoding="utf-8")
+        rel = p.relative_to(ROOT)
+        for needle in _SOFT_FLOOR:
+            if needle in text:
+                hits.append(f"{rel}: {needle!r}")
+    assert hits == [], hits
+
+
 def test_protected_actions_fail_closed_offline():
     from examples.foundation import Counter
     from examples.live_caps import LiveOrder

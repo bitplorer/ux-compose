@@ -83,19 +83,14 @@ class Shelf(Component):
         return div(*kids, id=self.id, className="widget")
 
     def _plan(self):
-        if scene is None or rise is None:
-            return None
-        try:
-            return (
-                scene("shelf-reorder")
-                .stagger_in(
-                    '[id^="item-"]',
-                    rise.enter(ms=90),
-                    gap_ms=40,
-                )
+        return (
+            scene("shelf-reorder")
+            .stagger_in(
+                '[id^="item-"]',
+                rise.enter(ms=90),
+                gap_ms=40,
             )
-        except Exception:
-            return None
+        )
 
     @action(caps=())
     def set_query(self, q: str = ""):

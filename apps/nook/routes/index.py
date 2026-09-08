@@ -1,4 +1,4 @@
-"""Page unit — Desk room. Stem matches class name."""
+"""GET / — Desk room (index.py maps to /). Fragment; host wraps Document."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from apps.nook.chrome import hero
 from apps.nook.theme import CARD
 
 
-class Desk(Component):
-    id = "desk"
+class Index(Component):
+    id = "index"
     lit = MorphState(False)
 
     def render(self):

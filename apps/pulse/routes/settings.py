@@ -47,7 +47,7 @@ class Settings(Component):
             div(
                 article(
                     h3("Capabilities", className="font-serif text-lg"),
-                    p("Detected specialists at runtime", className="text-xs text-stone-500"),
+                    p("Detected specialists on the complete install", className="text-xs text-stone-500"),
                     ul(*rows, className="mt-3"),
                     p(f"doctor level L{report.level_available} · ok={report.ok}", className="mt-3 rounded-full border px-2 py-0.5 text-xs font-mono inline-block"),
                     className="rounded-2xl border border-stone-200 bg-white p-6 dark:border-stone-700 dark:bg-stone-900",

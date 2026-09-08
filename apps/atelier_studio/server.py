@@ -14,17 +14,14 @@ from urllib.parse import parse_qs
 
 from ux_compose import (
     App,
-    HAS_DOM as COMPOSE_HAS_DOM,
-    body,
     doctor,
-    head,
-    html,
     link,
     meta,
     script,
     title,
     div,
 )
+from ux_compose.chrome import GET_CHROME_ATTR
 
 from apps.atelier_studio.chrome import (
     catalog_page,
@@ -161,7 +158,31 @@ def _parse_action_args(ctype: str, raw: bytes) -> dict[str, Any]:
 
 
 def _document():
-    return Document(head=[], body=[], ensure_csrf_token=False).use(
+    return Document(
+        head=[
+            meta(charset="utf-8"),
+            meta(name="viewport", content="width=device-width, initial-scale=1"),
+            meta(name="color-scheme", content="light only"),
+            title("Atelier of Patterns"),
+            meta(name="theme-color", content="#f3efe6"),
+            link(rel="icon", type="image/svg+xml", href="/favicon.svg"),
+            link(rel="preconnect", href="https://fonts.googleapis.com"),
+            link(
+                rel="preconnect",
+                href="https://fonts.gstatic.com",
+                crossorigin="anonymous",
+            ),
+            link(
+                rel="stylesheet",
+                href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap",
+            ),
+            link(rel="stylesheet", href="/static/css/atelier.css"),
+            script(src="/static/idiomorph.min.js"),
+            script(src="/ux-pkg/ux-motion/static/ux-motion-player.js"),
+        ],
+        body=[],
+        ensure_csrf_token=False,
+    ).use(
         XElement(),
         Htmx(),
     )
@@ -169,8 +190,7 @@ def _document():
 
 DOCUMENT = _document()
 UX = App.boot("AtelierStudio", strict_caps=True)
-if DOCUMENT is not None:
-    UX.use_dom(DOCUMENT)
+UX.use_dom(DOCUMENT)
 UX.use_behavior()
 UX.add(*all_components())
 
@@ -186,52 +206,34 @@ def _inst(cid: str):
     return None
 
 
-def _shell(*main_kids: Any, flash: str = "") -> str:
+def _wrap_get(*main_kids: Any, flash: str = ""):
+    """Document GET chrome — nav/foot/toast live outside the stage fragment."""
     flash_nodes = []
     if flash:
         from ux_compose import p as p_tag
 
         flash_nodes = [p_tag(flash, className="status status-ok", role="status")]
-    if COMPOSE_HAS_DOM and html is not None:
-        tree = html(
-            head(
-                meta(charset="utf-8"),
-                meta(name="viewport", content="width=device-width, initial-scale=1"),
-                meta(name="color-scheme", content="light only"),
-                title("Atelier of Patterns"),
-                meta(name="theme-color", content="#f3efe6"),
-                link(rel="icon", type="image/svg+xml", href="/favicon.svg"),
-                link(rel="preconnect", href="https://fonts.googleapis.com"),
-                link(
-                    rel="preconnect",
-                    href="https://fonts.gstatic.com",
-                    crossorigin="anonymous",
-                ),
-                link(
-                    rel="stylesheet",
-                    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap",
-                ),
-                link(rel="stylesheet", href="/static/css/atelier.css"),
-                script(src="/static/idiomorph.min.js"),
-                script(src="/ux-pkg/ux-motion/static/ux-motion-player.js"),
-            ),
-            body(
-                nav(level=int(UX.level), label=UX.level.label),
-                *flash_nodes,
-                *main_kids,
-                foot(),
-                toast_host(),
-            ),
-            lang="en",
-            style="color-scheme: light only",
-        )
-        return "<!doctype html>\n" + html_of(tree)
-    return "<!doctype html><html lang='en'><body>ux-dom required</body></html>"
+    return DOCUMENT(
+        div(
+            nav(level=int(UX.level), label=UX.level.label),
+            **{GET_CHROME_ATTR: True},
+        ),
+        *flash_nodes,
+        *main_kids,
+        foot(),
+        toast_host(),
+    )
 
 
-def _index(*, flash: str = "") -> str:
+def _html_response(tree: Any, *, status_code: int = 200):
+    if HAS_FASTAPI:
+        return HTMLResponse(html_of(tree), status_code=status_code)
+    return html_of(tree)
+
+
+def _index(*, flash: str = ""):
     inner = catalog_page()
-    return _shell(div(*inner, className="wrap"), flash=flash)
+    return _wrap_get(div(*inner, className="wrap"), flash=flash)
 
 
 def _pattern_widget(slug: str):
@@ -250,12 +252,12 @@ def _pattern_widget(slug: str):
     return row, widget
 
 
-def _pattern(slug: str, *, flash: str = "") -> str:
+def _pattern(slug: str, *, flash: str = ""):
     row, widget = _pattern_widget(slug)
     if row is None or widget is None:
         return _index(flash="Unknown pattern")
     parts = pattern_page(row, widget)
-    return _shell(div(*parts, className="wrap"), flash=flash)
+    return _wrap_get(div(*parts, className="wrap"), flash=flash)
 
 
 def _shop(*, flash: str = "") -> str:
@@ -281,7 +283,7 @@ def _shop(*, flash: str = "") -> str:
         *flash_nodes,
         stage,
     )
-    return _shell(div(*inner, className="wrap"), modal_tree, flash="")
+    return _wrap_get(div(*inner, className="wrap"), modal_tree, flash="")
 
 
 def _wants_fragment(request: Optional[Any]) -> bool:
@@ -337,30 +339,23 @@ def build_asgi():
     asgi = FastAPI(title="Atelier of Patterns")
     UX.use_channel(asgi_app=asgi)
     UX.use_motion()
-    try:
-        UX.use_cek()
-    except Exception:
-        pass
-    if DOCUMENT is not None and hasattr(DOCUMENT, "mount"):
-        try:
-            DOCUMENT.mount(asgi)
-        except Exception:
-            pass
+    UX.use_cek()
+    DOCUMENT.mount(asgi)
 
     @asgi.get("/", response_class=HTMLResponse)
     def index():
-        return HTMLResponse(_index())
+        return _html_response(_index())
 
     @asgi.get("/p/{slug}", response_class=HTMLResponse)
     def pattern(slug: str):
         row = by_slug(slug)
         if row is None:
-            return HTMLResponse(_index(flash="Unknown pattern"), status_code=404)
-        return HTMLResponse(_pattern(slug))
+            return _html_response(_index(flash="Unknown pattern"), status_code=404)
+        return _html_response(_pattern(slug))
 
     @asgi.get("/shop", response_class=HTMLResponse)
     def shop():
-        return HTMLResponse(_shop())
+        return _html_response(_shop())
 
     @asgi.get("/health")
     def health():
@@ -370,7 +365,7 @@ def build_asgi():
             "level": int(UX.level),
             "label": UX.level.label,
             "patterns": len(PATTERNS),
-            "document": DOCUMENT is not None,
+            "document": True,
             "channel": UX._channel is not None,
             "motion": bool(UX._motion),
             "player": "/ux-pkg/ux-motion/static/ux-motion-player.js",
@@ -479,10 +474,10 @@ def build_asgi():
         if _wants_fragment(request):
             return HTMLResponse(_fragment(slug))
         if slug == "shop":
-            return HTMLResponse(_shop(flash=flash))
+            return _html_response(_shop(flash=flash))
         if slug:
-            return HTMLResponse(_pattern(slug, flash=flash))
-        return HTMLResponse(_index(flash=flash))
+            return _html_response(_pattern(slug, flash=flash))
+        return _html_response(_index(flash=flash))
 
     @asgi.get("/doctor")
     def doctor_endpoint():

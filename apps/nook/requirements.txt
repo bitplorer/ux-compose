@@ -1,5 +1,9 @@
 ux-compose
 ux-dom
 ux-behavior
+ux-channel
+ux-motion
+cek-host>=0.1.3
+cek-surface>=0.1.3
 fastapi
 uvicorn[standard]

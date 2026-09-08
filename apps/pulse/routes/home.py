@@ -26,7 +26,7 @@ class Home(Component):
             ),
             p(
                 "Document trees · Tailwind className · semantic control() · "
-                "channel when live · HTMX opt-in only.",
+                "channel when live · HTMX opt-in only. Levels are additive attach APIs.",
                 className="mt-4 max-w-xl text-lg text-stone-600 dark:text-stone-400",
             ),
             div(
@@ -68,7 +68,7 @@ class Home(Component):
                 article(
                     h1("Progressive", className="font-serif text-xl"),
                     p(
-                        "Write at L1. Unlock channel later — zero rewrite.",
+                        "Write at L1. Channel and Motion attach later — zero rewrite.",
                         className="mt-2 text-sm text-stone-600 dark:text-stone-400",
                     ),
                     className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm dark:border-stone-700 dark:bg-stone-900",

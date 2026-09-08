@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ux_compose import a, div, footer, header, nav, p, span
+from ux_compose.chrome import GET_CHROME_ATTR
 
 from .theme import KICKER, LEDE, SHELL, TITLE, WRAP
 
@@ -21,12 +22,9 @@ def html_of(tree: Any) -> str:
         return ""
     if isinstance(tree, str):
         return tree
-    try:
-        from ux_compose.helpers import _serialize_tree
+    from ux_compose.helpers import _serialize_tree
 
-        return _serialize_tree(tree)
-    except Exception:
-        return str(tree)
+    return _serialize_tree(tree)
 
 
 def top_nav(*, room: str = "desk"):
@@ -83,3 +81,29 @@ def wrap(*kids: Any, room: str = "desk"):
         div(*kids, foot(), className=WRAP),
         className=SHELL,
     )
+
+
+def document_wrap(document: Any):
+    """GET chrome outside ``render()`` — rooms nav + foot on the Document shell.
+
+    Morph payloads stay fragments. ``document`` must be a callable Document.
+    """
+    if document is None or not callable(document):
+        raise TypeError(
+            "document_wrap requires a callable Document. "
+            "Product path is build(document=, wrap=document_wrap(document)). "
+            "There is no Document-absent string shell."
+        )
+
+    def _wrap(child: Any = None):
+        kids = () if child is None else (child,)
+        return document(
+            div(
+                top_nav(room=""),
+                div(*kids, foot(), className=WRAP),
+                className=SHELL,
+                **{GET_CHROME_ATTR: True},
+            )
+        )
+
+    return _wrap

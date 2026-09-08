@@ -70,6 +70,12 @@ PRODUCT_B = (
     "chat",
     "questionnaire",
 )
+MARKET_C = (
+    "pricingsection",
+    "logocloud",
+    "timeline",
+    "rating",
+)
 HARDENED = (
     "dialog",
     "sheet",
@@ -108,7 +114,7 @@ def _cls(stem: str):
 
 
 def test_add_targets_resolve():
-    for stem in (*HARDENED, *P0, *P1, *CHROME_A, *PRODUCT_B, "drawer"):
+    for stem in (*HARDENED, *P0, *P1, *CHROME_A, *PRODUCT_B, *MARKET_C, "drawer"):
         meta = resolve(stem)
         assert meta["stem"] == stem or meta["name"].lower() == stem
         assert meta["css"] is False
@@ -129,7 +135,7 @@ def test_overlay_stays_out_of_catalog():
 def test_new_kits_render_document_path():
     from ux_compose.helpers import _serialize_tree
 
-    for stem in (*P0, *P1, *CHROME_A, *PRODUCT_B, "drawer"):
+    for stem in (*P0, *P1, *CHROME_A, *PRODUCT_B, *MARKET_C, "drawer"):
         cls = _cls(stem)
         tree = cls().render()
         assert not isinstance(tree, str), stem

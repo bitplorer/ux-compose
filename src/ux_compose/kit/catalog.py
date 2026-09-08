@@ -614,6 +614,42 @@ CATALOG: dict[str, KitEntry] = {
         "css": False,
         "page": True,
     },
+    "pricingsection": {
+        "name": "PricingSection",
+        "module": "ux_compose.kit.pricingsection",
+        "stem": "pricingsection",
+        "exports": ["PricingSection"],
+        "description": "Comparison table of named tiers. Choose binds the button, not the row.",
+        "css": False,
+        "page": True,
+    },
+    "logocloud": {
+        "name": "LogoCloud",
+        "module": "ux_compose.kit.logocloud",
+        "stem": "logocloud",
+        "exports": ["LogoCloud"],
+        "description": "Named marks with alt text. Selected aria-pressed. Choosing is public.",
+        "css": False,
+        "page": True,
+    },
+    "timeline": {
+        "name": "Timeline",
+        "module": "ux_compose.kit.timeline",
+        "stem": "timeline",
+        "exports": ["Timeline"],
+        "description": "Named event lanes. Filter is a radiogroup. Not FilterBar.",
+        "css": False,
+        "page": True,
+    },
+    "rating": {
+        "name": "Rating",
+        "module": "ux_compose.kit.rating",
+        "stem": "rating",
+        "exports": ["Rating"],
+        "description": "Named stars (one…five). Radiogroup. Never MorphState(int).",
+        "css": False,
+        "page": True,
+    },
 }
 
 

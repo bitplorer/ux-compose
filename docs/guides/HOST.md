@@ -34,7 +34,21 @@ swallow the fragment. Product path is `build(document=, wrap=document)`.
 stays a bare fragment.
 
 GET chrome belongs on the author Document, not inside `render()` (morph
-would nest the brand).
+would nest the brand). Use `brand_wrap` so nav brand is GET-only:
+
+```python
+from ux_compose.chrome import brand_wrap
+from document import document
+
+app, asgi, bundle = build(
+    PACKAGE,
+    document=document,
+    wrap=brand_wrap(document, brand="Acme"),
+)
+```
+
+`Component.render()` stays the `#hello` fragment. Clock A GET includes the
+brand once; Clock B morph HTML has brand=0.
 
 ```python
 from ux_compose import Component, MorphState, action, div, span, update_with
@@ -51,6 +65,10 @@ class Hello(Component):
         self.n = int(self.n or 0) + 1
         return update_with(self)
 ```
+
+`@action(caps=())` is open mint / no Cap predicate (Intent still requires the
+control-minted cap under Cap Host require). Stamp the button with
+`control("hello.inc")` so GET HTML carries `data-channel-cap`.
 
 L1 without HTTP: return a ux-dom tag tree. A `str` still serializes as
 `text/html` (not JSON, not streamed) but is not a Document-absent product path.

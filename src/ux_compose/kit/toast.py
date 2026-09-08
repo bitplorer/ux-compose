@@ -1,8 +1,13 @@
 """Drop-in toast host — server list is authority.
 
 Items live in RefState. ``dirty`` is the qualitative MorphState so the
-unit morphs. Push is public. The stack is a fixed corner — the card is
-the demo controls.
+unit morphs. Push is open mint / no Cap predicate. The stack is a fixed
+corner — the card is the demo controls.
+
+``bind(self.push, message=…)`` seals ``message`` into the control Cap.
+Intent POST with ``args={}`` is 401 (sealed-args mismatch) under Cap Host
+require. Replay html-unescaped ``data-channel-args`` with the minted
+``data-channel-cap``.
 
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 """

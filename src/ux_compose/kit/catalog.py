@@ -79,7 +79,7 @@ CATALOG: dict[str, KitEntry] = {
         "module": "ux_compose.kit.toast",
         "stem": "toast",
         "exports": ["Toast"],
-        "description": "Server list is authority. Push is public.",
+        "description": "Server list is authority. Push is open mint; Intent POST must send html-unescaped sealed-args from data-channel-args.",
         "css": False,
         "page": True,
     },

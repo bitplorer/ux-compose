@@ -20,6 +20,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from ux_compose.helpers import control
 from ux_compose.doctor import scan_isolation
 from ux_compose.scaffold import ROUTES_HELLO_PY, create_app
+from tests.intent_from_control import intent_from_control
 
 HAS_CHANNEL = importlib.util.find_spec("ux_channel") is not None
 HAS_BEHAVIOR = importlib.util.find_spec("ux_behavior") is not None
@@ -222,11 +223,15 @@ def _refused_unauthorized(result) -> bool:
 def test_scaffold_hello_source_has_pulse_cap_control():
     """create-app hello teaches gated pulse without importing ux_channel."""
     src = ROUTES_HELLO_PY
+    blob = " ".join(src.split())
     assert "pulses = MorphState" in src
     assert '@action(caps=("pulse",))' in src
     assert 'control("hello.pulse")' in src
     assert "import ux_channel" not in src
     assert "from ux_channel" not in src
+    assert "public (caps=())" not in src
+    assert "open mint / no Cap predicate" in blob
+    assert "control-minted cap under Cap Host require" in blob
 
 
 def test_scaffold_hello_render_mints_pulse_cap_attrs(tmp_path):
@@ -248,7 +253,7 @@ def test_scaffold_hello_render_mints_pulse_cap_attrs(tmp_path):
 
 
 def test_scaffold_hello_pulse_dispatch_fail_closed_without_cap(tmp_path):
-    """Offline strict_caps: hello.pulse refuses; public hello.inc still dispatches."""
+    """Offline strict_caps: hello.pulse refuses; open-mint hello.inc still dispatches."""
     from ux_compose import App
 
     root = create_app(tmp_path / "strict", name="strict", level=1, host="asgi")
@@ -256,7 +261,7 @@ def test_scaffold_hello_pulse_dispatch_fail_closed_without_cap(tmp_path):
     app = App.boot("HelloPulse", strict_caps=True).use_behavior()
     app.add(mod.Hello)
     ops = app.dispatch("hello.inc")
-    assert ops, "public hello.inc must still dispatch"
+    assert ops, "open-mint hello.inc still dispatches offline"
     raised = False
     try:
         app.dispatch("hello.pulse")
@@ -300,3 +305,83 @@ def test_scaffold_hello_pulse_intent_without_cap_unauthorized_mint_ok(tmp_path):
 
     ok = app.submit_intent("hello.pulse", cap=cap, args={})
     assert getattr(ok, "ok", True) is True
+
+
+HAS_FASTAPI = importlib.util.find_spec("fastapi") is not None
+HAS_CEK = importlib.util.find_spec("cek_host") is not None
+
+
+def _load_scaffold_document(root: Path):
+    """Load create-app document.py (imports settings from the app root)."""
+    root_s = str(root.resolve())
+    sys.path.insert(0, root_s)
+    try:
+        path = root / "document.py"
+        spec = importlib.util.spec_from_file_location("cto_hello_document", path)
+        assert spec is not None and spec.loader is not None
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return mod.document
+    finally:
+        if sys.path and sys.path[0] == root_s:
+            sys.path.pop(0)
+
+
+@pytest.mark.skipif(
+    not (HAS_CHANNEL and HAS_BEHAVIOR and HAS_FASTAPI and HAS_CEK),
+    reason="ux-channel + ux-behavior + fastapi + cek-host",
+)
+def test_scaffold_hello_inc_intent_http_401_without_cap_200_with_minted(tmp_path):
+    """Cap Host require: hello.inc without cap is 401; minted control cap is 200.
+
+    ``caps=()`` is open mint / no Cap predicate — Intent still requires the
+    control-minted cap. Isolation: JSON POST, no product ``ux_channel`` import.
+    """
+    from ux_compose.build import build
+    from ux_compose.live_client import CHANNEL_ENDPOINT
+    from tests.asgi_http import asgi_get, asgi_post_json
+
+    root = create_app(tmp_path / "inc401", name="inc401", level=1, host="fastapi")
+    document = _load_scaffold_document(root)
+    app, asgi, bundle = build(
+        root,
+        name="inc401",
+        host="fastapi",
+        live="auto",
+        level=1,
+        document=document,
+        wrap=document,
+        cek="require",
+    )
+    if asgi is None or app._channel is None:
+        pytest.skip("Channel did not bind ASGI")
+    assert bundle is not None
+    assert app._cek == "require"
+
+    page = asgi_get(asgi, "/hello")
+    assert page.status_code == 200, page.text[:400]
+    minted = intent_from_control(page.text, "hello.inc")
+    assert minted["cap"].strip(), minted
+
+    refused = asgi_post_json(
+        asgi,
+        CHANNEL_ENDPOINT,
+        {"v": "1", "action": "hello.inc", "args": {}, "cap": None},
+    )
+    assert refused.status_code == 401, refused.text[:500]
+    blob = refused.text.lower()
+    assert "unauthor" in blob or "cap" in blob or "missing" in blob
+
+    ok = asgi_post_json(
+        asgi,
+        CHANNEL_ENDPOINT,
+        {
+            "v": "1",
+            "action": minted["action"],
+            "args": minted["args"],
+            "cap": minted["cap"],
+        },
+    )
+    assert ok.status_code == 200, ok.text[:500]
+    body = ok.json()
+    assert body.get("ok") is True or bool(body.get("ops"))

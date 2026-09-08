@@ -46,6 +46,8 @@ write drops HTML-string fragments (ux-dom treats a positional `str` on
 
 Product path is `build(document=, wrap=document)`. GET chrome lives on the
 author Document — not a string `wrap_get_chrome` / `shell.py` dual floor.
+`ux_compose.chrome.brand_wrap(document, brand=…)` returns `wrap(child)` that
+puts nav brand outside `Component.render()` (GET brand=1, morph brand=0).
 Do not put brand / `stunning-root` / `class="nav"` inside `routes/*.py`
 `render()` (morph payloads stay fragments).
 
@@ -213,7 +215,9 @@ FastAPI is **not** given `default_response_class=HTMLResponse`. Author
 - `Document.use(XElement(), Csp.auto(), Channel.optional())` (the
   `ux_dom.runtime` alias, not `ux_channel.Channel`) is the full shell.
   Product path is `build(document=, wrap=document)`. There is no
-  Document-absent live-client / `wrap_get_chrome` primary. `live="null"`
+  Document-absent live-client / `wrap_get_chrome` primary. GET brand chrome
+  is `wrap=brand_wrap(document, brand=…)` on the Document path.
+  `live="null"`
   stays offline Behavior. Complete documents and `/css` are not
   double-wrapped.
 

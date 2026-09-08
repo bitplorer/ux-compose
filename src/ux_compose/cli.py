@@ -46,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
 def _help() -> None:
     print("uxcompose — product lifecycle (composition + delivery)")
     print("")
-    print("  uxcompose create-app <dest> [--name NAME] [--level auto|0-3] [--host auto|fastapi|asgi]")
+    print("  uxcompose create-app <dest> [--name NAME] [--level auto|0-3] [--host auto|fastapi|asgi] [--brand LABEL]")
     print("  uxcompose serve dev  [app:asgi] [--host 0.0.0.0] [--port 8080]")
     print("                      [--reload-dir PATH ...] [--tunnel none|ngrok|cloudflare]")
     print("  uxcompose serve prod [app:asgi] [--host 0.0.0.0] [--port 8080]")
@@ -137,9 +137,16 @@ def _create_app(argv: list[str]) -> int:
     p.add_argument("--name", default="myapp")
     p.add_argument("--level", default="auto")
     p.add_argument("--host", default="auto", choices=("auto", "fastapi", "asgi"))
+    p.add_argument(
+        "--brand",
+        default=None,
+        help="GET-only nav brand via brand_wrap (Document path; not inside render())",
+    )
     args = p.parse_args(argv)
     level: int | str = "auto" if str(args.level).lower() == "auto" else int(args.level)
-    root = create_app(args.dest, name=args.name, level=level, host=args.host)
+    root = create_app(
+        args.dest, name=args.name, level=level, host=args.host, brand=args.brand
+    )
     print(f"Created {root.resolve()} (level={args.level}, host={args.host})")
     print(f"  Next: cd {root} && uxcompose serve dev")
     print("  Ship:  uxcompose build && uxcompose deploy --provider docker")

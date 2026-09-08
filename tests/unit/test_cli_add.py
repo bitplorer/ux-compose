@@ -124,6 +124,25 @@ def test_copy_page_unit(tmp_path: Path):
     assert "class Login(LoginCard)" in text
 
 
+def test_copy_toast_page_teaches_sealed_args(tmp_path: Path):
+    root = _fake_app(tmp_path)
+    written = copy_component("toast", root=root, as_page=True)
+    page = written["page"]
+    assert page is not None and page.is_file()
+    text = page.read_text(encoding="utf-8")
+    assert "from components.toast import Toast as ToastCard" in text
+    assert "sealed-args" in text or "sealed args" in text
+    assert "data-channel-args" in text
+    py = written["py"].read_text(encoding="utf-8")
+    assert "sealed-args" in py or "sealed args" in py
+    assert "Push is public" not in py
+    from ux_compose.kit.catalog import CATALOG
+
+    blurb = CATALOG["toast"]["description"]
+    assert "sealed-args" in blurb
+    assert "public" not in blurb.lower()
+
+
 def test_force_without_page_preserves_existing_route(tmp_path: Path):
     """Lumen-style: product page unit (desk, channelize) must survive --force."""
     root = _fake_app(tmp_path)

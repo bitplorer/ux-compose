@@ -104,7 +104,7 @@ uxcompose build
 - `id` is the morph target (`#hello`).
 - `MorphState` mutation means this unit must repaint.
 - `render()` returns a **ux-dom tag tree** with Tailwind `className`.
-- `@action(caps=())` is public. Non-empty caps need a live Cap (or fail closed).
+- `@action(caps=())` is open mint / no Cap predicate (Intent still requires the control-minted cap under Cap Host require). Non-empty caps add a Cap predicate (or fail closed).
 - `control("hello.inc")` stamps `data-ux-action` and `data-channel-action` (+ args) on the button.
 - `control("hello.pulse")` is the gated twin: `@action(caps=("pulse",))` fail-closes without a minted Cap.
 - `update_with(self, extra_ops=[notify(...)])` morphs live `render()` HTML (XOR-safe).

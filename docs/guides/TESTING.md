@@ -90,7 +90,7 @@ Python ≥3.14 with the pinned specialist stack.
 | Gate | File | Expectation |
 |------|------|-------------|
 | Scaffold hello Document-path fragment (`id=hello`, no document chrome) | `test_cto_scaffold_hello_fragment.py` | GREEN |
-| `control()` mints Cap when Cap Host is live; official `hello.pulse` Intent/dispatch fail-closed without cap | `test_cto_cap_mint_fail_closed.py` | GREEN (live Intent skips without ux-channel) |
+| `control()` mints Cap when Cap Host is live; `hello.inc` Intent HTTP 401 without cap under `cek=require` (200 with minted control cap); `hello.pulse` fail-closed | `test_cto_cap_mint_fail_closed.py` | GREEN (live Intent skips without ux-channel) |
 | Morph payload for `#X` must not embed outer shell/brand chrome | `test_cto_fragment_law.py` | GREEN (scaffold/fragment Hello + nested-shell `cto_red`) |
 | GET `/` `/hello` CSS/JS presence | `test_cto_css_js_smoke.py` | GREEN source contract; ASGI GET skips without fastapi |
 | Kit copy refuses without ux-dom; render() is DOM-only | `test_cto_kit_has_dom_false.py` | GREEN (copy fail-loud when `HAS_DOM=False`) |

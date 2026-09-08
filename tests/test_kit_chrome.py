@@ -3,6 +3,7 @@ command, table, pagination, combobox. Public verbs, Caps, attach-on-morph.
 """
 from __future__ import annotations
 
+import importlib.util
 import sys
 from pathlib import Path
 
@@ -319,3 +320,63 @@ def test_combobox_attach_query_then_pick():
     assert not bool(inst.open)
     app.dispatch("combobox.clear")
     assert str(inst.query or "") == ""
+
+
+HAS_CHANNEL = importlib.util.find_spec("ux_channel") is not None
+HAS_FASTAPI = importlib.util.find_spec("fastapi") is not None
+HAS_CEK = importlib.util.find_spec("cek_host") is not None
+
+
+@pytest.mark.skipif(
+    not (HAS_CHANNEL and HAS_FASTAPI and HAS_CEK and HAS_DOM),
+    reason="ux-channel + fastapi + cek-host + ux-dom",
+)
+def test_toast_push_intent_empty_args_401_sealed_args_200():
+    """toast.push with {} is 401 sealed-args; html-unescaped sealed args are 200."""
+    from fastapi import FastAPI
+
+    from ux_compose.live_client import CHANNEL_ENDPOINT
+    from ux_compose.wire.caps import register_live_channel
+    from tests.asgi_http import asgi_post_json
+    from tests.intent_from_control import intent_from_control
+
+    asgi = FastAPI(title="ToastSealed")
+    app = _boot(Toast, strict_caps=False)
+    app.use_channel(asgi_app=asgi)
+    if app._channel is None:
+        pytest.skip("Channel did not boot")
+    app.use_cek(mode="require")
+    register_live_channel(app._channel)
+
+    html = _html(app, "toast")
+    minted = intent_from_control(html, "toast.push")
+    assert minted["cap"].strip(), minted
+    assert minted["args"], "toast.push must seal message= into data-channel-args"
+
+    refused = asgi_post_json(
+        asgi,
+        CHANNEL_ENDPOINT,
+        {
+            "v": "1",
+            "action": minted["action"],
+            "args": {},
+            "cap": minted["cap"],
+        },
+    )
+    assert refused.status_code == 401, refused.text[:500]
+    blob = refused.text.lower()
+    assert "args" in blob or "mismatch" in blob or "unauthor" in blob or "cap" in blob
+
+    ok = asgi_post_json(
+        asgi,
+        CHANNEL_ENDPOINT,
+        {
+            "v": "1",
+            "action": minted["action"],
+            "args": minted["args"],
+            "cap": minted["cap"],
+        },
+    )
+    assert ok.status_code == 200, ok.text[:500]
+    body = ok.json()
+    assert body.get("ok") is True or bool(body.get("ops"))

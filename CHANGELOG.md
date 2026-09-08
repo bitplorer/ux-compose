@@ -63,6 +63,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Vocab: `@action(caps=())` is **open mint / no Cap predicate** (Intent still
+  requires the control-minted cap under Cap Host require). Scaffold
+  `ROUTES_HELLO_PY`, PATH, and HOST no longer call `caps=()` "public".
+- `uxcompose add toast`: page docstring + catalog blurb teach sealed-args
+  (Intent POST with `{}` is 401; replay html-unescaped `data-channel-args`).
 - Channel pin: `31a60bdd40a1b52aea1fd13159ad09c293c63fd6` (Makefile + CI).
   Soft Cap install: `cek-host>=0.1.3`.
 - Nomen cut: `maybe_*` → `optional_*`; MorphState `stamp` / helper `tick` →

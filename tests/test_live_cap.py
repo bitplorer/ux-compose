@@ -102,7 +102,7 @@ def test_mint_flag_on_submit_intent():
 
 
 def test_public_add_still_requires_cap_when_require_cap():
-    """Channel require_cap=True: even public actions need a minted Cap at the edge."""
+    """Channel require_cap=True: open-mint actions still need a minted Cap at the edge."""
     app = _cart_app()
     refused = app.submit_intent("cart.add", args={"sku": "tee"})
     assert getattr(refused, "ok", None) is False

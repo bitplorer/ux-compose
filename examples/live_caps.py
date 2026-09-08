@@ -1,7 +1,9 @@
 """Live Caps — Authority Clock.
 
 Cap Law:
-  - ``@action(caps=())`` is public. Offline dispatch always allowed.
+  - ``@action(caps=())`` is open mint / no Cap predicate.
+    Offline dispatch always allowed. Intent still requires the
+    control-minted cap under Cap Host require.
   - ``@action(caps=("orders.place",))`` is protected.
       Offline + strict_caps=True  → AuthorityError (fail closed)
       Live                       → Intent must carry a Channel-minted Cap

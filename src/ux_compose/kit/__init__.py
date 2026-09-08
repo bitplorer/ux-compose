@@ -33,11 +33,13 @@ from ux_compose.kit.emptystate import EmptyState
 from ux_compose.kit.featuregrid import FeatureGrid
 from ux_compose.kit.fieldset import Fieldset
 from ux_compose.kit.fileupload import FileUpload
+from ux_compose.kit.filterbar import FilterBar
 from ux_compose.kit.footer import Footer
 from ux_compose.kit.formlayout import FormLayout
 from ux_compose.kit.hero import Hero
 from ux_compose.kit.hovercard import HoverCard
 from ux_compose.kit.login import AuthDecision, Login
+from ux_compose.kit.menubar import Menubar
 from ux_compose.kit.multiselect import MultiSelect
 from ux_compose.kit.navbar import Navbar
 from ux_compose.kit.navmenu import NavMenu
@@ -54,6 +56,7 @@ from ux_compose.kit.sheet import Sheet
 from ux_compose.kit.sidebar import Sidebar
 from ux_compose.kit.skeleton import Skeleton
 from ux_compose.kit.slider import Slider
+from ux_compose.kit.spinbutton import SpinButton
 from ux_compose.kit.stats import Stats
 from ux_compose.kit.stepper import Stepper
 from ux_compose.kit.switch import Switch
@@ -61,7 +64,10 @@ from ux_compose.kit.table import Table
 from ux_compose.kit.tabs import Tabs
 from ux_compose.kit.tagsinput import TagsInput
 from ux_compose.kit.testimonials import Testimonials
+from ux_compose.kit.themeswitch import ThemeSwitch
 from ux_compose.kit.toast import Toast
+from ux_compose.kit.togglegroup import ToggleGroup
+from ux_compose.kit.toolbar import Toolbar
 from ux_compose.kit.tooltip import Tooltip
 from ux_compose.kit.usermenu import UserMenu
 from ux_compose.kit.datepicker import DatePicker
@@ -131,6 +137,12 @@ __all__ = [
     "BottomNav",
     "Separator",
     "Slider",
+    "Menubar",
+    "Toolbar",
+    "ToggleGroup",
+    "SpinButton",
+    "ThemeSwitch",
+    "FilterBar",
     "OverlayChrome",
     "overlay",
 ]

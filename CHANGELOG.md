@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- scaffold/nook: `COMPOSE_VCS_PIN` tracks main tip `6d61c9e` so cold `pip -r` installs pin-aligned compose (soft residual after #55).
 - pin-align: specialist tips (ux-dom `e8be99a`, ux-behavior `793f120`; channel/motion kept) + cold `pip -r` VCS honesty; Python ≥3.14 floor unchanged.
 - apps: Bucket B host sync (Document path + Cap Host require; kill HAS_DOM/HTML-string soft shells) after #52.
 - examples: kill residual Document-absent / unlock soft after #52/#53.

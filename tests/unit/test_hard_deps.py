@@ -13,6 +13,7 @@ UX_DOM_SHA = "e8be99a52bfecd6026c200fa1c3dc6a74f87aacb"
 UX_CHANNEL_SHA = "31a60bdd40a1b52aea1fd13159ad09c293c63fd6"
 UX_BEHAVIOR_SHA = "793f120e3b1388925772cd069b070d7918b78baa"
 UX_MOTION_SHA = "67ff3f0c4912b70b7056f8226a6f226b6fe93f60"
+COMPOSE_SHA = "6d61c9e616652d996e55a36886ccfec218308c30"
 
 
 def test_pyproject_requires_314_and_pins_specialists():
@@ -41,6 +42,10 @@ def test_pin_ssot_lockstep_makefile_scaffold_ci():
         assert sha in nook
     assert "git+https://github.com/bitplorer/ux-compose.git@" in scaffold
     assert "git+https://github.com/bitplorer/ux-compose.git@" in nook
+    assert COMPOSE_SHA in scaffold
+    assert COMPOSE_SHA in nook
+    assert "e6b5ea4" not in scaffold
+    assert "e6b5ea4" not in nook
     assert "25338a6" not in makefile
     assert "76adc72" not in makefile
     assert "25338a6" not in scaffold

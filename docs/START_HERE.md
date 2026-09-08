@@ -27,11 +27,11 @@ Full map: [OWNERSHIP.md](OWNERSHIP.md).
 
 ## 2. Install
 
-Python **≥ 3.14**. `pip install -e .` pulls the pinned specialist stack.
+Python **≥ 3.14**. `pip install -e ".[serve]"` pulls the pinned specialist stack.
 
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate
-pip install -e .    # from this repo
+pip install -e ".[serve]"    # from this repo
 ```
 
 Product CLI:

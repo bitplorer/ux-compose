@@ -2,7 +2,7 @@
 
 A quiet house desk. Authored in ux-compose. Every kit component sits in a real room — not a kitchen-sink gallery.
 
-Python **≥ 3.14** with the pinned specialist stack (ux-dom, ux-channel, ux-behavior, ux-motion). Missing specialists fail loud — there is no Document-absent floor.
+Python **≥ 3.14** with the pinned specialist stack (ux-dom, ux-channel, ux-behavior, ux-motion). Missing specialists fail loud — there is no Document-absent floor. Cold install: `pip install -r requirements.txt` (VCS pins; packages are not on PyPI).
 
 ## Rooms
 

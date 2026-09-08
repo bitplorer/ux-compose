@@ -49,7 +49,7 @@ uxcompose deploy [--provider docker|fly|render|railway|vps|checklist]
 There is no `--hmr`, `--reload`, `--css-watch`, or `--one-process`.
 Modes choose clocks. `restart-channel` is a one-shot action, not a clock.
 Missing origin extras fail closed:
-`pip install 'ux-compose[serve]'`.
+`pip install -e ".[serve]"` (clone).
 
 ### create-app
 
@@ -90,7 +90,7 @@ pr = probe()
 pr.specialists          # {"ux_dom": bool, ...}
 pr.level_available      # 0–3
 pr.has_dom_cli          # uxdom binary present (pure-dom tooling)
-pr.unlock_messages(requested_level=3)  # incomplete-stack / fail-loud diagnostics
+pr.incomplete_stack_messages(requested_level=3)  # fail-loud diagnostics
 ```
 
 ## What compose deliberately does not own
@@ -104,9 +104,10 @@ pr.unlock_messages(requested_level=3)  # incomplete-stack / fail-loud diagnostic
 ## Golden path
 
 ```bash
-pip install "ux-compose[serve]"
+pip install -e ".[serve]"    # from this repo
 uxcompose create-app myapp --host auto --level auto
 cd myapp
+pip install -r requirements.txt
 uxcompose serve dev
 uxcompose doctor . --no-fail
 uxcompose build

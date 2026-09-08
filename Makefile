@@ -1,14 +1,14 @@
-# ux-compose — progressive composition root
+# ux-compose — hard-deps composition root
 # Product floor is Python ≥3.14 with the pinned specialist stack.
 
 PY314 ?= /tmp/ux314venv/bin/python
 VENV  ?= /tmp/ux314venv
 
-# CI SSOT pins (keep in lockstep with pyproject.toml / scaffold REQUIREMENTS).
-UX_BEHAVIOR_SHA = 76adc72ff8e8d2f6a784d8b988b720934bd8a612
+# SSOT pins (keep in lockstep with pyproject.toml / scaffold REQUIREMENTS).
+UX_BEHAVIOR_SHA = 793f120e3b1388925772cd069b070d7918b78baa
 UX_MOTION_SHA = 67ff3f0c4912b70b7056f8226a6f226b6fe93f60
 UX_CHANNEL_SHA = 31a60bdd40a1b52aea1fd13159ad09c293c63fd6
-UX_DOM_SHA = 25338a6d624b764bb79615de52fca48084ce2c55
+UX_DOM_SHA = e8be99a52bfecd6026c200fa1c3dc6a74f87aacb
 
 .PHONY: test test-matrix coverage test314 venv314 specialists examples doctor shop studio pulse nook test-cto test-cto-fragment-law cek-repro-morph-shell
 
@@ -87,7 +87,7 @@ studio:
 	PYTHONPATH=src:. $(PY314) -m uvicorn apps.atelier_studio.server:app --host 0.0.0.0 --port 8080
 
 pulse:
-	PYTHONPATH=src:. python -m uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080
+	PYTHONPATH=src:. $(PY314) -m uvicorn apps.pulse.server:app --host 0.0.0.0 --port 8080
 
 nook:
 	PYTHONPATH=src:. $(PY314) -m uvicorn apps.nook.server:app --host 0.0.0.0 --port 8080

@@ -7,6 +7,12 @@ Orientation for humans and agents continuing this package.
 Read [docs/OWNERSHIP.md](docs/OWNERSHIP.md) (ownership SSoT) then [START_HERE.md](START_HERE.md)
 then [docs/INDEX.md](docs/INDEX.md). Public names: `src/ux_compose/__init__.py` `__all__`.
 
+**Floor:** Python **≥ 3.14**. Hard-deps are the pinned specialists in
+`pyproject.toml` (`[project].dependencies`): ux-dom, ux-channel, ux-behavior,
+ux-motion, `cek-host>=0.1.3`, `cek-surface>=0.1.3`. Clone path:
+`pip install -e ".[dev]"` / `pip install -e ".[serve]"`. Create-app path:
+`pip install -r requirements.txt`. Missing specialists fail loud.
+
 ## Layer ownership (hard cut)
 
 The UX stack is a **layered system of specialists**, not a monolith.

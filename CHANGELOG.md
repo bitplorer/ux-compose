@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- Kit Batch D APG holds: FAB menu id ``{id}-menu`` stays in the tree with
+  ``hidden`` when closed (no dangling ``aria-controls``). Resizable split
+  chips are ``role=radio`` ``aria-checked`` inside the radiogroup.
+
 ### Added
 
 - Kit Batch A chrome P1: `menubar`, `toolbar`, `togglegroup`, `spinbutton`,

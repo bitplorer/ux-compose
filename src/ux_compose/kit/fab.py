@@ -4,8 +4,10 @@ Host seam: override ``ACTIONS`` and ``on_run(key)``. Opening is public.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``, ``value``. Caps: none. A11y: trigger ``aria-haspopup=menu``
-``aria-expanded`` ``aria-controls``; menu ``role=menu`` / ``menuitem``.
-Escape on scrim. Not Cta (page ask) and not NavMenu (destination list).
+``aria-expanded`` ``aria-controls`` the menu id ``{id}-menu``. The menu stays
+in the tree with ``hidden`` when closed (honest APG — not omitted). Menu
+``role=menu`` / ``menuitem``. Escape on scrim. Not Cta (page ask) and not
+NavMenu (destination list).
 """
 
 from __future__ import annotations
@@ -66,11 +68,16 @@ class Fab(Component):
         rows = [
             button(lab, type="button", role="menuitem", className=self.class_item, **bind(self.run, key=key))
             for key, lab in self.ACTIONS
-        ] if is_open else []
-        menu = (
-            div(*rows, id=menu_id, className=self.class_menu, role="menu", aria_label="Create")
-            if is_open else span("", className=self.class_sr)
-        )
+        ]
+        menu_attrs = {
+            "id": menu_id,
+            "className": self.class_menu,
+            "role": "menu",
+            "aria_label": "Create",
+        }
+        if not is_open:
+            menu_attrs["hidden"] = True
+        menu = div(*rows, **menu_attrs)
         scrim = (
             button(
                 span("Close", className=self.class_sr),

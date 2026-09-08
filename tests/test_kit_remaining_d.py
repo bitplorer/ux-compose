@@ -88,8 +88,15 @@ def test_resizable_named_split():
     app = _boot(_cls("resizable"), strict_caps=False)
     html = _html(app, "resizable")
     assert 'role="separator"' in html or "aria-label" in html
+    assert 'role="radiogroup"' in html
+    assert 'role="radio"' in html
+    assert 'aria-checked="true"' in html
+    assert 'aria-checked="false"' in html
     app.dispatch("resizable.split", key="wide")
     assert str(app.behavior.get("resizable").value) == "wide"
+    html = _html(app, "resizable")
+    assert 'data-value="wide"' in html
+    assert 'aria-checked="true"' in html
 
 
 def test_tree_apg():
@@ -119,14 +126,27 @@ def test_fab_menu():
     app = _boot(_cls("fab"), strict_caps=False)
     html = _html(app, "fab")
     assert "aria-haspopup" in html
-    assert "aria-expanded" in html
+    assert 'aria-expanded="false"' in html
+    assert 'aria-controls="fab-menu"' in html
+    # Closed: menu id stays in the tree (menubar-before-#61 dangling-id hole).
+    assert 'id="fab-menu"' in html
+    assert 'role="menu"' in html
+    assert 'hidden="hidden"' in html
     app.dispatch("fab.toggle")
     html = _html(app, "fab")
+    assert 'aria-expanded="true"' in html
+    assert 'id="fab-menu"' in html
     assert 'role="menu"' in html
+    assert "New note" in html
+    assert 'hidden="hidden"' not in html
     app.dispatch("fab.run", key="note")
     inst = app.behavior.get("fab")
     assert str(inst.value) == "note"
     assert not bool(inst.open)
+    html = _html(app, "fab")
+    assert 'id="fab-menu"' in html
+    assert 'aria-expanded="false"' in html
+    assert 'hidden="hidden"' in html
 
 
 def test_diff_named_side():
@@ -189,6 +209,15 @@ def test_a11y_and_caps_p2_d():
     app = _boot(*[_cls(s) for s in P2_D], strict_caps=False)
     assert 'role="tree"' in _html(app, "tree")
     assert 'role="feed"' in _html(app, "feed")
+    fab = _html(app, "fab")
+    assert 'aria-controls="fab-menu"' in fab
+    assert 'id="fab-menu"' in fab
+    assert 'role="menu"' in fab
+    assert 'hidden="hidden"' in fab
+    resize = _html(app, "resizable")
+    assert 'role="radiogroup"' in resize
+    assert 'role="radio"' in resize
+    assert "aria-checked" in resize
     kit = ROOT / "src" / "ux_compose" / "kit"
     for stem in P2_D:
         src = (kit / f"{stem}.py").read_text(encoding="utf-8")

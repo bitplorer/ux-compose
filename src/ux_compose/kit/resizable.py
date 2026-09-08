@@ -4,8 +4,9 @@ Host seam: override pane copy. Splitting is public.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value`` (named split, not a percent MorphState). Caps: none.
-A11y: separator ``role=separator`` ``aria-orientation=vertical``;
-panes labelled. Not Slider (this is a named band).
+A11y: split chips ``role=radiogroup`` / ``radio`` ``aria-checked``;
+separator ``role=separator`` ``aria-orientation=vertical``; panes labelled.
+Not Slider (this is a named band).
 """
 
 from __future__ import annotations
@@ -56,6 +57,8 @@ class Resizable(Component):
                     button(
                         lab,
                         type="button",
+                        role="radio",
+                        aria_checked="true" if key == val else "false",
                         className="rounded-full px-3 py-2 text-xs " + ("bg-stone-900 text-stone-50" if key == val else "bg-stone-100"),
                         **bind(self.split, key=key),
                     )

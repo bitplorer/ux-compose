@@ -95,6 +95,9 @@ def test_workers_inherit_a_held_fd():
     assert "origin_asgi" in src
     assert "worker_for" in src
     assert "UXCOMPOSE_UI_URL" in src
+    assert "prepare_shared_state" in src
+    assert "UXCOMPOSE_STATE_STORE" in src
+    assert "session lives with Channel" in src or "ch.draft" in src
 
 
 def test_restart_channel_helpers(tmp_path):

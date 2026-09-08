@@ -103,6 +103,12 @@ lock the hard-cut (no product CLI dual path).
 Cold import never pulls the wire. `App.use_channel(asgi_app=…)` is the live door.
 `app.use_motion()` is the motion door. Level 1 code remains correct at L2/L3.
 
+`uxcompose serve dev` session lives with Channel (`ch.draft`). Origin still
+sends Document GET to the ui worker, so both workers must share one StateStore
+(`UXCOMPOSE_STATE_STORE`, sqlite file). Redis (`REDIS_URL`) is the product
+multi-worker path. Do not route HTML GET to channel — that would drop HMR for
+route edits.
+
 ## Product host (Clock A)
 
 HTTP Product host (Clock A / ADR 0002) ≠ CEK Cap Host (cek-runtime via

@@ -32,15 +32,26 @@ from ux_compose.routing.host import ProductBatteriesRejected
 __all__ = ["create", "bind", "page_endpoint", "materialize", "mount"]
 
 
-def create(name: str = "App") -> Any:
+def create(name: str = "App", *, openapi: bool = False) -> Any:
     """FastAPI process. Fail closed if FastAPI is missing.
 
     No default_response_class — page GET wraps HTML explicitly so
     author JSON routes (``@app.get("/api/...")``) stay JSON.
+
+    OpenAPI / Swagger is off by default so ``routes/docs.py`` can own
+    GET ``/docs``. Opt in with ``openapi=True`` (``build(openapi=True)``
+    or ``settings.OPENAPI = True``).
     """
     from fastapi import FastAPI
 
-    return FastAPI(title=name)
+    if openapi:
+        return FastAPI(title=name)
+    return FastAPI(
+        title=name,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
 
 
 def _live_instance(rec, resolve_unit: Optional[Callable], path_params: dict) -> Any:

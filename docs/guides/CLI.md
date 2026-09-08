@@ -13,6 +13,7 @@
 ```bash
 uxcompose create-app myapp --host auto --level auto
 # optional GET brand (outside render()):  --brand Acme
+# dest must not be a stdlib name (site, test, email, …); use fullsite / app / web
 cd myapp
 uxcompose serve dev
 uxcompose build

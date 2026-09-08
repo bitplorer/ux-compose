@@ -21,12 +21,33 @@ DirectoryRoutes.discover → host.bind. Path law and HTML wrap live elsewhere.
 """
 from __future__ import annotations
 
+import ast
 from pathlib import Path
 from typing import Any
 
 __all__ = ["build", "BuildResult"]
 
 _UNSET = object()
+
+
+def _settings_openapi(package_dir: Path) -> bool | None:
+    """Read ``OPENAPI = True/False`` from ``settings.py`` without importing it."""
+    path = package_dir / "settings.py"
+    if not path.is_file():
+        return None
+    try:
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    except Exception:
+        return None
+    for node in tree.body:
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if isinstance(target, ast.Name) and target.id == "OPENAPI":
+                val = node.value
+                if isinstance(val, ast.Constant):
+                    return bool(val.value)
+    return None
 
 
 class BuildResult(tuple):
@@ -92,6 +113,7 @@ def build(
     document: Any = None,
     wrap: Any = _UNSET,
     cek: str = "require",
+    openapi: Any = _UNSET,
 ) -> BuildResult:
     """Boot specialists + mount page units. Host and live set only here.
 
@@ -99,6 +121,11 @@ def build(
       Author GET shell. Defaults to ``document`` (Document SSoT).
       ``wrap=None`` is a bare fragment. Never a synthesized Document
       (string fragment → script src).
+
+    openapi:
+      FastAPI Swagger / ReDoc / ``/openapi.json``. Default off so
+      ``routes/docs.py`` can own GET ``/docs``. ``True`` opts in.
+      When omitted, ``settings.OPENAPI`` is honoured if present.
 
     host:
       - ``"auto"`` — FastAPI if importable, else DirectoryASGI
@@ -134,7 +161,15 @@ def build(
     # Boot is L1. Channel/Motion attach below, after the process exists.
     boot_level: int | str = 1 if auto_level else min(int(level), 1)
 
-    asgi, kind = host_open(name=name, host=host_l, asgi_app=asgi_app)
+    if openapi is _UNSET:
+        settings_flag = _settings_openapi(package_dir)
+        openapi_flag = bool(settings_flag) if settings_flag is not None else False
+    else:
+        openapi_flag = bool(openapi)
+
+    asgi, kind = host_open(
+        name=name, host=host_l, asgi_app=asgi_app, openapi=openapi_flag
+    )
 
     app = App.boot(name, strict_caps=False, level=boot_level)
     author_document = document

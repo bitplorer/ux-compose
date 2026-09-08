@@ -18,6 +18,7 @@ __all__ = [
     "scan_leftover_aliases",
     "scan_render_chrome",
     "scan_cek_host",
+    "scan_fastapi_docs_collision",
 ]
 
 
@@ -242,6 +243,56 @@ def scan_leftover_aliases(paths: Iterable[str | Path]) -> list[str]:
 
 _CEK_SKIP = ("off", "0", "false", "no", "adapt")
 
+_FASTAPI_RESERVED_PATHS = frozenset({"/docs", "/redoc", "/openapi.json"})
+_FASTAPI_DOCS_TEACH = (
+    "FastAPI reserves /docs, /redoc, and /openapi.json for Swagger when "
+    "build(openapi=True). Prefer a product path such as /about, or keep "
+    "openapi off (the default)."
+)
+
+
+def scan_fastapi_docs_collision(
+    paths: Iterable[str | Path],
+    *,
+    route_paths: Iterable[str] | None = None,
+) -> list[str]:
+    """Residual: surface URL collides with FastAPI OpenAPI defaults.
+
+    Product hosts disable Swagger by default so ``routes/docs.py`` can own
+    GET ``/docs``. The warn still teaches the collision and recommends
+    ``/about`` when OpenAPI is opted in.
+    """
+    from ux_compose.routing.core import http_path
+
+    found: set[str] = set()
+    for raw in paths or []:
+        p = Path(raw)
+        if not p.exists() or not _is_routes_file(p):
+            continue
+        sp = _norm(p)
+        if any(token in sp for token in _RENDER_CHROME_SKIP):
+            continue
+        parts = Path(sp).parts
+        try:
+            idx = parts.index("routes")
+        except ValueError:
+            continue
+        segs = list(parts[idx + 1 :])
+        if not segs:
+            continue
+        segs[-1] = Path(segs[-1]).stem
+        url = http_path(*segs)
+        if url in _FASTAPI_RESERVED_PATHS:
+            found.add(url)
+    for raw_path in route_paths or []:
+        url = str(raw_path)
+        if url in _FASTAPI_RESERVED_PATHS:
+            found.add(url)
+    return [
+        f"residual: surface path {url} collides with FastAPI OpenAPI. {_FASTAPI_DOCS_TEACH}"
+        for url in sorted(found)
+    ]
+
 
 def scan_cek_host(app: Any) -> list[str]:
     """Fail-loud when cek=require and Channel is live but Cap identity is not cek-runtime.
@@ -398,6 +449,7 @@ def doctor(
             diagnostics.append(f"surface bundle: {e}")
         if not getattr(bundle, "sealed", True):
             diagnostics.append("surface bundle is not sealed — mount may be incomplete")
+    diagnostics.extend(scan_fastapi_docs_collision(expanded, route_paths=route_paths))
     if app is None and bundle is not None:
         app = getattr(bundle, "compose_app", None) or getattr(bundle, "app", None)
     diagnostics.extend(scan_cek_host(app))

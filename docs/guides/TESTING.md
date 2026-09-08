@@ -94,6 +94,7 @@ Python ≥3.14 with the pinned specialist stack.
 | Morph payload for `#X` must not embed outer shell/brand chrome | `test_cto_fragment_law.py` | GREEN (scaffold/fragment Hello + nested-shell `cto_red`) |
 | Document-path `brand_wrap`: GET brand=1, morph brand=0; no brand in `render()` | `test_cto_brand_wrap.py` | GREEN |
 | GET `/` `/hello` CSS/JS presence | `test_cto_css_js_smoke.py` | GREEN source contract; ASGI GET skips without fastapi |
+| FastAPI `/docs` is Document not Swagger; create-app rejects dest `site` | `test_cto_docs_site_dx.py` | GREEN (Swagger opt-in via `build(openapi=True)` / `settings.OPENAPI`) |
 | Kit copy refuses without ux-dom; render() is DOM-only | `test_cto_kit_has_dom_false.py` | GREEN (`HAS_DOM=False` gate is fail-loud incomplete-stack, not a Document-absent product path) |
 
 The nested-shell tests use an in-repo `FullShellHello` fixture that mirrors the

@@ -416,6 +416,95 @@ def test_app_mount_wraps_author_not_synth(tmp_path: Path):
     assert "hello" in r.text
 
 
+def test_fastapi_host_disables_docs_by_default():
+    pytest.importorskip("fastapi")
+    from ux_compose.routing.fastapi import create
+
+    asgi = create("Demo")
+    assert asgi.docs_url is None
+    assert asgi.redoc_url is None
+    assert asgi.openapi_url is None
+
+    opted = create("Demo", openapi=True)
+    assert opted.docs_url == "/docs"
+    assert opted.redoc_url == "/redoc"
+    assert opted.openapi_url == "/openapi.json"
+
+
+def test_build_docs_page_is_html_not_swagger(tmp_path: Path):
+    pytest.importorskip("fastapi")
+    pkg = _pkg(
+        tmp_path,
+        {
+            "routes/docs.py": (
+                "class Docs:\n"
+                "    def render(self):\n"
+                "        return '<div id=\"docs\">product-docs</div>'\n"
+            )
+        },
+    )
+    from ux_compose.build import build
+
+    def document(child=None):
+        return f"<html><body>WRAPPED{child}</body></html>"
+
+    _app, asgi, bundle = build(
+        pkg, name="Demo", host="fastapi", live="null", level=1, document=document
+    )
+    paths = [r.get("path") for r in (bundle.route_table or [])]
+    assert "/docs" in paths
+    r = asgi_get(asgi, "/docs")
+    assert r.status_code == 200
+    assert "product-docs" in r.text
+    assert "WRAPPED" in r.text
+    assert "swagger" not in r.text.lower()
+
+    bare = asgi_get(asgi, "/redoc")
+    assert bare.status_code != 200 or "swagger" not in bare.text.lower()
+
+
+def test_build_default_docs_url_is_not_swagger(tmp_path: Path):
+    pytest.importorskip("fastapi")
+    pkg = _pkg(
+        tmp_path,
+        {"routes/hello.py": "class Hello:\n    def render(self):\n        return 'x'\n"},
+    )
+    from ux_compose.build import build
+
+    _app, asgi, _bundle = build(pkg, name="Demo", host="fastapi", live="null", level=1)
+    r = asgi_get(asgi, "/docs")
+    blob = r.text.lower()
+    assert "swagger" not in blob
+    assert "swagger-ui" not in blob
+
+
+def test_build_openapi_true_opts_in_swagger(tmp_path: Path):
+    pytest.importorskip("fastapi")
+    pkg = _pkg(tmp_path, {"routes/hello.py": "class Hello:\n    def render(self):\n        return 'x'\n"})
+    from ux_compose.build import build
+
+    _app, asgi, _bundle = build(
+        pkg, name="Demo", host="fastapi", live="null", level=1, openapi=True
+    )
+    r = asgi_get(asgi, "/docs")
+    assert r.status_code == 200
+    blob = r.text.lower()
+    assert "swagger" in blob or "openapi" in blob
+
+
+def test_build_reads_openapi_from_settings(tmp_path: Path):
+    pytest.importorskip("fastapi")
+    pkg = _pkg(tmp_path, {"routes/hello.py": "class Hello:\n    def render(self):\n        return 'x'\n"})
+    (pkg / "settings.py").write_text("OPENAPI = True\n", encoding="utf-8")
+    from ux_compose.build import build
+
+    _app, asgi, _bundle = build(pkg, name="Demo", host="fastapi", live="null", level=1)
+    r = asgi_get(asgi, "/docs")
+    assert r.status_code == 200
+    blob = r.text.lower()
+    assert "swagger" in blob or "openapi" in blob
+
+
 def test_is_response_file_and_redirect():
     pytest.importorskip("starlette")
     from starlette.responses import FileResponse, RedirectResponse, StreamingResponse

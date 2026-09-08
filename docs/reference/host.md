@@ -199,6 +199,12 @@ the product path.
 FastAPI is **not** given `default_response_class=HTMLResponse`. Author
 `@asgi.get("/api/...")` returning a dict stays JSON.
 
+OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
+`openapi_url=None`) so `routes/docs.py` → GET `/docs` is a Document page
+(author wrap / `brand_wrap`). Opt in: `build(openapi=True)` or
+`settings.OPENAPI = True`. Doctor warns when a surface path collides with
+`/docs` `/redoc` `/openapi.json` (prefer `/about`).
+
 ---
 
 ## 8. Isolation / Document / Channel

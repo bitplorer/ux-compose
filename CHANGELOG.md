@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- FastAPI product host disables Swagger by default (`docs_url=None`,
+  `redoc_url=None`, `openapi_url=None`) so `routes/docs.py` owns GET
+  `/docs` (Document wrap, including `brand_wrap`). Opt in with
+  `build(openapi=True)` or `settings.OPENAPI = True`. Doctor residual
+  warns when a surface path collides with `/docs` `/redoc`
+  `/openapi.json` and recommends `/about`.
+- `uxcompose create-app` rejects reserved dest basenames (`site`,
+  `test`, `email`, other stdlib modules and keywords) that would shadow
+  `import site.routes`. Error suggests `fullsite`, `app`, or `web`.
+
 ### Changed
 
 - scaffold/nook: `COMPOSE_VCS_PIN` tracks main tip `6d61c9e` so cold `pip -r` installs pin-aligned compose (soft residual after #55).

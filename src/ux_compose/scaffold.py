@@ -18,6 +18,8 @@ from __future__ import annotations
 
 from pathlib import Path
 from textwrap import dedent
+import keyword
+import sys
 
 
 APP_PY = dedent('''\
@@ -116,6 +118,10 @@ SETTINGS_PY = dedent('''\
 
     BASE_DIR = Path(__file__).resolve().parent
     DEBUG = os.environ.get("DEBUG", "1") not in ("0", "false", "False")
+
+    # FastAPI Swagger / ReDoc / OpenAPI JSON. Off so routes/docs.py can own GET /docs.
+    # Opt in: OPENAPI = True, or build(openapi=True).
+    OPENAPI = False
 
     ASSETS_DIR = BASE_DIR / "assets"
     OUTPUT_CSS = "output.css"
@@ -342,6 +348,33 @@ README = dedent('''\
 ''')
 
 
+class ReservedDestError(ValueError):
+    """create-app dest basename collides with a stdlib module or keyword."""
+
+
+_DEST_SUGGEST = "fullsite, app, or web"
+
+
+def _dest_basename(dest: str | Path) -> str:
+    return Path(dest).name
+
+
+def reserved_dest_reason(basename: str) -> str | None:
+    """Return a teaching message when ``basename`` would shadow stdlib / keywords."""
+    name = (basename or "").strip()
+    if not name:
+        return None
+    key = name.lower()
+    stdlib = {m.lower() for m in getattr(sys, "stdlib_module_names", ())}
+    if key in stdlib or keyword.iskeyword(key):
+        return (
+            f"create-app destination {name!r} is a reserved Python name "
+            f"(stdlib module or keyword). Importing {name}.routes would hit "
+            f"the standard library. Use a different folder, for example {_DEST_SUGGEST}."
+        )
+    return None
+
+
 def create_app(
     dest: str | Path,
     *,
@@ -357,6 +390,10 @@ def create_app(
     brand: optional GET-only nav label via ``brand_wrap`` (Document path).
       ``None`` keeps ``wrap=document``. Never embeds chrome in ``render()``.
     """
+    reason = reserved_dest_reason(_dest_basename(dest))
+    if reason:
+        raise ReservedDestError(reason)
+
     root = Path(dest)
     root.mkdir(parents=True, exist_ok=True)
 
@@ -426,4 +463,4 @@ def create_app(
     return root
 
 
-__all__ = ["create_app"]
+__all__ = ["create_app", "ReservedDestError", "reserved_dest_reason"]

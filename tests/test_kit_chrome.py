@@ -248,6 +248,9 @@ def test_table_sort_select_archive():
     assert len(tuple(inst.selected or ())) == 1
     app.dispatch("table.toggle_all")
     assert len(tuple(inst.selected or ())) == 4
+    app.dispatch("table.toggle_all")
+    assert tuple(inst.selected or ()) == ()
+    app.dispatch("table.toggle_row", sku="oak-02")
     app.dispatch("table.archive")
     html = _html(app, "table")
     assert "Serving board" not in html

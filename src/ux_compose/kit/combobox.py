@@ -129,7 +129,7 @@ class Combobox(Component):
                     className=self.class_row_on if x == val else self.class_row,
                     **bind(self.pick, key=x),
                 ),
-                id=f"combo-{i}",
+                id=f"{self.id}-opt-{i}",
             )
             for i, x in enumerate(hits[:6])
         ]
@@ -175,7 +175,7 @@ class Combobox(Component):
                         className=self.class_btn_primary,
                         **bind(self.type_query),
                     ),
-                    id="combobox-form",
+                    id=f"{self.id}-form",
                     className=self.class_form,
                 ),
                 listing,

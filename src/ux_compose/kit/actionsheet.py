@@ -4,9 +4,8 @@ Swipe lives on the handle and Cancel, not the root. OverlayChrome owns
 scrim/panel/dismiss ids, handle grammar, and the open plan.
 
 MorphState: ``open``, ``dirty``. RefState: ``picked``. Caps: ``orders.archive``
-on archive row. A11y: ``role=dialog`` ``aria-modal`` labelledby. Escape on
-scrim/Cancel via ``dismiss_on()``. Handle keeps swipe.vertical so row clicks
-survive.
+on archive row. A11y: ``role=dialog`` ``aria-modal`` labelledby. First
+action autofocuses on open. Escape on scrim/Cancel via ``dismiss_on()``.
 """
 
 from __future__ import annotations
@@ -92,15 +91,18 @@ class ActionSheet(Component):
         ch = self._chrome()
         layer = []
         if is_open:
-            rows = [
-                button(
-                    label,
-                    type="button",
-                    className=self.class_btn_danger if dest else self.class_btn_ghost,
-                    **bind(self.pick if not dest else self.archive, key=key),
+            rows = []
+            for i, (key, label, dest) in enumerate(self.ACTIONS):
+                extra = {"autofocus": True} if i == 0 else {}
+                rows.append(
+                    button(
+                        label,
+                        type="button",
+                        className=self.class_btn_danger if dest else self.class_btn_ghost,
+                        **extra,
+                        **bind(self.pick if not dest else self.archive, key=key),
+                    )
                 )
-                for key, label, dest in self.ACTIONS
-            ]
             layer = [
                 button(
                     span("Close", className=self.class_sr),

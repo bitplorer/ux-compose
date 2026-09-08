@@ -5,8 +5,10 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``. RefState: ``title``, ``body``. Caps: ``items.delete``
 on ``confirm``. A11y (APG Alert Dialog): ``role=alertdialog`` ``aria-modal``
-labelledby + describedby. OverlayChrome owns scrim/panel/dismiss + Escape.
-Not a second Host — Dialog's sibling with a louder role.
+labelledby + describedby. OverlayChrome owns panel ids + open plan. Escape
+and scrim do **not** dismiss an interrupting alert — Keep it / Delete are
+the explicit choices. Not a second Host — Dialog's sibling with a louder
+role.
 """
 
 from __future__ import annotations
@@ -49,14 +51,13 @@ class AlertDialog(Component):
         "inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full "
         "border-0 bg-rose-800 px-5 text-sm font-medium text-rose-50 hover:bg-rose-700"
     )
-    class_scrim = "fixed inset-0 z-40 cursor-pointer border-0 bg-stone-900/40"
+    class_scrim = "fixed inset-0 z-40 bg-stone-900/40"
     class_stage = "pointer-events-none fixed inset-0 z-50 flex items-center justify-center p-4"
     class_panel = (
         "pointer-events-auto flex w-[min(28rem,calc(100vw-2rem))] flex-col gap-3 "
         "rounded-3xl bg-white px-7 py-6 shadow-xl"
     )
     class_actions = "mt-3 flex justify-end gap-2"
-    class_sr = "sr-only"
 
     open = MorphState(False)
     title = RefState("This cannot be undone")
@@ -80,14 +81,10 @@ class AlertDialog(Component):
             title_id = f"{self.id}-title"
             desc_id = f"{self.id}-desc"
             kids.extend([
-                button(
-                    span("Close", className=self.class_sr),
-                    type="button",
+                div(
                     id=ch.scrim_id,
                     className=self.class_scrim,
-                    aria_label="Close",
-                    data_channel_on=ch.dismiss_on(),
-                    **bind(self.cancel),
+                    aria_hidden="true",
                 ),
                 div(
                     div(
@@ -100,7 +97,6 @@ class AlertDialog(Component):
                                 id=ch.dismiss_id,
                                 className=self.class_btn_ghost,
                                 autofocus=True,
-                                data_channel_on=ch.dismiss_on(),
                                 **bind(self.cancel),
                             ),
                             button("Delete", type="button", className=self.class_btn_danger, **bind(self.confirm)),

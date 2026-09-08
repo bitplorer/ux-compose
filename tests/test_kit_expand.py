@@ -138,6 +138,16 @@ def test_a11y_smoke_roles_and_labels():
         _cls("switch"),
         _cls("formlayout"),
         _cls("alert"),
+        _cls("alertdialog"),
+        _cls("calendar"),
+        _cls("fileupload"),
+        _cls("combobox"),
+        _cls("accordion"),
+        _cls("actionsheet"),
+        _cls("datepicker"),
+        _cls("plans"),
+        _cls("contextmenu"),
+        _cls("command"),
         strict_caps=False,
     )
     app.dispatch("dialog.ask", id="oak-02")
@@ -153,25 +163,106 @@ def test_a11y_smoke_roles_and_labels():
     assert "<table" in table
     assert 'scope="col"' in table
     assert "Select all rows" in table
+    assert 'role="checkbox"' in table
+    assert "aria-checked" in table
+    assert "Select Work shirt" in table
+    assert "table.toggle_all" in table
+    assert "table.toggle_row" in table
+    row_tag = table[table.find('id="row-oak-02"'):table.find(">", table.find('id="row-oak-02"'))]
+    assert "table.toggle_row" not in row_tag
 
     tabs = _html(app, "tabs")
     assert 'role="tablist"' in tabs
     assert 'role="tab"' in tabs
     assert 'role="tabpanel"' in tabs
-    assert "aria-controls" in tabs
+    assert 'id="tabs-tab-overview"' in tabs
+    assert 'aria-controls="tabs-p-overview"' in tabs
+    assert 'id="tabs-p-overview"' in tabs
+    assert 'id="tabs-tab-work"' in tabs
+    assert 'aria-controls="tabs-p-work"' in tabs
+    assert 'id="tabs-p-work"' in tabs
+    assert 'id="tabs-p-billing"' in tabs
+    assert tabs.count('role="tabpanel"') == 3
+    assert "hidden" in tabs
 
     login = _html(app, "login")
     assert 'for="login-email"' in login or "html_for" in login
     assert 'id="login-email"' in login
+    assert 'id="login-tab-login"' in login
+    assert 'aria-controls="login-p-login"' in login
+    assert 'id="login-p-login"' in login
+    assert 'id="login-tab-signup"' in login
+    assert 'aria-controls="login-p-signup"' in login
+    assert 'id="login-p-signup"' in login
+    assert 'role="tabpanel"' in login
 
     navbar = _html(app, "navbar")
     assert 'aria-label="Primary"' in navbar
+    closed_desk = navbar.count('href="/desk"')
+    app.dispatch("navbar.toggle")
+    navbar = _html(app, "navbar")
+    assert navbar.count('href="/desk"') == closed_desk + 1
     switch = _html(app, "switch")
     assert 'role="switch"' in switch
     form = _html(app, "formlayout")
     assert 'for="formlayout-email"' in form or 'id="formlayout-email"' in form
     alert = _html(app, "alert")
     assert 'role="alert"' in alert
+
+    app.dispatch("alertdialog.ask")
+    interrupt = _html(app, "alertdialog")
+    assert 'role="alertdialog"' in interrupt
+    assert "Keep it" in interrupt
+    assert "Delete" in interrupt
+    assert "keydown.escape" not in interrupt
+    assert "alertdialog.cancel" in interrupt
+    scrim_tag = interrupt[interrupt.find('id="alertdialog-scrim"'):interrupt.find(">", interrupt.find('id="alertdialog-scrim"'))]
+    assert "alertdialog.cancel" not in scrim_tag
+
+    calendar = _html(app, "calendar")
+    assert 'role="grid"' in calendar
+    assert 'aria-selected="true"' in calendar
+
+    upload = _html(app, "fileupload")
+    assert 'for="fileupload-file"' in upload or 'id="fileupload-file"' in upload
+    assert "Demo names sketch.png" in upload
+
+    combo = _html(app, "combobox")
+    assert 'id="combobox-form"' in combo
+    acc = _html(app, "accordion")
+    assert 'id="accordion-fit"' in acc
+    assert 'id="accordion-h-fit"' in acc
+    assert 'id="accordion-p-fit"' in acc
+
+    app.dispatch("actionsheet.open_sheet")
+    sheet = _html(app, "actionsheet")
+    assert "autofocus" in sheet
+    assert 'id="actionsheet-panel"' in sheet
+
+    app.dispatch("select.toggle")
+    select = _html(app, "select")
+    assert 'for="select-trigger"' in select
+    assert 'id="select-trigger"' in select
+
+    app.dispatch("datepicker.toggle")
+    picker = _html(app, "datepicker")
+    assert 'role="row"' in picker
+    assert 'role="gridcell"' in picker
+
+    plans = _html(app, "plans")
+    assert 'role="radiogroup"' in plans
+    assert 'role="radio"' in plans
+    assert "aria-checked" in plans
+
+    app.dispatch("contextmenu.open_menu")
+    ctx = _html(app, "contextmenu")
+    assert 'aria-controls="contextmenu-menu"' in ctx
+    assert 'id="contextmenu-menu"' in ctx
+
+    app.dispatch("command.open_pal")
+    pal = _html(app, "command")
+    assert "command.sign_out" in pal
+    assert "Sign out" in pal
 
 
 def test_table_row_click_is_not_select_all():
@@ -189,6 +280,12 @@ def test_table_row_click_is_not_select_all():
     html = _html(app, "table")
     assert "Select all rows" in html
     assert 'id="row-oak-02"' in html
+    assert 'role="checkbox"' in html
+    assert 'aria-checked="true"' in html
+    assert "table.toggle_all" in html
+    assert "table.toggle_row" in html
+    row_tag = html[html.find('id="row-oak-02"'):html.find(">", html.find('id="row-oak-02"'))]
+    assert "table.toggle_row" not in row_tag
 
 
 def test_kit_modules_never_import_ux_channel():

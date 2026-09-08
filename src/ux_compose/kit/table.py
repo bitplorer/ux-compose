@@ -8,7 +8,9 @@ MorphState: ``sort``, ``cleared``, ``dirty``. RefState: ``items``, ``selected``.
 Caps: ``items.archive`` on ``archive``. ``toggle_row`` / ``toggle_all`` / ``sort_by`` are public.
 A11y (APG Table): native ``<table>``, ``scope=col`` on ``th``. Row activation
 calls ``toggle_row`` (one sku). Header checkbox is ``toggle_all`` — it is not
-a body click and does not share the row bind. ``aria-selected`` on the row.
+a body click and does not share the row bind. Row checkbox is a focusable
+``role=checkbox`` (keyboard/AT, not decorative spans). Bind lives on that
+checkbox, not the ``<tr>``. ``aria-selected`` on the row.
 """
 
 from __future__ import annotations
@@ -145,6 +147,8 @@ class Table(Component):
                     span("✓" if all_on else "", className=self.class_box_on if all_on else self.class_box),
                     type="button",
                     className=self.class_check,
+                    role="checkbox",
+                    aria_checked="true" if all_on else "false",
                     aria_label="Select all rows",
                     **bind(self.toggle_all),
                 ),
@@ -175,18 +179,26 @@ class Table(Component):
                 )
                 for k, _ in self.COLUMNS
             ]
+            name = self._cell("name", cols)
             body.append(
                 tr(
                     td(
-                        span("On" if on else "Off", className=self.class_sr),
-                        span("✓" if on else "", className=self.class_box_on if on else self.class_box),
+                        button(
+                            span("On" if on else "Off", className=self.class_sr),
+                            span("✓" if on else "", className=self.class_box_on if on else self.class_box),
+                            type="button",
+                            className=self.class_check,
+                            role="checkbox",
+                            aria_checked="true" if on else "false",
+                            aria_label=f"Select {name}",
+                            **bind(self.toggle_row, sku=sku),
+                        ),
                         className="px-1.5",
                     ),
                     *cells,
                     id=f"row-{sku}",
                     className=self.class_tr_on if on else self.class_tr,
                     aria_selected="true" if on else "false",
-                    **bind(self.toggle_row, sku=sku),
                 )
             )
         empty = not body

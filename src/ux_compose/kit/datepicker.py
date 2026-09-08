@@ -4,7 +4,8 @@ Host seam: override ``on_pick(day)``. Picking is public.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``month``, ``day``, ``open``. Caps: none. A11y: label ``for`` ↔
-textbox id; grid ``role=grid``; selected day ``aria-selected``. Popover
+textbox id; grid ``role=grid``; weekday row ``columnheader``; days
+``role=row`` / ``gridcell``; selected day ``aria-selected``. Popover
 closes on Escape. Quantity never lives on MorphState — the day is a name.
 """
 
@@ -69,7 +70,8 @@ class DatePicker(Component):
         "w-full min-h-11 cursor-pointer rounded-2xl border border-stone-200 bg-stone-50 "
         "px-4 text-left text-sm"
     )
-    class_grid = "mt-3 grid grid-cols-7 gap-1"
+    class_grid = "mt-3 flex flex-col gap-1"
+    class_row = "grid grid-cols-7 gap-1"
     class_day = (
         "min-h-11 cursor-pointer rounded-xl border-0 bg-transparent text-sm hover:bg-stone-100"
     )
@@ -114,22 +116,33 @@ class DatePicker(Component):
             ),
         ]
         if is_open:
-            cells = [span(w, className="text-center text-xs text-stone-400") for w in _WEEKDAYS]
+            header = [
+                span(w, className="text-center text-xs text-stone-400", role="columnheader")
+                for w in _WEEKDAYS
+            ]
+            rows = [div(*header, className=self.class_row, role="row")]
+            week = []
             for d in _cal.Calendar(_cal.MONDAY).itermonthdays(y, m):
                 if d == 0:
-                    cells.append(span("", className="min-h-11"))
-                    continue
-                key = f"{y:04d}-{m:02d}-{d:02d}"
-                on = key == day
-                cells.append(
-                    button(
-                        str(d),
-                        type="button",
-                        className=self.class_day_on if on else self.class_day,
-                        aria_selected="true" if on else "false",
-                        **bind(self.pick, day=key),
+                    week.append(div(span("", className="min-h-11"), role="gridcell"))
+                else:
+                    key = f"{y:04d}-{m:02d}-{d:02d}"
+                    on = key == day
+                    week.append(
+                        div(
+                            button(
+                                str(d),
+                                type="button",
+                                className=self.class_day_on if on else self.class_day,
+                                aria_selected="true" if on else "false",
+                                **bind(self.pick, day=key),
+                            ),
+                            role="gridcell",
+                        )
                     )
-                )
+                if len(week) == 7:
+                    rows.append(div(*week, className=self.class_row, role="row"))
+                    week = []
             kids.extend([
                 button(
                     span("Close", className=self.class_sr),
@@ -146,7 +159,7 @@ class DatePicker(Component):
                         button("›", type="button", className=self.class_ghost, aria_label="Next month", **bind(self.next)),
                         className=self.class_head,
                     ),
-                    div(*cells, className=self.class_grid, role="grid", aria_label=f"{_cal.month_name[m]} {y}"),
+                    div(*rows, className=self.class_grid, role="grid", aria_label=f"{_cal.month_name[m]} {y}"),
                     id=f"{self.id}-cal",
                     className="relative z-20 rounded-2xl border border-stone-200 bg-white p-3 shadow-lg",
                     role="dialog",

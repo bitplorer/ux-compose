@@ -4,7 +4,8 @@ Host seam: override ``on_add(name)``. Adding is public in the demo.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``dirty``. RefState: ``files``. Caps: none (Host may add a Cap).
-A11y: label ``for`` ↔ file input id; list of names.
+A11y: label ``for`` ↔ file input id; list of names. Demo honesty: add always
+names ``sketch.png`` — Host wires a real upload.
 """
 
 from __future__ import annotations
@@ -71,6 +72,7 @@ class FileUpload(Component):
             span("Files", className=self.class_kicker),
             h2("Attach a note", className=self.class_title),
             p(f"{len(names)} file" + ("" if len(names) == 1 else "s") + " on the table.", className=self.class_lede),
+            p("Demo names sketch.png. Host wires a real upload.", className=self.class_lede),
             label("Choose a file", className=self.class_label, html_for=fid),
             input_(type="file", name="file", id=fid, className=self.class_input, **bind(self.add, name="sketch.png")),
             ul(*rows, className=self.class_list) if rows else p("Nothing attached.", className=self.class_lede),

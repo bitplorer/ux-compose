@@ -4,9 +4,11 @@ Host seam: override ``ITEMS``. Opening a tab is not an authority event.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``tab``. Caps: none. A11y (APG Tabs): ``role=tablist`` / ``tab`` /
-``tabpanel``. Selected tab ``tabindex=0`` others ``-1``. ``aria-controls``
-points at the panel id; panel ``aria-labelledby`` the tab. Arrow keys are
-Channel when ``keydown`` is live; select stays a public Morph action.
+``tabpanel``. Ids are ``{id}-tab-{k}`` / ``{id}-p-{k}``. Selected tab
+``tabindex=0`` others ``-1``. ``aria-controls`` points at the panel id;
+panel ``aria-labelledby`` the tab. Inactive panels stay in the tree with
+``hidden`` (honest APG — not omitted). Arrow keys are Channel when
+``keydown`` is live; select stays a public Morph action.
 """
 
 from __future__ import annotations
@@ -96,11 +98,13 @@ class Tabs(Component):
         return items[0]
 
     def render(self):
-        key, label, title, body = self._current()
+        key, _label, _title, _body = self._current()
         segs = []
-        for k, lab, _t, _b in self._items():
+        panels = []
+        for k, lab, title, body in self._items():
             on = k == key
             tab_id = f"{self.id}-tab-{k}"
+            panel_id = f"{self.id}-p-{k}"
             segs.append(
                 button(
                     lab,
@@ -108,26 +112,33 @@ class Tabs(Component):
                     id=tab_id,
                     role="tab",
                     aria_selected="true" if on else "false",
-                    aria_controls=f"tab-{k}",
+                    aria_controls=panel_id,
                     tabindex="0" if on else "-1",
                     className=self.class_tab_on if on else self.class_tab,
                     **bind(self.select, tab=k),
                 )
             )
-        panel_id = f"tab-{key}"
+            panel_attrs = {
+                "id": panel_id,
+                "className": self.class_panel,
+                "role": "tabpanel",
+                "aria_labelledby": tab_id,
+                "tabindex": "0" if on else "-1",
+            }
+            if not on:
+                panel_attrs["hidden"] = True
+            panels.append(
+                section(
+                    span(f"Panel · {lab}", className=self.class_kicker),
+                    h2(title, className=self.class_title),
+                    p(body, className=self.class_lede),
+                    **panel_attrs,
+                )
+            )
         return div(
             span("Workspace", className=self.class_kicker),
             nav(*segs, className=self.class_tablist, role="tablist", aria_label="Workspace"),
-            section(
-                span(f"Panel · {label}", className=self.class_kicker),
-                h2(title, className=self.class_title),
-                p(body, className=self.class_lede),
-                id=panel_id,
-                className=self.class_panel,
-                role="tabpanel",
-                aria_labelledby=f"{self.id}-tab-{key}",
-                tabindex="0",
-            ),
+            *panels,
             id=self.id,
             className=self.class_card,
             data_tab=key,

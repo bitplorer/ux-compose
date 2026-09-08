@@ -7,19 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-### Changed
-
-- Kit APG residuals after #59: namespaced tabs/login tabpanels (`{id}-tab-{k}` /
-  `{id}-p-{k}`, inactive `hidden`); calendar/datepicker `role=grid` + `row` /
-  `gridcell` + `aria-selected`; alertdialog Escape/scrim do not dismiss;
-  table row select binds the checkbox, not the `<tr>`; actionsheet autofocus
-  on open; navbar builds two link trees. Ride-along: fileupload demo names
-  `sketch.png`; combobox/accordion ids follow the instance id; select
-  `label for`; plans radio APG; contextmenu `aria-controls`; command Sign out
-  spends `auth.logout`.
-
 ### Added
 
+- Kit Batch A chrome P1: `menubar`, `toolbar`, `togglegroup`, `spinbutton`,
+  `themeswitch`, `filterbar`. APG roles (menubar/menu, toolbar+separator,
+  radiogroup, spinbutton valuemin/now/max, theme radiogroup ≠ switch).
+  Spinbutton magnitude is RefState. Caps stay off chrome. Isolation: kit
+  still never imports `ux_channel`.
 - Kit expansion: harden existing widgets (ARIA APG, label↔id, Escape dismiss,
   table row-select vs header select-all, overlay focus attrs) and add P0 +
   cheap P1 cards (`navbar`, `navmenu`, `usermenu`, `popover`, `tooltip`,
@@ -42,6 +36,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Kit APG residuals after #59: namespaced tabs/login tabpanels (`{id}-tab-{k}` /
+  `{id}-p-{k}`, inactive `hidden`); calendar/datepicker `role=grid` + `row` /
+  `gridcell` + `aria-selected`; alertdialog Escape/scrim do not dismiss;
+  table row select binds the checkbox, not the `<tr>`; actionsheet autofocus
+  on open; navbar builds two link trees. Ride-along: fileupload demo names
+  `sketch.png`; combobox/accordion ids follow the instance id; select
+  `label for`; plans radio APG; contextmenu `aria-controls`; command Sign out
+  spends `auth.logout`.
 - scaffold/nook: `COMPOSE_VCS_PIN` tracks main tip `6d61c9e` so cold `pip -r` installs pin-aligned compose (soft residual after #55).
 - pin-align: specialist tips (ux-dom `e8be99a`, ux-behavior `793f120`; channel/motion kept) + cold `pip -r` VCS honesty; Python ≥3.14 floor unchanged.
 - apps: Bucket B host sync (Document path + Cap Host require; kill HAS_DOM/HTML-string soft shells) after #52.

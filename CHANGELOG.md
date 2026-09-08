@@ -39,6 +39,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `uxcompose add dialog|sheet|actionsheet` copies rewritten kit siblings
+  (``components/overlay.py``) so `add --page` can `import routes.dialog`
+  without a manual overlay copy. Overlay stays out of the catalog.
+
 ### Added
 
 - `ux_compose.chrome.brand_wrap(document, brand=…)` — Document-path GET

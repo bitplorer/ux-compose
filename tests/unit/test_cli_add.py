@@ -124,6 +124,58 @@ def test_copy_page_unit(tmp_path: Path):
     assert "class Login(LoginCard)" in text
 
 
+@pytest.mark.parametrize("stem", ("dialog", "sheet", "actionsheet"))
+def test_copy_overlay_widgets_copy_kit_sibling(tmp_path: Path, stem: str):
+    """Rewritten ``from .overlay import`` must land overlay.py — overlay is not in CATALOG."""
+    assert "overlay" not in CATALOG
+    root = _fake_app(tmp_path)
+    written = copy_component(stem, root=root)
+    py = written["py"].read_text(encoding="utf-8")
+    assert "from ux_compose.kit.overlay import" not in py
+    assert "from .overlay import" in py
+    overlay = root / "components" / "overlay.py"
+    assert overlay.is_file()
+    overlay_text = overlay.read_text(encoding="utf-8")
+    assert "class OverlayChrome" in overlay_text
+    assert "def overlay" in overlay_text
+    ast.parse(py)
+    ast.parse(overlay_text)
+    assert written.get("overlay") == overlay
+    assert f"uxcompose add {stem}" in overlay_text
+    assert written.get("page") is None
+    assert not (root / "routes" / "overlay.py").exists()
+
+
+def test_copy_login_does_not_invent_overlay(tmp_path: Path):
+    root = _fake_app(tmp_path)
+    copy_component("login", root=root)
+    assert not (root / "components" / "overlay.py").exists()
+
+
+def test_existing_overlay_survives_add_without_force(tmp_path: Path):
+    root = _fake_app(tmp_path)
+    dest_dir = root / "components"
+    dest_dir.mkdir()
+    (dest_dir / "__init__.py").write_text("", encoding="utf-8")
+    overlay = dest_dir / "overlay.py"
+    overlay.write_text("# author-owned overlay\n", encoding="utf-8")
+    copy_component("dialog", root=root)
+    assert overlay.read_text(encoding="utf-8") == "# author-owned overlay\n"
+
+
+def test_force_regenerates_overlay_sibling(tmp_path: Path):
+    root = _fake_app(tmp_path)
+    dest_dir = root / "components"
+    dest_dir.mkdir()
+    (dest_dir / "__init__.py").write_text("", encoding="utf-8")
+    overlay = dest_dir / "overlay.py"
+    overlay.write_text("# stale\n", encoding="utf-8")
+    copy_component("dialog", root=root, force=True)
+    text = overlay.read_text(encoding="utf-8")
+    assert "class OverlayChrome" in text
+    assert "# stale" not in text
+
+
 def test_copy_toast_page_teaches_sealed_args(tmp_path: Path):
     root = _fake_app(tmp_path)
     written = copy_component("toast", root=root, as_page=True)
@@ -179,6 +231,14 @@ def test_cli_add_login(tmp_path: Path, capsys):
     out = capsys.readouterr().out
     assert "wrote py:" in out
     assert (root / "components" / "login.py").is_file()
+
+
+def test_cli_add_dialog_writes_overlay(tmp_path: Path, capsys):
+    root = _fake_app(tmp_path)
+    assert main(["add", "dialog", "--root", str(root)]) == 0
+    out = capsys.readouterr().out
+    assert "wrote overlay:" in out
+    assert (root / "components" / "overlay.py").is_file()
 
 
 def test_cli_add_unknown(capsys):

@@ -58,9 +58,10 @@ channel. It only asks `worker_for(path)`:
   `watchfiles` so CSS excludes actually work).
 - Origin is another hop. Latency is local-loopback, not a product
   concern on the author machine.
-- Process isolation is not a durable store. Restart channel (or the
-  whole `serve dev`) and in-memory Channel state is gone. Redis is a
-  later product.
+- Process isolation is not a durable store. Serve-dev shares a sqlite
+  StateStore so ui Document GET and channel Caps see the same MorphState.
+  Restart channel (or the whole `serve dev`) clears that bag. Redis is
+  the product multi-worker path (`REDIS_URL`).
 - Hitting a worker port directly bypasses origin. Workers bind
   `127.0.0.1` only.
 - This is live reload, not Next.js Fast Refresh. The page remounts.

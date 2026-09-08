@@ -20,3 +20,7 @@ assets/css/output.css
 
 # serve dev origin pidfile (one-shot restart-channel)
 .uxcompose-serve-dev.pid
+# shared MorphState/session bag for serve-dev ui + channel workers
+.uxcompose-serve-dev.state
+.uxcompose-serve-dev.state-wal
+.uxcompose-serve-dev.state-shm

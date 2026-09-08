@@ -13,10 +13,13 @@ fourth server — it is a compiler next to these three.
 ``pages`` is not a word in this tree (the folder is ``routes/``).
 ``host`` is already ``--host`` / ``host=fastapi``. Do not reuse it.
 
-Both workers import ``app:asgi``. origin only forwards. A ui reload
-does not wipe Channel RAM. ``serve restart-channel`` is a one-shot
-SIGUSR1 to the origin pidfile — it respawns Channel on the same fd.
-It is not a sticky flag and does not change the next ``*.py`` save.
+Both workers import ``app:asgi``. origin only forwards. Session /
+MorphState live on Channel (``ch.draft``). Origin still sends Document
+GET to ui, so both workers open the same sqlite StateStore
+(``UXCOMPOSE_STATE_STORE`` / ``.uxcompose-serve-dev.state``). A ui
+reload does not wipe that bag. ``serve restart-channel`` clears it and
+respawns Channel on the same fd. It is not a sticky flag and does not
+change the next ``*.py`` save.
 
 httpx re-issues HTTP from origin to a worker. Starlette is origin's
 ASGI app. websockets forwards HMR and Channel sockets. None of these
@@ -35,6 +38,12 @@ from typing import Callable, Literal
 from urllib.parse import urlsplit
 
 from ux_compose.serve_restart import clear_pid, write_pid
+from ux_compose.serve_state import (
+    STATE_STORE_ENV,
+    clear_shared_state,
+    drop_shared_state,
+    prepare_shared_state,
+)
 
 Worker = Literal["ui", "channel"]
 
@@ -267,6 +276,7 @@ def run(
     os.environ[UI_URL_ENV] = ui_url
     os.environ[CHANNEL_URL_ENV] = channel_url
     os.environ["UXCOMPOSE_APP"] = app_ref
+    prepare_shared_state(root)
 
     py = sys.executable
     css_watcher = start_css_watcher() if start_css_watcher is not None else None
@@ -296,6 +306,7 @@ def run(
         restarting.set()
         try:
             _stop(channel_holder[0])
+            clear_shared_state()
             channel_holder[0] = _spawn(
                 channel_cmd, cwd=root, pass_fds=(channel_sock.fileno(),)
             )
@@ -353,7 +364,8 @@ def run(
         print(
             f"serve-dev: origin http://{host}:{port}  "
             f"ui {ui_url} (reload *.py)  "
-            f"channel {channel_url} (stable)"
+            f"channel {channel_url} (stable)  "
+            f"session {os.environ.get(STATE_STORE_ENV)}"
         )
         try:
             import watchfiles  # noqa: F401
@@ -390,6 +402,7 @@ def run(
         _stop(ui_proc)
         _stop(channel_holder[0])
         _stop(css_watcher)
+        drop_shared_state(root)
         try:
             channel_sock.close()
         except OSError:

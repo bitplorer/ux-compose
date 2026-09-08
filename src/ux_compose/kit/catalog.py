@@ -596,6 +596,24 @@ CATALOG: dict[str, KitEntry] = {
         "css": False,
         "page": True,
     },
+    "chat": {
+        "name": "Chat",
+        "module": "ux_compose.kit.chat",
+        "stem": "chat",
+        "exports": ["Chat"],
+        "description": "Thread log (role=log). Composer is labeled. Send is public.",
+        "css": False,
+        "page": True,
+    },
+    "questionnaire": {
+        "name": "Questionnaire",
+        "module": "ux_compose.kit.questionnaire",
+        "stem": "questionnaire",
+        "exports": ["Questionnaire"],
+        "description": "Named questions as fieldset radiogroups. Submit spends form.submit.",
+        "css": False,
+        "page": True,
+    },
 }
 
 

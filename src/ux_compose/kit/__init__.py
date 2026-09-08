@@ -22,6 +22,7 @@ from ux_compose.kit.breadcrumb import Breadcrumb
 from ux_compose.kit.calendar import Calendar
 from ux_compose.kit.card import Card
 from ux_compose.kit.carousel import Carousel
+from ux_compose.kit.chat import Chat
 from ux_compose.kit.combobox import Combobox
 from ux_compose.kit.command import Command
 from ux_compose.kit.cta import Cta
@@ -49,6 +50,7 @@ from ux_compose.kit.pagination import Pagination
 from ux_compose.kit.plans import Plans
 from ux_compose.kit.popover import Popover
 from ux_compose.kit.progress import Progress
+from ux_compose.kit.questionnaire import Questionnaire
 from ux_compose.kit.searchbar import SearchBar
 from ux_compose.kit.select import Select
 from ux_compose.kit.separator import Separator
@@ -143,6 +145,8 @@ __all__ = [
     "SpinButton",
     "ThemeSwitch",
     "FilterBar",
+    "Chat",
+    "Questionnaire",
     "OverlayChrome",
     "overlay",
 ]

@@ -223,14 +223,15 @@ def _refused_unauthorized(result) -> bool:
 def test_scaffold_hello_source_has_pulse_cap_control():
     """create-app hello teaches gated pulse without importing ux_channel."""
     src = ROUTES_HELLO_PY
+    blob = " ".join(src.split())
     assert "pulses = MorphState" in src
     assert '@action(caps=("pulse",))' in src
     assert 'control("hello.pulse")' in src
     assert "import ux_channel" not in src
     assert "from ux_channel" not in src
     assert "public (caps=())" not in src
-    assert "open mint / no Cap predicate" in src
-    assert "control-minted cap under Cap Host require" in src
+    assert "open mint / no Cap predicate" in blob
+    assert "control-minted cap under Cap Host require" in blob
 
 
 def test_scaffold_hello_render_mints_pulse_cap_attrs(tmp_path):

@@ -164,8 +164,9 @@ ROUTES_HELLO_PY = dedent('''\
 
     Author contract: return ux-dom tag trees with Tailwind className.
     control() emits data-ux-action + data-channel-action (live click bind)
-    and mints a Cap when Cap Host is live. hello.inc is public (caps=());
-    hello.pulse is fail-closed (caps=("pulse",)). HTMX is opt-in at
+    and mints a Cap when Cap Host is live. hello.inc is open mint / no Cap
+    predicate (Intent still requires the control-minted cap under Cap Host
+    require). hello.pulse is fail-closed (caps=("pulse",)). HTMX is opt-in at
     Document layer. render() stays a #hello fragment (the morph payload).
     Host wraps Document — never chrome inside render().
     """

@@ -52,6 +52,10 @@ class Hello(Component):
         return update_with(self)
 ```
 
+`@action(caps=())` is open mint / no Cap predicate (Intent still requires the
+control-minted cap under Cap Host require). Stamp the button with
+`control("hello.inc")` so GET HTML carries `data-channel-cap`.
+
 L1 without HTTP: return a ux-dom tag tree. A `str` still serializes as
 `text/html` (not JSON, not streamed) but is not a Document-absent product path.
 

@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Kit expansion: harden existing widgets (ARIA APG, label↔id, Escape dismiss,
+  table row-select vs header select-all, overlay focus attrs) and add P0 +
+  cheap P1 cards (`navbar`, `navmenu`, `usermenu`, `popover`, `tooltip`,
+  `alertdialog`, `formlayout`, `fieldset`, `datepicker`, `switch`, `card`,
+  `emptystate`, `stats`, `alert`, `banner`, `progress`, `skeleton`, `hero`,
+  `footer`, `cta`, plus `avatar`, `badge`, `hovercard`, `searchbar`,
+  `fileupload`, `tagsinput`, `multiselect`, `descriptionlist`, `featuregrid`,
+  `testimonials`, `newsletter`, `bottomnav`, `separator`, `slider`).
+  `drawer` is a Sheet alias (same Host). OverlayChrome `dismiss_on()` adds
+  Escape. Isolation: kit still never imports `ux_channel`.
 - FastAPI product host disables Swagger by default (`docs_url=None`,
   `redoc_url=None`, `openapi_url=None`) so `routes/docs.py` owns GET
   `/docs` (Document wrap, including `brand_wrap`). Opt in with

@@ -2,6 +2,10 @@
 
 Host seam: override ``SECTIONS``. Several panels may be open. Reading is public.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+MorphState: ``open_ids`` (identity tuple). Caps: none. A11y (APG Accordion):
+header button ``aria-expanded`` ``aria-controls``; panel ``role=region``
+``aria-labelledby``. Heading wraps the trigger.
 """
 
 from __future__ import annotations
@@ -79,21 +83,34 @@ class Accordion(Component):
                 className=self.class_caret + (" rotate-180" if is_open else ""),
                 aria_hidden="true",
             )
+            btn_id = f"{self.id}-h-{key}"
+            panel_id = f"{self.id}-p-{key}"
             items.append(
                 section(
-                    button(
-                        span(title, className=self.class_item_title),
-                        span(
-                            caret,
-                            span("Hide" if is_open else "Show", className=self.class_mark),
-                            className="flex items-center gap-2",
+                    h2(
+                        button(
+                            span(title, className=self.class_item_title),
+                            span(
+                                caret,
+                                span("Hide" if is_open else "Show", className=self.class_mark),
+                                className="flex items-center gap-2",
+                            ),
+                            type="button",
+                            id=btn_id,
+                            className=self.class_trigger,
+                            aria_expanded="true" if is_open else "false",
+                            aria_controls=panel_id,
+                            **bind(self.toggle, key=key),
                         ),
-                        type="button",
-                        className=self.class_trigger,
-                        aria_expanded="true" if is_open else "false",
-                        **bind(self.toggle, key=key),
+                        className="m-0",
                     ),
-                    p(body, className=self.class_lede) if is_open else span("", className=self.class_sr),
+                    p(
+                        body,
+                        id=panel_id,
+                        className=self.class_lede,
+                        role="region",
+                        aria_labelledby=btn_id,
+                    ) if is_open else span("", className=self.class_sr, id=panel_id),
                     className=self.class_item,
                     id=f"acc-{key}",
                 )

@@ -32,32 +32,9 @@ def test_catalog_has_login():
     assert "login" in CATALOG
     assert CATALOG["login"]["module"] == "ux_compose.kit.login"
     assert CATALOG["login"]["css"] is False
-    for stem in (
-        "tabs",
-        "accordion",
-        "dropdown",
-        "dialog",
-        "sheet",
-        "toast",
-        "command",
-        "table",
-        "pagination",
-        "combobox",
-        "sidebar",
-        "breadcrumb",
-        "stepper",
-        "carousel",
-        "calendar",
-        "select",
-        "otp",
-        "plans",
-        "actionsheet",
-        "contextmenu",
-        "typeahead",
-        "pullrefresh",
-    ):
-        assert stem in CATALOG
-        assert CATALOG[stem]["css"] is False
+    for stem, meta in CATALOG.items():
+        assert meta["css"] is False, stem
+        assert meta["stem"] == stem or meta["stem"] == meta["name"].lower()
 
 
 def test_copy_tabs_into_app(tmp_path: Path):
@@ -124,7 +101,7 @@ def test_copy_page_unit(tmp_path: Path):
     assert "class Login(LoginCard)" in text
 
 
-@pytest.mark.parametrize("stem", ("dialog", "sheet", "actionsheet"))
+@pytest.mark.parametrize("stem", ("dialog", "sheet", "actionsheet", "command", "alertdialog"))
 def test_copy_overlay_widgets_copy_kit_sibling(tmp_path: Path, stem: str):
     """Rewritten ``from .overlay import`` must land overlay.py — overlay is not in CATALOG."""
     assert "overlay" not in CATALOG

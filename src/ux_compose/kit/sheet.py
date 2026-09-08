@@ -1,7 +1,11 @@
 """Drop-in sheet — edge panel. Same shape as a dialog, different placement.
 
-Swipe lives on Close / Done, not the root. OverlayChrome owns
-scrim/panel/dismiss ids, dismiss grammar, and the open plan.
+``Drawer`` is this Host under another name (right edge). Not a second Host.
+
+MorphState: ``open``. RefState: ``title``, ``body``, ``which``. Caps: none
+on open/close. A11y: ``role=dialog`` ``aria-modal`` labelledby. Escape +
+swipe-right on dismiss (OverlayChrome). Focus: panel tabindex + Close
+autofocus. Swipe lives on Close / Done, not the root.
 """
 
 from __future__ import annotations
@@ -65,6 +69,7 @@ class Sheet(Component):
         ch = self._chrome()
         layer = []
         if is_open:
+            title_id = f"{self.id}-title"
             layer = [
                 button(
                     span("Close", className=self.class_sr),
@@ -72,6 +77,7 @@ class Sheet(Component):
                     id=ch.scrim_id,
                     className=self.class_scrim,
                     aria_label="Close",
+                    data_channel_on=ch.dismiss_on(),
                     **bind(self.close),
                 ),
                 div(
@@ -82,7 +88,8 @@ class Sheet(Component):
                             type="button",
                             id=ch.dismiss_id,
                             className=self.class_btn_ghost,
-                            data_channel_on=ch.swipe_on_dismiss(),
+                            autofocus=True,
+                            data_channel_on=ch.dismiss_on(),
                             **bind(self.close),
                         ),
                         className=self.class_head,
@@ -90,7 +97,7 @@ class Sheet(Component):
                     h2(
                         str(self.title or "Filters"),
                         className=self.class_title,
-                        id=f"{self.id}-title",
+                        id=title_id,
                     ),
                     p(str(self.body or ""), className=self.class_lede + " flex-1"),
                     button(
@@ -98,14 +105,15 @@ class Sheet(Component):
                         type="button",
                         id=f"{self.id}-done",
                         className=self.class_btn_primary + " mt-auto",
-                        data_channel_on=ch.swipe_on_dismiss(),
+                        data_channel_on=ch.dismiss_on(),
                         **bind(self.close),
                     ),
                     id=ch.panel_id,
                     className=self.class_panel,
                     role="dialog",
                     aria_modal="true",
-                    aria_labelledby=f"{self.id}-title",
+                    aria_labelledby=title_id,
+                    **ch.focus_attrs(),
                 ),
             ]
         return div(
@@ -142,3 +150,6 @@ class Sheet(Component):
     def close(self):
         self.open = False
         return update_with(self)
+
+
+Drawer = Sheet

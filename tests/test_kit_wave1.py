@@ -69,7 +69,7 @@ def test_contextmenu_longpress_attr_on_trigger_only():
     assert "list-none" in html
     # host must not broadcast longpress to items
     assert html.count("click longpress") == 1
-    assert html.count("data-channel-on") == 1 or html.count("data_channel_on") <= 1
+    assert "keydown.escape" in html
     app.dispatch("contextmenu.run", key="rename")
     inst = app.behavior.get("contextmenu")
     assert str(inst.ran) == "rename"

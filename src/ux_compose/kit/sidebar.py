@@ -2,6 +2,9 @@
 
 Host seam: override ``ITEMS``. Opening a section is public.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+MorphState: ``active``, ``collapsed``. Caps: none. A11y: ``nav`` ``aria-label``,
+``aria-current=page`` on the active item, ``aria-expanded`` on Fold.
 """
 
 from __future__ import annotations
@@ -16,6 +19,7 @@ from ux_compose import (
     button,
     div,
     h2,
+    nav,
     p,
     span,
 )
@@ -101,7 +105,9 @@ class Sidebar(Component):
                         lab[:1],
                         type="button",
                         title=lab,
+                        aria_label=lab,
                         className=self.class_item_slim_on if on else self.class_item_slim,
+                        **({"aria_current": "page"} if on else {}),
                         **bind(self.select, key=k),
                     )
                 )
@@ -111,25 +117,30 @@ class Sidebar(Component):
                         lab,
                         type="button",
                         className=self.class_item_on if on else self.class_item,
+                        **({"aria_current": "page"} if on else {}),
                         **bind(self.select, key=k),
                     )
                 )
         return div(
-            div(
+            nav(
                 span("Lumen", className=self.class_brand),
                 *links,
                 button(
                     "Open" if slim else "Fold",
                     type="button",
                     className=self.class_fold,
+                    aria_expanded="false" if slim else "true",
+                    aria_controls=f"{self.id}-pane",
                     **bind(self.toggle),
                 ),
                 className=self.class_rail_slim if slim else self.class_rail,
+                aria_label="Workspace",
             ),
             div(
                 span(label, className=self.class_kicker),
                 h2(title, className=self.class_title),
                 p(body, className=self.class_lede),
+                id=f"{self.id}-pane",
                 className=self.class_pane,
             ),
             id=self.id,

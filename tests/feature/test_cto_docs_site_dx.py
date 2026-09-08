@@ -50,6 +50,18 @@ def test_create_app_rejects_reserved_dest_email(tmp_path):
     assert not dest.exists()
 
 
+def test_create_app_rejects_reserved_dest_test(tmp_path):
+    from ux_compose.scaffold import ReservedDestError, create_app as mk
+
+    dest = tmp_path / "test"
+    with pytest.raises(ReservedDestError) as exc:
+        mk(dest, name="test")
+    msg = str(exc.value).lower()
+    assert "test" in msg
+    assert "fullsite" in msg or "app" in msg or "web" in msg
+    assert not dest.exists()
+
+
 @pytest.mark.skipif(not HAS_FASTAPI, reason="FastAPI host")
 def test_create_app_docs_page_get_is_document_not_swagger(tmp_path):
     from ux_compose.build import build

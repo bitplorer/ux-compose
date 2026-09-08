@@ -30,6 +30,12 @@ __all__ = ["build", "BuildResult"]
 _UNSET = object()
 
 
+def _const_bool(node: ast.AST) -> bool | None:
+    if isinstance(node, ast.Constant):
+        return bool(node.value)
+    return None
+
+
 def _settings_openapi(package_dir: Path) -> bool | None:
     """Read ``OPENAPI = True/False`` from ``settings.py`` without importing it."""
     path = package_dir / "settings.py"
@@ -40,13 +46,18 @@ def _settings_openapi(package_dir: Path) -> bool | None:
     except Exception:
         return None
     for node in tree.body:
-        if not isinstance(node, ast.Assign):
-            continue
-        for target in node.targets:
-            if isinstance(target, ast.Name) and target.id == "OPENAPI":
-                val = node.value
-                if isinstance(val, ast.Constant):
-                    return bool(val.value)
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id == "OPENAPI":
+                    flag = _const_bool(node.value)
+                    if flag is not None:
+                        return flag
+        elif isinstance(node, ast.AnnAssign):
+            target = node.target
+            if isinstance(target, ast.Name) and target.id == "OPENAPI" and node.value is not None:
+                flag = _const_bool(node.value)
+                if flag is not None:
+                    return flag
     return None
 
 

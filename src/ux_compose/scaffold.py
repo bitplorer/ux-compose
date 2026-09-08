@@ -353,6 +353,9 @@ class ReservedDestError(ValueError):
 
 
 _DEST_SUGGEST = "fullsite, app, or web"
+# CPython omits ``test`` from ``sys.stdlib_module_names`` (the regression
+# package is optional), but ``import test.routes`` still shadows it.
+_ALWAYS_RESERVED = frozenset({"test"})
 
 
 def _dest_basename(dest: str | Path) -> str:
@@ -366,7 +369,9 @@ def reserved_dest_reason(basename: str) -> str | None:
         return None
     key = name.lower()
     stdlib = {m.lower() for m in getattr(sys, "stdlib_module_names", ())}
-    if key in stdlib or keyword.iskeyword(key):
+    reserved = key in _ALWAYS_RESERVED or key in stdlib
+    reserved = reserved or keyword.iskeyword(name) or keyword.iskeyword(key)
+    if reserved:
         return (
             f"create-app destination {name!r} is a reserved Python name "
             f"(stdlib module or keyword). Importing {name}.routes would hit "

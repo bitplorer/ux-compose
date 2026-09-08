@@ -460,7 +460,9 @@ def test_build_docs_page_is_html_not_swagger(tmp_path: Path):
     assert "swagger" not in r.text.lower()
 
     bare = asgi_get(asgi, "/redoc")
-    assert bare.status_code != 200 or "swagger" not in bare.text.lower()
+    assert bare.status_code == 404
+    spec = asgi_get(asgi, "/openapi.json")
+    assert spec.status_code == 404
 
 
 def test_build_default_docs_url_is_not_swagger(tmp_path: Path):
@@ -496,6 +498,19 @@ def test_build_reads_openapi_from_settings(tmp_path: Path):
     pytest.importorskip("fastapi")
     pkg = _pkg(tmp_path, {"routes/hello.py": "class Hello:\n    def render(self):\n        return 'x'\n"})
     (pkg / "settings.py").write_text("OPENAPI = True\n", encoding="utf-8")
+    from ux_compose.build import build
+
+    _app, asgi, _bundle = build(pkg, name="Demo", host="fastapi", live="null", level=1)
+    r = asgi_get(asgi, "/docs")
+    assert r.status_code == 200
+    blob = r.text.lower()
+    assert "swagger" in blob or "openapi" in blob
+
+
+def test_build_reads_annotated_openapi_from_settings(tmp_path: Path):
+    pytest.importorskip("fastapi")
+    pkg = _pkg(tmp_path, {"routes/hello.py": "class Hello:\n    def render(self):\n        return 'x'\n"})
+    (pkg / "settings.py").write_text("OPENAPI: bool = True\n", encoding="utf-8")
     from ux_compose.build import build
 
     _app, asgi, _bundle = build(pkg, name="Demo", host="fastapi", live="null", level=1)

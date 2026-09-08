@@ -14,6 +14,7 @@ See docs/ARCHITECTURE.md (one catalog rule).
 from ux_compose.kit.accordion import Accordion
 from ux_compose.kit.alert import Alert
 from ux_compose.kit.alertdialog import AlertDialog
+from ux_compose.kit.attachment import Attachment
 from ux_compose.kit.avatar import Avatar
 from ux_compose.kit.badge import Badge
 from ux_compose.kit.banner import Banner
@@ -22,16 +23,22 @@ from ux_compose.kit.breadcrumb import Breadcrumb
 from ux_compose.kit.calendar import Calendar
 from ux_compose.kit.card import Card
 from ux_compose.kit.carousel import Carousel
+from ux_compose.kit.chart import Chart
 from ux_compose.kit.chat import Chat
+from ux_compose.kit.colorpicker import ColorPicker
 from ux_compose.kit.combobox import Combobox
 from ux_compose.kit.command import Command
+from ux_compose.kit.countdown import Countdown
 from ux_compose.kit.cta import Cta
 from ux_compose.kit.descriptionlist import DescriptionList
 from ux_compose.kit.dialog import Dialog
+from ux_compose.kit.diff import Diff
 from ux_compose.kit.drawer import Drawer
 from ux_compose.kit.dropdown import Dropdown
 from ux_compose.kit.emptystate import EmptyState
+from ux_compose.kit.fab import Fab
 from ux_compose.kit.featuregrid import FeatureGrid
+from ux_compose.kit.feed import Feed
 from ux_compose.kit.fieldset import Fieldset
 from ux_compose.kit.fileupload import FileUpload
 from ux_compose.kit.filterbar import FilterBar
@@ -42,6 +49,7 @@ from ux_compose.kit.hovercard import HoverCard
 from ux_compose.kit.login import AuthDecision, Login
 from ux_compose.kit.logocloud import LogoCloud
 from ux_compose.kit.menubar import Menubar
+from ux_compose.kit.mockup import Mockup
 from ux_compose.kit.multiselect import MultiSelect
 from ux_compose.kit.navbar import Navbar
 from ux_compose.kit.navmenu import NavMenu
@@ -53,6 +61,8 @@ from ux_compose.kit.popover import Popover
 from ux_compose.kit.pricingsection import PricingSection
 from ux_compose.kit.progress import Progress
 from ux_compose.kit.questionnaire import Questionnaire
+from ux_compose.kit.resizable import Resizable
+from ux_compose.kit.scrollarea import ScrollArea
 from ux_compose.kit.searchbar import SearchBar
 from ux_compose.kit.select import Select
 from ux_compose.kit.separator import Separator
@@ -73,6 +83,7 @@ from ux_compose.kit.toast import Toast
 from ux_compose.kit.togglegroup import ToggleGroup
 from ux_compose.kit.toolbar import Toolbar
 from ux_compose.kit.tooltip import Tooltip
+from ux_compose.kit.tree import Tree
 from ux_compose.kit.usermenu import UserMenu
 from ux_compose.kit.datepicker import DatePicker
 from ux_compose.kit.actionsheet import ActionSheet
@@ -155,6 +166,17 @@ __all__ = [
     "LogoCloud",
     "Timeline",
     "Rating",
+    "Chart",
+    "Resizable",
+    "Tree",
+    "ColorPicker",
+    "Fab",
+    "Diff",
+    "Countdown",
+    "Mockup",
+    "Attachment",
+    "ScrollArea",
+    "Feed",
     "OverlayChrome",
     "overlay",
 ]

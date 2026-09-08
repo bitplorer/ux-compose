@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Kit Batch C marketing: `pricingsection`, `logocloud`, `timeline`, `rating`.
   Pricing is a comparison table (choose on the button, not the row). Rating
   stars are named keys. Caps stay off.
+- Kit Batch D P2: `chart`, `resizable`, `tree` (`treeview` alias),
+  `colorpicker`, `fab`, `diff`, `countdown`, `mockup`, `attachment`,
+  `scrollarea`, `feed`. APG tree/feed/timer; magnitudes on RefState.
+  Caps stay off. Isolation: kit still never imports `ux_channel`.
 - Kit expansion: harden existing widgets (ARIA APG, label↔id, Escape dismiss,
   table row-select vs header select-all, overlay focus attrs) and add P0 +
   cheap P1 cards (`navbar`, `navmenu`, `usermenu`, `popover`, `tooltip`,

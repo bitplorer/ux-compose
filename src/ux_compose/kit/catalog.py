@@ -650,6 +650,110 @@ CATALOG: dict[str, KitEntry] = {
         "css": False,
         "page": True,
     },
+    "chart": {
+        "name": "Chart",
+        "module": "ux_compose.kit.chart",
+        "stem": "chart",
+        "exports": ["Chart"],
+        "description": "Named SVG bars. Heights are RefState. role=img labelled.",
+        "css": False,
+        "page": True,
+    },
+    "resizable": {
+        "name": "Resizable",
+        "module": "ux_compose.kit.resizable",
+        "stem": "resizable",
+        "exports": ["Resizable"],
+        "description": "Named split (even/wide/rail). Separator is labelled. Caps stay off.",
+        "css": False,
+        "page": True,
+    },
+    "tree": {
+        "name": "Tree",
+        "module": "ux_compose.kit.tree",
+        "stem": "tree",
+        "exports": ["Tree"],
+        "description": "APG treeview. Expanded ids are names. uxcompose add treeview resolves here.",
+        "css": False,
+        "page": True,
+    },
+    "colorpicker": {
+        "name": "ColorPicker",
+        "module": "ux_compose.kit.colorpicker",
+        "stem": "colorpicker",
+        "exports": ["ColorPicker"],
+        "description": "Named swatches radiogroup. Hex field is labeled. Choosing is public.",
+        "css": False,
+        "page": True,
+    },
+    "fab": {
+        "name": "Fab",
+        "module": "ux_compose.kit.fab",
+        "stem": "fab",
+        "exports": ["Fab"],
+        "description": "Speed-dial FAB. aria-haspopup menu. Last command is a name.",
+        "css": False,
+        "page": True,
+    },
+    "diff": {
+        "name": "Diff",
+        "module": "ux_compose.kit.diff",
+        "stem": "diff",
+        "exports": ["Diff"],
+        "description": "Named before/after view. Radiogroup. Switching is public.",
+        "css": False,
+        "page": True,
+    },
+    "countdown": {
+        "name": "Countdown",
+        "module": "ux_compose.kit.countdown",
+        "stem": "countdown",
+        "exports": ["Countdown"],
+        "description": "role=timer. Remaining is RefState. Not SpinButton.",
+        "css": False,
+        "page": True,
+    },
+    "mockup": {
+        "name": "Mockup",
+        "module": "ux_compose.kit.mockup",
+        "stem": "mockup",
+        "exports": ["Mockup"],
+        "description": "Named device frame. Radiogroup. Choosing is public.",
+        "css": False,
+        "page": True,
+    },
+    "attachment": {
+        "name": "Attachment",
+        "module": "ux_compose.kit.attachment",
+        "stem": "attachment",
+        "exports": ["Attachment"],
+        "description": "File name chips on RefState. Label for ↔ id. Adding is public.",
+        "css": False,
+        "page": True,
+    },
+    "scrollarea": {
+        "name": "ScrollArea",
+        "module": "ux_compose.kit.scrollarea",
+        "stem": "scrollarea",
+        "exports": ["ScrollArea"],
+        "description": "Labelled overflow pane. Named jump. Composite, not a raw atom.",
+        "css": False,
+        "page": True,
+    },
+    "feed": {
+        "name": "Feed",
+        "module": "ux_compose.kit.feed",
+        "stem": "feed",
+        "exports": ["Feed"],
+        "description": "APG feed of articles. Items are RefState. Append is public.",
+        "css": False,
+        "page": True,
+    },
+}
+
+
+ALIASES = {
+    "treeview": "tree",
 }
 
 
@@ -661,6 +765,9 @@ def resolve(name: str) -> KitEntry:
     raw = name.strip().lower()
     key = raw.replace("-", "_")
     compact = key.replace("_", "")
+    alias = ALIASES.get(key) or ALIASES.get(compact)
+    if alias:
+        return CATALOG[alias]
     if key in CATALOG:
         return CATALOG[key]
     if compact in CATALOG:

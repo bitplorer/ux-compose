@@ -40,6 +40,7 @@ from ux_compose.kit.formlayout import FormLayout
 from ux_compose.kit.hero import Hero
 from ux_compose.kit.hovercard import HoverCard
 from ux_compose.kit.login import AuthDecision, Login
+from ux_compose.kit.logocloud import LogoCloud
 from ux_compose.kit.menubar import Menubar
 from ux_compose.kit.multiselect import MultiSelect
 from ux_compose.kit.navbar import Navbar
@@ -49,6 +50,7 @@ from ux_compose.kit.otp import Otp
 from ux_compose.kit.pagination import Pagination
 from ux_compose.kit.plans import Plans
 from ux_compose.kit.popover import Popover
+from ux_compose.kit.pricingsection import PricingSection
 from ux_compose.kit.progress import Progress
 from ux_compose.kit.questionnaire import Questionnaire
 from ux_compose.kit.searchbar import SearchBar
@@ -78,6 +80,8 @@ from ux_compose.kit.contextmenu import ContextMenu
 from ux_compose.kit.typeahead import Typeahead
 from ux_compose.kit.pullrefresh import PullRefresh
 from ux_compose.kit.overlay import OverlayChrome, overlay
+from ux_compose.kit.rating import Rating
+from ux_compose.kit.timeline import Timeline
 
 __all__ = [
     "AuthDecision",
@@ -147,6 +151,10 @@ __all__ = [
     "FilterBar",
     "Chat",
     "Questionnaire",
+    "PricingSection",
+    "LogoCloud",
+    "Timeline",
+    "Rating",
     "OverlayChrome",
     "overlay",
 ]

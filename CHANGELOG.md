@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Kit Batch B product: `chat`, `questionnaire`. Chat log is `role=log`;
   composer label↔id; send is public. Questionnaire is fieldset radiogroups;
   submit spends `form.submit`.
+- Kit Batch C marketing: `pricingsection`, `logocloud`, `timeline`, `rating`.
+  Pricing is a comparison table (choose on the button, not the row). Rating
+  stars are named keys. Caps stay off.
 - Kit expansion: harden existing widgets (ARIA APG, label↔id, Escape dismiss,
   table row-select vs header select-all, overlay focus attrs) and add P0 +
   cheap P1 cards (`navbar`, `navmenu`, `usermenu`, `popover`, `tooltip`,

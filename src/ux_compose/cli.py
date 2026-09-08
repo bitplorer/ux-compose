@@ -130,7 +130,7 @@ def _add(argv: list[str]) -> int:
 
 def _create_app(argv: list[str]) -> int:
     import argparse
-    from ux_compose.scaffold import create_app
+    from ux_compose.scaffold import create_app, ReservedDestError
 
     p = argparse.ArgumentParser(prog="uxcompose create-app")
     p.add_argument("dest", help="Destination directory")
@@ -144,9 +144,13 @@ def _create_app(argv: list[str]) -> int:
     )
     args = p.parse_args(argv)
     level: int | str = "auto" if str(args.level).lower() == "auto" else int(args.level)
-    root = create_app(
-        args.dest, name=args.name, level=level, host=args.host, brand=args.brand
-    )
+    try:
+        root = create_app(
+            args.dest, name=args.name, level=level, host=args.host, brand=args.brand
+        )
+    except ReservedDestError as e:
+        print(str(e), file=sys.stderr)
+        return 1
     print(f"Created {root.resolve()} (level={args.level}, host={args.host})")
     print(f"  Next: cd {root} && uxcompose serve dev")
     print("  Ship:  uxcompose build && uxcompose deploy --provider docker")

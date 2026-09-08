@@ -116,6 +116,9 @@ def act(name: str, sku: str = ""):
 
 Do not put `get` / `post` on the Component. FastAPI must not inspect classmethods.
 
+Swagger is off by default so `routes/docs.py` can own GET `/docs` (Document
+wrap). Opt in with `build(openapi=True)` or `settings.OPENAPI = True`.
+
 ---
 
 ## Stream

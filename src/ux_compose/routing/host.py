@@ -34,13 +34,24 @@ _BATTERIES_TEACH = (
 )
 
 
-def open(*, name: str = "App", host: str = "auto", asgi_app: Any = None) -> tuple[Any, str]:
+def open(
+    *,
+    name: str = "App",
+    host: str = "auto",
+    asgi_app: Any = None,
+    openapi: bool = False,
+) -> tuple[Any, str]:
     """Return (asgi_or_none, kind) where kind is fastapi | asgi.
 
     host:
       auto     — FastAPI if importable, else DirectoryASGI
       fastapi  — fail closed if FastAPI missing
       asgi     — DirectoryASGI (no Starlette)
+
+    openapi:
+      False (default) — FastAPI ``docs_url`` / ``redoc_url`` / ``openapi_url``
+        are None so product pages can own ``/docs``.
+      True — Swagger / ReDoc / OpenAPI JSON at the FastAPI defaults.
     """
     want = (host or "auto").lower().strip()
     if want in ("batteries", "directory_router"):
@@ -57,7 +68,7 @@ def open(*, name: str = "App", host: str = "auto", asgi_app: Any = None) -> tupl
         try:
             from ux_compose.routing.fastapi import create
 
-            return create(name), KIND_FASTAPI
+            return create(name, openapi=openapi), KIND_FASTAPI
         except ImportError:
             if want == "fastapi":
                 raise ImportError(

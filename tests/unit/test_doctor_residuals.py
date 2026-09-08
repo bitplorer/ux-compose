@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ux_compose.doctor import (
     doctor,
+    scan_fastapi_docs_collision,
     scan_kit_product_imports,
     scan_leftover_aliases,
     scan_render_chrome,
@@ -93,6 +94,24 @@ def test_render_chrome_skips_non_routes():
             encoding="utf-8",
         )
         assert scan_render_chrome([other]) == []
+
+
+def test_docs_route_collision_is_residual_not_violation():
+    with tempfile.TemporaryDirectory() as td:
+        product = Path(td) / "routes" / "docs.py"
+        product.parent.mkdir(parents=True)
+        product.write_text(
+            "class Docs:\n"
+            "    def render(self):\n"
+            "        return '<div id=\"docs\">product-docs</div>'\n",
+            encoding="utf-8",
+        )
+        diags = scan_fastapi_docs_collision([product])
+        assert diags
+        assert any("/docs" in d and "/about" in d for d in diags)
+        report = doctor([product], fail=False)
+        assert report.ok is True
+        assert any("/docs" in d and "/about" in d for d in report.diagnostics)
 
 
 def test_leftover_use_host_batteries_is_residual():

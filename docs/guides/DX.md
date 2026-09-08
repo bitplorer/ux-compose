@@ -69,6 +69,10 @@ myapp/
 
 Host is set **only** at the composition root. Page units never change.
 
+Dest basename must not be a stdlib module (`site`, `test`, `email`, …) —
+`import site.routes` would hit the standard library. Use `fullsite`, `app`,
+or `web`.
+
 ## doctor
 
 Reports:

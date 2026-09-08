@@ -43,7 +43,7 @@ CLI is the lifecycle. Page units never know which phase they are in.
 
 ```text
 create-app → author routes/ → serve dev → dispatch / doctor
-         → build → unlock L2/L3 → deploy → doctor
+         → build → attach Channel/Motion → deploy → doctor
 ```
 
 | Phase | Command | You do not |

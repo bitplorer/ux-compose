@@ -23,7 +23,11 @@ _SPECIALISTS = (
 
 @dataclass(frozen=True)
 class ProbeResult:
-    """Snapshot of which progressive specialists are available right now."""
+    """Snapshot of whether the pinned specialist stack is present.
+
+    Incomplete install is fail-loud. Levels 0–3 are attach APIs after
+    the complete stack is present — not an optional-package unlock.
+    """
 
     specialists: dict[str, bool] = field(default_factory=dict)
     """import-name → True if find_spec succeeds."""
@@ -36,9 +40,10 @@ class ProbeResult:
 
     @property
     def level_available(self) -> int:
-        """Highest progressive level supported by installed packages.
+        """Highest attach level the present stack can support.
 
-        L0 always available (static). L1 needs behavior, L2 channel, L3 motion.
+        Incomplete install is fail-loud via ``unlock_messages`` / doctor.
+        L0–L3 are attach APIs on a complete install, not package unlocks.
         """
         s = self.specialists
         level = 0
@@ -72,7 +77,11 @@ class ProbeResult:
         return bool(self.specialists.get("ux_motion"))
 
     def unlock_messages(self, *, requested_level: int = 3) -> list[str]:
-        """Diagnostics when the pinned stack is incomplete. Levels are additive."""
+        """Fail-loud diagnostics when the pinned stack is incomplete.
+
+        Levels are additive attach APIs after a complete install — not
+        an optional-package unlock ladder.
+        """
         lines: list[str] = []
         s = self.specialists
         missing = []

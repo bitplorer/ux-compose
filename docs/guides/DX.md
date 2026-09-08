@@ -16,15 +16,16 @@ uxcompose create-app / build / serve / deploy / doctor
         └─ Isolation + Progressive Superpower
 ```
 
-| Level | Unlock | Package |
-|-------|--------|---------|
-| L0 | Static Document / tags + page-unit routing | ux-dom (optional, Py≥3.14) |
-| L1 | Offline Components + MorphState + `@action` | ux-behavior |
-| L2 | Live Caps + Intent | + ux-channel |
-| L3 | Scene Plans + Morph-then-Play | + ux-motion |
+| Level | Attach | API |
+|-------|--------|-----|
+| L0 | Static Document / tags + page-unit routing | ux-dom (hard dep, Py≥3.14) |
+| L1 | Offline Components + MorphState + `@action` | complete install + `App.boot` |
+| L2 | Live Caps + Intent | `App.use_channel(asgi_app=…)` |
+| L3 | Scene Plans + Morph-then-Play | `App.use_motion()` |
 
-**Progressive Superpower Contract:** code written at Level 1 remains correct
-when Channel or Motion unlock. Zero rewrite.
+**Progressive Superpower Contract:** complete install first. Code written
+at Level 1 remains correct when Channel or Motion attach. Zero rewrite.
+Not an optional-package unlock ladder.
 
 **Isolation Law:** product modules never import `ux_channel` or CEK. The only
 door is `ux_compose.wire/` via `App.use_channel` / `App.use_motion`.
@@ -72,9 +73,9 @@ Host is set **only** at the composition root. Page units never change.
 
 Reports:
 
-1. Progressive level available (from installed packages via `dx.probe`)
+1. Progressive level available (complete-install probe via `dx.probe`)
 2. Capability matrix (ux-dom / behavior / motion / channel + DirectoryRoutes)
-3. Unlock teaching for the next level
+3. Fail-loud incomplete-stack diagnostics (hard-deps, not an unlock ladder)
 4. Isolation AST scan + dual-Document heuristic (fail-closed unless `--no-fail`)
 
 Page-unit teaching names **create-app + build()** (`DirectoryRoutes`).
@@ -89,7 +90,7 @@ pr = probe()
 pr.specialists          # {"ux_dom": bool, ...}
 pr.level_available      # 0–3
 pr.has_dom_cli          # uxdom binary present (pure-dom tooling)
-pr.unlock_messages(requested_level=3)
+pr.unlock_messages(requested_level=3)  # incomplete-stack / fail-loud diagnostics
 ```
 
 ## What compose deliberately does not own
@@ -103,7 +104,7 @@ pr.unlock_messages(requested_level=3)
 ## Golden path
 
 ```bash
-pip install "ux-compose[full,serve]"
+pip install "ux-compose[serve]"
 uxcompose create-app myapp --host auto --level auto
 cd myapp
 uxcompose serve dev

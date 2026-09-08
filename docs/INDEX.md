@@ -141,14 +141,15 @@ Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005
 
 ## Progressive levels
 
-| Level | Unlock |
+| Level | Attach |
 |-------|--------|
-| **0** | Static Document — `ux-dom` |
-| **1** | Offline MorphState + `@action` — `+ ux-behavior` |
-| **2** | Live Caps + Intent — `+ ux-channel` via `App.use_channel(asgi_app=…)` |
-| **3** | Motion — `+ ux-motion` via `App.use_motion()` |
+| **0** | Static Document — complete install (ux-dom hard dep) |
+| **1** | Offline MorphState + `@action` — `App.boot` |
+| **2** | Live Caps + Intent — `App.use_channel(asgi_app=…)` |
+| **3** | Motion — `App.use_motion()` |
 
-Level 1 code remains correct at higher levels. Zero rewrite.
+Level 1 code remains correct at higher levels. Zero rewrite. Complete
+install first — not an optional-package unlock ladder.
 
 ---
 

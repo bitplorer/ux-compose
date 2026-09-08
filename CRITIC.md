@@ -13,7 +13,7 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 | Progressive L0–L3 zero-rewrite | **PASS** | Same Component class at L1 and L3; tests prove it |
 | Offline path works without channel | **PASS** | Pure shim + real Behavior; offline subset green |
 | Live path only through `wire/` | **PASS** | `wire/boot.py` + `wire/caps.py` + `wire/cek.py` sole importers of channel/CEK |
-| Doctor teaches + fail-closed | **PASS** | IsolationViolation, unlock messages, dual-Document heuristic |
+| Doctor teaches + fail-closed | **PASS** | IsolationViolation, incomplete-stack / fail-loud messages, dual-Document heuristic |
 | Elite-love authoring surface | **PASS** | `update_with`, MorphState, @action, control, scene Plan |
 
 ## Post-ship increments (this cut)

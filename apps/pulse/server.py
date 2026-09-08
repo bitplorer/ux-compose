@@ -1,8 +1,8 @@
 """Pulse host — live showcase of the locked ux-compose product path.
 
 - Page units under routes/ via App.mount + DirectoryRoutes (RouterHooks)
-- Document SSoT when ux-dom present (XElement default; HTMX opt-in)
-- Progressive Behavior → Channel → Motion (level=auto)
+- Document SSoT (ux-dom hard dep; XElement default; HTMX opt-in)
+- Progressive attach order: Behavior → Channel → Motion (level=auto)
 - Isolation Law: never imports ux_channel directly
 - Style: Tailwind utility className (CDN stand-in for TailwindStyle/WebAssets)
 

@@ -105,7 +105,9 @@ HMR is `uxcompose serve dev`, not a Document API.
 | **2** | Live Caps + Intent |
 | **3** | Choreographed motion |
 
-**Contract:** complete install first. Levels are additive — Level 1 code stays valid at Level 2 and 3. No rewrite.
+**Contract:** complete install first. Levels are additive attach APIs —
+Level 1 code stays valid at Level 2 and 3. No rewrite. Not an
+optional-package unlock ladder.
 
 ---
 

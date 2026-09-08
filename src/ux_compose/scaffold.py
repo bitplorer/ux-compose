@@ -352,7 +352,7 @@ def create_app(
     """Create a progressive app with locked product path.
 
     host: ``auto`` | ``fastapi`` | ``asgi`` — gateway at composition root only.
-    level: ``auto`` or 0..3 progressive floor.
+    level: ``auto`` or 0..3 attach level (complete install; hard-deps).
     brand: optional GET-only nav label via ``brand_wrap`` (Document path).
       ``None`` keeps ``wrap=document``. Never embeds chrome in ``render()``.
     """

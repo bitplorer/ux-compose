@@ -15,12 +15,12 @@ Proves:
 2. App.mount → mount_surfaces (+ DirectoryRoutes adapter when asgi present)
 3. Offline dispatch still works (Progressive Superpower Contract at L1)
 4. doctor(..., bundle=) records surface / route evidence
-5. Same page unit stays valid when channel/motion are unlocked (no rewrite)
+5. Same page unit stays valid when channel/motion are attached (no rewrite)
 
-Run (no specialists required for the offline path):
+Run (complete stack required — Python ≥3.14, pinned specialists):
   PYTHONPATH=src:. python examples/page_unit_mount.py
 
-With FastAPI + ux-dom (optional live router):
+With FastAPI + ux-dom (live router):
   PYTHONPATH=src:. python examples/page_unit_mount.py --asgi
 """
 from __future__ import annotations
@@ -46,7 +46,7 @@ def build(*, level: int = 1, with_asgi: bool = False):
 
     app = App.boot("PageUnitDemo", level=level)
 
-    # Progressive unlocks are additive — same page unit, zero rewrite
+    # Progressive levels are additive attach APIs — same page unit, zero rewrite
     if level >= 2:
         try:
             app.use_channel(asgi_app=asgi) if asgi is not None else app.use_channel()

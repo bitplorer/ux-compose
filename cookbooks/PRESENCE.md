@@ -1,11 +1,12 @@
 # Presence continuity cookbook
 
 Server-authored list reorder and shared-element motion. Product code stays
-Level-1 Components; unlocking Motion is additive (Progressive Superpower).
+Level-1 Components; attaching Motion on a complete install is additive
+(Progressive Superpower).
 
 Isolation: this cookbook never imports `ux_channel`. Scene Plans come from
-`ux_compose` re-exports (`scene`, `rise`, `fade`) which load only if ux-motion
-is installed.
+`ux_compose` re-exports (`scene`, `rise`, `fade`). ux-motion is a hard
+dependency — present on a complete install (Python ≥3.14).
 
 ## Laws in play
 
@@ -21,11 +22,7 @@ do not remount.
 
 ```python
 from ux_compose import Component, MorphState, action, update_with, notify
-
-try:
-    from ux_compose import scene, rise, fade
-except Exception:
-    scene = rise = fade = None
+from ux_compose import scene, rise, fade
 
 
 class Shelf(Component):
@@ -48,16 +45,14 @@ class Shelf(Component):
     @action(caps=())
     def sort_price(self):
         self.order = "price"
-        plan = None
-        if scene is not None:
-            plan = (
-                scene("shelf-reorder")
-                .exit("#gone", fade.exit(ms=80) if fade else None)
-                .stagger_in(
-                    [f"#item-{s}" for s in self._items()],
-                    rise.enter(ms=90) if rise else None,
-                )
+        plan = (
+            scene("shelf-reorder")
+            .exit("#gone", fade.exit(ms=80))
+            .stagger_in(
+                [f"#item-{s}" for s in self._items()],
+                rise.enter(ms=90),
             )
+        )
         return update_with(self, plan, extra_ops=[notify("Sorted by price")])
 ```
 
@@ -81,10 +76,11 @@ return update_with(self, plan)
 Morph `#bag` first (via `update_with(self, plan)`), then play. The shared
 element key (`sku-linen`) is continuity identity — not a CSS class.
 
-## Offline
+## Morph without a Plan
 
-Without ux-motion, `scene` is `None`. The same `@action` still morphs via
-`update_with(self, None)`. Zero rewrite when you later `app.use_motion()`.
+The same `@action` still morphs via `update_with(self)` when you omit a Plan.
+Attach Motion with `App.use_motion()` — ux-motion is a hard dependency, not
+an optional unlock. Zero rewrite.
 
 ## See also
 

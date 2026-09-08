@@ -1,4 +1,4 @@
-"""Progressive unlock is additive and never breaks Level-1 offline."""
+"""Progressive levels are additive on a complete install and never break Level-1 offline."""
 from __future__ import annotations
 
 import importlib.util

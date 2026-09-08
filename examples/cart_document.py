@@ -5,7 +5,7 @@ Demonstrates the elevated authoring surface in one file:
 - Exactly one Document owns the HTML shell
 - Unified Component with MorphState + Cap-protected checkout
 - update_with for Morph-then-Play (rise enter)
-- Progressive unlock: Behavior → Channel → Motion
+- Progressive levels (attach on complete install): Behavior → Channel → Motion
 - Isolation: no product import of ux_channel
 
 Run:

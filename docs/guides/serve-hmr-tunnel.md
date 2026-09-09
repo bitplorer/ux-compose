@@ -86,7 +86,8 @@ Full diagram: [../internals/hmr.md](../internals/hmr.md).
 ## When Channel RAM is stale
 
 Default: a `.py` save does **not** restart Channel. MorphState stays
-(shared sqlite bag, not channel-process RAM alone).
+(Channel `FileStateStore` on the serve-dev sqlite path, not
+channel-process RAM alone).
 
 If that bag is wrong — stuck session, bad morph cache — drop it once:
 

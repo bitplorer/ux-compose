@@ -51,22 +51,6 @@ def _bridge(behavior: Any, channel: Any) -> None:
         pass
 
 
-def _bind_shared_draft(channel: Any) -> None:
-    """Serve-dev: replace process-local MemoryStateStore with the shared file.
-
-    Origin sends Document GET to ui and Caps to channel. MorphState/session
-    is ``ch.draft`` → ``ch.state``. REDIS_URL already shares via RedisStateStore.
-    """
-    if channel is None:
-        return
-    from ux_compose.serve_state import shared_state_store
-
-    store = shared_state_store()
-    if store is None:
-        return
-    channel.state = store
-
-
 def attach_channel(
     app: Any,
     *,
@@ -129,7 +113,6 @@ def attach_channel(
             behavior.attach(asgi, **attach_kwargs)
             ch = getattr(behavior, "_wire", None)
             _bridge(behavior, ch)
-            _bind_shared_draft(ch)
             return ch
         except TypeError:
             # Older attach() signatures — retry positional
@@ -137,7 +120,6 @@ def attach_channel(
                 behavior.attach(asgi)
                 ch = getattr(behavior, "_wire", None)
                 _bridge(behavior, ch)
-                _bind_shared_draft(ch)
                 return ch
             except Exception:
                 if asgi is not None:
@@ -155,7 +137,6 @@ def attach_channel(
         ch = None
     _bind_wire(behavior, ch)
     _bridge(behavior, ch)
-    _bind_shared_draft(ch)
     return ch
 
 

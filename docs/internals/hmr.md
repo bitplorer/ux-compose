@@ -41,8 +41,9 @@ browser → origin :8080            serve_dev.origin_asgi  (no reload)
 
 `worker_for(path)` is the only router. Env origin reads:
 `UXCOMPOSE_UI_URL`, `UXCOMPOSE_CHANNEL_URL`. Do not set them by hand.
-Session lives with Channel (`ch.draft`). Both workers share
-`UXCOMPOSE_STATE_STORE` (sqlite) so Document GET on ui paints the same
+Session lives with Channel (`ch.draft` → `ch.state`). Compose
+prepares `UXCOMPOSE_STATE_STORE` (sqlite path). `Channel.boot` opens
+Channel's `FileStateStore` so Document GET on ui paints the same
 MorphState Caps wrote on channel. Do not send HTML GET to channel.
 
 `serve_dev.run` binds a held loopback socket (`listen_loopback`) and
@@ -234,8 +235,10 @@ That path does not morph and does not reload.
 |------|------|
 | `src/ux_compose/serve_dev.py` | origin, `worker_for`, held sockets, supervisor, SIGUSR1 |
 | `src/ux_compose/serve_restart.py` | pidfile + one-shot `SIGUSR1` |
+| `src/ux_compose/serve_state.py` | env / path / prepare / clear / drop. Not a store class |
 | `src/ux_compose/hmr.py` | client JS (`softReload` / `morphLive` / `hardReload`), HMR WS, HTML insert |
 | `src/ux_compose/cli.py` | `serve dev` / `serve prod` / `serve restart-channel`, sibling Tailwind, extras check |
 | `src/ux_compose/assets.py` | HEAD + ETag for `/css` |
 | `pyproject.toml` extra `serve` | `httpx`, `starlette`, `websockets`, `watchfiles` |
-| `docs/adr/0005-serve-dev-split.md` | the decision |
+| `docs/adr/0005-serve-dev-split.md` | process split |
+| `docs/adr/0006-serve-dev-shared-store.md` | Channel-owned file store |

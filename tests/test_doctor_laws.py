@@ -7,7 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ux_compose.doctor import doctor, scan_isolation, scan_dual_document, IsolationViolation
+from ux_compose.doctor import doctor, scan_isolation, scan_dual_document, IsolationViolation, scan_store_clone
 
 
 def test_isolation_clean_on_package():
@@ -168,3 +168,21 @@ def test_doctor_fail_loud_when_stack_incomplete(monkeypatch):
     assert 'pip install -e ".[dev]"' in teaching
     assert "pip install -r requirements.txt" in teaching
     assert "pip install ux-compose" not in teaching
+
+
+def test_scan_store_clone_flags_file_state_store():
+    with tempfile.TemporaryDirectory() as td:
+        bad = Path(td) / "serve_state.py"
+        bad.write_text(
+            "class FileStateStore:\n    def get(self, key):\n        return None\n",
+            encoding="utf-8",
+        )
+        diags = scan_store_clone([bad])
+        assert diags
+        assert any("FileStateStore" in d and "Ownership" in d for d in diags)
+
+
+def test_scan_store_clone_clean_on_package():
+    root = Path(__file__).resolve().parents[1] / "src" / "ux_compose"
+    files = [p for p in root.rglob("*.py")]
+    assert scan_store_clone(files) == []

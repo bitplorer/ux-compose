@@ -64,7 +64,7 @@ Full cookbook: [guides/SNIPPETS.md](guides/SNIPPETS.md) · product path: [guides
 ```text
 New user:     START_HERE → OWNERSHIP → serve dev → examples/
 Builder:      OWNERSHIP → CLI → serve-hmr-tunnel → DX → TESTING
-Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005 · AGENTS
+Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005 · adr/0006 · AGENTS
 ```
 
 ---
@@ -121,6 +121,7 @@ Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005
 | [adr/0002-product-host.md](adr/0002-product-host.md) | Product FastAPI host (Clock A) |
 | [adr/0004-clarity-and-residuals.md](adr/0004-clarity-and-residuals.md) | One author door, attach notes, OverlayChrome |
 | [adr/0005-serve-dev-split.md](adr/0005-serve-dev-split.md) | serve dev isolates Channel from ui reload |
+| [adr/0006-serve-dev-shared-store.md](adr/0006-serve-dev-shared-store.md) | serve-dev shared session store (Channel-owned) |
 | [examples/README.md](examples/README.md) | Example slot |
 | [../CRITIC.md](../CRITIC.md) | Critic notes |
 

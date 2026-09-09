@@ -19,6 +19,7 @@ __all__ = [
     "scan_render_chrome",
     "scan_cek_host",
     "scan_fastapi_docs_collision",
+    "scan_store_clone",
 ]
 
 
@@ -79,6 +80,47 @@ def scan_isolation(paths: Iterable[str | Path]) -> list[str]:
                         diagnostics.append(
                             f"Isolation violation in {p}: from {mod} import {alias.name}."
                         )
+    return diagnostics
+
+
+_STORE_CLONE_CLASS_NAMES = frozenset(
+    {
+        "FileStateStore",
+        "MemoryStateStore",
+        "RedisStateStore",
+        "StateConflict",
+        "EditSlot",
+    }
+)
+
+
+def scan_store_clone(paths: Iterable[str | Path]) -> list[str]:
+    """Ownership Law: Channel owns StateStore. Compose must not clone it.
+
+    ``serve_state.py`` is lifecycle (env / path / prepare / clear / drop).
+    A second ``class FileStateStore`` in this tree is the PR #58 failure.
+    """
+    diagnostics: list[str] = []
+    for raw in paths:
+        p = Path(raw)
+        if not p.exists() or p.suffix != ".py":
+            continue
+        sp = _norm(p)
+        if "ux_compose/wire" in sp:
+            continue
+        if "/tests/" in sp:
+            continue
+        try:
+            tree = ast.parse(p.read_text(encoding="utf-8"), filename=str(p))
+        except Exception:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef) and node.name in _STORE_CLONE_CLASS_NAMES:
+                diagnostics.append(
+                    f"Ownership violation in {p}: cloned StateStore class "
+                    f"`{node.name}`. Channel owns stores; compose "
+                    f"serve_state.py is lifecycle only (ADR 0006)."
+                )
     return diagnostics
 
 
@@ -319,7 +361,7 @@ def scan_cek_host(app: Any) -> list[str]:
         "Cap Host identity violation: cek=require with live Channel but "
         f"registry._caps is {name!r} (kernel_ssot={ssot!r}); "
         "expected CekHostCapService / kernel_ssot='cek-runtime'. "
-        "Install ux-channel (pin ≥ 31a60bd), cek-host>=0.1.3, cek-surface>=0.1.3."
+        "Install ux-channel (pin ≥ d0fe716), cek-host>=0.1.3, cek-surface>=0.1.3."
     ]
 
 
@@ -429,6 +471,7 @@ def doctor(
             elif pp.suffix == ".py":
                 expanded.append(pp)
         diagnostics.extend(scan_isolation(expanded))
+        diagnostics.extend(scan_store_clone(expanded))
         diagnostics.extend(scan_dual_document(expanded))
         diagnostics.extend(scan_kit_product_imports(expanded))
         diagnostics.extend(scan_leftover_aliases(expanded))

@@ -1,0 +1,62 @@
+# ADR 0006 — serve-dev shared session store
+
+> **Status:** accepted · **Date:** 2026-09-09 · **Layer:** ux-compose + ux-channel
+> Process split: [0005-serve-dev-split.md](0005-serve-dev-split.md)
+> Architecture: [../internals/hmr.md](../internals/hmr.md)
+
+## Decision
+
+ADR 0005 isolates Channel from ui reload (origin + ui + channel).
+That split is not a durable store. Document GET stays on the ui
+worker (HMR for route edits). Caps stay on the channel worker.
+Both processes must see the same MorphState / `ch.draft`.
+
+**Channel owns the store implementation.** `FileStateStore` lives
+next to `MemoryStateStore` / `RedisStateStore` in
+`ux_channel.host.stores`. Values are JSON (`default=str`), same
+domain as Redis — not pickle. `change()` uses `BEGIN IMMEDIATE` so
+ui + channel cannot lose increments.
+
+**Compose owns delivery lifecycle only.** `uxcompose serve dev`
+prepares `.uxcompose-serve-dev.state`, exports
+`UXCOMPOSE_STATE_STORE`, clears the bag on `serve restart-channel`,
+and unlinks WAL sidecars on shutdown. `src/ux_compose/serve_state.py`
+never imports `ux_channel` and does not define a store class.
+Doctor `scan_store_clone` fails closed if a store class reappears.
+
+`Channel.boot` opens `FileStateStore` when `UXCOMPOSE_STATE_STORE`
+is set and `REDIS_URL` is not. Compose does not duck-assign
+`channel.state`.
+
+## Why
+
+A compose-owned `FileStateStore` (PR #58) closed the split-brain
+hole by cloning Channel's StateStore protocol. Isolation held.
+Ownership Law did not. The next agent would clone again.
+
+JSON matches Redis. Pickle in a cwd file was a threat (and a lie:
+serve-dev accepted objects production Redis would stringify).
+
+## Consequences
+
+- `src/ux_compose/serve_state.py` — env, path, prepare / clear / drop.
+- `src/ux_compose/wire/boot.py` — no `channel.state =` assignment.
+- Sister: `ux_channel.host.stores.FileStateStore` + boot env honor.
+- Restart-channel still means "empty the bag and respawn Channel".
+- Pin ux-channel to a SHA that includes `FileStateStore`
+  (`d0fe7169e687d2935f8b74d40b990b1ee63ef3d4`).
+
+## Rejected
+
+| Alternative | Why not |
+|-------------|---------|
+| Keep compose FileStateStore | Second store product; pickle |
+| Revert PR #58 | Hole returns |
+| Route HTML GET to channel | Drops route-edit HMR |
+| Redis required for `serve dev` | Author DX cost |
+| Duck-assign from `wire/boot.py` forever | Boot already selects Memory/Redis |
+
+## Frozen names
+
+`UXCOMPOSE_STATE_STORE`, `.uxcompose-serve-dev.state`,
+`serve restart-channel`. Do not rename.

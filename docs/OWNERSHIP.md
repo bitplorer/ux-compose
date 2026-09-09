@@ -23,9 +23,11 @@ ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
             + DELIVERY HTTP bind, host strategy, live units
             + CHANNEL  wire/ only
             + DEV      origin + ui + channel · HMR · CSS sibling --watch · tunnel
+                       prepares UXCOMPOSE_STATE_STORE (Channel FileStateStore)
 
 ux-behavior units, MorphState, @action (offline)
-ux-channel  Intent/Caps behind wire/ only
+ux-channel  Intent/Caps behind wire/ only. StateStore protocol +
+            Memory / File (serve-dev sqlite) / Redis backends
 ```
 
 **Author rule:** Render? → ux-dom. Product app lifecycle? → ux-compose only.

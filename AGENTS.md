@@ -50,7 +50,7 @@ Do not document them. Tags are imported from `ux_compose`.
 - A second Tailwind `--watch` next to serve's sibling (two writers on `output.css`)
 - A single-uvicorn fallback next to origin + ui + channel
 - Product code importing `ux_channel` outside compose `wire/`
-- A copy of Channel codecs, Document serialize, or motion IR in this tree
+- A copy of Channel codecs, Document serialize, motion IR, **or the StateStore protocol** in this tree
 - Dual product paths
 - A second HTTP pipeline, FastAPI HTML `default_response_class`, `StreamingRoute`, or HTTP verbs on page units (see Product host below)
 - `location.reload()` as the happy path after a `.py` save (morph first)
@@ -104,10 +104,11 @@ Cold import never pulls the wire. `App.use_channel(asgi_app=…)` is the live do
 `app.use_motion()` is the motion door. Level 1 code remains correct at L2/L3.
 
 `uxcompose serve dev` session lives with Channel (`ch.draft`). Origin still
-sends Document GET to the ui worker, so both workers must share one StateStore
-(`UXCOMPOSE_STATE_STORE`, sqlite file). Redis (`REDIS_URL`) is the product
-multi-worker path. Do not route HTML GET to channel — that would drop HMR for
-route edits.
+sends Document GET to the ui worker. Compose prepares one sqlite path
+(`UXCOMPOSE_STATE_STORE`); `Channel.boot` opens Channel's `FileStateStore`.
+Do not reimplement that store in this tree. Redis (`REDIS_URL`) is the
+product multi-worker path. Do not route HTML GET to channel — that would
+drop HMR for route edits.
 
 ## Product host (Clock A)
 

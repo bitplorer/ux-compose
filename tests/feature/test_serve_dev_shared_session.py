@@ -5,8 +5,8 @@ channel worker. Each used to boot its own MemoryStateStore, so Cap morph
 was live while nav-tab GET re-painted defaults.
 
 This test boots two independent Channel ASGI apps that share only
-``UXCOMPOSE_STATE_STORE`` — the serve-dev wire — and proves GET after
-action shows MorphState.
+``UXCOMPOSE_STATE_STORE`` — Channel.boot opens FileStateStore — and proves
+GET after action shows MorphState.
 """
 from __future__ import annotations
 

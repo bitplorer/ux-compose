@@ -7,8 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- serve-dev shared session store is Channel's ``FileStateStore``
+  (JSON sqlite). ``serve_state.py`` is lifecycle only: env, path,
+  prepare / clear / drop (ADR 0006). Isolation unchanged (``wire/``
+  remains the only ``ux_channel`` door). ``Channel.boot`` honors
+  ``UXCOMPOSE_STATE_STORE``; compose no longer duck-assigns
+  ``channel.state``. Doctor ``scan_store_clone`` fails closed if a
+  store class reappears in this tree.
+
 ### Fixed
 
+- serve-dev no longer pickle-serializes MorphState into a cwd file.
+  JSON matches the Redis production domain.
 - Kit Batch A APG holds: menubar submenu ids ``{id}-m-{key}`` stay in the
   tree with ``hidden`` when closed (no dangling ``aria-controls``). Toolbar
   one-shot commands use ``aria-current``, not ``aria-pressed``. Filterbar

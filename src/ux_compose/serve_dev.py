@@ -14,12 +14,13 @@ fourth server — it is a compiler next to these three.
 ``host`` is already ``--host`` / ``host=fastapi``. Do not reuse it.
 
 Both workers import ``app:asgi``. origin only forwards. Session /
-MorphState live on Channel (``ch.draft``). Origin still sends Document
-GET to ui, so both workers open the same sqlite StateStore
-(``UXCOMPOSE_STATE_STORE`` / ``.uxcompose-serve-dev.state``). A ui
-reload does not wipe that bag. ``serve restart-channel`` clears it and
-respawns Channel on the same fd. It is not a sticky flag and does not
-change the next ``*.py`` save.
+MorphState live on Channel (``ch.draft`` → ``ch.state``). Origin still
+sends Document GET to ui. Compose prepares one sqlite file
+(``UXCOMPOSE_STATE_STORE`` / ``.uxcompose-serve-dev.state``);
+``Channel.boot`` opens Channel's ``FileStateStore`` on that path.
+A ui reload does not wipe that bag. ``serve restart-channel`` clears
+it and respawns Channel on the same fd. It is not a sticky flag and
+does not change the next ``*.py`` save.
 
 httpx re-issues HTTP from origin to a worker. Starlette is origin's
 ASGI app. websockets forwards HMR and Channel sockets. None of these

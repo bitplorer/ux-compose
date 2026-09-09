@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ``UXCOMPOSE_STATE_STORE``; compose no longer duck-assigns
   ``channel.state``. Doctor ``scan_store_clone`` fails closed if a
   store class reappears in this tree.
+- Pin ux-channel @ `d0fe7169e687d2935f8b74d40b990b1ee63ef3d4`
+  (FileStateStore). Makefile / scaffold / nook lockstep with pyproject.
 
 ### Fixed
 

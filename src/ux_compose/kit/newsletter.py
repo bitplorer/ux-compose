@@ -1,6 +1,6 @@
 """Drop-in newsletter — labeled email field, Cap on subscribe.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -12,7 +12,8 @@ Caps: ``list.subscribe``. A11y: label ``for`` ↔ input id; ``aria-invalid``
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -31,7 +32,7 @@ from ux_compose import (
 )
 
 
-class Newsletter(Kit):
+class Newsletter(Component):
     """Join the winter list. Email is RefState. Subscribe is a Cap."""
 
     id = "newsletter"
@@ -65,9 +66,10 @@ class Newsletter(Kit):
     def on_join(self, email: str) -> str:
         return f"Joined as {email}"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         if bool(self.done):
-            return self.kit_shell(
+            return kit_shell(self,
                 id=self.id,
                 className=self.class_card,
                 data_done="1",
@@ -80,7 +82,7 @@ class Newsletter(Kit):
         fid = f"{self.id}-email"
         err = str(self.error or "")
         err_id = f"{fid}-err"
-        return self.kit_shell(
+        return kit_shell(self,
             form(
                 label("Email", className=self.class_label, html_for=fid),
                 input_(

@@ -1,6 +1,6 @@
 """Drop-in chat — live log, labeled composer, public send.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -13,7 +13,8 @@ Typing is qualitative MorphState. Lines are a list on RefState.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -34,7 +35,7 @@ from ux_compose import (
 )
 
 
-class Chat(Kit):
+class Chat(Component):
     """A short desk thread. The log is RefState; typing is MorphState."""
 
     id = "chat"
@@ -70,7 +71,8 @@ class Chat(Kit):
     def _mark(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         lines = tuple(self.lines or ())
         draft = str(self.draft or "")
         typing = bool(self.typing)
@@ -82,7 +84,7 @@ class Chat(Kit):
             if typing
             else p(f"{len(lines)} line" + ("" if len(lines) == 1 else "s") + ".", className=self.class_lede)
         )
-        return self.kit_shell(
+        return kit_shell(self,
             status,
             ul(
                 *rows,

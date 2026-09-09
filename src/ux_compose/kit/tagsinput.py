@@ -1,6 +1,6 @@
 """Drop-in tags input — named chips, RefState list, labeled field.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ A11y: label ``for`` ↔ input id; chips are buttons with ``aria-label`` remove.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -30,7 +31,7 @@ from ux_compose import (
 )
 
 
-class TagsInput(Kit):
+class TagsInput(Component):
     """A set of names. Quantity of chips lives on RefState."""
 
     id = "tagsinput"
@@ -64,7 +65,8 @@ class TagsInput(Kit):
     def _mark(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         tags = tuple(self.tags or ())
         draft = str(self.draft or "")
         fid = f"{self.id}-draft"
@@ -76,7 +78,7 @@ class TagsInput(Kit):
             )
             for t in tags
         ]
-        return self.kit_shell(
+        return kit_shell(self,
             div(*chips, className=self.class_row) if chips else p("No tags yet.", className=self.class_lede),
             form(
                 label("Add a tag", className=self.class_label, html_for=fid),

@@ -1,6 +1,6 @@
 """Drop-in questionnaire — named questions as fieldset radiogroups.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``questions`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Choosing is public. Submit spends ``form.submit``.
@@ -15,7 +15,8 @@ the group via legend id. Not FormLayout (free text) and not Fieldset
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -33,7 +34,7 @@ from ux_compose import (
 )
 
 
-class Questionnaire(Kit):
+class Questionnaire(Component):
     """A short ask. Answers are named keys on RefState.
 
     ``QUESTIONS`` is ``(key, prompt, ((opt_key, opt_label), …))``.
@@ -100,11 +101,12 @@ class Questionnaire(Kit):
     def _mark(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         answers = self._map()
         if bool(self.done):
             bits = ", ".join(f"{k}={v}" for k, v in answers.items()) or "empty"
-            return self.kit_shell(
+            return kit_shell(self,
                 p(bits, className=self.class_lede),
                 id=self.id,
                 className=self.class_card,
@@ -149,7 +151,7 @@ class Questionnaire(Kit):
         }
         for qkey, _prompt, _opts in self._questions():
             card_attrs[f"data_{qkey}"] = answers.get(qkey, "")
-        return self.kit_shell(
+        return kit_shell(self,
             *blocks,
             button("Send answers", type="button", className=self.class_btn, **bind(self.submit)),
             **card_attrs,

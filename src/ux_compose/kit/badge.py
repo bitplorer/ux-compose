@@ -1,6 +1,6 @@
 """Drop-in badge — named status chip.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ MorphState: ``value``. Caps: none. A11y: list of status text; selected
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -26,7 +27,7 @@ from ux_compose import (
 )
 
 
-class Badge(Kit):
+class Badge(Component):
     """One named status. Not a notification stack (that's Toast)."""
 
     id = "badge"
@@ -53,7 +54,8 @@ class Badge(Kit):
 
     value = MorphState("cut")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or "cut")
         chips = [
             button(
@@ -65,7 +67,7 @@ class Badge(Kit):
             )
             for key, lab in self.ITEMS
         ]
-        return self.kit_shell(
+        return kit_shell(self,
             div(*chips, className=self.class_row),
             id=self.id,
             className=self.class_card,

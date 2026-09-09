@@ -1,6 +1,6 @@
 """Drop-in tabs — one MorphState key, public select.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -15,7 +15,8 @@ panel ``aria-labelledby`` the tab. Inactive panels stay in the tree with
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -32,7 +33,7 @@ from ux_compose import (
 )
 
 
-class Tabs(Kit):
+class Tabs(Component):
     """Segmented tabs. The active key is MorphState.
 
     ``ITEMS`` is ``(key, label, title, body)``. Override on the copy.
@@ -100,7 +101,8 @@ class Tabs(Kit):
                 return row
         return items[0]
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         key, _label, _title, _body = self._current()
         segs = []
         panels = []
@@ -138,13 +140,15 @@ class Tabs(Kit):
                     **panel_attrs,
                 )
             )
-        return self.kit_shell(
-            span("Workspace", className=self.class_kicker),
-            nav(*segs, className=self.class_tablist, role="tablist", aria_label="Workspace"),
+        return kit_shell(self,
+            nav(*segs, className=self.class_tablist, role="tablist", aria_label="Tabs"),
             *panels,
             id=self.id,
             className=self.class_card,
             data_tab=key,
+            chrome=(
+                span("Workspace", className=self.class_kicker),
+            ),
         )
 
     @action(caps=())

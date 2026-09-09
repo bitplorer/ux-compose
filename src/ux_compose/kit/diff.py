@@ -1,6 +1,6 @@
 """Drop-in diff — named before/after view.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``before``, ``after``, ``views`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ Not Tabs (no tabpanels of unrelated content).
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -26,7 +27,7 @@ from ux_compose import (
 )
 
 
-class Diff(Kit):
+class Diff(Component):
     """Two copies of a note. The view is a name."""
 
     id = "diff"
@@ -47,7 +48,8 @@ class Diff(Kit):
 
     which = MorphState("split")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         which = str(self.which or "split")
         chips = [
             button(
@@ -65,7 +67,7 @@ class Diff(Kit):
             panes.append(p(self.BEFORE, className=self.class_pane, aria_label="Before"))
         if which in {"after", "split"}:
             panes.append(p(self.AFTER, className=self.class_pane, aria_label="After"))
-        return self.kit_shell(
+        return kit_shell(self,
             div(*chips, className="flex gap-2", role="radiogroup", aria_label="View"),
             div(*panes, className="flex flex-col gap-2"),
             id=self.id,

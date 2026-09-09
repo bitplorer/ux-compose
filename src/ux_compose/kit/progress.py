@@ -1,6 +1,6 @@
 """Drop-in progress — magnitude on RefState, dirty MorphState.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -12,7 +12,8 @@ A11y (APG Meter/Progress): ``role=progressbar`` ``aria-valuemin/max/now``
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -28,7 +29,7 @@ from ux_compose import (
 )
 
 
-class Progress(Kit):
+class Progress(Component):
     """Named completion. The bar is a progress element, not a quantity Morph."""
 
     id = "progress"
@@ -57,11 +58,11 @@ class Progress(Kit):
             n = 0
         return max(0, min(100, n))
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         n = self._pct()
         title_id = f"{self.id}-title"
-        return self.kit_shell(
-            span("Work", className=self.class_kicker),
+        return kit_shell(self,
             h2("On the board", id=title_id, className=self.class_title),
             p(f"{n} of 100", className=self.class_lede),
             progress(
@@ -78,6 +79,9 @@ class Progress(Kit):
             id=self.id,
             className=self.class_card,
             data_value=str(n),
+            chrome=(
+                span("Work", className=self.class_kicker),
+            ),
         )
 
     @action(caps=())

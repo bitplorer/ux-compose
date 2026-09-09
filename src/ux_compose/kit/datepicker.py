@@ -1,6 +1,6 @@
 """Drop-in date picker — named day + month keys, labeled field.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -16,7 +16,8 @@ from __future__ import annotations
 import calendar as _cal
 from datetime import datetime
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -55,7 +56,7 @@ def _shift(raw: str, delta: int) -> str:
     return f"{y:04d}-{m:02d}"
 
 
-class DatePicker(Kit):
+class DatePicker(Component):
     """Labeled date field + month grid. Day is a named key (YYYY-MM-DD)."""
 
     id = "datepicker"
@@ -96,16 +97,14 @@ class DatePicker(Kit):
     def on_pick(self, day: str) -> str:
         return day
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         month = str(self.month or "2026-08")
         day = str(self.day or "")
         is_open = bool(self.open)
         y, m = _parse_month(month)
         field_id = f"{self.id}-day"
         kids = [
-            span("When", className=self.class_kicker),
-            h2("Pick a day", className=self.class_title),
-            p("The day is a name. The calendar is presence.", className=self.class_lede),
             label("Date", className=self.class_label, html_for=field_id),
             button(
                 day or "Choose a day",
@@ -169,7 +168,19 @@ class DatePicker(Kit):
                     aria_label="Choose a date",
                 ),
             ])
-        return div(*kids, id=self.id, className=self.class_card, data_open="1" if is_open else "0", data_day=day)
+        return kit_shell(
+            self,
+            *kids,
+            chrome=(
+                span("When", className=self.class_kicker),
+                h2("Pick a day", className=self.class_title),
+                p("The day is a name. The calendar is presence.", className=self.class_lede),
+            ),
+            id=self.id,
+            className=self.class_card,
+            data_open="1" if is_open else "0",
+            data_day=day,
+        )
 
     @action(caps=())
     def toggle(self):

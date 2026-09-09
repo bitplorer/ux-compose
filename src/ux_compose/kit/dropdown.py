@@ -1,6 +1,6 @@
 """Drop-in dropdown — open flag + selected value.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ MorphState: ``open``, ``value``. Caps: none. A11y: trigger ``aria-haspopup=listb
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -26,7 +27,7 @@ from ux_compose import (
 )
 
 
-class Dropdown(Kit):
+class Dropdown(Component):
     """Menu is MorphState(open). Value is a named key.
 
     ``OPTIONS`` is ``(key, label)``. Override on the copy.
@@ -91,7 +92,8 @@ class Dropdown(Kit):
                 return lab
         return key
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._options()[0][0])
         label = self._label(val)
         is_open = bool(self.open)
@@ -127,7 +129,7 @@ class Dropdown(Kit):
             if is_open
             else span("", className=self.class_sr)
         )
-        return self.kit_shell(
+        return kit_shell(self,
             scrim,
             div(
                 button(

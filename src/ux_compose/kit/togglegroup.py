@@ -1,6 +1,6 @@
 """Drop-in toggle group — exclusive named segment, APG radio group.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -13,7 +13,8 @@ MorphState: ``value``. Caps: none. A11y (APG Radio Group):
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -28,7 +29,7 @@ from ux_compose import (
 )
 
 
-class ToggleGroup(Kit):
+class ToggleGroup(Component):
     """One named band. Exclusive. The key is MorphState.
 
     ``ITEMS`` is ``(key, label)``. Override on the copy.
@@ -78,7 +79,8 @@ class ToggleGroup(Kit):
                 return row
         return items[0]
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         key, label = self._current()
         title_id = f"{self.id}-label"
         segs = []
@@ -96,8 +98,7 @@ class ToggleGroup(Kit):
                     **bind(self.choose, key=k),
                 )
             )
-        return self.kit_shell(
-            span("Range", className=self.class_kicker),
+        return kit_shell(self,
             h2("How far", id=title_id, className=self.class_title),
             p(f"Showing {label.lower()}. Picking is public.", className=self.class_lede),
             div(
@@ -109,6 +110,9 @@ class ToggleGroup(Kit):
             id=self.id,
             className=self.class_card,
             data_value=key,
+            chrome=(
+                span("Range", className=self.class_kicker),
+            ),
         )
 
     @action(caps=())

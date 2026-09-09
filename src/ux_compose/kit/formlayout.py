@@ -1,6 +1,6 @@
 """Drop-in form layout — labeled fields with error wiring.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``fields`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -12,7 +12,8 @@ A11y: label ``html_for`` ↔ control ``id``; ``aria-invalid`` +
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -31,7 +32,7 @@ from ux_compose import (
 )
 
 
-class FormLayout(Kit):
+class FormLayout(Component):
     """Stacked labeled fields. Values attach before the morph."""
 
     id = "formlayout"
@@ -89,7 +90,8 @@ class FormLayout(Kit):
     def _mark(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         vals = self._map(self.values)
         errs = self._map(self.errors)
         fields = []
@@ -115,7 +117,7 @@ class FormLayout(Kit):
                     className=self.class_field,
                 )
             )
-        return self.kit_shell(
+        return kit_shell(self,
             form(
                 *fields,
                 button("Save", type="button", className=self.class_submit, **bind(self.submit)),

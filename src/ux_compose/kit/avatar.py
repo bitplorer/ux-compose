@@ -1,6 +1,6 @@
 """Drop-in avatar — initials stand-in, labelled image role.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``name`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -10,7 +10,8 @@ MorphState: none. RefState: ``name``. A11y: ``role=img`` ``aria-label``.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     RefState,
     action,
@@ -24,7 +25,7 @@ from ux_compose import (
 )
 
 
-class Avatar(Kit):
+class Avatar(Component):
     """Face without a file. The accessible name is the person."""
 
     id = "avatar"
@@ -48,11 +49,12 @@ class Avatar(Kit):
 
     name = RefState("Ada Lovelace")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         who = str(self.name or "You")
         bits = [p for p in who.split() if p]
         initials = "".join(b[0] for b in bits[:2]).upper() or "Y"
-        return self.kit_shell(
+        return kit_shell(self,
             p(who, className=self.class_lede),
             span(initials, className=self.class_mark, role="img", aria_label=who),
             button("Rename", type="button", className=self.class_btn, **bind(self.rename)),

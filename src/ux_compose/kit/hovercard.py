@@ -1,7 +1,8 @@
 """Drop-in hover card — richer tooltip, non-modal dialog.
 
-Host seam: construct kwargs OR subclass.
-Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Host seam: render slots OR subclass.
+Accepted: ``title``, ``body``, ``trigger``, ``kind`` (str — panel/trigger copy);
+``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
@@ -12,7 +13,8 @@ Escape on scrim. Sibling of Popover with denser body.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -26,11 +28,11 @@ from ux_compose import (
 )
 
 
-class HoverCard(Kit):
+class HoverCard(Component):
     """Preview a person or piece without leaving the row."""
 
     id = "hovercard"
-    _SEAMS = {}
+    _SEAMS = {"title": "TITLE", "body": "BODY", "trigger": "TRIGGER", "kind": "KIND"}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -51,16 +53,22 @@ class HoverCard(Kit):
     class_scrim = "fixed inset-0 z-10 cursor-pointer border-0 bg-transparent"
     class_sr = "sr-only"
 
+    KIND = "Maker"
+    TITLE = "Ada Lovelace"
+    BODY = "Notes, a winter catalog, nothing due tonight."
+    TRIGGER = "Ada Lovelace"
+
     open = MorphState(False)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         title_id = f"{self.id}-title"
         panel = (
             div(
-                span("Maker", className=self.class_kicker),
-                h2("Ada Lovelace", id=title_id, className="m-0 text-base font-semibold"),
-                p("Notes, a winter catalog, nothing due tonight.", className=self.class_lede + " mt-1"),
+                span(self.KIND, className=self.class_kicker),
+                h2(self.TITLE, id=title_id, className="m-0 text-base font-semibold"),
+                p(self.BODY, className=self.class_lede + " mt-1"),
                 id=f"{self.id}-panel",
                 className=self.class_panel,
                 role="dialog",
@@ -79,11 +87,11 @@ class HoverCard(Kit):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return self.kit_shell(
+        return kit_shell(self,
             scrim,
             div(
                 button(
-                    "Ada Lovelace",
+                    self.TRIGGER,
                     type="button",
                     id=f"{self.id}-trigger",
                     className=self.class_btn,

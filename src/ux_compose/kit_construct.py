@@ -1,65 +1,56 @@
-"""Construct props + demo-shell wrap for ownable kit Components.
+"""Tiny helpers for ownable kit Components — not a base class.
 
-Isolation Law: this module never pulls the wire. Kits import this from
+Isolation Law: this module never pulls the wire. Kits import helpers from
 the library the same way they import ``Component`` — ``uxcompose add``
 does not rewrite the path, so copied files stay self-contained.
 
-Host seam = construct kwargs OR subclass class consts. Instance attrs
-win. Unknown kwargs fail closed. ``shell=False`` renders only the
-interactive unit (no Atelier kicker / title / lede card).
+Host seam = ``render(*, shell=None, **slots)`` OR subclass class consts.
+Passed slots write through to instance attrs so later morph / ``update_with``
+keeps them. Omitted slots leave the class const / current instance.
+Unknown slots fail closed per file (``_SEAMS``). ``shell=False`` (kwarg
+or ``self.shell``) renders only the interactive unit — no Atelier
+kicker / title / lede card.
 """
 
 from __future__ import annotations
 
-from typing import Any, ClassVar, Mapping
+from typing import Any, Mapping
 
-from ux_compose.component import Component
 from ux_compose.dom import div
 
 
-def apply_kit_construct(
+def apply_slots(
     inst: Any,
     *,
     seams: Mapping[str, str] | None = None,
-    shell: bool = True,
-    **content: Any,
-) -> None:
-    """Bind ``shell`` plus documented content kwargs onto ``inst``.
+    shell: bool | None = None,
+    **slots: Any,
+) -> bool:
+    """Write documented render slots onto ``inst``. Return effective ``shell``.
 
-    ``seams`` maps construct kwarg → attribute name (``actions`` →
-    ``ACTIONS``). Omitted kwargs leave the class const / RefState default.
+    ``seams`` maps slot name → attribute (``actions`` → ``ACTIONS``).
+    ``shell=None`` leaves ``self.shell`` as-is (default True).
     """
+    if shell is not None:
+        inst.shell = bool(shell)
     allowed = dict(seams if seams is not None else getattr(type(inst), "_SEAMS", {}))
-    unknown = sorted(k for k in content if k not in allowed)
+    unknown = sorted(k for k in slots if k not in allowed)
     if unknown:
         raise TypeError(
-            f"{type(inst).__name__}() got unexpected construct kwargs: {', '.join(unknown)}"
+            f"{type(inst).__name__}.render() got unexpected slots: {', '.join(unknown)}"
         )
-    inst.shell = bool(shell)
-    for key, value in content.items():
+    for key, value in slots.items():
         setattr(inst, allowed[key], value)
+    return bool(getattr(inst, "shell", True))
 
 
-class Kit(Component):
-    """Zero-arg construct stays valid for Behavior.add(cls).
-
-    Subclasses declare ``_SEAMS`` (kwarg → attr). ``shell`` is always
-    accepted and is not a content seam.
-    """
-
-    _SEAMS: ClassVar[Mapping[str, str]] = {}
-
-    def __init__(self, *, shell: bool = True, **content: Any) -> None:
-        super().__init__()
-        apply_kit_construct(self, seams=self._SEAMS, shell=shell, **content)
-
-    def kit_shell(self, *unit: Any, chrome: tuple[Any, ...] | list[Any] = (), **attrs: Any):
-        """Card + demo chrome when ``shell``; otherwise the unit only."""
-        if getattr(self, "shell", True):
-            return div(*chrome, *unit, **attrs)
-        attrs = dict(attrs)
-        attrs.pop("className", None)
-        unit_class = getattr(self, "class_unit", "")
-        if unit_class:
-            attrs["className"] = unit_class
-        return div(*unit, **attrs)
+def kit_shell(inst: Any, *unit: Any, chrome: tuple[Any, ...] | list[Any] = (), **attrs: Any):
+    """Card + demo chrome when ``shell``; otherwise the unit only."""
+    if getattr(inst, "shell", True):
+        return div(*chrome, *unit, **attrs)
+    attrs = dict(attrs)
+    attrs.pop("className", None)
+    unit_class = getattr(inst, "class_unit", "")
+    if unit_class:
+        attrs["className"] = unit_class
+    return div(*unit, **attrs)

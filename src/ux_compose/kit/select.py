@@ -1,6 +1,6 @@
 """Drop-in select — grouped options, placeholder, click-away scrim.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``groups`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -13,7 +13,8 @@ scrim close is public Morph. Label ``html_for`` ↔ trigger ``id``.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -29,7 +30,7 @@ from ux_compose import (
 )
 
 
-class Select(Kit):
+class Select(Component):
     """Closed trigger, grouped list. Value is a named key.
 
     ``GROUPS`` is ``(label, ((key, option), …))``. Override on the copy.
@@ -98,7 +99,8 @@ class Select(Kit):
                 return lab
         return ""
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or "")
         shown = self._label(val) or "Choose a material"
         is_open = bool(self.open)
@@ -138,7 +140,7 @@ class Select(Kit):
         )
         trigger_id = f"{self.id}-trigger"
         label_id = f"{self.id}-label"
-        return self.kit_shell(
+        return kit_shell(self,
             label("Finish", html_for=trigger_id, id=label_id, className=self.class_label),
             scrim,
             div(

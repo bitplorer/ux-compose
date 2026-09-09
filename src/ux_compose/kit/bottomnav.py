@@ -1,6 +1,6 @@
 """Drop-in bottom nav — mobile landmark, named sections.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ MorphState: ``active``. Caps: none. A11y: ``nav`` ``aria-label``,
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -27,7 +28,7 @@ from ux_compose import (
 )
 
 
-class BottomNav(Kit):
+class BottomNav(Component):
     """Phone chrome. One named section. Caps stay off."""
 
     id = "bottomnav"
@@ -67,7 +68,8 @@ class BottomNav(Kit):
                 return row
         return items[0]
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         key, label, title = self._current()
         links = []
         for k, lab, _t in self.ITEMS:
@@ -81,14 +83,16 @@ class BottomNav(Kit):
                     **bind(self.select, key=k),
                 )
             )
-        return self.kit_shell(
+        return kit_shell(self,
             div(
                 span(label, className=self.class_kicker),
                 h2(title, className=self.class_title),
-                p("The bar is a landmark. Opening a section is public.", className=self.class_lede),
                 className=self.class_pane,
             ),
             nav(*links, className=self.class_bar, aria_label="Sections"),
+            chrome=(
+                p("The bar is a landmark. Opening a section is public.", className=self.class_lede),
+            ),
             id=self.id,
             className=self.class_card,
             data_active=key,

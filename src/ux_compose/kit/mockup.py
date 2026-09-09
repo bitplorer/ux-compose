@@ -1,6 +1,6 @@
 """Drop-in mockup — named device frame around a preview.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``devices``, ``preview`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ Not Hero (landing CTA).
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -26,7 +27,7 @@ from ux_compose import (
 )
 
 
-class Mockup(Kit):
+class Mockup(Component):
     """How it sits on a desk or a phone. The device is a name."""
 
     id = "mockup"
@@ -45,7 +46,8 @@ class Mockup(Kit):
     PREVIEW = "Quiet pieces for a working house."
     value = MorphState("desk")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or "desk")
         width = {"desk": "w-full", "phone": "w-40", "tile": "w-52"}.get(val, "w-full")
         chips = [
@@ -59,7 +61,7 @@ class Mockup(Kit):
             )
             for key, lab in self.DEVICES
         ]
-        return self.kit_shell(
+        return kit_shell(self,
             div(*chips, className="flex gap-2", role="radiogroup", aria_label="Device"),
             div(self.PREVIEW, className=f"{self.class_frame} {width}", aria_label=f"{val} preview"),
             id=self.id,

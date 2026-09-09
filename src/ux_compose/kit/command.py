@@ -1,6 +1,6 @@
 """Drop-in command palette — query attaches before the morph.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``commands`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -15,7 +15,8 @@ from __future__ import annotations
 
 from ux_compose.kit.overlay import overlay as overlay_chrome
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -36,7 +37,7 @@ from ux_compose import (
 )
 
 
-class Command(Kit):
+class Command(Component):
     """Filter commands, then run one.
 
     ``COMMANDS`` is ``(key, label, hint)``. Query is RefState so typing
@@ -132,10 +133,11 @@ class Command(Kit):
             ),
         ]
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         q = str(self.query or "")
-        kids = list(self._resting())
+        kids = list(self._resting()) if getattr(self, "shell", True) else []
         if is_open:
             ch = self._chrome()
             hits = self._hits()
@@ -223,7 +225,7 @@ class Command(Kit):
                     **ch.focus_attrs(),
                 ),
             ])
-        return self.kit_shell(
+        return kit_shell(self,
             *kids,
             id=self.id,
             className=self.class_card,

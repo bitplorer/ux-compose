@@ -1,6 +1,6 @@
 """Drop-in sheet — edge panel. Same shape as a dialog, different placement.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``title``, ``body`` (same type as the RefState attrs); ``shell``
 (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
@@ -17,7 +17,8 @@ from __future__ import annotations
 
 from ux_compose.kit.overlay import overlay as overlay_chrome
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -32,7 +33,7 @@ from ux_compose import (
 )
 
 
-class Sheet(Kit):
+class Sheet(Component):
     """Drawer from the right. Presence is MorphState. Resting card stays in flow."""
 
     id = "sheet"
@@ -70,7 +71,8 @@ class Sheet(Kit):
     def _chrome(self):
         return overlay_chrome(self.id, kind="sheet")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         ch = self._chrome()
         layer = []
@@ -122,7 +124,7 @@ class Sheet(Kit):
                     **ch.focus_attrs(),
                 ),
             ]
-        return self.kit_shell(
+        return kit_shell(self,
             p(
                 "A sheet is a dialog that arrives from the side. Swipe right on Close to dismiss.",
                 className=self.class_lede,

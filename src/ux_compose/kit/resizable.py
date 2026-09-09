@@ -1,6 +1,6 @@
 """Drop-in resizable — named split between two panes.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``splits`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -13,7 +13,8 @@ Not Slider (this is a named band).
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -28,7 +29,7 @@ from ux_compose import (
 )
 
 
-class Resizable(Kit):
+class Resizable(Component):
     """Two panes. The split is a name: even / wide / rail."""
 
     id = "resizable"
@@ -48,10 +49,11 @@ class Resizable(Kit):
     SPLITS = (("even", "Even", "1fr 1fr"), ("wide", "Wide left", "2fr 1fr"), ("rail", "Rail", "1fr 2fr"))
     value = MorphState("even")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or "even")
         grid = next((g for k, _l, g in self.SPLITS if k == val), "1fr 1fr")
-        return self.kit_shell(
+        return kit_shell(self,
             div(
                 *[
                     button(

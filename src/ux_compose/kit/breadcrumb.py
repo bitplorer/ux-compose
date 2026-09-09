@@ -1,6 +1,6 @@
 """Drop-in breadcrumb — trail of named crumbs.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``trail`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -8,7 +8,8 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -24,7 +25,7 @@ from ux_compose import (
 )
 
 
-class Breadcrumb(Kit):
+class Breadcrumb(Component):
     """Path of named keys. ``here`` is MorphState.
 
     ``TRAIL`` is ``(key, label)``. The current crumb is not a button.
@@ -68,7 +69,8 @@ class Breadcrumb(Kit):
         idx = keys.index(cur)
         return rows[: idx + 1], cur
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         shown, cur = self._shown()
         label = shown[-1][1]
         crumbs = []
@@ -87,14 +89,16 @@ class Breadcrumb(Kit):
                         **bind(self.goto, key=key),
                     )
                 )
-        return self.kit_shell(
-            span("Path", className=self.class_kicker),
+        return kit_shell(self,
             nav(*crumbs, className=self.class_trail, aria_label="Breadcrumb"),
             h2(label, className=self.class_title),
-            p("The trail is a tuple of names. Walking back is public.", className=self.class_lede),
             id=self.id,
             className=self.class_card,
             data_here=cur,
+            chrome=(
+                span("Path", className=self.class_kicker),
+                p("The trail is a tuple of names. Walking back is public.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

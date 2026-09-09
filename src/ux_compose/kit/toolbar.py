@@ -1,6 +1,6 @@
 """Drop-in toolbar — APG toolbar of named commands.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``groups`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -15,7 +15,8 @@ not Tabs (panels).
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -30,7 +31,7 @@ from ux_compose import (
 )
 
 
-class Toolbar(Kit):
+class Toolbar(Component):
     """Named commands in groups. The last run key is MorphState.
 
     ``GROUPS`` is ``(key, label, ((item_key, item_label), …))``.
@@ -74,7 +75,8 @@ class Toolbar(Kit):
     def _keys(self):
         return {item[0] for _g, _l, items in self._groups() for item in items}
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or "")
         nodes = []
         groups = self._groups()
@@ -102,7 +104,7 @@ class Toolbar(Kit):
                     )
                 )
         shown = val or "none yet"
-        return self.kit_shell(
+        return kit_shell(self,
             p(f"Last run · {shown}. Commands are public.", className=self.class_lede),
             div(*nodes, className=self.class_bar, role="toolbar", aria_label="Desk tools"),
             id=self.id,

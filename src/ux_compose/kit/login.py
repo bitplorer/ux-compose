@@ -12,7 +12,7 @@ on errors. Mode tabs ``role=tablist`` with ``{id}-tab-{mode}`` /
 ``{id}-p-{mode}`` ``aria-controls`` + ``tabpanel``. Inactive panel stays
 in the tree with ``hidden``.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -22,7 +22,8 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -64,7 +65,7 @@ def _password_ok(value: str, *, signup: bool) -> bool:
     return True
 
 
-class Login(Kit):
+class Login(Component):
     """Sign-in / sign-up card. Copy, ``app.add(Login)``, or subclass.
 
     Chrome is MorphState. Values and field errors are RefState. Submit
@@ -179,14 +180,15 @@ class Login(Kit):
             )
         return self.Accept("Account created" if signup else "Signed in")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         if bool(self.authed):
             return self._render_success()
         return self._render_card()
 
     def _render_success(self):
         email = str(self.email or "")
-        return self.kit_shell(
+        return kit_shell(self,
             div(
                 span("In", className=self.class_mark),
                 h1("You're in", className=self.class_title + " mt-4"),

@@ -1,6 +1,6 @@
 """Drop-in file upload — labeled file control + named list.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -12,7 +12,8 @@ names ``sketch.png`` — Host wires a real upload.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -32,7 +33,7 @@ from ux_compose import (
 )
 
 
-class FileUpload(Kit):
+class FileUpload(Component):
     """Named files on RefState. The input is labeled. Magnitude is the list."""
 
     id = "fileupload"
@@ -60,7 +61,8 @@ class FileUpload(Kit):
     def _mark(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         fid = f"{self.id}-file"
         names = tuple(self.files or ())
         rows = [
@@ -71,7 +73,7 @@ class FileUpload(Kit):
             )
             for name in names
         ]
-        return self.kit_shell(
+        return kit_shell(self,
             p(f"{len(names)} file" + ("" if len(names) == 1 else "s") + " on the table.", className=self.class_lede),
             p("Demo names sketch.png. Host wires a real upload.", className=self.class_lede),
             label("Choose a file", className=self.class_label, html_for=fid),

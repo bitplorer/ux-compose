@@ -1,6 +1,6 @@
 """Drop-in separator — composite rule with an optional accessible name.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``label`` (same type as ``LABEL``); ``shell`` (bool; ``False``
 renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
@@ -12,7 +12,8 @@ plus a visible label when provided.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     div,
     h2,
@@ -22,7 +23,7 @@ from ux_compose import (
 )
 
 
-class Separator(Kit):
+class Separator(Component):
     """Section break with a name. Composite, not a primitive atom."""
 
     id = "separator"
@@ -41,8 +42,9 @@ class Separator(Kit):
 
     LABEL = "Or continue"
 
-    def render(self):
-        return self.kit_shell(
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        return kit_shell(self,
             div(
                 hr(className=self.class_line, role="separator", aria_orientation="horizontal"),
                 span(self.LABEL, className=self.class_label),

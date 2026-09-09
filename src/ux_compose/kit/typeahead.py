@@ -4,7 +4,7 @@ MorphState: ``value``, ``dirty``. RefState: ``query``. Caps: none.
 A11y: label ``for`` ↔ input id; ``aria-autocomplete`` ``aria-controls``.
 
 Unlike Combobox, there is no Filter submit. The field *is* the control.
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -12,7 +12,8 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -32,7 +33,7 @@ from ux_compose import (
 )
 
 
-class Typeahead(Kit):
+class Typeahead(Component):
     """Type. Hits morph. Pick is a name.
 
     The input carries ``data-channel-action`` + ``data-channel-on=\"input delay:300\"``.
@@ -129,10 +130,11 @@ class Typeahead(Kit):
         )
         return div(body, id=f"{self.id}-hits")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         q = str(self.query or "")
         val = str(self.value or "")
-        return self.kit_shell(
+        return kit_shell(self,
             p(
                 "The list follows after a 300ms pause. The field keeps what you type.",
                 className=self.class_lede,
@@ -175,7 +177,8 @@ class Typeahead(Kit):
         class _Hits:
             id = slot_id
 
-            def render(self):
+            def render(self, *, shell=None, **slots):
+                apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
                 return tree
 
         return _Hits()

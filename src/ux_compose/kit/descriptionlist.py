@@ -1,6 +1,6 @@
 """Drop-in description list — named facts as ``dl`` / ``dt`` / ``dd``.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -10,7 +10,8 @@ MorphState: none. A11y: native description list. Not a table.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     dd,
     div,
@@ -22,7 +23,7 @@ from ux_compose import (
 )
 
 
-class DescriptionList(Kit):
+class DescriptionList(Component):
     """Facts about a piece. Terms and details, not columns."""
 
     id = "descriptionlist"
@@ -46,12 +47,13 @@ class DescriptionList(Kit):
         ("Price", "$72"),
     )
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         rows = []
         for term, detail in self.ITEMS:
             rows.append(dt(term, className=self.class_dt))
             rows.append(dd(detail, className=self.class_dd))
-        return self.kit_shell(
+        return kit_shell(self,
             dl(*rows, className=self.class_list),
             id=self.id,
             className=self.class_card,

@@ -1,6 +1,6 @@
 """Drop-in FAB — floating action with an optional speed-dial menu.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``actions`` (tuple[tuple[str, str], ...] — same type as ``ACTIONS``),
 ``shell`` (bool; ``False`` is the FAB/menu only, no demo kicker/title/lede card).
 Subclass may still override ``ACTIONS`` / ``on_run(key)``; instance attrs win.
@@ -15,7 +15,8 @@ NavMenu (destination list).
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -30,7 +31,7 @@ from ux_compose import (
 )
 
 
-class Fab(Kit):
+class Fab(Component):
     """A round verb in the corner. The last run key is MorphState."""
 
     id = "fab"
@@ -67,7 +68,8 @@ class Fab(Kit):
     def on_run(self, key: str) -> str:
         return key
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         menu_id = f"{self.id}-menu"
         rows = [
@@ -94,7 +96,7 @@ class Fab(Kit):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return self.kit_shell(
+        return kit_shell(self,
             scrim,
             menu,
             button(

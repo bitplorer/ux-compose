@@ -1,6 +1,6 @@
 """Drop-in data table — sort key MorphState, selection RefState.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``columns``, ``rows`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Archiving spends a Cap. Selecting is public.
@@ -17,7 +17,8 @@ checkbox, not the ``<tr>``. ``aria-selected`` on the row.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -39,7 +40,7 @@ from ux_compose import (
 )
 
 
-class Table(Kit):
+class Table(Component):
     """Sortable rows with a selection set.
 
     ``COLUMNS`` is ``(key, label)``. ``ROWS`` is ``(sku, {col: value})``.
@@ -138,7 +139,8 @@ class Table(Kit):
             return f"${raw}"
         return raw
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         sel = set(self.selected or ())
         sort = str(self.sort or "name")
         known = [row[0] for row in self._rows()]
@@ -206,7 +208,7 @@ class Table(Kit):
             )
         empty = not body
         n = len(sel)
-        return self.kit_shell(
+        return kit_shell(self,
             div(
                 p(f"{n} selected", className=self.class_lede),
                 button(

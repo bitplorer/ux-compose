@@ -1,6 +1,6 @@
 """Drop-in menubar — horizontal APG menubar with named submenus.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``menus`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -15,7 +15,8 @@ Escape on scrim. Not Navbar (landmark links) and not NavMenu (one disclosure).
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -30,7 +31,7 @@ from ux_compose import (
 )
 
 
-class Menubar(Kit):
+class Menubar(Component):
     """Desk chrome. Submenus are presence. The last command is a name.
 
     ``MENUS`` is ``(key, label, ((item_key, item_label), …))``.
@@ -91,7 +92,8 @@ class Menubar(Kit):
     def _menus(self):
         return tuple(self.MENUS)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         opened = str(self.open or "")
         val = str(self.value or "")
         tops = []
@@ -144,7 +146,7 @@ class Menubar(Kit):
             else span("", className=self.class_sr)
         )
         chosen = val or "none yet"
-        return self.kit_shell(
+        return kit_shell(self,
             p(f"Last command · {chosen}. Opening a menu is public.", className=self.class_lede),
             scrim,
             div(

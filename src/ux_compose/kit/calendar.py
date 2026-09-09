@@ -1,6 +1,6 @@
 """Drop-in calendar — month and day are named keys.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -16,7 +16,8 @@ from __future__ import annotations
 import calendar as _cal
 from datetime import datetime
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -55,7 +56,7 @@ def _shift_month(raw: str, delta: int) -> str:
     return f"{y:04d}-{m:02d}"
 
 
-class Calendar(Kit):
+class Calendar(Component):
     """Month grid. ``month`` is ``YYYY-MM``. ``day`` is ``YYYY-MM-DD``.
 
     Prev / next shift the month key on the server. Picking a day is public.
@@ -101,7 +102,8 @@ class Calendar(Kit):
         y, m = _parse_month(str(self.month or "2026-08"))
         return datetime(y, m, 1).strftime("%B %Y")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         month = str(self.month or "2026-08")
         y, m = _parse_month(month)
         selected = str(self.day or "")
@@ -133,8 +135,7 @@ class Calendar(Kit):
                 )
             rows.append(div(*cells, className=self.class_row, role="row"))
         picked = selected or "Nothing chosen"
-        return self.kit_shell(
-            span("Date", className=self.class_kicker),
+        return kit_shell(self,
             div(
                 button("Prev", type="button", className=self.class_btn_ghost, **bind(self.prev)),
                 h2(self._month_label(), className=self.class_title),
@@ -152,6 +153,9 @@ class Calendar(Kit):
             className=self.class_card,
             data_month=f"{y:04d}-{m:02d}",
             data_day=selected,
+            chrome=(
+                span("Date", className=self.class_kicker),
+            ),
         )
 
     @action(caps=())

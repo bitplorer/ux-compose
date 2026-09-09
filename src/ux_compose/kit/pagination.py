@@ -1,6 +1,6 @@
 """Drop-in pagination — opaque page keys, never a quantity MorphState.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``window``, ``pages`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 ``WINDOW`` is how many numbered neighbors sit next to the current page.
@@ -14,7 +14,8 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -89,7 +90,7 @@ def page_slots(idx: int, n: int, window: int = 1):
     return tuple(out)
 
 
-class Pagination(Kit):
+class Pagination(Component):
     """Named pages. Channel refuses quantity MorphState, so keys are ``p1``…
 
     ``PAGES`` is ``(key, (item, …))``. Override on the copy.
@@ -209,7 +210,8 @@ class Pagination(Kit):
             **bind(self.goto, key=key),
         )
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         keys = self._keys()
         cur, items = self._current()
         idx = keys.index(cur)
@@ -222,7 +224,7 @@ class Pagination(Kit):
                 continue
             slot, band = rest
             dots.append(self._page_btn(slot, cur, keys, edge=band == "edge"))
-        return self.kit_shell(
+        return kit_shell(self,
             p(f"Page {idx + 1} of {n}", className=self.class_lede),
             ul(*lis, className=self.class_list),
             div(

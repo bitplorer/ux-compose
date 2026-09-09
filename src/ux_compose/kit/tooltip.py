@@ -1,7 +1,8 @@
 """Drop-in tooltip — described-by hint on MorphState open.
 
-Host seam: construct kwargs OR subclass.
-Accepted: ``tip`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Host seam: render slots OR subclass.
+Accepted: ``tip`` (same type as ``TIP``), ``trigger`` (str — control label);
+``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
@@ -11,7 +12,8 @@ MorphState: ``open``. Caps: none. A11y (APG Tooltip): trigger
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -25,11 +27,11 @@ from ux_compose import (
 )
 
 
-class Tooltip(Kit):
+class Tooltip(Component):
     """Short description of a control. Presence is MorphState."""
 
     id = "tooltip"
-    _SEAMS = {'tip': 'TIP'}
+    _SEAMS = {"tip": "TIP", "trigger": "TRIGGER"}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -50,20 +52,22 @@ class Tooltip(Kit):
     class_sr = "sr-only"
 
     TIP = "Archive spends items.archive. Hover is public."
+    TRIGGER = "Archive"
 
     open = MorphState(False)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         tip_id = f"{self.id}-tip"
         tip = (
             span(self.TIP, id=tip_id, className=self.class_tip, role="tooltip")
             if is_open else span("", id=tip_id, className=self.class_sr, role="tooltip")
         )
-        return self.kit_shell(
+        return kit_shell(self,
             div(
                 button(
-                    "Archive",
+                    self.TRIGGER,
                     type="button",
                     id=f"{self.id}-trigger",
                     className=self.class_btn,

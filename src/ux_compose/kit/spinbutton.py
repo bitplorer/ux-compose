@@ -1,6 +1,6 @@
 """Drop-in spinbutton — quantity on RefState, APG spinbutton.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``min``, ``max`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -14,7 +14,8 @@ lives on MorphState. Not Slider (range) and not Stepper (named wizard).
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -32,7 +33,7 @@ from ux_compose import (
 )
 
 
-class SpinButton(Kit):
+class SpinButton(Component):
     """How many on the board. The number is RefState; dirty morphs the card."""
 
     id = "spinbutton"
@@ -72,13 +73,13 @@ class SpinButton(Kit):
     def _mark(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         n = self._n()
         fid = f"{self.id}-value"
         lab_id = f"{self.id}-label"
         lo, hi = int(self.MIN), int(self.MAX)
-        return self.kit_shell(
-            span("Count", className=self.class_kicker),
+        return kit_shell(self,
             h2("On the board", id=lab_id, className=self.class_title),
             p(f"{n} of {hi}. Magnitude is RefState.", className=self.class_lede),
             label("Quantity", className=self.class_label, html_for=fid),
@@ -117,6 +118,9 @@ class SpinButton(Kit):
             id=self.id,
             className=self.class_card,
             data_value=str(n),
+            chrome=(
+                span("Count", className=self.class_kicker),
+            ),
         )
 
     @action(caps=())

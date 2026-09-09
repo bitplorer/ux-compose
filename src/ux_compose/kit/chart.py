@@ -1,6 +1,6 @@
 """Drop-in chart — named series as an SVG image.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``series`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ A11y: ``svg`` ``role=img`` labelled. Magnitudes live on RefState.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -29,7 +30,7 @@ from ux_compose import (
 )
 
 
-class Chart(Kit):
+class Chart(Component):
     """Winter counts. Bars are names; heights are RefState."""
 
     id = "chart"
@@ -61,7 +62,8 @@ class Chart(Kit):
                 out.append(0)
         return tuple(out)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         which = str(self.which or self._series()[0][0])
         vals = self._vals()
         n = max(len(self._series()), 1)
@@ -83,7 +85,7 @@ class Chart(Kit):
                 )
             )
         width = 12 + n * (bw + gap)
-        return self.kit_shell(
+        return kit_shell(self,
             svg(
                 *bars,
                 width=str(width),

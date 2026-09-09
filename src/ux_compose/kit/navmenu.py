@@ -1,6 +1,6 @@
 """Drop-in nav menu — disclosure of named destinations.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -12,7 +12,8 @@ Escape on scrim.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -27,7 +28,7 @@ from ux_compose import (
 )
 
 
-class NavMenu(Kit):
+class NavMenu(Component):
     """Desktop menu. Value is a named key. Menu is presence."""
 
     id = "navmenu"
@@ -68,7 +69,8 @@ class NavMenu(Kit):
     def _items(self):
         return tuple(self.ITEMS)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._items()[0][0])
         is_open = bool(self.open)
         shown = next((lab for k, lab in self._items() if k == val), val)
@@ -97,7 +99,7 @@ class NavMenu(Kit):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return self.kit_shell(
+        return kit_shell(self,
             scrim,
             div(
                 button(

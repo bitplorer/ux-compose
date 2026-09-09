@@ -1,6 +1,6 @@
 """Drop-in skeleton — loading placeholder, busy region.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ placeholder bars ``aria-hidden``.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -25,7 +26,7 @@ from ux_compose import (
 )
 
 
-class Skeleton(Kit):
+class Skeleton(Component):
     """Pulse bars while the Host fills. Loading is presence, not a quantity."""
 
     id = "skeleton"
@@ -46,7 +47,8 @@ class Skeleton(Kit):
 
     loading = MorphState(True)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         loading = bool(self.loading)
         body = (
             div(
@@ -59,15 +61,17 @@ class Skeleton(Kit):
             if loading
             else p("The catalog arrived. Bars were never content.", className=self.class_lede)
         )
-        return self.kit_shell(
-            span("Wait" if loading else "Ready", className=self.class_kicker),
-            h2("Loading the desk" if loading else "On the desk", className=self.class_title),
+        return kit_shell(self,
             body,
             button(
                 "Show content" if loading else "Load again",
                 type="button",
                 className=self.class_btn,
                 **bind(self.toggle),
+            ),
+            chrome=(
+                span("Wait" if loading else "Ready", className=self.class_kicker),
+                h2("Loading the desk" if loading else "On the desk", className=self.class_title),
             ),
             id=self.id,
             className=self.class_card,

@@ -1,6 +1,6 @@
 """Drop-in testimonials — named quotes, MorphState index key.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``quotes`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ named. Quote is a name, not a quantity.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -26,7 +27,7 @@ from ux_compose import (
 )
 
 
-class Testimonials(Kit):
+class Testimonials(Component):
     """One named quote at a time. ``which`` is a key from QUOTES."""
 
     id = "testimonials"
@@ -62,10 +63,11 @@ class Testimonials(Kit):
                 return row
         return items[0]
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         key, quote, who = self._current()
         qid = f"{self.id}-q"
-        return self.kit_shell(
+        return kit_shell(self,
             p(quote, id=qid, className=self.class_quote),
             p(f"— {who}", className=self.class_lede),
             div(

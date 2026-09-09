@@ -1,6 +1,6 @@
 """Drop-in alert — inline status with optional public dismiss.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``title``, ``body``, ``kind`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -10,7 +10,8 @@ MorphState: ``open``. Caps: none. A11y: ``role=alert`` for assertive copy.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -24,7 +25,7 @@ from ux_compose import (
 )
 
 
-class Alert(Kit):
+class Alert(Component):
     """Inline warning. Closing morphs the region away."""
 
     id = "alert"
@@ -52,19 +53,22 @@ class Alert(Kit):
 
     open = MorphState(True)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         if not bool(self.open):
-            return self.kit_shell(
-                span("Quiet", className="text-xs font-medium uppercase tracking-widest text-stone-400"),
-                h2("No alerts", className="m-0 font-serif text-2xl font-semibold"),
-                p("Show the note again when you need it.", className="m-0 text-sm text-stone-500"),
+            return kit_shell(self,
                 button("Show alert", type="button", className=self.class_x + " border border-stone-200", **bind(self.show)),
+                chrome=(
+                    span("Quiet", className="text-xs font-medium uppercase tracking-widest text-stone-400"),
+                    h2("No alerts", className="m-0 font-serif text-2xl font-semibold"),
+                    p("Show the note again when you need it.", className="m-0 text-sm text-stone-500"),
+                ),
                 id=self.id,
                 className=self.class_rest,
                 data_open="0",
             )
         title_id = f"{self.id}-title"
-        return self.kit_shell(
+        return kit_shell(self,
             span(self.KIND, className=self.class_kicker),
             h2(self.TITLE, id=title_id, className=self.class_title),
             p(self.BODY, className=self.class_lede),

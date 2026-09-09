@@ -1,6 +1,6 @@
 """Drop-in banner — page-level status strip, public dismiss.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``title``, ``body`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ MorphState: ``open``. Caps: none. A11y: ``role=region`` labelledby; not
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -25,7 +26,7 @@ from ux_compose import (
 )
 
 
-class Banner(Kit):
+class Banner(Component):
     """Site-wide notice. Closing is Morph, not a Cap."""
 
     id = "banner"
@@ -52,24 +53,27 @@ class Banner(Kit):
 
     open = MorphState(True)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         if not bool(self.open):
-            return self.kit_shell(
-                span("Quiet", className="text-xs font-medium uppercase tracking-widest text-stone-400"),
-                h2("Banner hidden", className="m-0 font-serif text-2xl font-semibold"),
+            return kit_shell(self,
                 button("Show banner", type="button", className=self.class_x + " border border-stone-200 px-4", **bind(self.show)),
+                chrome=(
+                    span("Quiet", className="text-xs font-medium uppercase tracking-widest text-stone-400"),
+                    h2("Banner hidden", className="m-0 font-serif text-2xl font-semibold"),
+                ),
                 id=self.id,
                 className=self.class_rest,
                 data_open="0",
             )
         title_id = f"{self.id}-title"
-        return self.kit_shell(
+        return kit_shell(self,
             div(
-                span("Notice", className=self.class_kicker),
                 h2(self.TITLE, id=title_id, className=self.class_title),
                 p(self.BODY, className=self.class_lede),
             ),
             button("Dismiss", type="button", className=self.class_x, aria_label="Dismiss banner", **bind(self.dismiss)),
+            chrome=(span("Notice", className=self.class_kicker),),
             id=self.id,
             className=self.class_card,
             role="region",

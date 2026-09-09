@@ -1,6 +1,6 @@
 """Drop-in logo cloud — named marks, public choose.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``logos`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ MorphState: ``value``. Caps: none. A11y: list of buttons; each ``img`` has
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -27,7 +28,7 @@ from ux_compose import (
 )
 
 
-class LogoCloud(Kit):
+class LogoCloud(Component):
     """Houses we keep. The selected mark is a name.
 
     ``LOGOS`` is ``(key, label, src)``. Override on the copy.
@@ -66,7 +67,8 @@ class LogoCloud(Kit):
     def _logos(self):
         return tuple(self.LOGOS)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._logos()[0][0])
         keys = {row[0] for row in self._logos()}
         if val not in keys:
@@ -85,7 +87,7 @@ class LogoCloud(Kit):
                     **bind(self.choose, key=key),
                 )
             )
-        return self.kit_shell(
+        return kit_shell(self,
             div(*marks, className=self.class_row, role="list", aria_label="Houses"),
             id=self.id,
             className=self.class_card,

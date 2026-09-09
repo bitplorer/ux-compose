@@ -1,6 +1,6 @@
 """Drop-in fieldset — grouped named choices under a legend.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ radiogroup ``role`` with ``aria-labelledby``. Each radio labelled.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -28,7 +29,7 @@ from ux_compose import (
 )
 
 
-class Fieldset(Kit):
+class Fieldset(Component):
     """One named choice in a group. The legend is the accessible name."""
 
     id = "fieldset"
@@ -63,7 +64,8 @@ class Fieldset(Kit):
     def _options(self):
         return tuple(self.OPTIONS)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._options()[0][0])
         legend_id = f"{self.id}-legend"
         opts = [
@@ -77,7 +79,7 @@ class Fieldset(Kit):
             )
             for key, lab in self._options()
         ]
-        return self.kit_shell(
+        return kit_shell(self,
             fieldset(
                 legend("Material", id=legend_id, className=self.class_legend),
                 *opts,

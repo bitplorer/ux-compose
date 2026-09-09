@@ -1,6 +1,6 @@
 """Drop-in plan cards — radio group as a set of named choices.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``plans`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ each plan ``role=radio`` ``aria-checked``; selected ``tabindex=0`` others ``-1``
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -27,7 +28,7 @@ from ux_compose import (
 )
 
 
-class Plans(Kit):
+class Plans(Component):
     """Choose one named plan. The selected key is MorphState.
 
     ``PLANS`` is ``(key, name, price, lede, (feature, …))". Override on the copy.
@@ -90,7 +91,8 @@ class Plans(Kit):
     def _plans(self):
         return tuple(self.PLANS)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._plans()[0][0])
         cards = []
         for key, name, price, lede, feats in self._plans():
@@ -115,9 +117,9 @@ class Plans(Kit):
                 )
             )
         chosen = next((row[1] for row in self._plans() if row[0] == val), val)
-        return self.kit_shell(
+        return kit_shell(self,
             p(f"Selected · {chosen}. Picking is public.", className=self.class_lede),
-            div(*cards, className=self.class_grid, role="radiogroup", aria_label="Choose a desk"),
+            div(*cards, className=self.class_grid, role="radiogroup", aria_label="Plans"),
             id=self.id,
             className=self.class_card,
             data_value=val,

@@ -1,6 +1,6 @@
 """Drop-in toast host — server list is authority.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``items`` (same type as the RefState list); ``shell`` (bool;
 ``False`` is the live stack only, no demo kicker/title/lede card).
 Instance attrs win over class consts.
@@ -23,7 +23,8 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -41,7 +42,7 @@ from ux_compose import (
 )
 
 
-class Toast(Kit):
+class Toast(Component):
     """Stack of one-shot messages. The server list is the truth.
 
     ``push(message=)`` appends. ``dismiss(id=)`` removes one. ``clear`` empties.
@@ -89,7 +90,8 @@ class Toast(Kit):
     def _mark_dirty(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         rows = list(self.items or ())[-4:]
         n = len(rows)
         lis = [
@@ -113,7 +115,7 @@ class Toast(Kit):
             if n
             else p("No notices yet.", className=self.class_lede)
         )
-        return self.kit_shell(
+        return kit_shell(self,
             status,
             div(
                 button(

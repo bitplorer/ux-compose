@@ -1,6 +1,6 @@
 """Drop-in CTA — titled call with a public (or Cap) action.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``title``, ``body``, ``action`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -10,7 +10,8 @@ MorphState: ``done``. Caps: none by default. A11y: region labelledby title.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -25,7 +26,7 @@ from ux_compose import (
 )
 
 
-class Cta(Kit):
+class Cta(Component):
     """One ask. The button is the verb."""
 
     id = "cta"
@@ -52,10 +53,11 @@ class Cta(Kit):
     def on_act(self) -> str:
         return "Joined"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         title_id = f"{self.id}-title"
         done = bool(self.done)
-        return self.kit_shell(
+        return kit_shell(self,
             h2(self.TITLE, id=title_id, className=self.class_title),
             p("You're on the list." if done else self.BODY, className=self.class_lede),
             button(

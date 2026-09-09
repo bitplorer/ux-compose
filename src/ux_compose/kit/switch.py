@@ -1,6 +1,6 @@
 """Drop-in switch — boolean MorphState, public flip.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ MorphState: ``on``. Caps: none. A11y (APG Switch): ``role=switch``
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -26,7 +27,7 @@ from ux_compose import (
 )
 
 
-class Switch(Kit):
+class Switch(Component):
     """Quiet hours. Boolean MorphState is qualitative — legal on the session plane."""
 
     id = "switch"
@@ -47,11 +48,11 @@ class Switch(Kit):
 
     on = MorphState(False)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         on = bool(self.on)
         label_id = f"{self.id}-label"
-        return self.kit_shell(
-            span("Quiet", className=self.class_kicker),
+        return kit_shell(self,
             h2("Quiet hours", id=label_id, className=self.class_title),
             p(
                 "Notifications hush after dusk." if on else "Notifications reach the table.",
@@ -73,6 +74,9 @@ class Switch(Kit):
             id=self.id,
             className=self.class_card,
             data_on="1" if on else "0",
+            chrome=(
+                span("Quiet", className=self.class_kicker),
+            ),
         )
 
     @action(caps=())

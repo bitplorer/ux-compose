@@ -1,6 +1,6 @@
 """Drop-in pricing section — comparison table of named tiers.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``tiers``, ``features`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -12,7 +12,8 @@ Not Plans (no radiogroup of whole cards).
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -33,7 +34,7 @@ from ux_compose import (
 )
 
 
-class PricingSection(Kit):
+class PricingSection(Component):
     """Compare named desks. The selected key is MorphState.
 
     ``TIERS`` is ``(key, name, price)``. ``FEATURES`` is ``(label, {key: cell})``.
@@ -77,7 +78,8 @@ class PricingSection(Kit):
     def _tiers(self):
         return tuple(self.TIERS)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._tiers()[0][0])
         keys = {row[0] for row in self._tiers()}
         if val not in keys:
@@ -108,7 +110,7 @@ class PricingSection(Kit):
         ]
         body.append(tr(th("Join", scope="row", className=self.class_td), *chooses))
         chosen = next((n for k, n, _p in self._tiers() if k == val), val)
-        return self.kit_shell(
+        return kit_shell(self,
             p(f"Selected · {chosen}. Picking is public.", className=self.class_lede),
             table(
                 thead(tr(*heads)),

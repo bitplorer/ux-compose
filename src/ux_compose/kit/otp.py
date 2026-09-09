@@ -1,6 +1,6 @@
 """Drop-in OTP — six digits attach before the morph.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -8,7 +8,8 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -27,7 +28,7 @@ from ux_compose import (
 )
 
 
-class Otp(Kit):
+class Otp(Component):
     """One-time code. The typed digits attach onto RefState, then morph.
 
     Demo: any six digits verify except ``000000``. Override ``on_verify``.
@@ -96,9 +97,10 @@ class Otp(Kit):
     def _mark_dirty(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         if bool(self.ok):
-            return self.kit_shell(
+            return kit_shell(self,
                 div(
                     span("Ok", className=self.class_mark),
                     h2("Code accepted", className=self.class_title),
@@ -117,7 +119,7 @@ class Otp(Kit):
             )
         code = str(self.code or "")
         err = str(self.err or "")
-        return self.kit_shell(
+        return kit_shell(self,
             form(
                 label("One-time code", className=self.class_label, html_for="otp-code"),
                 input_(

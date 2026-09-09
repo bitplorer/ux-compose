@@ -1,6 +1,6 @@
 """Drop-in action sheet — bottom panel, swipe-down to dismiss.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``actions`` (same type as ``ACTIONS``); ``shell`` (bool; ``False``
 renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
@@ -17,7 +17,8 @@ from __future__ import annotations
 
 from ux_compose.kit.overlay import overlay as overlay_chrome
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -33,7 +34,7 @@ from ux_compose import (
 )
 
 
-class ActionSheet(Kit):
+class ActionSheet(Component):
     """A sheet from the bottom. Presence is MorphState. Pick is a named key."""
 
     id = "actionsheet"
@@ -91,7 +92,8 @@ class ActionSheet(Kit):
     def _chrome(self):
         return overlay_chrome(self.id, kind="actionsheet")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         picked = str(self.picked or "")
         ch = self._chrome()
@@ -149,7 +151,7 @@ class ActionSheet(Kit):
                     **ch.focus_attrs(),
                 ),
             ]
-        return self.kit_shell(
+        return kit_shell(self,
             p(f"Last pick · {picked}" if picked else "Nothing picked yet.", className=self.class_choice),
             button("Open actions", type="button", className=self.class_btn_primary, **bind(self.open_sheet)),
             *layer,

@@ -1,6 +1,6 @@
 """Drop-in navbar — primary landmark with a mobile menu MorphState.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``links`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -13,7 +13,8 @@ menu are two trees — never reuse one VDOM list.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -28,7 +29,7 @@ from ux_compose import (
 )
 
 
-class Navbar(Kit):
+class Navbar(Component):
     """Site chrome. Active key is MorphState. Mobile drawer is presence."""
 
     id = "navbar"
@@ -83,7 +84,8 @@ class Navbar(Kit):
             )
         return nodes
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         cur = str(self.active or self._links()[0][0])
         is_open = bool(self.open)
         panel_id = f"{self.id}-menu"
@@ -92,7 +94,7 @@ class Navbar(Kit):
             if is_open
             else span("", id=panel_id, className=self.class_sr)
         )
-        return self.kit_shell(
+        return kit_shell(self,
             nav(
                 span("Lumen", className=self.class_brand),
                 div(*self._link_nodes(cur), className=self.class_links),

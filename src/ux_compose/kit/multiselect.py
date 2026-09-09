@@ -1,6 +1,6 @@
 """Drop-in multi-select — named set on RefState, listbox.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -12,7 +12,8 @@ A11y (APG Listbox multi): trigger ``aria-haspopup=listbox``; options
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -28,7 +29,7 @@ from ux_compose import (
 )
 
 
-class MultiSelect(Kit):
+class MultiSelect(Component):
     """Several named values. The set is RefState; open is MorphState."""
 
     id = "multiselect"
@@ -77,7 +78,8 @@ class MultiSelect(Kit):
     def _mark(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         sel = set(self.selected or ())
         is_open = bool(self.open)
         shown = ", ".join(lab for k, lab in self._options() if k in sel) or "Choose materials"
@@ -119,7 +121,7 @@ class MultiSelect(Kit):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return self.kit_shell(
+        return kit_shell(self,
             scrim,
             div(
                 button(

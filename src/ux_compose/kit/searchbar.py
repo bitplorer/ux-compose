@@ -1,6 +1,6 @@
 """Drop-in search bar — labeled query field, hits as a list.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -11,7 +11,8 @@ MorphState: ``dirty``. RefState: ``query``. Caps: none. A11y: label ``for``
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -32,7 +33,7 @@ from ux_compose import (
 )
 
 
-class SearchBar(Kit):
+class SearchBar(Component):
     """Filter in place. The field keeps focus across morphs (id stable)."""
 
     id = "searchbar"
@@ -70,12 +71,13 @@ class SearchBar(Kit):
             return opts
         return tuple(x for x in opts if q in x.lower())
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         q = str(self.query or "")
         fid = f"{self.id}-q"
         hits = self._hits()
         rows = [li(x, className=self.class_row, role="option") for x in hits]
-        return self.kit_shell(
+        return kit_shell(self,
             p(f"{len(hits)} match" + ("" if len(hits) == 1 else "es") + ".", className=self.class_lede),
             form(
                 label("Search the catalog", className=self.class_label, html_for=fid),

@@ -1,6 +1,6 @@
 """Drop-in card — titled region with an optional action.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``title``, ``body``, ``action`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts. Act is public chrome unless you add a Cap in the copy.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -10,7 +10,8 @@ MorphState: ``pressed``. Caps: none by default. A11y: article labelledby title.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots
 from ux_compose import (
     MorphState,
     action,
@@ -25,7 +26,7 @@ from ux_compose import (
 )
 
 
-class Card(Kit):
+class Card(Component):
     """One titled piece. The action is a named public verb on this unit."""
 
     id = "card"
@@ -52,7 +53,8 @@ class Card(Kit):
     def on_act(self) -> str:
         return "Pinned"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         title_id = f"{self.id}-title"
         on = bool(self.pressed)
         kids = []

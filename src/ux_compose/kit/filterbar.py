@@ -1,6 +1,6 @@
 """Drop-in filter bar — labeled query + named filter radiogroup.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``filters``, ``pieces`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -14,7 +14,8 @@ selected ``tabindex=0`` others ``-1``. Hits are a list. Not SearchBar
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -35,7 +36,7 @@ from ux_compose import (
 )
 
 
-class FilterBar(Kit):
+class FilterBar(Component):
     """Named filter + query. The field keeps focus across morphs (id stable).
 
     ``FILTERS`` is ``(key, label)``. ``PIECES`` is ``(filter_key, title)``.
@@ -106,7 +107,8 @@ class FilterBar(Kit):
     def _mark(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         which = str(self.which or "all")
         keys = {row[0] for row in self._filters()}
         if which not in keys:
@@ -136,9 +138,7 @@ class FilterBar(Kit):
             if rows
             else p("No matches.", role="status", className=self.class_lede)
         )
-        return self.kit_shell(
-            span("Filter", className=self.class_kicker),
-            h2("The winter list", id=title_id, className=self.class_title),
+        return kit_shell(self,
             p(
                 f"{len(hits)} match" + ("" if len(hits) == 1 else "es") + ".",
                 className=self.class_lede,
@@ -168,6 +168,10 @@ class FilterBar(Kit):
             id=self.id,
             className=self.class_card,
             data_filter=which,
+            chrome=(
+                span("Filter", className=self.class_kicker),
+                h2("The winter list", id=title_id, className=self.class_title),
+            ),
         )
 
     @action(caps=())

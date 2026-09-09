@@ -1,6 +1,6 @@
 """Drop-in tree — APG treeview of named nodes.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``nodes`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -12,7 +12,8 @@ A11y (APG Tree View): ``role=tree`` / ``treeitem`` ``aria-expanded``
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -29,7 +30,7 @@ from ux_compose import (
 )
 
 
-class Tree(Kit):
+class Tree(Component):
     """House → rooms. Expanded ids are a set of names.
 
     ``NODES`` is ``(key, parent_or_None, label)``.
@@ -62,7 +63,8 @@ class Tree(Kit):
     def _nodes(self):
         return tuple(self.NODES)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         opened = set(self.expanded or ())
         sel = str(self.selected or "")
         items = []
@@ -98,7 +100,7 @@ class Tree(Kit):
                     className=self.class_item + (" pl-6" if parent else ""),
                 )
             )
-        return self.kit_shell(
+        return kit_shell(self,
             p(f"Selected · {sel}. Opening is public.", className=self.class_lede),
             ul(*items, className=self.class_list, role="tree", aria_label="House"),
             id=self.id,

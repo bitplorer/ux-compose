@@ -1,6 +1,6 @@
 """Drop-in scroll area — labelled overflow region, named jump.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``marks``, ``body`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -12,7 +12,8 @@ Not a raw overflow atom — this is a composite card.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     action,
@@ -27,7 +28,7 @@ from ux_compose import (
 )
 
 
-class ScrollArea(Kit):
+class ScrollArea(Component):
     """A tall note in a short window. The jump is a name."""
 
     id = "scrollarea"
@@ -50,7 +51,8 @@ class ScrollArea(Kit):
     )
     which = MorphState("top")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         which = str(self.which or "top")
         chips = [
             button(
@@ -63,7 +65,7 @@ class ScrollArea(Kit):
             )
             for key, lab in self.MARKS
         ]
-        return self.kit_shell(
+        return kit_shell(self,
             div(*chips, className="flex gap-2", role="radiogroup", aria_label="Jump"),
             div(
                 p(self.BODY, id=f"{self.id}-p-{which}"),

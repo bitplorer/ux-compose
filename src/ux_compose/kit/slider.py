@@ -1,6 +1,6 @@
 """Drop-in slider — magnitude on RefState, dirty MorphState.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -12,7 +12,8 @@ Label ``for`` ↔ range id. Quantity never lives on MorphState.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -29,7 +30,7 @@ from ux_compose import (
 )
 
 
-class Slider(Kit):
+class Slider(Component):
     """Named range. The number is RefState; dirty morphs the card."""
 
     id = "slider"
@@ -54,12 +55,12 @@ class Slider(Kit):
         except (TypeError, ValueError):
             return 0
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         n = self._n()
         fid = f"{self.id}-range"
         lab_id = f"{self.id}-label"
-        return self.kit_shell(
-            span("Amount", className=self.class_kicker),
+        return kit_shell(self,
             h2("How much", id=lab_id, className=self.class_title),
             p(f"{n} of 100", className=self.class_lede),
             label("Amount", className=self.class_label, html_for=fid),
@@ -81,6 +82,9 @@ class Slider(Kit):
             id=self.id,
             className=self.class_card,
             data_value=str(n),
+            chrome=(
+                span("Amount", className=self.class_kicker),
+            ),
         )
 
     @action(caps=())

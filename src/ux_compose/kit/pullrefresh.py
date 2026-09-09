@@ -1,6 +1,6 @@
 """Drop-in pull-to-refresh — vertical swipe on the list, not a new attribute.
 
-Host seam: construct kwargs OR subclass.
+Host seam: render slots OR subclass.
 Accepted: ``seed``, ``more`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
@@ -8,7 +8,8 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 from __future__ import annotations
 
-from ux_compose.kit_construct import Kit
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
     MorphState,
     RefState,
@@ -37,7 +38,7 @@ def _plan(name: str, target: str, *, ms: int = 140):
         return None
 
 
-class PullRefresh(Kit):
+class PullRefresh(Component):
     """Swipe down the list (or tap Refresh). Phase is a name, never a spinner int.
 
     Host ``swipe.vertical``. The Refresh control accepts ``click swipe.down``
@@ -103,7 +104,8 @@ class PullRefresh(Kit):
             return tuple(self.SEED)
         return tuple(rows)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         phase = str(self.phase or "idle")
         rows = self._rows()
         lis = [
@@ -114,7 +116,7 @@ class PullRefresh(Kit):
             "caught": "Caught up.",
             "idle": "Swipe down · or tap Refresh",
         }.get(phase, "Swipe down · or tap Refresh")
-        return self.kit_shell(
+        return kit_shell(self,
             p(
                 "Vertical swipe is a synthesizer. The Refresh control accepts swipe.down.",
                 className=self.class_lede,

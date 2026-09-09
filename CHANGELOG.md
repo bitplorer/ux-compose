@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Module map: every concern has one owner file
+  ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). ``helpers.py`` is
+  composition algebra, not a junk drawer; ``author.py`` is Atelier
+  convenience; ``chrome.py`` is GET brand wrap (not OverlayChrome);
+  ``kit_construct.py`` stays at package root so copied kit files do
+  not import ``ux_compose.kit``. Isolation door is ``wire/`` (not
+  ``boot.py`` alone). ``docs/internals/OWNERSHIP.md`` is a pointer,
+  not a second contract. Doctor leftover teaching covers
+  ``routing.adapters``.
 - CLI spine lock: ``cli.py`` is argv dispatch. ``serve_dev.py`` stays
   the origin + ui + channel runtime (do not fold). CSS ``--watch``
   moved to ``tailwind.start_watch`` (compiler locality). Dead

@@ -18,6 +18,7 @@ Page unit + host bind (when asgi_app is provided):
 * Page units have no HTTP verbs. Isolation: no Compose types leak into
   ux-dom render.
 * Host bind lives in ``surfaces_host`` (Invisible Strategy — ``ux_compose.routing``).
+  Do not fold that bind into this scan module.
 """
 
 from __future__ import annotations

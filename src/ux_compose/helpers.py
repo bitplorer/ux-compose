@@ -1,8 +1,11 @@
-"""
-High-level helpers that emit pure Ops / Plans and enforce the Composition Algebra.
+"""Composition algebra — bind / control / notify / update_with / morph_play.
 
-Never import ux_channel or CEK. XOR and Morph-then-Play are enforced by construction
-where possible; remaining cases fail closed under doctor / strict mode.
+Not author convenience (that is ``author.py``). Not GET brand (``chrome.py``).
+Not a Document serialize clone: ``_fragment_for_target`` is the morph
+safety net owned by ``update_with``.
+
+Never import ux_channel or CEK. XOR and Morph-then-Play are enforced by
+construction where possible; remaining cases fail closed under doctor.
 
 Helpers emit real ux-behavior Op objects (hard dependency, Python ≥3.14).
 """

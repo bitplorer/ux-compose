@@ -59,6 +59,10 @@ def test_internals_ownership_defers_to_canonical():
     assert "OWNERSHIP.md wins" in text or "../OWNERSHIP.md" in text
     assert "ux_compose.tailwind" in text
     assert "create-app · build · serve · deploy" in text
+    assert "Moved" in text or "Successor" in text
+    assert "Do not re-expand" in text
+    # stub, not a second contract body
+    assert "ux-dom      RENDER" not in text
 
 
 def test_webassets_lives_on_compose():
@@ -108,6 +112,7 @@ def test_directory_routes_lives_on_compose():
     assert "from ux_compose.routing.core import DirectoryRoutes" in build
     assert "from ux_dom.routing.core import DirectoryRoutes" not in build
     flow = (ROOT / "docs" / "OWNERSHIP.md").read_text(encoding="utf-8")
-    assert "DirectoryRoutes + thin adapters" in flow
+    assert "DirectoryRoutes + host.bind" in flow
+    assert "routing/adapters/" in flow
     assert callable(DirectoryRoutes)
     assert callable(DirectoryASGI)

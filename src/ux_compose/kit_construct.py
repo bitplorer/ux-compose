@@ -1,8 +1,11 @@
 """Tiny helpers for ownable kit Components — not a base class.
 
+Lives at package **root** on purpose. ``uxcompose add`` copies kit files
+as-is; those copies must not ``import ux_compose.kit``. Do not move this
+to ``kit/construct.py``.
+
 Isolation Law: this module never pulls the wire. Kits import helpers from
-the library the same way they import ``Component`` — ``uxcompose add``
-does not rewrite the path, so copied files stay self-contained.
+the library the same way they import ``Component``.
 
 Host seam = ``render(*, shell=None, **slots)`` OR subclass class consts.
 Passed slots write through to instance attrs so later morph / ``update_with``

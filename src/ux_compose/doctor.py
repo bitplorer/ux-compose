@@ -31,10 +31,22 @@ FORBIDDEN_IMPORTS = {
     "ux_channel", "cek", "cek_host", "cek_surface", "MotionChannel",
 }
 _KIT_IMPORT_SKIP = ("/tests/", "/src/ux_compose/", "/examples/")
-_LEFTOVER_TOKENS = (
-    'host="batteries"', "host='batteries'",
-    'use_host("batteries")', "use_host('batteries')",
-    "DirectoryRouter", 'serve="webassets"', "serve='webassets'",
+# leftover token → teach. Doctor flags these in app trees; does not fail-close.
+_LEFTOVER_TEACH = (
+    ('host="batteries"', 'Clock A host is FastAPI (`host="auto"`).'),
+    ("host='batteries'", 'Clock A host is FastAPI (`host="auto"`).'),
+    ('use_host("batteries")', 'Clock A host is FastAPI (`host="auto"`).'),
+    ("use_host('batteries')", 'Clock A host is FastAPI (`host="auto"`).'),
+    (
+        "DirectoryRouter",
+        "product path is DirectoryRoutes + host.bind, not ux-dom batteries.",
+    ),
+    ('serve="webassets"', "WebAssets layout is ux_compose.assets; do not pass serve=."),
+    ("serve='webassets'", "WebAssets layout is ux_compose.assets; do not pass serve=."),
+    (
+        "ux_compose.routing.adapters",
+        "product path is ux_compose.routing.asgi / .fastapi (ADR 0004).",
+    ),
 )
 
 
@@ -274,10 +286,10 @@ def scan_leftover_aliases(paths: Iterable[str | Path]) -> list[str]:
             src = p.read_text(encoding="utf-8")
         except Exception:
             continue
-        for token in _LEFTOVER_TOKENS:
+        for token, teach in _LEFTOVER_TEACH:
             if token in src:
                 diagnostics.append(
-                    f"residual in {p}: leftover `{token}`. Clock A host is FastAPI."
+                    f"residual in {p}: leftover `{token}`. {teach}"
                 )
                 break
     return diagnostics

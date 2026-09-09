@@ -1,5 +1,8 @@
 """Document-path GET brand chrome.
 
+Not OverlayChrome (``kit/overlay.py`` — dialog / sheet / action-sheet
+ids and swipe). This module wraps GET. Overlay chrome wraps widgets.
+
 Clock A wraps ``render()`` with ``build(wrap=)``. Clock B morph payloads
 stay fragments — ``update_with`` reads ``Component.render()``, not this helper.
 

@@ -17,7 +17,8 @@ ux-dom      RENDER     tree → __render__ / __async_render__ → HTML str | byt
                        pure-dom DX: doctor | lint | profile | add
 
 ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
-            + ROUTES   DirectoryRoutes + thin adapters (filesystem → HTTP)
+            + ROUTES   DirectoryRoutes + host.bind (filesystem → HTTP)
+                       leftover: routing/adapters/ (prefer routing.asgi / .fastapi)
             + CSS      Tailwind CLI finder / ensure / minify (ux_compose.tailwind)
             + ASSETS   app folders (ux_compose.assets.WebAssets) · /css mount
             + DELIVERY HTTP bind, host strategy, live units

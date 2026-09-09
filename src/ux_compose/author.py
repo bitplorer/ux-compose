@@ -1,4 +1,9 @@
-"""Official author helpers — the public form of examples/_common.py.
+"""Author convenience — the public form of examples/_common.py.
+
+Not the composition algebra (that is ``helpers.py``: bind / control /
+notify / update_with / morph_play). ``optional_*`` names are leftover
+labels kept on ``__all__`` — specialists are hard-deps, not an optional
+fork. Expire by teaching (ADR 0004). Do not rename this cut.
 
 Isolation Law: this module never imports ux_channel or CEK.
 

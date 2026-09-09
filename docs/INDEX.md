@@ -111,9 +111,9 @@ Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005
 
 | Doc | Topic |
 |-----|--------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Shape: one door, attach notes, OverlayChrome |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Shape: one door, **module map**, attach notes, OverlayChrome |
 | [OWNERSHIP.md](OWNERSHIP.md) | Ownership law (authoritative) |
-| [internals/OWNERSHIP.md](internals/OWNERSHIP.md) | Same contract in the explanation slot |
+| [internals/OWNERSHIP.md](internals/OWNERSHIP.md) | Pointer to OWNERSHIP.md — do not copy the contract here |
 | [internals/c4.md](internals/c4.md) | C4-style context |
 | [internals/hmr.md](internals/hmr.md) | origin + ui + channel, three clocks |
 | [adr/README.md](adr/README.md) | ADR slot |

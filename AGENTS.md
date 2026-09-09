@@ -48,6 +48,12 @@ Do not document them. Tags are imported from `ux_compose`.
 - Tailwind `Popen` inside `serve_dev.py` (compiler watch is `tailwind.start_watch`)
 - Origin / `worker_for` / `origin_asgi` / `SIGUSR1` inside `cli.py`
 - argparse inside `serve_dev.py`
+- Folding `author.py` into `helpers.py` (Atelier convenience ≠ composition algebra)
+- Folding `surfaces_host.py` into `surfaces.py` (scan ≠ host bind)
+- Folding `chrome.py` into `kit/overlay.py` (GET brand ≠ OverlayChrome)
+- `kit/construct.py` (copied kit files must not import `ux_compose.kit`; helpers stay at package root as `kit_construct.py`)
+- A second OWNERSHIP contract body in `docs/internals/OWNERSHIP.md`
+- Claiming `wire/boot.py` is the only Isolation importer (the door is `wire/`)
 - Clock flags (`--no-hmr`, `--no-reload`, `--css-watch`). Modes choose clocks.
 - Process-reloading the worker because `input.css` changed
 - A second Tailwind `--watch` next to serve's sibling (two writers on `output.css`)
@@ -107,6 +113,10 @@ Do not put `worker_for` / `origin_asgi` / `SIGUSR1` in `cli.py`.
 Do not put argparse in `serve_dev.py`.
 `routing/adapters/` is a leftover shim (`routing.asgi` / `routing.fastapi`
 are the product path).
+
+Module map (every concern → one file, including `helpers.py` vs
+`author.py`, `chrome.py` vs OverlayChrome, `kit_construct.py` at
+package root): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 Pure-dom: `uxdom doctor | lint | profile | add`.
 Product CSS: `uxcompose build` (`ux_compose.tailwind` finds / ensures the CLI).

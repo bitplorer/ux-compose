@@ -61,7 +61,7 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
         return None
 
     try:
-        from ux_channel.cek.host_adapter import apply_host_adapter  # Isolation: only here
+        from ux_channel.cek.host_adapter import apply_host_adapter  # Isolation: wire/ only
     except ImportError:
         if resolved == "require":
             raise ImportError(

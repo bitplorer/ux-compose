@@ -1,9 +1,9 @@
-"""
-wire/boot.py — the ONLY place that may import ux_channel, MotionChannel, or CEK.
+"""wire/boot.py — Channel / Motion attach.
 
-Isolation Law is enforced by package structure + doctor.
-Product code and the public surface of ux_compose never import from here
-except through the controlled App.use_channel / use_motion paths.
+Isolation Law: only modules under ``wire/`` may import ux_channel / CEK
+(``wire/__init__.py``). This file is not the sole importer — ``caps.py``
+and ``cek.py`` import too. Product code never imports from here except
+through App.use_channel / use_motion.
 
 Attach order (Attach Order Law):
     Document.use(Motion, MotionChannel, ...); Channel.boot(asgi); Behavior.attach(asgi).
@@ -74,7 +74,7 @@ def attach_channel(
     Raises ImportError with a clear progressive message if ux-channel is absent.
     """
     try:
-        from ux_channel import Channel, ChannelConfig  # Isolation: only here
+        from ux_channel import Channel, ChannelConfig  # Isolation: wire/ only
     except ImportError as e:
         raise ImportError(
             "ux-channel is required (Python ≥3.14). "

@@ -1,5 +1,6 @@
 """Host bind for page routes — boundary only.
 
+Not the surface catalog (that is ``surfaces.py`` scan / validate / mount).
 Authors never see this module. Host choice happens via::
 
     app.use_host("fastapi")          # or "auto"

@@ -124,3 +124,15 @@ def test_leftover_use_host_batteries_is_residual():
         diags = scan_leftover_aliases([product])
         assert diags
         assert any("batteries" in d for d in diags)
+
+
+def test_leftover_routing_adapters_is_residual():
+    with tempfile.TemporaryDirectory() as td:
+        product = Path(td) / "app.py"
+        product.write_text(
+            "from ux_compose.routing.adapters.asgi import DirectoryASGI\n",
+            encoding="utf-8",
+        )
+        diags = scan_leftover_aliases([product])
+        assert diags
+        assert any("routing.adapters" in d and "routing.asgi" in d for d in diags)

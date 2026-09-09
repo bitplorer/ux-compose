@@ -1,4 +1,7 @@
-"""Public tunnel helpers for ``uxcompose serve --tunnel``.
+"""Public tunnel helpers for ``uxcompose serve dev --tunnel``.
+
+Not a flag on ``serve prod``. ``cli.py`` parses the mode; this module
+starts the provider after origin health is green.
 
 Providers (optional binaries on PATH):
 * ``ngrok``      — local API :4040 for public URL

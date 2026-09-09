@@ -1,6 +1,8 @@
 """Drop-in tabs — one MorphState key, public select.
 
-Host seam: override ``ITEMS``. Opening a tab is not an authority event.
+Host seam: construct kwargs OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``tab``. Caps: none. A11y (APG Tabs): ``role=tablist`` / ``tab`` /
@@ -13,8 +15,8 @@ panel ``aria-labelledby`` the tab. Inactive panels stay in the tree with
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -30,13 +32,14 @@ from ux_compose import (
 )
 
 
-class Tabs(Component):
+class Tabs(Kit):
     """Segmented tabs. The active key is MorphState.
 
     ``ITEMS`` is ``(key, label, title, body)``. Override on the copy.
     """
 
     id = "tabs"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 overflow-x-hidden "
@@ -135,7 +138,7 @@ class Tabs(Component):
                     **panel_attrs,
                 )
             )
-        return div(
+        return self.kit_shell(
             span("Workspace", className=self.class_kicker),
             nav(*segs, className=self.class_tablist, role="tablist", aria_label="Workspace"),
             *panels,

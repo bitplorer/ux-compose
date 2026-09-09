@@ -1,6 +1,8 @@
 """Drop-in popover — non-modal disclosure anchored to a trigger.
 
-Host seam: override ``title`` / ``body`` copy. Opening is public.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``. Caps: none. A11y (APG Popover): trigger
@@ -11,8 +13,8 @@ Not OverlayChrome — no focus trap; dialogs own that.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -25,10 +27,11 @@ from ux_compose import (
 )
 
 
-class Popover(Component):
+class Popover(Kit):
     """Light overlay. Presence is MorphState. Resting trigger stays in flow."""
 
     id = "popover"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -76,10 +79,7 @@ class Popover(Component):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return div(
-            span("Hint", className=self.class_kicker),
-            h2("A quiet note", className=self.class_title),
-            p("Not a modal. Focus stays in the page.", className=self.class_lede),
+        return self.kit_shell(
             scrim,
             div(
                 button(
@@ -98,6 +98,11 @@ class Popover(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
+            chrome=(
+                span("Hint", className=self.class_kicker),
+                h2("A quiet note", className=self.class_title),
+                p("Not a modal. Focus stays in the page.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

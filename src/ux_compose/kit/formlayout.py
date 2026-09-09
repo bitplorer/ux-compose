@@ -1,6 +1,8 @@
 """Drop-in form layout — labeled fields with error wiring.
 
-Host seam: override ``FIELDS`` and ``on_submit(values)``. Submit is a Cap.
+Host seam: construct kwargs OR subclass.
+Accepted: ``fields`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``dirty``. RefState: ``values``, ``errors``. Caps: ``form.submit``.
@@ -10,8 +12,8 @@ A11y: label ``html_for`` ↔ control ``id``; ``aria-invalid`` +
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -29,10 +31,11 @@ from ux_compose import (
 )
 
 
-class FormLayout(Component):
+class FormLayout(Kit):
     """Stacked labeled fields. Values attach before the morph."""
 
     id = "formlayout"
+    _SEAMS = {'fields': 'FIELDS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -112,10 +115,7 @@ class FormLayout(Component):
                     className=self.class_field,
                 )
             )
-        return div(
-            span("Form", className=self.class_kicker),
-            h2("Write it down", className=self.class_title),
-            p("Each label points at its control. Errors describe the field.", className=self.class_lede),
+        return self.kit_shell(
             form(
                 *fields,
                 button("Save", type="button", className=self.class_submit, **bind(self.submit)),
@@ -123,6 +123,11 @@ class FormLayout(Component):
             ),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Form", className=self.class_kicker),
+                h2("Write it down", className=self.class_title),
+                p("Each label points at its control. Errors describe the field.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

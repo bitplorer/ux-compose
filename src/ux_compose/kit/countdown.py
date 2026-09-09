@@ -1,6 +1,8 @@
 """Drop-in countdown — remaining magnitude on RefState.
 
-Host seam: override start remaining. Ticking is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``remain`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``dirty``. RefState: ``remain``. Caps: none.
@@ -10,8 +12,8 @@ lives on MorphState. Not Stepper (named wizard) and not SpinButton.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -26,10 +28,11 @@ from ux_compose import (
 )
 
 
-class Countdown(Component):
+class Countdown(Kit):
     """Seconds until the cut. The number is RefState."""
 
     id = "countdown"
+    _SEAMS = {'remain': 'remain'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -59,7 +62,7 @@ class Countdown(Component):
     def render(self):
         n = self._n()
         title_id = f"{self.id}-label"
-        return div(
+        return self.kit_shell(
             span("Until", className=self.class_kicker),
             h2("The cut", id=title_id, className=self.class_title),
             p(f"{n}s left. Magnitude is RefState.", className=self.class_lede),

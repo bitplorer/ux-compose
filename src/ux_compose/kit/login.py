@@ -12,7 +12,9 @@ on errors. Mode tabs ``role=tablist`` with ``{id}-tab-{mode}`` /
 ``{id}-p-{mode}`` ``aria-controls`` + ``tabpanel``. Inactive panel stays
 in the tree with ``hidden``.
 
-Host seam: override ``authenticate()``. Validation and reveal stay here.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 """
 
@@ -20,8 +22,8 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -62,7 +64,7 @@ def _password_ok(value: str, *, signup: bool) -> bool:
     return True
 
 
-class Login(Component):
+class Login(Kit):
     """Sign-in / sign-up card. Copy, ``app.add(Login)``, or subclass.
 
     Chrome is MorphState. Values and field errors are RefState. Submit
@@ -74,6 +76,7 @@ class Login(Component):
     """
 
     id = "login"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-center mx-auto flex w-full max-w-md flex-col rounded-3xl border "
@@ -183,7 +186,7 @@ class Login(Component):
 
     def _render_success(self):
         email = str(self.email or "")
-        return div(
+        return self.kit_shell(
             div(
                 span("In", className=self.class_mark),
                 h1("You're in", className=self.class_title + " mt-4"),

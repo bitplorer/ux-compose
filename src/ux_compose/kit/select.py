@@ -1,6 +1,8 @@
 """Drop-in select — grouped options, placeholder, click-away scrim.
 
-Host seam: override ``GROUPS``. Distinct from Dropdown: a form field with groups.
+Host seam: construct kwargs OR subclass.
+Accepted: ``groups`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``, ``value``. Caps: none. A11y (APG Select-Only Combobox):
@@ -11,8 +13,8 @@ scrim close is public Morph. Label ``html_for`` ↔ trigger ``id``.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -27,13 +29,14 @@ from ux_compose import (
 )
 
 
-class Select(Component):
+class Select(Kit):
     """Closed trigger, grouped list. Value is a named key.
 
     ``GROUPS`` is ``(label, ((key, option), …))``. Override on the copy.
     """
 
     id = "select"
+    _SEAMS = {'groups': 'GROUPS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
@@ -135,10 +138,7 @@ class Select(Component):
         )
         trigger_id = f"{self.id}-trigger"
         label_id = f"{self.id}-label"
-        return div(
-            span("Field", className=self.class_kicker),
-            h2("Material", className=self.class_title),
-            p("Grouped options. The value is a name.", className=self.class_lede),
+        return self.kit_shell(
             label("Finish", html_for=trigger_id, id=label_id, className=self.class_label),
             scrim,
             div(
@@ -161,6 +161,11 @@ class Select(Component):
             className=self.class_card,
             data_open="1" if is_open else "0",
             data_value=val,
+            chrome=(
+                span("Field", className=self.class_kicker),
+                h2("Material", className=self.class_title),
+                p("Grouped options. The value is a name.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

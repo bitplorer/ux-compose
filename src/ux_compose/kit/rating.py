@@ -1,6 +1,8 @@
 """Drop-in rating — named stars, APG radio group.
 
-Host seam: override ``STARS``. Choosing is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``stars`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value`` (a name, never an int). Caps: none.
@@ -10,8 +12,8 @@ A11y (APG Radio Group): ``role=radiogroup`` labelledby; each star
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -25,13 +27,14 @@ from ux_compose import (
 )
 
 
-class Rating(Component):
+class Rating(Kit):
     """How it sits. The key is a name (one … five), not MorphState(int).
 
     ``STARS`` is ``(key, label)``. Override on the copy.
     """
 
     id = "rating"
+    _SEAMS = {'stars': 'STARS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -86,7 +89,7 @@ class Rating(Component):
                     **bind(self.choose, key=key),
                 )
             )
-        return div(
+        return self.kit_shell(
             span("Keep", className=self.class_kicker),
             h2("How it sits", id=title_id, className=self.class_title),
             p(f"{n} of {len(keys)}. The key is a name.", className=self.class_lede),

@@ -4,14 +4,16 @@ MorphState: ``value``, ``dirty``. RefState: ``query``. Caps: none.
 A11y: label ``for`` ↔ input id; ``aria-autocomplete`` ``aria-controls``.
 
 Unlike Combobox, there is no Filter submit. The field *is* the control.
-Host seam: override ``OPTIONS`` and ``on_pick(label)``.
+Host seam: construct kwargs OR subclass.
+Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 """
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -30,7 +32,7 @@ from ux_compose import (
 )
 
 
-class Typeahead(Component):
+class Typeahead(Kit):
     """Type. Hits morph. Pick is a name.
 
     The input carries ``data-channel-action`` + ``data-channel-on=\"input delay:300\"``.
@@ -40,6 +42,7 @@ class Typeahead(Component):
     """
 
     id = "typeahead"
+    _SEAMS = {'options': 'OPTIONS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
@@ -129,9 +132,7 @@ class Typeahead(Component):
     def render(self):
         q = str(self.query or "")
         val = str(self.value or "")
-        return div(
-            span("Live filter", className=self.class_kicker),
-            h2("Typeahead", className=self.class_title),
+        return self.kit_shell(
             p(
                 "The list follows after a 300ms pause. The field keeps what you type.",
                 className=self.class_lede,
@@ -155,6 +156,10 @@ class Typeahead(Component):
             self._listing(),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Live filter", className=self.class_kicker),
+                h2("Typeahead", className=self.class_title),
+            ),
         )
 
     def _take_q(self, q: str = "", **kwargs):

@@ -1,13 +1,15 @@
 """Drop-in stepper — named steps, public next, Cap on finish.
 
-Host seam: override ``STEPS`` and ``on_finish()``.
+Host seam: construct kwargs OR subclass.
+Accepted: ``steps`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 """
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -21,13 +23,14 @@ from ux_compose import (
 )
 
 
-class Stepper(Component):
+class Stepper(Kit):
     """Wizard. Current step is a name, never an int MorphState.
 
     ``STEPS`` is ``(key, label, body)``. Finish spends ``stepper.finish``.
     """
 
     id = "stepper"
+    _SEAMS = {'steps': 'STEPS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-5 overflow-x-hidden "
@@ -93,7 +96,7 @@ class Stepper(Component):
 
     def render(self):
         if bool(self.done):
-            return div(
+            return self.kit_shell(
                 div(
                     span("Done", className=self.class_mark),
                     h2("You're through", className=self.class_title),
@@ -144,7 +147,7 @@ class Stepper(Component):
                 **bind(self.next),
             )
         )
-        return div(
+        return self.kit_shell(
             span("Flow", className=self.class_kicker),
             div(*dots, className=self.class_row, aria_label="Steps"),
             div(

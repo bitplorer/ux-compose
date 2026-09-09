@@ -1,6 +1,8 @@
 """Drop-in footer — contentinfo landmark with named links.
 
-Host seam: override ``LINKS``. Walking is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``links`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``here``. Caps: none. A11y: ``footer`` / ``nav`` ``aria-label``,
@@ -9,8 +11,8 @@ MorphState: ``here``. Caps: none. A11y: ``footer`` / ``nav`` ``aria-label``,
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -25,10 +27,11 @@ from ux_compose import (
 )
 
 
-class Footer(Component):
+class Footer(Kit):
     """Site floor. Named destinations, not a second Host."""
 
     id = "footer"
+    _SEAMS = {'links': 'LINKS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-[44rem] flex-col "

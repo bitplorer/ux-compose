@@ -1,6 +1,8 @@
 """Drop-in stats — named metrics as RefState, dirty MorphState.
 
-Host seam: override ``ITEMS``. Numbers never live on MorphState.
+Host seam: construct kwargs OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``dirty``. RefState: ``items``. Caps: none. A11y: list of
@@ -9,8 +11,8 @@ MorphState: ``dirty``. RefState: ``items``. Caps: none. A11y: list of
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -24,10 +26,11 @@ from ux_compose import (
 )
 
 
-class Stats(Component):
+class Stats(Kit):
     """Three named counts. Magnitude is RefState; ``dirty`` morphs the card."""
 
     id = "stats"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -68,14 +71,16 @@ class Stats(Component):
             )
             for key, lab, val in self._items()
         ]
-        return div(
-            span("Today", className=self.class_kicker),
-            h2("On the desk", className=self.class_title),
-            p("Counts live on RefState. Dirty is the morph clock.", className=self.class_lede),
+        return self.kit_shell(
             div(*tiles, className=self.class_grid),
             button("Refresh", type="button", className=self.class_btn, **bind(self.refresh)),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Today", className=self.class_kicker),
+                h2("On the desk", className=self.class_title),
+                p("Counts live on RefState. Dirty is the morph clock.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

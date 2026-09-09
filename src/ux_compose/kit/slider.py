@@ -1,6 +1,8 @@
 """Drop-in slider — magnitude on RefState, dirty MorphState.
 
-Host seam: override min/max labels. Sliding is public.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``dirty``. RefState: ``value``. Caps: none.
@@ -10,8 +12,8 @@ Label ``for`` ↔ range id. Quantity never lives on MorphState.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -27,10 +29,11 @@ from ux_compose import (
 )
 
 
-class Slider(Component):
+class Slider(Kit):
     """Named range. The number is RefState; dirty morphs the card."""
 
     id = "slider"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -55,7 +58,7 @@ class Slider(Component):
         n = self._n()
         fid = f"{self.id}-range"
         lab_id = f"{self.id}-label"
-        return div(
+        return self.kit_shell(
             span("Amount", className=self.class_kicker),
             h2("How much", id=lab_id, className=self.class_title),
             p(f"{n} of 100", className=self.class_lede),

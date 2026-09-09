@@ -1,6 +1,8 @@
 """Drop-in toggle group — exclusive named segment, APG radio group.
 
-Host seam: override ``ITEMS``. Picking is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. Caps: none. A11y (APG Radio Group):
@@ -11,8 +13,8 @@ MorphState: ``value``. Caps: none. A11y (APG Radio Group):
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -26,13 +28,14 @@ from ux_compose import (
 )
 
 
-class ToggleGroup(Component):
+class ToggleGroup(Kit):
     """One named band. Exclusive. The key is MorphState.
 
     ``ITEMS`` is ``(key, label)``. Override on the copy.
     """
 
     id = "togglegroup"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -93,7 +96,7 @@ class ToggleGroup(Component):
                     **bind(self.choose, key=k),
                 )
             )
-        return div(
+        return self.kit_shell(
             span("Range", className=self.class_kicker),
             h2("How far", id=title_id, className=self.class_title),
             p(f"Showing {label.lower()}. Picking is public.", className=self.class_lede),

@@ -1,6 +1,8 @@
 """Drop-in calendar — month and day are named keys.
 
-Host seam: override ``on_pick(day)``. Quantity never lives on MorphState.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``month``, ``day``. Caps: none. A11y (APG Date Picker grid):
@@ -14,8 +16,8 @@ from __future__ import annotations
 import calendar as _cal
 from datetime import datetime
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -53,13 +55,14 @@ def _shift_month(raw: str, delta: int) -> str:
     return f"{y:04d}-{m:02d}"
 
 
-class Calendar(Component):
+class Calendar(Kit):
     """Month grid. ``month`` is ``YYYY-MM``. ``day`` is ``YYYY-MM-DD``.
 
     Prev / next shift the month key on the server. Picking a day is public.
     """
 
     id = "calendar"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 overflow-x-hidden "
@@ -130,7 +133,7 @@ class Calendar(Component):
                 )
             rows.append(div(*cells, className=self.class_row, role="row"))
         picked = selected or "Nothing chosen"
-        return div(
+        return self.kit_shell(
             span("Date", className=self.class_kicker),
             div(
                 button("Prev", type="button", className=self.class_btn_ghost, **bind(self.prev)),

@@ -1,6 +1,8 @@
 """Drop-in chat — live log, labeled composer, public send.
 
-Host seam: override ``on_send(text)``. Sending a line is public.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``typing``, ``dirty``. RefState: ``lines``, ``draft``.
@@ -11,8 +13,8 @@ Typing is qualitative MorphState. Lines are a list on RefState.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -32,10 +34,11 @@ from ux_compose import (
 )
 
 
-class Chat(Component):
+class Chat(Kit):
     """A short desk thread. The log is RefState; typing is MorphState."""
 
     id = "chat"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -79,9 +82,7 @@ class Chat(Component):
             if typing
             else p(f"{len(lines)} line" + ("" if len(lines) == 1 else "s") + ".", className=self.class_lede)
         )
-        return div(
-            span("Desk", className=self.class_kicker),
-            h2("Chat", className=self.class_title),
+        return self.kit_shell(
             status,
             ul(
                 *rows,
@@ -110,6 +111,10 @@ class Chat(Component):
             id=self.id,
             className=self.class_card,
             data_typing="1" if typing else "0",
+            chrome=(
+                span("Desk", className=self.class_kicker),
+                h2("Chat", className=self.class_title),
+            ),
         )
 
     @action(caps=())

@@ -1,6 +1,8 @@
 """Drop-in bottom nav — mobile landmark, named sections.
 
-Host seam: override ``ITEMS``. Selecting is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``active``. Caps: none. A11y: ``nav`` ``aria-label``,
@@ -9,8 +11,8 @@ MorphState: ``active``. Caps: none. A11y: ``nav`` ``aria-label``,
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -25,10 +27,11 @@ from ux_compose import (
 )
 
 
-class BottomNav(Component):
+class BottomNav(Kit):
     """Phone chrome. One named section. Caps stay off."""
 
     id = "bottomnav"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col "
@@ -78,7 +81,7 @@ class BottomNav(Component):
                     **bind(self.select, key=k),
                 )
             )
-        return div(
+        return self.kit_shell(
             div(
                 span(label, className=self.class_kicker),
                 h2(title, className=self.class_title),

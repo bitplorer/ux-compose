@@ -1,6 +1,8 @@
 """Drop-in avatar — initials stand-in, labelled image role.
 
-Host seam: override ``name``. Caps: none.
+Host seam: construct kwargs OR subclass.
+Accepted: ``name`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: none. RefState: ``name``. A11y: ``role=img`` ``aria-label``.
@@ -8,8 +10,8 @@ MorphState: none. RefState: ``name``. A11y: ``role=img`` ``aria-label``.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     RefState,
     action,
     bind,
@@ -22,10 +24,11 @@ from ux_compose import (
 )
 
 
-class Avatar(Component):
+class Avatar(Kit):
     """Face without a file. The accessible name is the person."""
 
     id = "avatar"
+    _SEAMS = {'name': 'name'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -49,14 +52,16 @@ class Avatar(Component):
         who = str(self.name or "You")
         bits = [p for p in who.split() if p]
         initials = "".join(b[0] for b in bits[:2]).upper() or "Y"
-        return div(
-            span("You", className=self.class_kicker),
-            h2("Portrait", className=self.class_title),
+        return self.kit_shell(
             p(who, className=self.class_lede),
             span(initials, className=self.class_mark, role="img", aria_label=who),
             button("Rename", type="button", className=self.class_btn, **bind(self.rename)),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("You", className=self.class_kicker),
+                h2("Portrait", className=self.class_title),
+            ),
         )
 
     @action(caps=())

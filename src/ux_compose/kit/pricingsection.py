@@ -1,6 +1,8 @@
 """Drop-in pricing section — comparison table of named tiers.
 
-Host seam: override ``TIERS`` / ``FEATURES``. Choosing is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``tiers``, ``features`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. Caps: none. A11y: ``<table>`` with ``scope=col``.
@@ -10,8 +12,8 @@ Not Plans (no radiogroup of whole cards).
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -31,13 +33,14 @@ from ux_compose import (
 )
 
 
-class PricingSection(Component):
+class PricingSection(Kit):
     """Compare named desks. The selected key is MorphState.
 
     ``TIERS`` is ``(key, name, price)``. ``FEATURES`` is ``(label, {key: cell})``.
     """
 
     id = "pricingsection"
+    _SEAMS = {'tiers': 'TIERS', 'features': 'FEATURES'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-[44rem] flex-col gap-4 "
@@ -105,9 +108,7 @@ class PricingSection(Component):
         ]
         body.append(tr(th("Join", scope="row", className=self.class_td), *chooses))
         chosen = next((n for k, n, _p in self._tiers() if k == val), val)
-        return div(
-            span("Join", className=self.class_kicker),
-            h2("Desks", className=self.class_title),
+        return self.kit_shell(
             p(f"Selected · {chosen}. Picking is public.", className=self.class_lede),
             table(
                 thead(tr(*heads)),
@@ -117,6 +118,10 @@ class PricingSection(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
+            chrome=(
+                span("Join", className=self.class_kicker),
+                h2("Desks", className=self.class_title),
+            ),
         )
 
     @action(caps=())

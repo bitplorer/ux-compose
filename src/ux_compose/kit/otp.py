@@ -1,13 +1,15 @@
 """Drop-in OTP — six digits attach before the morph.
 
-Host seam: override ``on_verify(code)``. Submit spends ``auth.otp``.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 """
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -25,13 +27,14 @@ from ux_compose import (
 )
 
 
-class Otp(Component):
+class Otp(Kit):
     """One-time code. The typed digits attach onto RefState, then morph.
 
     Demo: any six digits verify except ``000000``. Override ``on_verify``.
     """
 
     id = "otp"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-md flex-col gap-4 rounded-3xl border "
@@ -95,7 +98,7 @@ class Otp(Component):
 
     def render(self):
         if bool(self.ok):
-            return div(
+            return self.kit_shell(
                 div(
                     span("Ok", className=self.class_mark),
                     h2("Code accepted", className=self.class_title),
@@ -114,10 +117,7 @@ class Otp(Component):
             )
         code = str(self.code or "")
         err = str(self.err or "")
-        return div(
-            span("Verify", className=self.class_kicker),
-            h2("Enter the code", className=self.class_title),
-            p("Six digits. They attach before the morph.", className=self.class_lede),
+        return self.kit_shell(
             form(
                 label("One-time code", className=self.class_label, html_for="otp-code"),
                 input_(
@@ -149,6 +149,11 @@ class Otp(Component):
             ),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Verify", className=self.class_kicker),
+                h2("Enter the code", className=self.class_title),
+                p("Six digits. They attach before the morph.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

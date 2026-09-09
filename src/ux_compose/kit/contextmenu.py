@@ -1,6 +1,8 @@
 """Drop-in context menu — click or longpress on the same control.
 
-Host seam: override ``ITEMS`` and ``on_run(key)``.
+Host seam: construct kwargs OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``, ``dirty``. RefState: ``ran``. Caps: none.
@@ -12,8 +14,8 @@ inherit it. The menu is a floating panel (list-none), not a native tab/list.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -41,10 +43,11 @@ def _plan(name: str, target: str, *, ms: int = 120):
         return None
 
 
-class ContextMenu(Component):
+class ContextMenu(Kit):
     """Hold or click the canvas. Items are named keys."""
 
     id = "contextmenu"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
@@ -120,9 +123,7 @@ class ContextMenu(Component):
                 ),
                 ul(*rows, id=menu_id, className=self.class_menu, role="menu"),
             ]
-        return div(
-            span("Hold or click", className=self.class_kicker),
-            h2("Context menu", className=self.class_title),
+        return self.kit_shell(
             p(
                 "The trigger accepts both pointers. Items stay on click only.",
                 className=self.class_lede,
@@ -148,6 +149,10 @@ class ContextMenu(Component):
             role="region",
             data_open="1" if is_open else "0",
             data_channel_id=self.id,
+            chrome=(
+                span("Hold or click", className=self.class_kicker),
+                h2("Context menu", className=self.class_title),
+            ),
         )
 
     @action(caps=())

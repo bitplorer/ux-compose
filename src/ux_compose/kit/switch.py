@@ -1,6 +1,8 @@
 """Drop-in switch — boolean MorphState, public flip.
 
-Host seam: override the label copy. Flipping is not an authority event.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``on``. Caps: none. A11y (APG Switch): ``role=switch``
@@ -9,8 +11,8 @@ MorphState: ``on``. Caps: none. A11y (APG Switch): ``role=switch``
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -24,10 +26,11 @@ from ux_compose import (
 )
 
 
-class Switch(Component):
+class Switch(Kit):
     """Quiet hours. Boolean MorphState is qualitative — legal on the session plane."""
 
     id = "switch"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -47,7 +50,7 @@ class Switch(Component):
     def render(self):
         on = bool(self.on)
         label_id = f"{self.id}-label"
-        return div(
+        return self.kit_shell(
             span("Quiet", className=self.class_kicker),
             h2("Quiet hours", id=label_id, className=self.class_title),
             p(

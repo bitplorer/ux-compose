@@ -1,6 +1,8 @@
 """Drop-in multi-select — named set on RefState, listbox.
 
-Host seam: override ``OPTIONS``. Selecting is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``, ``dirty``. RefState: ``selected``. Caps: none.
@@ -10,8 +12,8 @@ A11y (APG Listbox multi): trigger ``aria-haspopup=listbox``; options
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -26,10 +28,11 @@ from ux_compose import (
 )
 
 
-class MultiSelect(Component):
+class MultiSelect(Kit):
     """Several named values. The set is RefState; open is MorphState."""
 
     id = "multiselect"
+    _SEAMS = {'options': 'OPTIONS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -116,10 +119,7 @@ class MultiSelect(Component):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return div(
-            span("Field", className=self.class_kicker),
-            h2("Materials", className=self.class_title),
-            p("Several names. Select-all is not a row click.", className=self.class_lede),
+        return self.kit_shell(
             scrim,
             div(
                 button(
@@ -138,6 +138,11 @@ class MultiSelect(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
+            chrome=(
+                span("Field", className=self.class_kicker),
+                h2("Materials", className=self.class_title),
+                p("Several names. Select-all is not a row click.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

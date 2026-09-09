@@ -1,6 +1,8 @@
 """Drop-in skeleton — loading placeholder, busy region.
 
-Host seam: none. Toggle is public chrome.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``loading``. Caps: none. A11y: ``aria-busy`` on the region;
@@ -9,8 +11,8 @@ placeholder bars ``aria-hidden``.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -23,10 +25,11 @@ from ux_compose import (
 )
 
 
-class Skeleton(Component):
+class Skeleton(Kit):
     """Pulse bars while the Host fills. Loading is presence, not a quantity."""
 
     id = "skeleton"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -56,7 +59,7 @@ class Skeleton(Component):
             if loading
             else p("The catalog arrived. Bars were never content.", className=self.class_lede)
         )
-        return div(
+        return self.kit_shell(
             span("Wait" if loading else "Ready", className=self.class_kicker),
             h2("Loading the desk" if loading else "On the desk", className=self.class_title),
             body,

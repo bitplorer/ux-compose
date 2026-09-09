@@ -1,6 +1,8 @@
 """Drop-in hero — titled landing band with a public CTA.
 
-Host seam: override ``TITLE`` / ``BODY`` / ``on_act()``. Acting is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``title``, ``body``, ``action`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``done``. Caps: none. A11y: region labelledby title.
@@ -8,8 +10,8 @@ MorphState: ``done``. Caps: none. A11y: region labelledby title.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -23,10 +25,11 @@ from ux_compose import (
 )
 
 
-class Hero(Component):
+class Hero(Kit):
     """First impression. The CTA is chrome, not a Cap."""
 
     id = "hero"
+    _SEAMS = {'title': 'TITLE', 'body': 'BODY', 'action': 'ACTION'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-[44rem] flex-col "
@@ -52,8 +55,7 @@ class Hero(Component):
     def render(self):
         title_id = f"{self.id}-title"
         done = bool(self.done)
-        return div(
-            span("Studio", className=self.class_kicker),
+        return self.kit_shell(
             h2(self.TITLE, id=title_id, className=self.class_title),
             p(self.BODY, className=self.class_lede),
             button(
@@ -62,6 +64,7 @@ class Hero(Component):
                 className=self.class_btn,
                 **bind(self.act),
             ),
+            chrome=(span("Studio", className=self.class_kicker),),
             id=self.id,
             className=self.class_card,
             role="region",

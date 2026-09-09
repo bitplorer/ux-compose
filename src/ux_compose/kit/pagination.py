@@ -1,6 +1,8 @@
 """Drop-in pagination — opaque page keys, never a quantity MorphState.
 
-Host seam: override ``PAGES`` and ``WINDOW``. Keys are names (``p1``), not ints.
+Host seam: construct kwargs OR subclass.
+Accepted: ``window``, ``pages`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 ``WINDOW`` is how many numbered neighbors sit next to the current page.
 
 The bar never paints every key. Core is a sliding window (always visible).
@@ -12,8 +14,8 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -87,7 +89,7 @@ def page_slots(idx: int, n: int, window: int = 1):
     return tuple(out)
 
 
-class Pagination(Component):
+class Pagination(Kit):
     """Named pages. Channel refuses quantity MorphState, so keys are ``p1``…
 
     ``PAGES`` is ``(key, (item, …))``. Override on the copy.
@@ -96,6 +98,7 @@ class Pagination(Component):
     """
 
     id = "pagination"
+    _SEAMS = {'window': 'WINDOW', 'pages': 'PAGES'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 "
@@ -219,9 +222,7 @@ class Pagination(Component):
                 continue
             slot, band = rest
             dots.append(self._page_btn(slot, cur, keys, edge=band == "edge"))
-        return div(
-            span("Catalog", className=self.class_kicker),
-            h2("The shelf", className=self.class_title),
+        return self.kit_shell(
             p(f"Page {idx + 1} of {n}", className=self.class_lede),
             ul(*lis, className=self.class_list),
             div(
@@ -243,6 +244,10 @@ class Pagination(Component):
             data_of=str(n),
             data_window=str(self._window()),
             data_channel_id=self.id,
+            chrome=(
+                span("Catalog", className=self.class_kicker),
+                h2("The shelf", className=self.class_title),
+            ),
         )
 
     @action(caps=())

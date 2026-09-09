@@ -1,6 +1,8 @@
 """Drop-in nav menu — disclosure of named destinations.
 
-Host seam: override ``ITEMS``. Opening is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``, ``value``. Caps: none. A11y (APG Menu): trigger
@@ -10,8 +12,8 @@ Escape on scrim.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -25,10 +27,11 @@ from ux_compose import (
 )
 
 
-class NavMenu(Component):
+class NavMenu(Kit):
     """Desktop menu. Value is a named key. Menu is presence."""
 
     id = "navmenu"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -94,10 +97,7 @@ class NavMenu(Component):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return div(
-            span("Jump", className=self.class_kicker),
-            h2("Go somewhere", className=self.class_title),
-            p("A named destination. Opening the menu is public.", className=self.class_lede),
+        return self.kit_shell(
             scrim,
             div(
                 button(
@@ -117,6 +117,11 @@ class NavMenu(Component):
             className=self.class_card,
             data_open="1" if is_open else "0",
             data_value=val,
+            chrome=(
+                span("Jump", className=self.class_kicker),
+                h2("Go somewhere", className=self.class_title),
+                p("A named destination. Opening the menu is public.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

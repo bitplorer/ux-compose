@@ -1,6 +1,8 @@
 """Drop-in banner — page-level status strip, public dismiss.
 
-Host seam: override ``TITLE`` / ``BODY``. Dismiss is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``title``, ``body`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``. Caps: none. A11y: ``role=region`` labelledby; not
@@ -9,8 +11,8 @@ MorphState: ``open``. Caps: none. A11y: ``role=region`` labelledby; not
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -23,10 +25,11 @@ from ux_compose import (
 )
 
 
-class Banner(Component):
+class Banner(Kit):
     """Site-wide notice. Closing is Morph, not a Cap."""
 
     id = "banner"
+    _SEAMS = {'title': 'TITLE', 'body': 'BODY'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-[44rem] items-start "
@@ -51,7 +54,7 @@ class Banner(Component):
 
     def render(self):
         if not bool(self.open):
-            return div(
+            return self.kit_shell(
                 span("Quiet", className="text-xs font-medium uppercase tracking-widest text-stone-400"),
                 h2("Banner hidden", className="m-0 font-serif text-2xl font-semibold"),
                 button("Show banner", type="button", className=self.class_x + " border border-stone-200 px-4", **bind(self.show)),
@@ -60,7 +63,7 @@ class Banner(Component):
                 data_open="0",
             )
         title_id = f"{self.id}-title"
-        return div(
+        return self.kit_shell(
             div(
                 span("Notice", className=self.class_kicker),
                 h2(self.TITLE, id=title_id, className=self.class_title),

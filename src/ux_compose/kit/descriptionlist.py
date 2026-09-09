@@ -1,6 +1,8 @@
 """Drop-in description list — named facts as ``dl`` / ``dt`` / ``dd``.
 
-Host seam: override ``ITEMS``. Caps: none.
+Host seam: construct kwargs OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: none. A11y: native description list. Not a table.
@@ -8,8 +10,8 @@ MorphState: none. A11y: native description list. Not a table.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     dd,
     div,
     dl,
@@ -20,10 +22,11 @@ from ux_compose import (
 )
 
 
-class DescriptionList(Component):
+class DescriptionList(Kit):
     """Facts about a piece. Terms and details, not columns."""
 
     id = "descriptionlist"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -48,11 +51,13 @@ class DescriptionList(Component):
         for term, detail in self.ITEMS:
             rows.append(dt(term, className=self.class_dt))
             rows.append(dd(detail, className=self.class_dd))
-        return div(
-            span("Facts", className=self.class_kicker),
-            h2("This piece", className=self.class_title),
-            p("A description list, not a data table.", className=self.class_lede),
+        return self.kit_shell(
             dl(*rows, className=self.class_list),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Facts", className=self.class_kicker),
+                h2("This piece", className=self.class_title),
+                p("A description list, not a data table.", className=self.class_lede),
+            ),
         )

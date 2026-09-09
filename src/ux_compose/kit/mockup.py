@@ -1,6 +1,8 @@
 """Drop-in mockup — named device frame around a preview.
 
-Host seam: override ``PREVIEW``. Choosing a device is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``devices``, ``preview`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. Caps: none. A11y: device radiogroup; frame labelled.
@@ -9,8 +11,8 @@ Not Hero (landing CTA).
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -24,10 +26,11 @@ from ux_compose import (
 )
 
 
-class Mockup(Component):
+class Mockup(Kit):
     """How it sits on a desk or a phone. The device is a name."""
 
     id = "mockup"
+    _SEAMS = {'devices': 'DEVICES', 'preview': 'PREVIEW'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -56,15 +59,17 @@ class Mockup(Component):
             )
             for key, lab in self.DEVICES
         ]
-        return div(
-            span("Look", className=self.class_kicker),
-            h2("On the table", className=self.class_title),
-            p("A named frame. Choosing is public.", className=self.class_lede),
+        return self.kit_shell(
             div(*chips, className="flex gap-2", role="radiogroup", aria_label="Device"),
             div(self.PREVIEW, className=f"{self.class_frame} {width}", aria_label=f"{val} preview"),
             id=self.id,
             className=self.class_card,
             data_value=val,
+            chrome=(
+                span("Look", className=self.class_kicker),
+                h2("On the table", className=self.class_title),
+                p("A named frame. Choosing is public.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

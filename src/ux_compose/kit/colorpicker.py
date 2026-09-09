@@ -1,6 +1,8 @@
 """Drop-in color picker — named swatches plus a labeled hex field.
 
-Host seam: override ``SWATCHES``. Choosing is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``swatches`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. RefState: ``hex``, ``dirty`` clock on MorphState.
@@ -10,8 +12,8 @@ Caps: none. A11y: swatches ``role=radiogroup`` / ``radio``; label ``for``
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -28,10 +30,11 @@ from ux_compose import (
 )
 
 
-class ColorPicker(Component):
+class ColorPicker(Kit):
     """Named ink. The swatch is a key; hex is RefState."""
 
     id = "colorpicker"
+    _SEAMS = {'swatches': 'SWATCHES'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -81,7 +84,7 @@ class ColorPicker(Component):
                     **bind(self.choose, key=key),
                 )
             )
-        return div(
+        return self.kit_shell(
             span("Ink", className=self.class_kicker),
             h2("Color", id=title_id, className=self.class_title),
             p("A named swatch. Hex attaches.", className=self.class_lede),

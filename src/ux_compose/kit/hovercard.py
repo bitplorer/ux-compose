@@ -1,6 +1,8 @@
 """Drop-in hover card — richer tooltip, non-modal dialog.
 
-Host seam: override copy. Opening is public.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``. Caps: none. A11y: trigger ``aria-expanded``
@@ -10,8 +12,8 @@ Escape on scrim. Sibling of Popover with denser body.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -24,10 +26,11 @@ from ux_compose import (
 )
 
 
-class HoverCard(Component):
+class HoverCard(Kit):
     """Preview a person or piece without leaving the row."""
 
     id = "hovercard"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -76,10 +79,7 @@ class HoverCard(Component):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return div(
-            span("Preview", className=self.class_kicker),
-            h2("Who made this", className=self.class_title),
-            p("Richer than a tooltip. Still not a modal.", className=self.class_lede),
+        return self.kit_shell(
             scrim,
             div(
                 button(
@@ -98,6 +98,11 @@ class HoverCard(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
+            chrome=(
+                span("Preview", className=self.class_kicker),
+                h2("Who made this", className=self.class_title),
+                p("Richer than a tooltip. Still not a modal.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

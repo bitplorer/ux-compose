@@ -1,7 +1,10 @@
 """Drop-in FAB — floating action with an optional speed-dial menu.
 
-Host seam: override ``ACTIONS`` and ``on_run(key)``. Opening is public.
-Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+Host seam: construct kwargs OR subclass.
+Accepted: ``actions`` (tuple[tuple[str, str], ...] — same type as ``ACTIONS``),
+``shell`` (bool; ``False`` is the FAB/menu only, no demo kicker/title/lede card).
+Subclass may still override ``ACTIONS`` / ``on_run(key)``; instance attrs win.
+Opening is public. Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``, ``value``. Caps: none. A11y: trigger ``aria-haspopup=menu``
 ``aria-expanded`` ``aria-controls`` the menu id ``{id}-menu``. The menu stays
@@ -12,8 +15,8 @@ NavMenu (destination list).
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -27,10 +30,11 @@ from ux_compose import (
 )
 
 
-class Fab(Component):
+class Fab(Kit):
     """A round verb in the corner. The last run key is MorphState."""
 
     id = "fab"
+    _SEAMS = {"actions": "ACTIONS"}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex min-h-64 w-full max-w-xl flex-col "
@@ -53,6 +57,7 @@ class Fab(Component):
     )
     class_scrim = "fixed inset-0 z-10 cursor-pointer border-0 bg-transparent"
     class_sr = "sr-only"
+    class_unit = "relative min-h-20 w-full"
 
     ACTIONS = (("note", "New note"), ("cut", "New cut"), ("invite", "Invite"))
 
@@ -89,10 +94,7 @@ class Fab(Component):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return div(
-            span("Make", className=self.class_kicker),
-            h2("A new thing", className=self.class_title),
-            p("The round button is the verb. Opening is public.", className=self.class_lede),
+        return self.kit_shell(
             scrim,
             menu,
             button(
@@ -105,6 +107,11 @@ class Fab(Component):
                 aria_controls=menu_id,
                 aria_label="Create",
                 **bind(self.toggle),
+            ),
+            chrome=(
+                span("Make", className=self.class_kicker),
+                h2("A new thing", className=self.class_title),
+                p("The round button is the verb. Opening is public.", className=self.class_lede),
             ),
             id=self.id,
             className=self.class_card,

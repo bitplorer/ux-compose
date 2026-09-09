@@ -1,6 +1,8 @@
 """Drop-in alert dialog — interrupting confirm. Same Host shape as Dialog.
 
-Host seam: override ``on_confirm()``. Opening is public. Confirm is a Cap.
+Host seam: construct kwargs OR subclass.
+Accepted: ``title``, ``body`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``. RefState: ``title``, ``body``. Caps: ``items.delete``
@@ -15,8 +17,8 @@ from __future__ import annotations
 
 from ux_compose.kit.overlay import overlay as overlay_chrome
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -31,10 +33,11 @@ from ux_compose import (
 )
 
 
-class AlertDialog(Component):
+class AlertDialog(Kit):
     """Must-answer overlay. ``role=alertdialog`` so AT announces immediately."""
 
     id = "alertdialog"
+    _SEAMS = {'title': 'title', 'body': 'body'}
 
     class_card = (
         "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 "
@@ -70,12 +73,16 @@ class AlertDialog(Component):
         return overlay_chrome(self.id, kind="dialog")
 
     def render(self):
-        kids = [
-            span("Interrupt", className=self.class_kicker),
-            h2("Alert dialog", className=self.class_title),
-            p("Asking is public. Confirming spends a Cap.", className=self.class_lede),
-            button("Delete the board…", type="button", className=self.class_btn_danger, **bind(self.ask)),
-        ]
+        kids = (
+            [
+                span("Interrupt", className=self.class_kicker),
+                h2("Alert dialog", className=self.class_title),
+                p("Asking is public. Confirming spends a Cap.", className=self.class_lede),
+                button("Delete the board…", type="button", className=self.class_btn_danger, **bind(self.ask)),
+            ]
+            if getattr(self, "shell", True)
+            else []
+        )
         if bool(self.open):
             ch = self._chrome()
             title_id = f"{self.id}-title"
@@ -113,7 +120,7 @@ class AlertDialog(Component):
                     className=self.class_stage,
                 ),
             ])
-        return div(
+        return self.kit_shell(
             *kids,
             id=self.id,
             className=self.class_card,

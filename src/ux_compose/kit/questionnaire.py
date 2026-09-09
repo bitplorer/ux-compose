@@ -1,6 +1,8 @@
 """Drop-in questionnaire — named questions as fieldset radiogroups.
 
-Host seam: override ``QUESTIONS`` and ``on_submit(answers)``.
+Host seam: construct kwargs OR subclass.
+Accepted: ``questions`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Choosing is public. Submit spends ``form.submit``.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
@@ -13,8 +15,8 @@ the group via legend id. Not FormLayout (free text) and not Fieldset
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -31,13 +33,14 @@ from ux_compose import (
 )
 
 
-class Questionnaire(Component):
+class Questionnaire(Kit):
     """A short ask. Answers are named keys on RefState.
 
     ``QUESTIONS`` is ``(key, prompt, ((opt_key, opt_label), …))``.
     """
 
     id = "questionnaire"
+    _SEAMS = {'questions': 'QUESTIONS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -101,13 +104,15 @@ class Questionnaire(Component):
         answers = self._map()
         if bool(self.done):
             bits = ", ".join(f"{k}={v}" for k, v in answers.items()) or "empty"
-            return div(
-                span("Ask", className=self.class_kicker),
-                h2("Noted", className=self.class_title),
+            return self.kit_shell(
                 p(bits, className=self.class_lede),
                 id=self.id,
                 className=self.class_card,
                 data_done="1",
+                chrome=(
+                    span("Ask", className=self.class_kicker),
+                    h2("Noted", className=self.class_title),
+                ),
             )
         blocks = []
         for qkey, prompt, opts in self._questions():
@@ -144,13 +149,15 @@ class Questionnaire(Component):
         }
         for qkey, _prompt, _opts in self._questions():
             card_attrs[f"data_{qkey}"] = answers.get(qkey, "")
-        return div(
-            span("Ask", className=self.class_kicker),
-            h2("A few questions", className=self.class_title),
-            p("Named answers. Submit spends form.submit.", className=self.class_lede),
+        return self.kit_shell(
             *blocks,
             button("Send answers", type="button", className=self.class_btn, **bind(self.submit)),
             **card_attrs,
+            chrome=(
+                span("Ask", className=self.class_kicker),
+                h2("A few questions", className=self.class_title),
+                p("Named answers. Submit spends form.submit.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

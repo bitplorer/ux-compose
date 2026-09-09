@@ -1,6 +1,8 @@
 """Drop-in theme switch — named light / dark / system, APG radio group.
 
-Host seam: override ``THEMES``. Choosing is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``themes`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. Caps: none. A11y (APG Radio Group):
@@ -11,8 +13,8 @@ MorphState: ``value``. Caps: none. A11y (APG Radio Group):
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -26,13 +28,14 @@ from ux_compose import (
 )
 
 
-class ThemeSwitch(Component):
+class ThemeSwitch(Kit):
     """Paper, ink, or follow the house. The key is MorphState.
 
     ``THEMES`` is ``(key, label, lede)``. Override on the copy.
     """
 
     id = "themeswitch"
+    _SEAMS = {'themes': 'THEMES'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -94,7 +97,7 @@ class ThemeSwitch(Component):
                     **bind(self.choose, key=k),
                 )
             )
-        return div(
+        return self.kit_shell(
             span("Look", className=self.class_kicker),
             h2("Theme", id=title_id, className=self.class_title),
             p(f"{label} · {lede}. Choosing is public.", className=self.class_lede),

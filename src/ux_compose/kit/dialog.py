@@ -1,6 +1,8 @@
 """Drop-in dialog — public ask, Cap-protected confirm.
 
-Host seam: override ``on_confirm()``. Opening is public. Destroying is authority.
+Host seam: construct kwargs OR subclass.
+Accepted: ``title``, ``body`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``. RefState: ``title``, ``body``, ``target``.
@@ -19,8 +21,8 @@ from __future__ import annotations
 
 from ux_compose.kit.overlay import overlay as overlay_chrome
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -35,7 +37,7 @@ from ux_compose import (
 )
 
 
-class Dialog(Component):
+class Dialog(Kit):
     """Confirm overlay. Target id is silent RefState.
 
     Override ``on_confirm(target)`` in the product. Demo stand-in notifies.
@@ -43,6 +45,7 @@ class Dialog(Component):
     """
 
     id = "dialog"
+    _SEAMS = {'title': 'title', 'body': 'body'}
 
     class_card = (
         "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 "
@@ -97,7 +100,7 @@ class Dialog(Component):
         ]
 
     def render(self):
-        kids = list(self._resting())
+        kids = list(self._resting()) if getattr(self, "shell", True) else []
         if bool(self.open):
             ch = self._chrome()
             who = str(self.target or "row")
@@ -155,7 +158,7 @@ class Dialog(Component):
                     className=self.class_stage,
                 ),
             ])
-        return div(
+        return self.kit_shell(
             *kids,
             id=self.id,
             className=self.class_card,

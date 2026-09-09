@@ -1,6 +1,8 @@
 """Drop-in tree — APG treeview of named nodes.
 
-Host seam: override ``NODES``. Expand / select are public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``nodes`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``expanded`` (tuple of names), ``selected``. Caps: none.
@@ -10,8 +12,8 @@ A11y (APG Tree View): ``role=tree`` / ``treeitem`` ``aria-expanded``
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -27,13 +29,14 @@ from ux_compose import (
 )
 
 
-class Tree(Component):
+class Tree(Kit):
     """House → rooms. Expanded ids are a set of names.
 
     ``NODES`` is ``(key, parent_or_None, label)``.
     """
 
     id = "tree"
+    _SEAMS = {'nodes': 'NODES'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -95,14 +98,16 @@ class Tree(Component):
                     className=self.class_item + (" pl-6" if parent else ""),
                 )
             )
-        return div(
-            span("House", className=self.class_kicker),
-            h2("Rooms", className=self.class_title),
+        return self.kit_shell(
             p(f"Selected · {sel}. Opening is public.", className=self.class_lede),
             ul(*items, className=self.class_list, role="tree", aria_label="House"),
             id=self.id,
             className=self.class_card,
             data_selected=sel,
+            chrome=(
+                span("House", className=self.class_kicker),
+                h2("Rooms", className=self.class_title),
+            ),
         )
 
     @action(caps=())

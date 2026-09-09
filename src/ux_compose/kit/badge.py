@@ -1,6 +1,8 @@
 """Drop-in badge — named status chip.
 
-Host seam: override ``ITEMS``. Selecting is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. Caps: none. A11y: list of status text; selected
@@ -9,8 +11,8 @@ MorphState: ``value``. Caps: none. A11y: list of status text; selected
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -24,10 +26,11 @@ from ux_compose import (
 )
 
 
-class Badge(Component):
+class Badge(Kit):
     """One named status. Not a notification stack (that's Toast)."""
 
     id = "badge"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -62,14 +65,16 @@ class Badge(Component):
             )
             for key, lab in self.ITEMS
         ]
-        return div(
-            span("Stage", className=self.class_kicker),
-            h2("Status", className=self.class_title),
-            p("A named chip. Quantity never lives here.", className=self.class_lede),
+        return self.kit_shell(
             div(*chips, className=self.class_row),
             id=self.id,
             className=self.class_card,
             data_value=val,
+            chrome=(
+                span("Stage", className=self.class_kicker),
+                h2("Status", className=self.class_title),
+                p("A named chip. Quantity never lives here.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

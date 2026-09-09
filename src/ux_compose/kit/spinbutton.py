@@ -1,6 +1,8 @@
 """Drop-in spinbutton — quantity on RefState, APG spinbutton.
 
-Host seam: override min/max. Stepping is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``min``, ``max`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``dirty``. RefState: ``value``. Caps: none.
@@ -12,8 +14,8 @@ lives on MorphState. Not Slider (range) and not Stepper (named wizard).
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -30,10 +32,11 @@ from ux_compose import (
 )
 
 
-class SpinButton(Component):
+class SpinButton(Kit):
     """How many on the board. The number is RefState; dirty morphs the card."""
 
     id = "spinbutton"
+    _SEAMS = {'min': 'MIN', 'max': 'MAX'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -74,7 +77,7 @@ class SpinButton(Component):
         fid = f"{self.id}-value"
         lab_id = f"{self.id}-label"
         lo, hi = int(self.MIN), int(self.MAX)
-        return div(
+        return self.kit_shell(
             span("Count", className=self.class_kicker),
             h2("On the board", id=lab_id, className=self.class_title),
             p(f"{n} of {hi}. Magnitude is RefState.", className=self.class_lede),

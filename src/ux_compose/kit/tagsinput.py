@@ -1,6 +1,8 @@
 """Drop-in tags input — named chips, RefState list, labeled field.
 
-Host seam: override ``on_add(tag)``. Adding is public.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``dirty``. RefState: ``tags``, ``draft``. Caps: none.
@@ -9,8 +11,8 @@ A11y: label ``for`` ↔ input id; chips are buttons with ``aria-label`` remove.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -28,10 +30,11 @@ from ux_compose import (
 )
 
 
-class TagsInput(Component):
+class TagsInput(Kit):
     """A set of names. Quantity of chips lives on RefState."""
 
     id = "tagsinput"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -73,10 +76,7 @@ class TagsInput(Component):
             )
             for t in tags
         ]
-        return div(
-            span("Tags", className=self.class_kicker),
-            h2("Name the piece", className=self.class_title),
-            p("Chips are names. The field is labeled.", className=self.class_lede),
+        return self.kit_shell(
             div(*chips, className=self.class_row) if chips else p("No tags yet.", className=self.class_lede),
             form(
                 label("Add a tag", className=self.class_label, html_for=fid),
@@ -94,6 +94,11 @@ class TagsInput(Component):
             ),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Tags", className=self.class_kicker),
+                h2("Name the piece", className=self.class_title),
+                p("Chips are names. The field is labeled.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

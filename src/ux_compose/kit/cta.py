@@ -1,6 +1,8 @@
 """Drop-in CTA — titled call with a public (or Cap) action.
 
-Host seam: override ``on_act()``. Demo act is public; copy may add a Cap.
+Host seam: construct kwargs OR subclass.
+Accepted: ``title``, ``body``, ``action`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``done``. Caps: none by default. A11y: region labelledby title.
@@ -8,8 +10,8 @@ MorphState: ``done``. Caps: none by default. A11y: region labelledby title.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -23,10 +25,11 @@ from ux_compose import (
 )
 
 
-class Cta(Component):
+class Cta(Kit):
     """One ask. The button is the verb."""
 
     id = "cta"
+    _SEAMS = {'title': 'TITLE', 'body': 'BODY', 'action': 'ACTION'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col "
@@ -52,8 +55,7 @@ class Cta(Component):
     def render(self):
         title_id = f"{self.id}-title"
         done = bool(self.done)
-        return div(
-            span("Invite", className=self.class_kicker),
+        return self.kit_shell(
             h2(self.TITLE, id=title_id, className=self.class_title),
             p("You're on the list." if done else self.BODY, className=self.class_lede),
             button(
@@ -65,6 +67,7 @@ class Cta(Component):
             ) if not done else span("Joined", className="text-sm font-medium text-emerald-700"),
             id=self.id,
             className=self.class_card,
+            chrome=(span("Invite", className=self.class_kicker),),
             role="region",
             aria_labelledby=title_id,
             data_done="1" if done else "0",

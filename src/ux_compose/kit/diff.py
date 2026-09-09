@@ -1,6 +1,8 @@
 """Drop-in diff — named before/after view.
 
-Host seam: override ``BEFORE`` / ``AFTER``. Switching is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``before``, ``after``, ``views`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``which``. Caps: none. A11y: view radiogroup; each pane labelled.
@@ -9,8 +11,8 @@ Not Tabs (no tabpanels of unrelated content).
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -24,10 +26,11 @@ from ux_compose import (
 )
 
 
-class Diff(Component):
+class Diff(Kit):
     """Two copies of a note. The view is a name."""
 
     id = "diff"
+    _SEAMS = {'before': 'BEFORE', 'after': 'AFTER', 'views': 'VIEWS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -62,15 +65,17 @@ class Diff(Component):
             panes.append(p(self.BEFORE, className=self.class_pane, aria_label="Before"))
         if which in {"after", "split"}:
             panes.append(p(self.AFTER, className=self.class_pane, aria_label="After"))
-        return div(
-            span("Revise", className=self.class_kicker),
-            h2("What changed", className=self.class_title),
-            p("A named view. Switching is public.", className=self.class_lede),
+        return self.kit_shell(
             div(*chips, className="flex gap-2", role="radiogroup", aria_label="View"),
             div(*panes, className="flex flex-col gap-2"),
             id=self.id,
             className=self.class_card,
             data_which=which,
+            chrome=(
+                span("Revise", className=self.class_kicker),
+                h2("What changed", className=self.class_title),
+                p("A named view. Switching is public.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

@@ -1,6 +1,8 @@
 """Drop-in timeline — named events with a named filter.
 
-Host seam: override ``EVENTS``. Filtering is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``lanes``, ``events`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``which``. Caps: none. A11y: filter ``role=radiogroup`` /
@@ -10,8 +12,8 @@ Not FilterBar (no query field).
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -27,13 +29,14 @@ from ux_compose import (
 )
 
 
-class Timeline(Component):
+class Timeline(Kit):
     """What happened, in order. The lane is a name.
 
     ``EVENTS`` is ``(lane, title, body)``. ``LANES`` is ``(key, label)``.
     """
 
     id = "timeline"
+    _SEAMS = {'lanes': 'LANES', 'events': 'EVENTS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -109,15 +112,17 @@ class Timeline(Component):
             )
             for _lane, title, lab in hits
         ]
-        return div(
-            span("When", className=self.class_kicker),
-            h2("What happened", className=self.class_title),
-            p("A named lane. Filtering is public.", className=self.class_lede),
+        return self.kit_shell(
             div(*chips, className=self.class_chips, role="radiogroup", aria_label="Lane"),
             ul(*items, className=self.class_list, role="list") if items else p("Nothing in this lane.", className=self.class_lede),
             id=self.id,
             className=self.class_card,
             data_which=which,
+            chrome=(
+                span("When", className=self.class_kicker),
+                h2("What happened", className=self.class_title),
+                p("A named lane. Filtering is public.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

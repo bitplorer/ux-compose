@@ -1,6 +1,8 @@
 """Drop-in logo cloud — named marks, public choose.
 
-Host seam: override ``LOGOS``. Choosing is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``logos`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. Caps: none. A11y: list of buttons; each ``img`` has
@@ -9,8 +11,8 @@ MorphState: ``value``. Caps: none. A11y: list of buttons; each ``img`` has
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -25,13 +27,14 @@ from ux_compose import (
 )
 
 
-class LogoCloud(Component):
+class LogoCloud(Kit):
     """Houses we keep. The selected mark is a name.
 
     ``LOGOS`` is ``(key, label, src)``. Override on the copy.
     """
 
     id = "logocloud"
+    _SEAMS = {'logos': 'LOGOS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -82,14 +85,16 @@ class LogoCloud(Component):
                     **bind(self.choose, key=key),
                 )
             )
-        return div(
-            span("Houses", className=self.class_kicker),
-            h2("Who we keep", className=self.class_title),
-            p("Named marks. Choosing is public.", className=self.class_lede),
+        return self.kit_shell(
             div(*marks, className=self.class_row, role="list", aria_label="Houses"),
             id=self.id,
             className=self.class_card,
             data_value=val,
+            chrome=(
+                span("Houses", className=self.class_kicker),
+                h2("Who we keep", className=self.class_title),
+                p("Named marks. Choosing is public.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

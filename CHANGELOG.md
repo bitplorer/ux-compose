@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Kit Cut 1: construct props + ``shell=False`` usable units. Kits accept
+  documented content kwargs (``actions``→``ACTIONS``, ``links``, ``title`` /
+  ``body``, ``items``, ``rows`` / ``columns``, …) or subclass consts;
+  instance attrs win; unknown kwargs fail closed. ``shell=False`` drops the
+  Atelier kicker/title/lede card. Shared helper is ``ux_compose.kit_construct.Kit``
+  (not under ``kit/``, so ``uxcompose add`` is unchanged). Zero-arg
+  ``Behavior.add(cls)`` still greens. Soft-parked work (open-mint blurbs,
+  navbar menuitem, flat tree, chart legend) and stretch stems stay out.
 - Kit Batch A chrome P1: `menubar`, `toolbar`, `togglegroup`, `spinbutton`,
   `themeswitch`, `filterbar`. APG roles (menubar/menu, toolbar+separator,
   radiogroup, spinbutton valuemin/now/max, theme radiogroup ≠ switch).

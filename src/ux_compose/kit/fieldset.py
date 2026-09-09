@@ -1,6 +1,8 @@
 """Drop-in fieldset — grouped named choices under a legend.
 
-Host seam: override ``OPTIONS``. Picking is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. Caps: none. A11y: native ``fieldset`` + ``legend``,
@@ -9,8 +11,8 @@ radiogroup ``role`` with ``aria-labelledby``. Each radio labelled.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -26,10 +28,11 @@ from ux_compose import (
 )
 
 
-class Fieldset(Component):
+class Fieldset(Kit):
     """One named choice in a group. The legend is the accessible name."""
 
     id = "fieldset"
+    _SEAMS = {'options': 'OPTIONS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -74,10 +77,7 @@ class Fieldset(Component):
             )
             for key, lab in self._options()
         ]
-        return div(
-            span("Group", className=self.class_kicker),
-            h2("Finish", className=self.class_title),
-            p("A fieldset names the group. The value is a name.", className=self.class_lede),
+        return self.kit_shell(
             fieldset(
                 legend("Material", id=legend_id, className=self.class_legend),
                 *opts,
@@ -88,6 +88,11 @@ class Fieldset(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
+            chrome=(
+                span("Group", className=self.class_kicker),
+                h2("Finish", className=self.class_title),
+                p("A fieldset names the group. The value is a name.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

@@ -1,6 +1,8 @@
 """Drop-in file upload — labeled file control + named list.
 
-Host seam: override ``on_add(name)``. Adding is public in the demo.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``dirty``. RefState: ``files``. Caps: none (Host may add a Cap).
@@ -10,8 +12,8 @@ names ``sketch.png`` — Host wires a real upload.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -30,10 +32,11 @@ from ux_compose import (
 )
 
 
-class FileUpload(Component):
+class FileUpload(Kit):
     """Named files on RefState. The input is labeled. Magnitude is the list."""
 
     id = "fileupload"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -68,9 +71,7 @@ class FileUpload(Component):
             )
             for name in names
         ]
-        return div(
-            span("Files", className=self.class_kicker),
-            h2("Attach a note", className=self.class_title),
+        return self.kit_shell(
             p(f"{len(names)} file" + ("" if len(names) == 1 else "s") + " on the table.", className=self.class_lede),
             p("Demo names sketch.png. Host wires a real upload.", className=self.class_lede),
             label("Choose a file", className=self.class_label, html_for=fid),
@@ -78,6 +79,10 @@ class FileUpload(Component):
             ul(*rows, className=self.class_list) if rows else p("Nothing attached.", className=self.class_lede),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Files", className=self.class_kicker),
+                h2("Attach a note", className=self.class_title),
+            ),
         )
 
     @action(caps=())

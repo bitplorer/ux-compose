@@ -1,6 +1,8 @@
 """Drop-in feed — APG feed of named articles.
 
-Host seam: override ``SEED``. Appending is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``seed``, ``more`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``dirty``. RefState: ``items``. Caps: none.
@@ -10,8 +12,8 @@ Not Chat (composer log) and not Timeline (filtered lanes).
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -28,10 +30,11 @@ from ux_compose import (
 )
 
 
-class Feed(Component):
+class Feed(Kit):
     """What the house did. Articles live on RefState."""
 
     id = "feed"
+    _SEAMS = {'seed': 'SEED', 'more': 'MORE'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -69,14 +72,16 @@ class Feed(Component):
                     aria_labelledby=hid,
                 )
             )
-        return div(
-            span("House", className=self.class_kicker),
-            h2("Activity", className=self.class_title),
+        return self.kit_shell(
             p(f"{len(items)} note" + ("" if len(items) == 1 else "s") + ".", className=self.class_lede),
             div(*posts, className="flex flex-col gap-2", role="feed", aria_label="Activity"),
             button("Load more", type="button", className=self.class_btn, **bind(self.append)),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("House", className=self.class_kicker),
+                h2("Activity", className=self.class_title),
+            ),
         )
 
     @action(caps=())

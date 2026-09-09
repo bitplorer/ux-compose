@@ -1,6 +1,8 @@
 """Drop-in scroll area — labelled overflow region, named jump.
 
-Host seam: override ``BODY``. Jumping is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``marks``, ``body`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``which`` (top / mid / end). Caps: none.
@@ -10,8 +12,8 @@ Not a raw overflow atom — this is a composite card.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -25,10 +27,11 @@ from ux_compose import (
 )
 
 
-class ScrollArea(Component):
+class ScrollArea(Kit):
     """A tall note in a short window. The jump is a name."""
 
     id = "scrollarea"
+    _SEAMS = {'marks': 'MARKS', 'body': 'BODY'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -60,10 +63,7 @@ class ScrollArea(Component):
             )
             for key, lab in self.MARKS
         ]
-        return div(
-            span("Read", className=self.class_kicker),
-            h2("The long note", className=self.class_title),
-            p("A named jump. The pane is labelled.", className=self.class_lede),
+        return self.kit_shell(
             div(*chips, className="flex gap-2", role="radiogroup", aria_label="Jump"),
             div(
                 p(self.BODY, id=f"{self.id}-p-{which}"),
@@ -74,6 +74,11 @@ class ScrollArea(Component):
             id=self.id,
             className=self.class_card,
             data_which=which,
+            chrome=(
+                span("Read", className=self.class_kicker),
+                h2("The long note", className=self.class_title),
+                p("A named jump. The pane is labelled.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

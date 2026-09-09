@@ -1,13 +1,15 @@
 """Drop-in breadcrumb — trail of named crumbs.
 
-Host seam: override ``TRAIL``. Walking back is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``trail`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 """
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -22,13 +24,14 @@ from ux_compose import (
 )
 
 
-class Breadcrumb(Component):
+class Breadcrumb(Kit):
     """Path of named keys. ``here`` is MorphState.
 
     ``TRAIL`` is ``(key, label)``. The current crumb is not a button.
     """
 
     id = "breadcrumb"
+    _SEAMS = {'trail': 'TRAIL'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
@@ -84,7 +87,7 @@ class Breadcrumb(Component):
                         **bind(self.goto, key=key),
                     )
                 )
-        return div(
+        return self.kit_shell(
             span("Path", className=self.class_kicker),
             nav(*crumbs, className=self.class_trail, aria_label="Breadcrumb"),
             h2(label, className=self.class_title),

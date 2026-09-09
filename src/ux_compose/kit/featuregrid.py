@@ -1,6 +1,8 @@
 """Drop-in feature grid — named tiles, public select.
 
-Host seam: override ``ITEMS``. Selecting is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``active``. Caps: none. A11y: list of articles labelledby
@@ -9,8 +11,8 @@ each title.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -26,10 +28,11 @@ from ux_compose import (
 )
 
 
-class FeatureGrid(Component):
+class FeatureGrid(Kit):
     """Three named promises. The active tile is MorphState."""
 
     id = "featuregrid"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-[44rem] flex-col gap-4 "
@@ -77,14 +80,16 @@ class FeatureGrid(Component):
                     **({"aria_current": "true"} if on else {}),
                 )
             )
-        return div(
-            span("Why", className=self.class_kicker),
-            h2("How it is made", className=self.class_title),
-            p("Pick a tile. Opening is public.", className=self.class_lede),
+        return self.kit_shell(
             div(*tiles, className=self.class_grid),
             id=self.id,
             className=self.class_card,
             data_active=cur,
+            chrome=(
+                span("Why", className=self.class_kicker),
+                h2("How it is made", className=self.class_title),
+                p("Pick a tile. Opening is public.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

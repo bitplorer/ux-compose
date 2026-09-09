@@ -1,6 +1,8 @@
 """Drop-in toolbar — APG toolbar of named commands.
 
-Host seam: override ``GROUPS``. Running a command is public.
+Host seam: construct kwargs OR subclass.
+Accepted: ``groups`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value`` (last command). Caps: none. A11y (APG Toolbar):
@@ -13,8 +15,8 @@ not Tabs (panels).
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -28,13 +30,14 @@ from ux_compose import (
 )
 
 
-class Toolbar(Component):
+class Toolbar(Kit):
     """Named commands in groups. The last run key is MorphState.
 
     ``GROUPS`` is ``(key, label, ((item_key, item_label), …))``.
     """
 
     id = "toolbar"
+    _SEAMS = {'groups': 'GROUPS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -99,14 +102,16 @@ class Toolbar(Component):
                     )
                 )
         shown = val or "none yet"
-        return div(
-            span("Tools", className=self.class_kicker),
-            h2("The strip", className=self.class_title),
+        return self.kit_shell(
             p(f"Last run · {shown}. Commands are public.", className=self.class_lede),
             div(*nodes, className=self.class_bar, role="toolbar", aria_label="Desk tools"),
             id=self.id,
             className=self.class_card,
             data_value=val,
+            chrome=(
+                span("Tools", className=self.class_kicker),
+                h2("The strip", className=self.class_title),
+            ),
         )
 
     @action(caps=())

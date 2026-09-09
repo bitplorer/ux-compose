@@ -1,6 +1,8 @@
 """Drop-in user menu — identity chrome, Cap on sign-out.
 
-Host seam: override ``on_sign_out()``. Opening is public.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``. RefState: ``name``, ``email``. Caps: ``auth.logout``
@@ -10,8 +12,8 @@ Escape on scrim.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -26,10 +28,11 @@ from ux_compose import (
 )
 
 
-class UserMenu(Component):
+class UserMenu(Kit):
     """Avatar trigger + named actions. Sign-out spends identity."""
 
     id = "usermenu"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -101,9 +104,7 @@ class UserMenu(Component):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return div(
-            span("Session", className=self.class_kicker),
-            h2("You", className=self.class_title),
+        return self.kit_shell(
             p(str(self.email or ""), className=self.class_lede),
             scrim,
             div(
@@ -124,6 +125,10 @@ class UserMenu(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
+            chrome=(
+                span("Session", className=self.class_kicker),
+                h2("You", className=self.class_title),
+            ),
         )
 
     @action(caps=())

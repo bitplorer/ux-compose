@@ -1,6 +1,8 @@
 """Drop-in date picker — named day + month keys, labeled field.
 
-Host seam: override ``on_pick(day)``. Picking is public.
+Host seam: construct kwargs OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``month``, ``day``, ``open``. Caps: none. A11y: label ``for`` ↔
@@ -14,8 +16,8 @@ from __future__ import annotations
 import calendar as _cal
 from datetime import datetime
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -53,10 +55,11 @@ def _shift(raw: str, delta: int) -> str:
     return f"{y:04d}-{m:02d}"
 
 
-class DatePicker(Component):
+class DatePicker(Kit):
     """Labeled date field + month grid. Day is a named key (YYYY-MM-DD)."""
 
     id = "datepicker"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "

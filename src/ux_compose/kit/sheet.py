@@ -1,5 +1,10 @@
 """Drop-in sheet — edge panel. Same shape as a dialog, different placement.
 
+Host seam: construct kwargs OR subclass.
+Accepted: ``title``, ``body`` (same type as the RefState attrs); ``shell``
+(bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
+
 ``Drawer`` is this Host under another name (right edge). Not a second Host.
 
 MorphState: ``open``. RefState: ``title``, ``body``, ``which``. Caps: none
@@ -12,8 +17,8 @@ from __future__ import annotations
 
 from ux_compose.kit.overlay import overlay as overlay_chrome
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -27,10 +32,11 @@ from ux_compose import (
 )
 
 
-class Sheet(Component):
+class Sheet(Kit):
     """Drawer from the right. Presence is MorphState. Resting card stays in flow."""
 
     id = "sheet"
+    _SEAMS = {'title': 'title', 'body': 'body'}
 
     class_card = (
         "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 "
@@ -116,9 +122,7 @@ class Sheet(Component):
                     **ch.focus_attrs(),
                 ),
             ]
-        return div(
-            span("Edge", className=self.class_kicker),
-            h2("Filters", className=self.class_title),
+        return self.kit_shell(
             p(
                 "A sheet is a dialog that arrives from the side. Swipe right on Close to dismiss.",
                 className=self.class_lede,
@@ -134,6 +138,10 @@ class Sheet(Component):
             className=self.class_card,
             data_open="1" if is_open else "0",
             data_channel_id=self.id,
+            chrome=(
+                span("Edge", className=self.class_kicker),
+                h2("Filters", className=self.class_title),
+            ),
         )
 
     @action(caps=())

@@ -1,6 +1,8 @@
 """Drop-in carousel — named slides, never a quantity MorphState.
 
-Host seam: override ``SLIDES``. Prev / next compute the neighbor key.
+Host seam: construct kwargs OR subclass.
+Accepted: ``slides`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 Live: the root ``id`` is the region. Channel picks it up.
@@ -16,8 +18,8 @@ active pip coalesces into the next, it does not jump.
 
 from __future__ import annotations
 
+from ux_compose.kit_construct import Kit
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -56,7 +58,7 @@ def _chevron(direction: str):
     )
 
 
-class Carousel(Component):
+class Carousel(Kit):
     """One named slide at a time.
 
     ``SLIDES`` is ``(key, kicker, title, body)``. Override on the copy.
@@ -69,6 +71,7 @@ class Carousel(Component):
     """
 
     id = "carousel"
+    _SEAMS = {'slides': 'SLIDES'}
 
     class_card = (
         "[grid-area:card] relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 self-start "
@@ -160,7 +163,7 @@ class Carousel(Component):
             )
             for k, _lab, ttl, _b in rows
         ]
-        return div(
+        return self.kit_shell(
             div(
                 span(
                     f"{idx + 1:02d}",

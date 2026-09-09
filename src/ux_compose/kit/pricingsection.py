@@ -1,6 +1,8 @@
 """Drop-in pricing section — comparison table of named tiers.
 
-Host seam: override ``TIERS`` / ``FEATURES``. Choosing is public.
+Host seam: render slots OR subclass.
+Accepted: ``tiers``, ``features`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. Caps: none. A11y: ``<table>`` with ``scope=col``.
@@ -10,8 +12,9 @@ Not Plans (no radiogroup of whole cards).
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -38,6 +41,7 @@ class PricingSection(Component):
     """
 
     id = "pricingsection"
+    _SEAMS = {'tiers': 'TIERS', 'features': 'FEATURES'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-[44rem] flex-col gap-4 "
@@ -74,7 +78,8 @@ class PricingSection(Component):
     def _tiers(self):
         return tuple(self.TIERS)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._tiers()[0][0])
         keys = {row[0] for row in self._tiers()}
         if val not in keys:
@@ -105,9 +110,7 @@ class PricingSection(Component):
         ]
         body.append(tr(th("Join", scope="row", className=self.class_td), *chooses))
         chosen = next((n for k, n, _p in self._tiers() if k == val), val)
-        return div(
-            span("Join", className=self.class_kicker),
-            h2("Desks", className=self.class_title),
+        return kit_shell(self,
             p(f"Selected · {chosen}. Picking is public.", className=self.class_lede),
             table(
                 thead(tr(*heads)),
@@ -117,6 +120,10 @@ class PricingSection(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
+            chrome=(
+                span("Join", className=self.class_kicker),
+                h2("Desks", className=self.class_title),
+            ),
         )
 
     @action(caps=())

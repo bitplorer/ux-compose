@@ -1,6 +1,8 @@
 """Drop-in tree — APG treeview of named nodes.
 
-Host seam: override ``NODES``. Expand / select are public.
+Host seam: render slots OR subclass.
+Accepted: ``nodes`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``expanded`` (tuple of names), ``selected``. Caps: none.
@@ -10,8 +12,9 @@ A11y (APG Tree View): ``role=tree`` / ``treeitem`` ``aria-expanded``
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -34,6 +37,7 @@ class Tree(Component):
     """
 
     id = "tree"
+    _SEAMS = {'nodes': 'NODES'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -59,7 +63,8 @@ class Tree(Component):
     def _nodes(self):
         return tuple(self.NODES)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         opened = set(self.expanded or ())
         sel = str(self.selected or "")
         items = []
@@ -95,14 +100,16 @@ class Tree(Component):
                     className=self.class_item + (" pl-6" if parent else ""),
                 )
             )
-        return div(
-            span("House", className=self.class_kicker),
-            h2("Rooms", className=self.class_title),
+        return kit_shell(self,
             p(f"Selected · {sel}. Opening is public.", className=self.class_lede),
             ul(*items, className=self.class_list, role="tree", aria_label="House"),
             id=self.id,
             className=self.class_card,
             data_selected=sel,
+            chrome=(
+                span("House", className=self.class_kicker),
+                h2("Rooms", className=self.class_title),
+            ),
         )
 
     @action(caps=())

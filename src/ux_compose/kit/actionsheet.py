@@ -1,5 +1,10 @@
 """Drop-in action sheet — bottom panel, swipe-down to dismiss.
 
+Host seam: render slots OR subclass.
+Accepted: ``actions`` (same type as ``ACTIONS``); ``shell`` (bool; ``False``
+renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
+
 Swipe lives on the handle and Cancel, not the root. OverlayChrome owns
 scrim/panel/dismiss ids, handle grammar, and the open plan.
 
@@ -12,8 +17,9 @@ from __future__ import annotations
 
 from ux_compose.kit.overlay import overlay as overlay_chrome
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -32,6 +38,7 @@ class ActionSheet(Component):
     """A sheet from the bottom. Presence is MorphState. Pick is a named key."""
 
     id = "actionsheet"
+    _SEAMS = {'actions': 'ACTIONS'}
 
     class_card = (
         "[grid-area:card] self-start mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
@@ -85,7 +92,8 @@ class ActionSheet(Component):
     def _chrome(self):
         return overlay_chrome(self.id, kind="actionsheet")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         picked = str(self.picked or "")
         ch = self._chrome()
@@ -143,10 +151,7 @@ class ActionSheet(Component):
                     **ch.focus_attrs(),
                 ),
             ]
-        return div(
-            span("Sheet · swipe down", className=self.class_kicker),
-            h2("Action sheet", className=self.class_title),
-            p("Opens from the bottom. Swipe the handle or Cancel to dismiss.", className=self.class_lede),
+        return kit_shell(self,
             p(f"Last pick · {picked}" if picked else "Nothing picked yet.", className=self.class_choice),
             button("Open actions", type="button", className=self.class_btn_primary, **bind(self.open_sheet)),
             *layer,
@@ -154,6 +159,11 @@ class ActionSheet(Component):
             className=self.class_card,
             data_open="1" if is_open else "0",
             data_channel_id=self.id,
+            chrome=(
+                span("Sheet · swipe down", className=self.class_kicker),
+                h2("Action sheet", className=self.class_title),
+                p("Opens from the bottom. Swipe the handle or Cancel to dismiss.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

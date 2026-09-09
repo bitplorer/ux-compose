@@ -1,6 +1,10 @@
 """Drop-in user menu — identity chrome, Cap on sign-out.
 
-Host seam: override ``on_sign_out()``. Opening is public.
+Host seam: render slots OR subclass.
+Accepted: ``name``, ``email`` (str — same as the RefState attrs), ``items``
+(tuple of ``(key, label)`` menu rows); ``shell`` (bool; ``False`` renders only
+the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``. RefState: ``name``, ``email``. Caps: ``auth.logout``
@@ -10,8 +14,9 @@ Escape on scrim.
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -30,6 +35,7 @@ class UserMenu(Component):
     """Avatar trigger + named actions. Sign-out spends identity."""
 
     id = "usermenu"
+    _SEAMS = {"name": "name", "email": "email", "items": "ITEMS"}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -62,6 +68,8 @@ class UserMenu(Component):
     class_scrim = "fixed inset-0 z-10 cursor-pointer border-0 bg-transparent"
     class_sr = "sr-only"
 
+    ITEMS = (("profile", "Profile"), ("settings", "Settings"))
+
     open = MorphState(False)
     name = RefState("Ada Lovelace")
     email = RefState("ada@atelier.test")
@@ -69,15 +77,18 @@ class UserMenu(Component):
     def on_sign_out(self) -> str:
         return "Signed out"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         who = str(self.name or "You")
         initial = (who[:1] or "Y").upper()
         menu = span("", className=self.class_sr)
         if is_open:
             menu = div(
-                button("Profile", type="button", role="menuitem", className=self.class_item, **bind(self.close)),
-                button("Settings", type="button", role="menuitem", className=self.class_item, **bind(self.close)),
+                *[
+                    button(lab, type="button", role="menuitem", className=self.class_item, **bind(self.close))
+                    for _key, lab in self.ITEMS
+                ],
                 button(
                     "Sign out",
                     type="button",
@@ -101,9 +112,7 @@ class UserMenu(Component):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return div(
-            span("Session", className=self.class_kicker),
-            h2("You", className=self.class_title),
+        return kit_shell(self,
             p(str(self.email or ""), className=self.class_lede),
             scrim,
             div(
@@ -124,6 +133,10 @@ class UserMenu(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
+            chrome=(
+                span("Session", className=self.class_kicker),
+                h2("You", className=self.class_title),
+            ),
         )
 
     @action(caps=())

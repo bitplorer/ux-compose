@@ -1,6 +1,8 @@
 """Drop-in toggle group — exclusive named segment, APG radio group.
 
-Host seam: override ``ITEMS``. Picking is public.
+Host seam: render slots OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. Caps: none. A11y (APG Radio Group):
@@ -11,8 +13,9 @@ MorphState: ``value``. Caps: none. A11y (APG Radio Group):
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -33,6 +36,7 @@ class ToggleGroup(Component):
     """
 
     id = "togglegroup"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -75,7 +79,8 @@ class ToggleGroup(Component):
                 return row
         return items[0]
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         key, label = self._current()
         title_id = f"{self.id}-label"
         segs = []
@@ -93,8 +98,7 @@ class ToggleGroup(Component):
                     **bind(self.choose, key=k),
                 )
             )
-        return div(
-            span("Range", className=self.class_kicker),
+        return kit_shell(self,
             h2("How far", id=title_id, className=self.class_title),
             p(f"Showing {label.lower()}. Picking is public.", className=self.class_lede),
             div(
@@ -106,6 +110,9 @@ class ToggleGroup(Component):
             id=self.id,
             className=self.class_card,
             data_value=key,
+            chrome=(
+                span("Range", className=self.class_kicker),
+            ),
         )
 
     @action(caps=())

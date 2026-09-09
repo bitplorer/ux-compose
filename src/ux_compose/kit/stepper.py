@@ -1,13 +1,16 @@
 """Drop-in stepper — named steps, public next, Cap on finish.
 
-Host seam: override ``STEPS`` and ``on_finish()``.
+Host seam: render slots OR subclass.
+Accepted: ``steps`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 """
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -28,6 +31,7 @@ class Stepper(Component):
     """
 
     id = "stepper"
+    _SEAMS = {'steps': 'STEPS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-5 overflow-x-hidden "
@@ -91,9 +95,10 @@ class Stepper(Component):
             cur = keys[0]
         return keys.index(cur), cur, keys
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         if bool(self.done):
-            return div(
+            return kit_shell(self,
                 div(
                     span("Done", className=self.class_mark),
                     h2("You're through", className=self.class_title),
@@ -144,8 +149,7 @@ class Stepper(Component):
                 **bind(self.next),
             )
         )
-        return div(
-            span("Flow", className=self.class_kicker),
+        return kit_shell(self,
             div(*dots, className=self.class_row, aria_label="Steps"),
             div(
                 span(f"Step {idx + 1} of {len(keys)}", className=self.class_kicker),
@@ -168,6 +172,9 @@ class Stepper(Component):
             id=self.id,
             className=self.class_card,
             data_step=cur,
+            chrome=(
+                span("Flow", className=self.class_kicker),
+            ),
         )
 
     @action(caps=())

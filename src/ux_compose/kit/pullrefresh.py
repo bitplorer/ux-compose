@@ -1,13 +1,16 @@
 """Drop-in pull-to-refresh — vertical swipe on the list, not a new attribute.
 
-Host seam: override ``SEED`` and ``on_refresh()`` (returns extra rows).
+Host seam: render slots OR subclass.
+Accepted: ``seed``, ``more`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 """
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -43,6 +46,7 @@ class PullRefresh(Component):
     """
 
     id = "pullrefresh"
+    _SEAMS = {'seed': 'SEED', 'more': 'MORE'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
@@ -100,7 +104,8 @@ class PullRefresh(Component):
             return tuple(self.SEED)
         return tuple(rows)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         phase = str(self.phase or "idle")
         rows = self._rows()
         lis = [
@@ -111,9 +116,7 @@ class PullRefresh(Component):
             "caught": "Caught up.",
             "idle": "Swipe down · or tap Refresh",
         }.get(phase, "Swipe down · or tap Refresh")
-        return div(
-            span("Feed", className=self.class_kicker),
-            h2("Pull to refresh", className=self.class_title),
+        return kit_shell(self,
             p(
                 "Vertical swipe is a synthesizer. The Refresh control accepts swipe.down.",
                 className=self.class_lede,
@@ -135,6 +138,10 @@ class PullRefresh(Component):
             className=self.class_card,
             data_phase=phase,
             data_channel_on="swipe.vertical threshold:56",
+            chrome=(
+                span("Feed", className=self.class_kicker),
+                h2("Pull to refresh", className=self.class_title),
+            ),
         )
 
     @action(caps=())

@@ -1,6 +1,8 @@
 """Drop-in newsletter — labeled email field, Cap on subscribe.
 
-Host seam: override ``on_join(email)``. Subscribe spends identity/list Cap.
+Host seam: render slots OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``done``, ``dirty``. RefState: ``email``, ``error``.
@@ -10,8 +12,9 @@ Caps: ``list.subscribe``. A11y: label ``for`` ↔ input id; ``aria-invalid``
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -33,6 +36,7 @@ class Newsletter(Component):
     """Join the winter list. Email is RefState. Subscribe is a Cap."""
 
     id = "newsletter"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -62,23 +66,23 @@ class Newsletter(Component):
     def on_join(self, email: str) -> str:
         return f"Joined as {email}"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         if bool(self.done):
-            return div(
-                span("In", className=self.class_kicker),
-                h2("You're on the list", className=self.class_title),
-                p("A letter when the linen lands.", className=self.class_lede),
+            return kit_shell(self,
                 id=self.id,
                 className=self.class_card,
                 data_done="1",
+                chrome=(
+                    span("In", className=self.class_kicker),
+                    h2("You're on the list", className=self.class_title),
+                    p("A letter when the linen lands.", className=self.class_lede),
+                ),
             )
         fid = f"{self.id}-email"
         err = str(self.error or "")
         err_id = f"{fid}-err"
-        return div(
-            span("Letter", className=self.class_kicker),
-            h2("Winter list", className=self.class_title),
-            p("No spam, ever.", className=self.class_lede),
+        return kit_shell(self,
             form(
                 label("Email", className=self.class_label, html_for=fid),
                 input_(
@@ -100,6 +104,11 @@ class Newsletter(Component):
             id=self.id,
             className=self.class_card,
             data_done="0",
+            chrome=(
+                span("Letter", className=self.class_kicker),
+                h2("Winter list", className=self.class_title),
+                p("No spam, ever.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

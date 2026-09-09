@@ -1,7 +1,8 @@
 """Drop-in card — titled region with an optional action.
 
-Host seam: override ``TITLE`` / ``BODY`` / ``on_act()``. Act is public chrome
-unless you add a Cap in the copy.
+Host seam: render slots OR subclass.
+Accepted: ``title``, ``body``, ``action`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts. Act is public chrome unless you add a Cap in the copy.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``pressed``. Caps: none by default. A11y: article labelledby title.
@@ -9,8 +10,9 @@ MorphState: ``pressed``. Caps: none by default. A11y: article labelledby title.
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -28,6 +30,7 @@ class Card(Component):
     """One titled piece. The action is a named public verb on this unit."""
 
     id = "card"
+    _SEAMS = {'title': 'TITLE', 'body': 'BODY', 'action': 'ACTION'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -50,22 +53,30 @@ class Card(Component):
     def on_act(self) -> str:
         return "Pinned"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         title_id = f"{self.id}-title"
         on = bool(self.pressed)
+        kids = []
+        if getattr(self, "shell", True):
+            kids.append(span("Piece", className=self.class_kicker))
+        kids.extend(
+            [
+                h2(self.TITLE, id=title_id, className=self.class_title),
+                p(self.BODY, className=self.class_lede),
+                button(
+                    "Pinned" if on else self.ACTION,
+                    type="button",
+                    className=self.class_btn,
+                    aria_pressed="true" if on else "false",
+                    **bind(self.act),
+                ),
+            ]
+        )
         return article(
-            span("Piece", className=self.class_kicker),
-            h2(self.TITLE, id=title_id, className=self.class_title),
-            p(self.BODY, className=self.class_lede),
-            button(
-                "Pinned" if on else self.ACTION,
-                type="button",
-                className=self.class_btn,
-                aria_pressed="true" if on else "false",
-                **bind(self.act),
-            ),
+            *kids,
             id=self.id,
-            className=self.class_card,
+            className=self.class_card if getattr(self, "shell", True) else "",
             aria_labelledby=title_id,
             data_pressed="1" if on else "0",
         )

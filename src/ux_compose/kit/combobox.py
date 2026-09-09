@@ -1,7 +1,9 @@
 """Drop-in combobox — type to filter, then pick.
 
 Query is RefState so the typed filter attaches on morph. Value is a name.
-Host seam: override ``OPTIONS``.
+Host seam: render slots OR subclass.
+Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``, ``open``, ``dirty``. RefState: ``query``. Caps: none.
@@ -11,8 +13,9 @@ A11y (APG Combobox): input ``role=combobox`` ``aria-expanded`` ``aria-controls``
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -39,6 +42,7 @@ class Combobox(Component):
     """
 
     id = "combobox"
+    _SEAMS = {'options': 'OPTIONS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
@@ -114,7 +118,8 @@ class Combobox(Component):
         elif kwargs.get("q") is not None:
             self.query = str(kwargs["q"])
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         q = str(self.query or "")
         val = str(self.value or "")
         is_open = bool(self.open)
@@ -148,9 +153,7 @@ class Combobox(Component):
             )
         chosen = f"Chosen · {val}" if val else "Nothing chosen yet."
         field_id = f"{self.id}-q"
-        return div(
-            span("Find", className=self.class_kicker),
-            h2("Search the catalog", className=self.class_title),
+        return kit_shell(self,
             p(chosen, className=self.class_lede),
             div(
                 form(
@@ -192,6 +195,10 @@ class Combobox(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
+            chrome=(
+                span("Find", className=self.class_kicker),
+                h2("Search the catalog", className=self.class_title),
+            ),
         )
 
     @action(caps=())

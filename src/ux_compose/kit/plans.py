@@ -1,6 +1,8 @@
 """Drop-in plan cards — radio group as a set of named choices.
 
-Host seam: override ``PLANS`` and ``on_choose(key)``. Picking is public.
+Host seam: render slots OR subclass.
+Accepted: ``plans`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. Caps: none. A11y (APG Radio Group): ``role=radiogroup``;
@@ -9,8 +11,9 @@ each plan ``role=radio`` ``aria-checked``; selected ``tabindex=0`` others ``-1``
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -32,6 +35,7 @@ class Plans(Component):
     """
 
     id = "plans"
+    _SEAMS = {'plans': 'PLANS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-[44rem] flex-col gap-4 overflow-x-hidden rounded-3xl border "
@@ -87,7 +91,8 @@ class Plans(Component):
     def _plans(self):
         return tuple(self.PLANS)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._plans()[0][0])
         cards = []
         for key, name, price, lede, feats in self._plans():
@@ -112,14 +117,16 @@ class Plans(Component):
                 )
             )
         chosen = next((row[1] for row in self._plans() if row[0] == val), val)
-        return div(
-            span("Join", className=self.class_kicker),
-            h2("Choose a desk", className=self.class_title),
+        return kit_shell(self,
             p(f"Selected · {chosen}. Picking is public.", className=self.class_lede),
-            div(*cards, className=self.class_grid, role="radiogroup", aria_label="Choose a desk"),
+            div(*cards, className=self.class_grid, role="radiogroup", aria_label="Plans"),
             id=self.id,
             className=self.class_card,
             data_value=val,
+            chrome=(
+                span("Join", className=self.class_kicker),
+                h2("Choose a desk", className=self.class_title),
+            ),
         )
 
     @action(caps=())

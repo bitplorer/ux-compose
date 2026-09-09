@@ -1,5 +1,10 @@
 """Drop-in toast host — server list is authority.
 
+Host seam: render slots OR subclass.
+Accepted: ``items`` (same type as the RefState list); ``shell`` (bool;
+``False`` is the live stack only, no demo kicker/title/lede card).
+Instance attrs win over class consts.
+
 Items live in RefState. ``dirty`` is the qualitative MorphState so the
 unit morphs. Push is open mint / no Cap predicate. The stack is a fixed
 corner — the card is the demo controls.
@@ -18,8 +23,9 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -40,9 +46,12 @@ class Toast(Component):
     """Stack of one-shot messages. The server list is the truth.
 
     ``push(message=)`` appends. ``dismiss(id=)`` removes one. ``clear`` empties.
+    Host seam: construct ``items`` (same type as the RefState list) or subclass.
+    ``shell=False`` is the live stack only.
     """
 
     id = "toast"
+    _SEAMS = {"items": "items"}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
@@ -81,7 +90,8 @@ class Toast(Component):
     def _mark_dirty(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         rows = list(self.items or ())[-4:]
         n = len(rows)
         lis = [
@@ -105,10 +115,7 @@ class Toast(Component):
             if n
             else p("No notices yet.", className=self.class_lede)
         )
-        return div(
-            span("Notices", className=self.class_kicker),
-            h2("Saved to the table", className=self.class_title),
-            p("notify() is the Op. This unit shows them.", className=self.class_lede),
+        return kit_shell(self,
             status,
             div(
                 button(
@@ -128,6 +135,11 @@ class Toast(Component):
             stack,
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Notices", className=self.class_kicker),
+                h2("Saved to the table", className=self.class_title),
+                p("notify() is the Op. This unit shows them.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

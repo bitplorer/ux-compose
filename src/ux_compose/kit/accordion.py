@@ -1,6 +1,8 @@
 """Drop-in accordion — open ids as a MorphState tuple.
 
-Host seam: override ``SECTIONS``. Several panels may be open. Reading is public.
+Host seam: render slots OR subclass.
+Accepted: ``sections`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open_ids`` (identity tuple). Caps: none. A11y (APG Accordion):
@@ -10,8 +12,9 @@ header button ``aria-expanded`` ``aria-controls``; panel ``role=region``
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -32,6 +35,7 @@ class Accordion(Component):
     """
 
     id = "accordion"
+    _SEAMS = {'sections': 'SECTIONS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-3 rounded-3xl border "
@@ -73,7 +77,8 @@ class Accordion(Component):
         except TypeError:
             return {str(raw)} if raw else set()
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         opened = self._open_set()
         items = []
         for key, title, body in self._sections():
@@ -115,12 +120,14 @@ class Accordion(Component):
                     id=f"{self.id}-{key}",
                 )
             )
-        return div(
-            span("Guide", className=self.class_kicker),
-            h2("How it is made", className=self.class_title),
+        return kit_shell(self,
             *items,
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Guide", className=self.class_kicker),
+                h2("How it is made", className=self.class_title),
+            ),
         )
 
     @action(caps=())

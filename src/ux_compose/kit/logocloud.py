@@ -1,6 +1,8 @@
 """Drop-in logo cloud — named marks, public choose.
 
-Host seam: override ``LOGOS``. Choosing is public.
+Host seam: render slots OR subclass.
+Accepted: ``logos`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. Caps: none. A11y: list of buttons; each ``img`` has
@@ -9,8 +11,9 @@ MorphState: ``value``. Caps: none. A11y: list of buttons; each ``img`` has
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -32,6 +35,7 @@ class LogoCloud(Component):
     """
 
     id = "logocloud"
+    _SEAMS = {'logos': 'LOGOS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -63,7 +67,8 @@ class LogoCloud(Component):
     def _logos(self):
         return tuple(self.LOGOS)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._logos()[0][0])
         keys = {row[0] for row in self._logos()}
         if val not in keys:
@@ -82,14 +87,16 @@ class LogoCloud(Component):
                     **bind(self.choose, key=key),
                 )
             )
-        return div(
-            span("Houses", className=self.class_kicker),
-            h2("Who we keep", className=self.class_title),
-            p("Named marks. Choosing is public.", className=self.class_lede),
+        return kit_shell(self,
             div(*marks, className=self.class_row, role="list", aria_label="Houses"),
             id=self.id,
             className=self.class_card,
             data_value=val,
+            chrome=(
+                span("Houses", className=self.class_kicker),
+                h2("Who we keep", className=self.class_title),
+                p("Named marks. Choosing is public.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

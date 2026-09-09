@@ -1,6 +1,8 @@
 """Drop-in chart — named series as an SVG image.
 
-Host seam: override ``SERIES``. Choosing a bar is public.
+Host seam: render slots OR subclass.
+Accepted: ``series`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``which``. RefState: ``values``. Caps: none.
@@ -9,8 +11,9 @@ A11y: ``svg`` ``role=img`` labelled. Magnitudes live on RefState.
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -31,6 +34,7 @@ class Chart(Component):
     """Winter counts. Bars are names; heights are RefState."""
 
     id = "chart"
+    _SEAMS = {'series': 'SERIES'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -58,7 +62,8 @@ class Chart(Component):
                 out.append(0)
         return tuple(out)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         which = str(self.which or self._series()[0][0])
         vals = self._vals()
         n = max(len(self._series()), 1)
@@ -80,10 +85,7 @@ class Chart(Component):
                 )
             )
         width = 12 + n * (bw + gap)
-        return div(
-            span("Count", className=self.class_kicker),
-            h2("Winter cuts", className=self.class_title),
-            p("Named bars. Heights are RefState.", className=self.class_lede),
+        return kit_shell(self,
             svg(
                 *bars,
                 width=str(width),
@@ -108,6 +110,11 @@ class Chart(Component):
             id=self.id,
             className=self.class_card,
             data_which=which,
+            chrome=(
+                span("Count", className=self.class_kicker),
+                h2("Winter cuts", className=self.class_title),
+                p("Named bars. Heights are RefState.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

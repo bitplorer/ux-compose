@@ -1,6 +1,8 @@
 """Drop-in testimonials — named quotes, MorphState index key.
 
-Host seam: override ``QUOTES``. Stepping is public.
+Host seam: render slots OR subclass.
+Accepted: ``quotes`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``which``. Caps: none. A11y: ``figure`` labelledby; prev/next
@@ -9,8 +11,9 @@ named. Quote is a name, not a quantity.
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -28,6 +31,7 @@ class Testimonials(Component):
     """One named quote at a time. ``which`` is a key from QUOTES."""
 
     id = "testimonials"
+    _SEAMS = {'quotes': 'QUOTES'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -59,12 +63,11 @@ class Testimonials(Component):
                 return row
         return items[0]
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         key, quote, who = self._current()
         qid = f"{self.id}-q"
-        return div(
-            span("Voices", className=self.class_kicker),
-            h2("What they keep", className=self.class_title),
+        return kit_shell(self,
             p(quote, id=qid, className=self.class_quote),
             p(f"— {who}", className=self.class_lede),
             div(
@@ -77,6 +80,10 @@ class Testimonials(Component):
             role="region",
             aria_labelledby=qid,
             data_which=key,
+            chrome=(
+                span("Voices", className=self.class_kicker),
+                h2("What they keep", className=self.class_title),
+            ),
         )
 
     def _shift(self, delta: int):

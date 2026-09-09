@@ -1,6 +1,8 @@
 """Drop-in command palette — query attaches before the morph.
 
-Host seam: override ``COMMANDS`` and ``on_run(key)``. Opening is public.
+Host seam: render slots OR subclass.
+Accepted: ``commands`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``, ``dirty``. RefState: ``query``. Caps: ``auth.logout``
@@ -13,8 +15,9 @@ from __future__ import annotations
 
 from ux_compose.kit.overlay import overlay as overlay_chrome
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -43,6 +46,7 @@ class Command(Component):
     """
 
     id = "command"
+    _SEAMS = {'commands': 'COMMANDS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
@@ -129,10 +133,11 @@ class Command(Component):
             ),
         ]
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         q = str(self.query or "")
-        kids = list(self._resting())
+        kids = list(self._resting()) if getattr(self, "shell", True) else []
         if is_open:
             ch = self._chrome()
             hits = self._hits()
@@ -220,7 +225,7 @@ class Command(Component):
                     **ch.focus_attrs(),
                 ),
             ])
-        return div(
+        return kit_shell(self,
             *kids,
             id=self.id,
             className=self.class_card,

@@ -1,6 +1,8 @@
 """Drop-in dropdown — open flag + selected value.
 
-Host seam: override ``OPTIONS``. Click-away is a scrim on this unit.
+Host seam: render slots OR subclass.
+Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``, ``value``. Caps: none. A11y: trigger ``aria-haspopup=listbox``
@@ -9,8 +11,9 @@ MorphState: ``open``, ``value``. Caps: none. A11y: trigger ``aria-haspopup=listb
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -31,6 +34,7 @@ class Dropdown(Component):
     """
 
     id = "dropdown"
+    _SEAMS = {'options': 'OPTIONS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
@@ -88,7 +92,8 @@ class Dropdown(Component):
                 return lab
         return key
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._options()[0][0])
         label = self._label(val)
         is_open = bool(self.open)
@@ -124,10 +129,7 @@ class Dropdown(Component):
             if is_open
             else span("", className=self.class_sr)
         )
-        return div(
-            span("Material", className=self.class_kicker),
-            h2("Choose a finish", className=self.class_title),
-            p("The menu is presence. The value is a name.", className=self.class_lede),
+        return kit_shell(self,
             scrim,
             div(
                 button(
@@ -151,6 +153,11 @@ class Dropdown(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
+            chrome=(
+                span("Material", className=self.class_kicker),
+                h2("Choose a finish", className=self.class_title),
+                p("The menu is presence. The value is a name.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

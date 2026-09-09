@@ -1,6 +1,8 @@
 """Drop-in navbar — primary landmark with a mobile menu MorphState.
 
-Host seam: override ``LINKS``. Opening the menu is public.
+Host seam: render slots OR subclass.
+Accepted: ``links`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``, ``active``. Caps: none. A11y (APG Navigation):
@@ -11,8 +13,9 @@ menu are two trees — never reuse one VDOM list.
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -30,6 +33,7 @@ class Navbar(Component):
     """Site chrome. Active key is MorphState. Mobile drawer is presence."""
 
     id = "navbar"
+    _SEAMS = {'links': 'LINKS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-[44rem] flex-col "
@@ -80,7 +84,8 @@ class Navbar(Component):
             )
         return nodes
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         cur = str(self.active or self._links()[0][0])
         is_open = bool(self.open)
         panel_id = f"{self.id}-menu"
@@ -89,7 +94,7 @@ class Navbar(Component):
             if is_open
             else span("", id=panel_id, className=self.class_sr)
         )
-        return div(
+        return kit_shell(self,
             nav(
                 span("Lumen", className=self.class_brand),
                 div(*self._link_nodes(cur), className=self.class_links),

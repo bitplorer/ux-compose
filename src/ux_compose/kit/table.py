@@ -1,6 +1,8 @@
 """Drop-in data table — sort key MorphState, selection RefState.
 
-Host seam: override ``ROWS`` / ``COLUMNS`` and ``on_archive(skus)``.
+Host seam: render slots OR subclass.
+Accepted: ``columns``, ``rows`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Archiving spends a Cap. Selecting is public.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
@@ -15,8 +17,9 @@ checkbox, not the ``<tr>``. ``aria-selected`` on the row.
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -45,6 +48,7 @@ class Table(Component):
     """
 
     id = "table"
+    _SEAMS = {'columns': 'COLUMNS', 'rows': 'ROWS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-[44rem] flex-col gap-4 rounded-3xl border "
@@ -135,7 +139,8 @@ class Table(Component):
             return f"${raw}"
         return raw
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         sel = set(self.selected or ())
         sort = str(self.sort or "name")
         known = [row[0] for row in self._rows()]
@@ -203,9 +208,7 @@ class Table(Component):
             )
         empty = not body
         n = len(sel)
-        return div(
-            span("Catalog", className=self.class_kicker),
-            h2("Pieces on the table", className=self.class_title),
+        return kit_shell(self,
             div(
                 p(f"{n} selected", className=self.class_lede),
                 button(
@@ -229,6 +232,10 @@ class Table(Component):
             p("", className=self.class_sr) if empty else span("", className=self.class_sr),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Catalog", className=self.class_kicker),
+                h2("Pieces on the table", className=self.class_title),
+            ),
         )
 
     @action(caps=())

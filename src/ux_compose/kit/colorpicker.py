@@ -1,6 +1,8 @@
 """Drop-in color picker — named swatches plus a labeled hex field.
 
-Host seam: override ``SWATCHES``. Choosing is public.
+Host seam: render slots OR subclass.
+Accepted: ``swatches`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``value``. RefState: ``hex``, ``dirty`` clock on MorphState.
@@ -10,8 +12,9 @@ Caps: none. A11y: swatches ``role=radiogroup`` / ``radio``; label ``for``
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -32,6 +35,7 @@ class ColorPicker(Component):
     """Named ink. The swatch is a key; hex is RefState."""
 
     id = "colorpicker"
+    _SEAMS = {'swatches': 'SWATCHES'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -61,7 +65,8 @@ class ColorPicker(Component):
     def _swatches(self):
         return tuple(self.SWATCHES)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or "linen")
         hexv = str(self.hex or "#e7e5e4")
         fid = f"{self.id}-hex"
@@ -81,10 +86,8 @@ class ColorPicker(Component):
                     **bind(self.choose, key=key),
                 )
             )
-        return div(
-            span("Ink", className=self.class_kicker),
+        return kit_shell(self,
             h2("Color", id=title_id, className=self.class_title),
-            p("A named swatch. Hex attaches.", className=self.class_lede),
             div(*chips, className=self.class_row, role="radiogroup", aria_labelledby=title_id),
             label("Hex", className=self.class_label, html_for=fid),
             input_(
@@ -98,6 +101,10 @@ class ColorPicker(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
+            chrome=(
+                span("Ink", className=self.class_kicker),
+                p("A named swatch. Hex attaches.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

@@ -4,14 +4,17 @@ MorphState: ``value``, ``dirty``. RefState: ``query``. Caps: none.
 A11y: label ``for`` ↔ input id; ``aria-autocomplete`` ``aria-controls``.
 
 Unlike Combobox, there is no Filter submit. The field *is* the control.
-Host seam: override ``OPTIONS`` and ``on_pick(label)``.
+Host seam: render slots OR subclass.
+Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 """
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -40,6 +43,7 @@ class Typeahead(Component):
     """
 
     id = "typeahead"
+    _SEAMS = {'options': 'OPTIONS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 rounded-3xl border "
@@ -126,12 +130,11 @@ class Typeahead(Component):
         )
         return div(body, id=f"{self.id}-hits")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         q = str(self.query or "")
         val = str(self.value or "")
-        return div(
-            span("Live filter", className=self.class_kicker),
-            h2("Typeahead", className=self.class_title),
+        return kit_shell(self,
             p(
                 "The list follows after a 300ms pause. The field keeps what you type.",
                 className=self.class_lede,
@@ -155,6 +158,10 @@ class Typeahead(Component):
             self._listing(),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Live filter", className=self.class_kicker),
+                h2("Typeahead", className=self.class_title),
+            ),
         )
 
     def _take_q(self, q: str = "", **kwargs):
@@ -170,7 +177,8 @@ class Typeahead(Component):
         class _Hits:
             id = slot_id
 
-            def render(self):
+            def render(self, *, shell=None, **slots):
+                apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
                 return tree
 
         return _Hits()

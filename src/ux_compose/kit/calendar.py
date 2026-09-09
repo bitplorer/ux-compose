@@ -1,6 +1,8 @@
 """Drop-in calendar — month and day are named keys.
 
-Host seam: override ``on_pick(day)``. Quantity never lives on MorphState.
+Host seam: render slots OR subclass.
+Accepted: (none — ``shell`` only); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``month``, ``day``. Caps: none. A11y (APG Date Picker grid):
@@ -14,8 +16,9 @@ from __future__ import annotations
 import calendar as _cal
 from datetime import datetime
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -60,6 +63,7 @@ class Calendar(Component):
     """
 
     id = "calendar"
+    _SEAMS = {}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 overflow-x-hidden "
@@ -98,7 +102,8 @@ class Calendar(Component):
         y, m = _parse_month(str(self.month or "2026-08"))
         return datetime(y, m, 1).strftime("%B %Y")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         month = str(self.month or "2026-08")
         y, m = _parse_month(month)
         selected = str(self.day or "")
@@ -130,8 +135,7 @@ class Calendar(Component):
                 )
             rows.append(div(*cells, className=self.class_row, role="row"))
         picked = selected or "Nothing chosen"
-        return div(
-            span("Date", className=self.class_kicker),
+        return kit_shell(self,
             div(
                 button("Prev", type="button", className=self.class_btn_ghost, **bind(self.prev)),
                 h2(self._month_label(), className=self.class_title),
@@ -149,6 +153,9 @@ class Calendar(Component):
             className=self.class_card,
             data_month=f"{y:04d}-{m:02d}",
             data_day=selected,
+            chrome=(
+                span("Date", className=self.class_kicker),
+            ),
         )
 
     @action(caps=())

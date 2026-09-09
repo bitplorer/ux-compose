@@ -1,6 +1,8 @@
 """Drop-in stats — named metrics as RefState, dirty MorphState.
 
-Host seam: override ``ITEMS``. Numbers never live on MorphState.
+Host seam: render slots OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``dirty``. RefState: ``items``. Caps: none. A11y: list of
@@ -9,8 +11,9 @@ MorphState: ``dirty``. RefState: ``items``. Caps: none. A11y: list of
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -28,6 +31,7 @@ class Stats(Component):
     """Three named counts. Magnitude is RefState; ``dirty`` morphs the card."""
 
     id = "stats"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -57,7 +61,8 @@ class Stats(Component):
         live = tuple(self.items or ())
         return live if live else tuple(self.ITEMS)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         tiles = [
             div(
                 span(lab, className=self.class_kicker),
@@ -68,14 +73,16 @@ class Stats(Component):
             )
             for key, lab, val in self._items()
         ]
-        return div(
-            span("Today", className=self.class_kicker),
-            h2("On the desk", className=self.class_title),
-            p("Counts live on RefState. Dirty is the morph clock.", className=self.class_lede),
+        return kit_shell(self,
             div(*tiles, className=self.class_grid),
             button("Refresh", type="button", className=self.class_btn, **bind(self.refresh)),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Today", className=self.class_kicker),
+                h2("On the desk", className=self.class_title),
+                p("Counts live on RefState. Dirty is the morph clock.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

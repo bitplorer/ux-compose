@@ -1,6 +1,8 @@
 """Drop-in timeline — named events with a named filter.
 
-Host seam: override ``EVENTS``. Filtering is public.
+Host seam: render slots OR subclass.
+Accepted: ``lanes``, ``events`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``which``. Caps: none. A11y: filter ``role=radiogroup`` /
@@ -10,8 +12,9 @@ Not FilterBar (no query field).
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -34,6 +37,7 @@ class Timeline(Component):
     """
 
     id = "timeline"
+    _SEAMS = {'lanes': 'LANES', 'events': 'EVENTS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -84,7 +88,8 @@ class Timeline(Component):
             rows.append((lane, title, lab))
         return tuple(rows)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         which = str(self.which or "all")
         keys = {row[0] for row in self._lanes()}
         if which not in keys:
@@ -109,15 +114,17 @@ class Timeline(Component):
             )
             for _lane, title, lab in hits
         ]
-        return div(
-            span("When", className=self.class_kicker),
-            h2("What happened", className=self.class_title),
-            p("A named lane. Filtering is public.", className=self.class_lede),
+        return kit_shell(self,
             div(*chips, className=self.class_chips, role="radiogroup", aria_label="Lane"),
             ul(*items, className=self.class_list, role="list") if items else p("Nothing in this lane.", className=self.class_lede),
             id=self.id,
             className=self.class_card,
             data_which=which,
+            chrome=(
+                span("When", className=self.class_kicker),
+                h2("What happened", className=self.class_title),
+                p("A named lane. Filtering is public.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

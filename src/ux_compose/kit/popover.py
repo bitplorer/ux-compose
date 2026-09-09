@@ -1,6 +1,9 @@
 """Drop-in popover — non-modal disclosure anchored to a trigger.
 
-Host seam: override ``title`` / ``body`` copy. Opening is public.
+Host seam: render slots OR subclass.
+Accepted: ``title``, ``body``, ``trigger`` (str — panel/trigger copy);
+``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``. Caps: none. A11y (APG Popover): trigger
@@ -11,8 +14,9 @@ Not OverlayChrome — no focus trap; dialogs own that.
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -29,6 +33,7 @@ class Popover(Component):
     """Light overlay. Presence is MorphState. Resting trigger stays in flow."""
 
     id = "popover"
+    _SEAMS = {"title": "TITLE", "body": "BODY", "trigger": "TRIGGER"}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -49,15 +54,20 @@ class Popover(Component):
     class_scrim = "fixed inset-0 z-10 cursor-pointer border-0 bg-transparent"
     class_sr = "sr-only"
 
+    TITLE = "Winter restock"
+    BODY = "Linen and oak land Thursday. Closing is public Morph."
+    TRIGGER = "What's new"
+
     open = MorphState(False)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         title_id = f"{self.id}-title"
         panel = (
             div(
-                h2("Winter restock", id=title_id, className="m-0 text-sm font-semibold"),
-                p("Linen and oak land Thursday. Closing is public Morph.", className=self.class_lede + " mt-1"),
+                h2(self.TITLE, id=title_id, className="m-0 text-sm font-semibold"),
+                p(self.BODY, className=self.class_lede + " mt-1"),
                 id=f"{self.id}-panel",
                 className=self.class_panel,
                 role="dialog",
@@ -76,14 +86,11 @@ class Popover(Component):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return div(
-            span("Hint", className=self.class_kicker),
-            h2("A quiet note", className=self.class_title),
-            p("Not a modal. Focus stays in the page.", className=self.class_lede),
+        return kit_shell(self,
             scrim,
             div(
                 button(
-                    "What's new",
+                    self.TRIGGER,
                     type="button",
                     id=f"{self.id}-trigger",
                     className=self.class_btn,
@@ -98,6 +105,11 @@ class Popover(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
+            chrome=(
+                span("Hint", className=self.class_kicker),
+                h2("A quiet note", className=self.class_title),
+                p("Not a modal. Focus stays in the page.", className=self.class_lede),
+            ),
         )
 
     @action(caps=())

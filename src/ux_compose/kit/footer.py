@@ -1,6 +1,8 @@
 """Drop-in footer — contentinfo landmark with named links.
 
-Host seam: override ``LINKS``. Walking is public.
+Host seam: render slots OR subclass.
+Accepted: ``links`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``here``. Caps: none. A11y: ``footer`` / ``nav`` ``aria-label``,
@@ -9,8 +11,9 @@ MorphState: ``here``. Caps: none. A11y: ``footer`` / ``nav`` ``aria-label``,
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -29,6 +32,7 @@ class Footer(Component):
     """Site floor. Named destinations, not a second Host."""
 
     id = "footer"
+    _SEAMS = {'links': 'LINKS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-[44rem] flex-col "
@@ -57,7 +61,8 @@ class Footer(Component):
     def _links(self):
         return tuple(self.LINKS)
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         cur = str(self.here or self._links()[0][0])
         items = []
         for key, lab, href in self._links():

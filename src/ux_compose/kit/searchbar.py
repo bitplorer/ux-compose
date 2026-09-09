@@ -1,6 +1,8 @@
 """Drop-in search bar — labeled query field, hits as a list.
 
-Host seam: override ``OPTIONS``. Query is RefState so typing attaches.
+Host seam: render slots OR subclass.
+Accepted: ``options`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``dirty``. RefState: ``query``. Caps: none. A11y: label ``for``
@@ -9,8 +11,9 @@ MorphState: ``dirty``. RefState: ``query``. Caps: none. A11y: label ``for``
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -34,6 +37,7 @@ class SearchBar(Component):
     """Filter in place. The field keeps focus across morphs (id stable)."""
 
     id = "searchbar"
+    _SEAMS = {'options': 'OPTIONS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
@@ -67,14 +71,13 @@ class SearchBar(Component):
             return opts
         return tuple(x for x in opts if q in x.lower())
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         q = str(self.query or "")
         fid = f"{self.id}-q"
         hits = self._hits()
         rows = [li(x, className=self.class_row, role="option") for x in hits]
-        return div(
-            span("Find", className=self.class_kicker),
-            h2("Search", className=self.class_title),
+        return kit_shell(self,
             p(f"{len(hits)} match" + ("" if len(hits) == 1 else "es") + ".", className=self.class_lede),
             form(
                 label("Search the catalog", className=self.class_label, html_for=fid),
@@ -94,6 +97,10 @@ class SearchBar(Component):
             ul(*rows, className=self.class_list, role="listbox", aria_label="Results") if rows else p("No matches.", role="status", className=self.class_lede),
             id=self.id,
             className=self.class_card,
+            chrome=(
+                span("Find", className=self.class_kicker),
+                h2("Search", className=self.class_title),
+            ),
         )
 
     @action(caps=())

@@ -1,6 +1,8 @@
 """Drop-in sidebar — collapsible rail, one active key.
 
-Host seam: override ``ITEMS``. Opening a section is public.
+Host seam: render slots OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``active``, ``collapsed``. Caps: none. A11y: ``nav`` ``aria-label``,
@@ -9,8 +11,9 @@ MorphState: ``active``, ``collapsed``. Caps: none. A11y: ``nav`` ``aria-label``,
 
 from __future__ import annotations
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     action,
     bind,
@@ -32,6 +35,7 @@ class Sidebar(Component):
     """
 
     id = "sidebar"
+    _SEAMS = {'items': 'ITEMS'}
 
     class_card = (
         "[grid-area:card] self-start relative mx-auto flex w-full max-w-[44rem] overflow-hidden rounded-3xl "
@@ -93,7 +97,8 @@ class Sidebar(Component):
                 return row
         return items[0]
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         key, label, title, body = self._current()
         slim = bool(self.collapsed)
         links = []
@@ -121,7 +126,7 @@ class Sidebar(Component):
                         **bind(self.select, key=k),
                     )
                 )
-        return div(
+        return kit_shell(self,
             nav(
                 span("Lumen", className=self.class_brand),
                 *links,

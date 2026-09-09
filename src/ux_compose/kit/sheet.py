@@ -1,5 +1,10 @@
 """Drop-in sheet — edge panel. Same shape as a dialog, different placement.
 
+Host seam: render slots OR subclass.
+Accepted: ``title``, ``body`` (same type as the RefState attrs); ``shell``
+(bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
+
 ``Drawer`` is this Host under another name (right edge). Not a second Host.
 
 MorphState: ``open``. RefState: ``title``, ``body``, ``which``. Caps: none
@@ -12,8 +17,9 @@ from __future__ import annotations
 
 from ux_compose.kit.overlay import overlay as overlay_chrome
 
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
 from ux_compose import (
-    Component,
     MorphState,
     RefState,
     action,
@@ -31,6 +37,7 @@ class Sheet(Component):
     """Drawer from the right. Presence is MorphState. Resting card stays in flow."""
 
     id = "sheet"
+    _SEAMS = {'title': 'title', 'body': 'body'}
 
     class_card = (
         "[grid-area:card] self-start mx-auto flex w-full min-w-0 max-w-xl flex-col gap-4 "
@@ -64,7 +71,8 @@ class Sheet(Component):
     def _chrome(self):
         return overlay_chrome(self.id, kind="sheet")
 
-    def render(self):
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         ch = self._chrome()
         layer = []
@@ -116,9 +124,7 @@ class Sheet(Component):
                     **ch.focus_attrs(),
                 ),
             ]
-        return div(
-            span("Edge", className=self.class_kicker),
-            h2("Filters", className=self.class_title),
+        return kit_shell(self,
             p(
                 "A sheet is a dialog that arrives from the side. Swipe right on Close to dismiss.",
                 className=self.class_lede,
@@ -134,6 +140,10 @@ class Sheet(Component):
             className=self.class_card,
             data_open="1" if is_open else "0",
             data_channel_id=self.id,
+            chrome=(
+                span("Edge", className=self.class_kicker),
+                h2("Filters", className=self.class_title),
+            ),
         )
 
     @action(caps=())

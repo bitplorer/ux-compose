@@ -110,7 +110,7 @@ def test_chrome_a_stems_resolve():
 
 
 def test_chrome_a_render_document_trees():
-    from ux_compose.helpers import _serialize_tree
+    from ux_compose.algebra import _serialize_tree
 
     for stem in CHROME_A:
         cls = _cls(stem)

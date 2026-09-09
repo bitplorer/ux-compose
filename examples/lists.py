@@ -31,7 +31,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, mark_dirty, optional_plan, scene, rise
+from examples._common import act, mark_dirty, rise_enter, scene, rise
 
 CATALOG = (("linen", "Work shirt", 48), ("oak", "Serving board", 72), ("wool", "Throw", 96), ("clay", "Pourer", 38))
 

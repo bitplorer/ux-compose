@@ -1,7 +1,7 @@
 """CTO gate 2: Cap mint on control() when Cap Host is live; fail-closed without cap.
 
 Isolation Law: product code never imports ux_channel. This suite mints through
-ux_compose.helpers.control / App.control and duck-typed Channel.control.
+ux_compose.algebra.control / App.control and duck-typed Channel.control.
 No Cap re-implementation.
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ux_compose.helpers import control
+from ux_compose.algebra import control
 from ux_compose.doctor import scan_isolation
 from ux_compose.scaffold import ROUTES_HELLO_PY, create_app
 from tests.intent_from_control import intent_from_control
@@ -63,7 +63,7 @@ class _FakeChannel:
 def test_isolation_product_never_imports_ux_channel():
     src_root = ROOT / "src" / "ux_compose"
     files = [
-        src_root / "helpers.py",
+        src_root / "algebra.py",
         src_root / "app.py",
         src_root / "component.py",
         src_root / "scaffold.py",
@@ -152,7 +152,7 @@ def test_dispatch_fail_closed_without_cap_for_caps_required_action():
 def test_intent_without_cap_fails_closed_for_caps_required_action():
     """Live Cap Host: Intent without cap is refused; minted control() cap is ok."""
     from ux_compose import App, Component, action, notify
-    from ux_compose.helpers import control as live_control
+    from ux_compose.algebra import control as live_control
     from ux_compose.wire.caps import register_live_channel
 
     class Cart(Component):
@@ -195,7 +195,7 @@ def _load_scaffold_hello(root: Path):
 def _hello_html(mod) -> str:
     tree = mod.Hello().render()
     if not isinstance(tree, str):
-        from ux_compose.helpers import _serialize_tree
+        from ux_compose.algebra import _serialize_tree
 
         return _serialize_tree(tree)
     return tree
@@ -280,7 +280,7 @@ def test_scaffold_hello_pulse_dispatch_fail_closed_without_cap(tmp_path):
 def test_scaffold_hello_pulse_intent_without_cap_unauthorized_mint_ok(tmp_path):
     """Live Cap Host: hello.pulse Intent without cap is unauthorized; minted cap is ok."""
     from ux_compose import App
-    from ux_compose.helpers import control as live_control
+    from ux_compose.algebra import control as live_control
     from ux_compose.wire.caps import register_live_channel
 
     root = create_app(tmp_path / "live", name="live", level=1, host="asgi")

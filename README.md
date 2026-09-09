@@ -163,7 +163,7 @@ Full law: [docs/OWNERSHIP.md](docs/OWNERSHIP.md). Examples: [examples/README.md]
 
 Family contract: [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md). Map: [docs/INDEX.md](docs/INDEX.md).
 
-Canonical CLI / DX / testing pages live under `docs/guides/`. Root files such as `docs/CLI.md` are **Moved stubs** — do not cite them.
+Canonical CLI / DX / testing pages live under `docs/guides/`.
 
 | Diátaxis | Canonical |
 |----------|-----------|

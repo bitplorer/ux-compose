@@ -16,7 +16,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ux_compose.helpers import bind, control
+from ux_compose.algebra import bind, control
 from ux_compose.doctor import scan_isolation
 
 HAS_CHANNEL = importlib.util.find_spec("ux_channel") is not None
@@ -246,7 +246,7 @@ def test_component_control_mints_via_helpers(_restore_live_channel):
 def test_isolation_helpers_and_app_never_import_ux_channel():
     src_root = ROOT / "src" / "ux_compose"
     files = [
-        src_root / "helpers.py",
+        src_root / "algebra.py",
         src_root / "app.py",
         src_root / "component.py",
     ]
@@ -266,7 +266,7 @@ def test_isolation_helpers_and_app_never_import_ux_channel():
 @pytest.mark.skipif(not (HAS_CHANNEL and HAS_BEHAVIOR), reason="ux-channel + ux-behavior")
 def test_intent_without_cap_fails_minted_cap_from_control_ok(_restore_live_channel):
     from ux_compose import App, Component, MorphState, action, update_with
-    from ux_compose.helpers import control as live_control
+    from ux_compose.algebra import control as live_control
     from ux_compose.wire.caps import register_live_channel
 
     class Hello(Component):
@@ -309,7 +309,7 @@ def test_intent_without_cap_fails_minted_cap_from_control_ok(_restore_live_chann
 def test_hello_pulse_control_emits_nonempty_cap_when_cap_host_live(_restore_live_channel):
     """control('hello.pulse') mints a non-empty Cap on the same path as hello.inc."""
     from ux_compose import App
-    from ux_compose.helpers import control as live_control
+    from ux_compose.algebra import control as live_control
     from ux_compose.wire.caps import register_live_channel
 
     app = App.boot("Demo", strict_caps=False)

@@ -40,8 +40,8 @@ import time
 from typing import Literal
 from urllib.parse import urlsplit
 
-from ux_compose.serve_restart import clear_pid, write_pid
-from ux_compose.serve_state import (
+from ux_compose.serve.restart import clear_pid, write_pid
+from ux_compose.serve.state import (
     STATE_STORE_ENV,
     clear_shared_state,
     drop_shared_state,
@@ -391,7 +391,7 @@ def run(
             daemon=True,
         ).start()
         uvicorn.run(
-            "ux_compose.serve_dev:origin_asgi",
+            "ux_compose.serve.dev:origin_asgi",
             host=host,
             port=port,
             factory=True,

@@ -93,7 +93,7 @@ def test_create_app_emitted_hello_is_fragment(tmp_path):
 def _hello_html(mod) -> str:
     tree = mod.Hello().render()
     if not isinstance(tree, str):
-        from ux_compose.helpers import _serialize_tree
+        from ux_compose.algebra import _serialize_tree
 
         return _serialize_tree(tree)
     return tree

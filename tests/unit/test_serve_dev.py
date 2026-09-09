@@ -8,14 +8,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ux_compose.serve_dev import (
+from ux_compose.serve.dev import (
     CHANNEL_PATH_PREFIX,
     RELOAD_EXCLUDES,
     RELOAD_INCLUDES,
     listen_loopback,
     worker_for,
 )
-from ux_compose.serve_restart import PID_NAME, pid_path, restart_channel
+from ux_compose.serve.restart import PID_NAME, pid_path, restart_channel
 
 
 def test_channel_paths_stay_on_channel_worker():
@@ -43,7 +43,7 @@ def test_channel_prefix_is_narrow():
 
 def test_cli_has_no_dead_names():
     cli = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
-    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    serve = (ROOT / "src" / "ux_compose" / "serve/dev.py").read_text(encoding="utf-8")
     assert "devstack" not in cli
     assert "glue_factory" not in cli
     assert "--one-process" not in cli
@@ -59,7 +59,7 @@ def test_hmr_module_does_not_spawn_watchers():
 
 
 def test_dead_names_are_gone():
-    src = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "ux_compose" / "serve/dev.py").read_text(encoding="utf-8")
     assert "glue_factory" not in src
     assert "devstack" not in src
     assert "backend_for" not in src
@@ -87,7 +87,7 @@ def test_listen_loopback_owns_the_port():
 
 
 def test_workers_inherit_a_held_fd():
-    src = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "ux_compose" / "serve/dev.py").read_text(encoding="utf-8")
     assert "def listen_loopback" in src
     assert "--fd" in src
     assert "pick_loopback_port" not in src
@@ -123,7 +123,7 @@ def test_restart_channel_helpers(tmp_path):
 
 
 def test_origin_keeps_channel_socket_for_restart():
-    src = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "ux_compose" / "serve/dev.py").read_text(encoding="utf-8")
     assert "write_pid" in src
     assert "SIGUSR1" in src
     assert "_respawn_channel" in src

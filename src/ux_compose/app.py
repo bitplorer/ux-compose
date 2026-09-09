@@ -253,7 +253,7 @@ class App:
             return control_attrs(self._channel, action, **args)
         if self._behavior is not None and hasattr(self._behavior, "control"):
             return self._behavior.control(action, **args)
-        from ux_compose.helpers import control
+        from ux_compose.algebra import control
         return control(action, **args)
 
     @property

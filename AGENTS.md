@@ -45,14 +45,16 @@ Do not document them. Tags are imported from `ux_compose`.
 - App asset layout / `WebAssets` on ux-dom (`ux_compose.assets` owns it)
 - HMR as a `Document.use` product API
 - A file watcher, `HmrHub`, or Tailwind `Popen` inside `hmr.py`
-- Tailwind `Popen` inside `serve_dev.py` (compiler watch is `tailwind.start_watch`)
+- Tailwind `Popen` inside `serve/dev.py` (compiler watch is `tailwind.start_watch`)
 - Origin / `worker_for` / `origin_asgi` / `SIGUSR1` inside `cli.py`
-- argparse inside `serve_dev.py`
-- Folding `author.py` into `helpers.py` (Atelier convenience ≠ composition algebra)
+- argparse inside `serve/dev.py`
+- Folding `author.py` into `algebra.py` (Atelier convenience ≠ composition algebra)
 - Folding `surfaces_host.py` into `surfaces.py` (scan ≠ host bind)
-- Folding `chrome.py` into `kit/overlay.py` (GET brand ≠ OverlayChrome)
+- Folding `brand.py` into `kit/overlay.py` (GET brand ≠ OverlayChrome)
 - `kit/construct.py` (copied kit files must not import `ux_compose.kit`; helpers stay at package root as `kit_construct.py`)
-- A second OWNERSHIP contract body in `docs/internals/OWNERSHIP.md`
+- A second OWNERSHIP contract body in `docs/internals/`
+- Re-adding `routing/adapters/` (product path is `routing.asgi` / `routing.fastapi`)
+- Folding `serve/` into `cli.py`
 - Claiming `wire/boot.py` is the only Isolation importer (the door is `wire/`)
 - Clock flags (`--no-hmr`, `--no-reload`, `--css-watch`). Modes choose clocks.
 - Process-reloading the worker because `input.css` changed
@@ -101,21 +103,21 @@ stale design, and how FileStateStore got cloned into compose.
 |------|---------|
 | `create-app` | `scaffold.py` |
 | `build` (CSS minify) | `cli_build.py` — **not** `build.py` (`build.py` is App composition: host.open → Channel → DirectoryRoutes) |
-| `serve dev` | `serve_dev.py` origin + ui + channel (ADR 0005). No argparse. |
+| `serve dev` | `serve/dev.py` origin + ui + channel (ADR 0005). No argparse. |
 | `serve prod` | uvicorn in `cli.py` (clocks off; no origin) |
-| `serve restart-channel` | `serve_restart.py` |
+| `serve restart-channel` | `serve/restart.py` |
 | `deploy` | `deploy.py` |
 | `doctor` | `doctor.py` |
 | `add` | `kit/copy.py` |
-| CSS `--watch` | `tailwind.start_watch` sibling Tailwind `--watch`. `cli.py` spawns it around serve. Not `hmr.py`. Not `serve_dev.py`. |
+| CSS `--watch` | `tailwind.start_watch` sibling Tailwind `--watch`. `cli.py` spawns it around serve. Not `hmr.py`. Not `serve/dev.py`. |
 
 Do not put `worker_for` / `origin_asgi` / `SIGUSR1` in `cli.py`.
-Do not put argparse in `serve_dev.py`.
-`routing/adapters/` is a leftover shim (`routing.asgi` / `routing.fastapi`
-are the product path).
+Do not put argparse in `serve/dev.py`.
+Do not re-add `routing/adapters/`. Product path is `routing.asgi` /
+`routing.fastapi`.
 
-Module map (every concern → one file, including `helpers.py` vs
-`author.py`, `chrome.py` vs OverlayChrome, `kit_construct.py` at
+Module map (every concern → one file, including `algebra.py` vs
+`author.py`, `brand.py` vs OverlayChrome, `kit_construct.py` at
 package root): [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 Pure-dom: `uxdom doctor | lint | profile | add`.

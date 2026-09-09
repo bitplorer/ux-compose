@@ -15,17 +15,17 @@ from ux_compose.author import (  # noqa: F401
     act,
     field,
     mark_dirty,
-    optional_fade,
-    optional_plan,
-    optional_slide,
+    fade_enter,
+    rise_enter,
+    slide_enter,
     status,
 )
 
 __all__ = [
     "mark_dirty",
-    "optional_plan",
-    "optional_fade",
-    "optional_slide",
+    "rise_enter",
+    "fade_enter",
+    "slide_enter",
     "act",
     "field",
     "status",

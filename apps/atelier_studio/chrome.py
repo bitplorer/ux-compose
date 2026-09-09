@@ -15,7 +15,7 @@ from ux_compose import (
     section,
     span,
 )
-from ux_compose.helpers import _serialize_tree
+from ux_compose.algebra import _serialize_tree
 
 from examples.catalog import GROUPS, PATTERNS
 

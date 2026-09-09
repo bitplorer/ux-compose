@@ -11,7 +11,7 @@ from __future__ import annotations
 __version__ = "0.1.0"
 
 from ux_compose.component import Component, MorphState, RefState, action
-from ux_compose.helpers import bind, control, notify, update_with, morph_play
+from ux_compose.algebra import bind, control, notify, update_with, morph_play
 from ux_compose.app import App
 from ux_compose.surfaces import (
     Surface,
@@ -30,9 +30,9 @@ from ux_compose.author import (
     act,
     field,
     mark_dirty,
-    optional_fade,
-    optional_plan,
-    optional_slide,
+    fade_enter,
+    rise_enter,
+    slide_enter,
     status,
 )
 from ux_compose.attach_notes import AttachNote, attach_notes
@@ -116,9 +116,9 @@ __all__ = [
     "mark_dirty",
     "field",
     "status",
-    "optional_plan",
-    "optional_fade",
-    "optional_slide",
+    "rise_enter",
+    "fade_enter",
+    "slide_enter",
     "AttachNote",
     "attach_notes",
     "Level",

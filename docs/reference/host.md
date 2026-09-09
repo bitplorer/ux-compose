@@ -46,7 +46,7 @@ write drops HTML-string fragments (ux-dom treats a positional `str` on
 
 Product path is `build(document=, wrap=document)`. GET chrome lives on the
 author Document — not a string `wrap_get_chrome` / `shell.py` dual floor.
-`ux_compose.chrome.brand_wrap(document, brand=…)` returns `wrap(child)` that
+`ux_compose.brand.brand_wrap(document, brand=…)` returns `wrap(child)` that
 puts nav brand outside `Component.render()` (GET brand=1, morph brand=0).
 Do not put brand / `stunning-root` / `class="nav"` inside `routes/*.py`
 `render()` (morph payloads stay fragments).
@@ -176,8 +176,6 @@ Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs,
 | Scaffold? | `src/ux_compose/scaffold.py` |
 | Fitness tests? | `tests/unit/test_host.py` |
 
-`routing/adapters/` are thin re-export shims. Do not put logic there.
-
 Invisible Strategy: authors import `build` / `App.mount`. They do not import
 `routing.fastapi` / `routing.host`. Maintainers always do. Product examples
 call `build()`; handmade Clock A GET (`@app.get` + `HTMLResponse`) is not
@@ -282,7 +280,7 @@ Do **not**:
 | `document.mount` in scaffold `main()` | host.bind already does it |
 | `HTMLResponse` in page units | host wraps; Isolation of concerns |
 | A second path function next to `http_path` | two scanners, two URLs |
-| Logic in `routing/adapters/` | shims only |
+| Re-adding `routing/adapters/` | dual import path; product is `routing.asgi` / `.fastapi` |
 | Mini HTML builder when `HAS_DOM` is false | invents a sixth product; ux-dom is a hard dep |
 | Wrap GET with a synthesized Document | HTML `str` becomes script `src`; fragment vanishes |
 | Scaffold `page()` as the GET wrap | host calls `document(child)`; two wrap stories |

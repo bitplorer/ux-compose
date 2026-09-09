@@ -97,7 +97,7 @@ def test_insert_hmr_client_skips_without_body():
 
 def test_cli_serve_does_not_xor():
     src = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
-    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    serve = (ROOT / "src" / "ux_compose" / "serve/dev.py").read_text(encoding="utf-8")
     assert "needs --no-reload" not in src
     assert "hmr and not reload" not in src
     assert "run_serve_dev" in src
@@ -109,7 +109,7 @@ def test_cli_css_watch_is_sibling_not_hmr_watcher():
     cli = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
     tw = (ROOT / "src" / "ux_compose" / "tailwind.py").read_text(encoding="utf-8")
     hmr = (ROOT / "src" / "ux_compose" / "hmr.py").read_text(encoding="utf-8")
-    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    serve = (ROOT / "src" / "ux_compose" / "serve/dev.py").read_text(encoding="utf-8")
     assert "start_watch" in cli
     assert "def start_watch" in tw
     assert "Popen" in tw

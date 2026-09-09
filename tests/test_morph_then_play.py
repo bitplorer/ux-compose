@@ -44,7 +44,7 @@ def test_morph_then_play_order_with_share():
 
 def test_update_with_enforces_no_html_on_plan_when_morph_present():
     """XOR-safe: plan side must not carry html when morph is present."""
-    from ux_compose.helpers import _normalize_plan_ops
+    from ux_compose.algebra import _normalize_plan_ops
     from ux_motion import scene, rise
 
     plan = scene("x").enter("#a", rise.enter(ms=50))

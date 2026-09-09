@@ -34,8 +34,8 @@ from ux_compose import (
     title,
 )
 from ux_compose.build import build as compose_build
-from ux_compose.chrome import GET_CHROME_ATTR
-from ux_compose.helpers import _serialize_tree
+from ux_compose.brand import GET_CHROME_ATTR
+from ux_compose.algebra import _serialize_tree
 from ux_compose.routing.core import apply_html_document
 from ux_dom import Document
 from ux_dom.runtime import Channel, Csp, XElement

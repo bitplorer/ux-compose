@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from ux_compose import Component, MorphState, action, update_with, notify, morph_play
-from ux_compose.helpers import _normalize_plan_ops as _normalize_plan
+from ux_compose.algebra import _normalize_plan_ops as _normalize_plan
 
 
 def test_update_with_emits_morph_then_plan():

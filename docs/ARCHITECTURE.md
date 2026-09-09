@@ -32,26 +32,26 @@ Do not fold these. Do not invent a sibling for a concern that already
 has a file. Public author names stay `ux_compose.__all__` — a file in
 this table is the **owner**, not a second public surface.
 
-Moving a file into a package (`serve/`, `cli/`, `kit/construct.py`)
-without deleting the old path creates a dual door. Do not do that.
+Do not leave an old path next to a new one (that is a dual door).
+Do not fold `serve/` into `cli.py`.
 
 | Concern | Module | Not |
 |---------|--------|-----|
 | argv dispatch | `cli.py` | origin runtime, CSS `Popen` |
-| origin + ui + channel | `serve_dev.py` | argparse, CSS `Popen` |
-| SIGUSR1 one-shot | `serve_restart.py` | a clock, a sticky flag |
-| store lifecycle | `serve_state.py` | a `FileStateStore` class (Channel owns that) |
+| origin + ui + channel | `serve/dev.py` | argparse, CSS `Popen` |
+| SIGUSR1 one-shot | `serve/restart.py` | a clock, a sticky flag |
+| store lifecycle | `serve/state.py` | a `FileStateStore` class (Channel owns that) |
 | CSS minify verb | `cli_build.py` | `build.py` |
 | App composition | `build.py` | CLI minify |
-| compiler + `--watch` | `tailwind.py` | `hmr.py`, `serve_dev.py` |
+| compiler + `--watch` | `tailwind.py` | `hmr.py`, `serve/dev.py` |
 | HMR WS + HTML insert | `hmr.py` | file watcher, Tailwind `Popen` |
 | tunnel | `tunnel.py` | `cli.py` runtime |
 | create-app | `scaffold.py` | |
 | doctor | `doctor.py` | Tailwind compiler |
 | deploy | `deploy.py` | `serve` |
-| composition algebra | `helpers.py` (`bind` / `control` / `notify` / `update_with` / `morph_play`) | author convenience; serialize clone |
-| author convenience | `author.py` (`act` / `field` / `status` / `mark_dirty` / `optional_*`) | algebra. `optional_*` names kept — not an optional fork |
-| GET brand wrap | `chrome.py` (`brand_wrap`) | OverlayChrome |
+| composition algebra | `algebra.py` (`bind` / `control` / `notify` / `update_with` / `morph_play`) | author convenience; serialize clone |
+| author convenience | `author.py` (`act` / `field` / `status` / `mark_dirty` / `rise_enter` / `fade_enter` / `slide_enter`) | algebra |
+| GET brand wrap | `brand.py` (`brand_wrap`) | OverlayChrome |
 | OverlayChrome | `kit/overlay.py` | GET brand |
 | kit slot helpers | `kit_construct.py` (package **root**) | `kit/construct.py` — copied kit files must not import `ux_compose.kit` |
 | surface scan | `surfaces.py` | host bind |
@@ -63,26 +63,26 @@ without deleting the old path creates a dual door. Do not do that.
 | App façade | `app.py` | |
 | Unified Component | `component.py` | subclassing ux-dom `Component` |
 | WebAssets | `assets.py` | ux-dom layout |
-| filesystem → HTTP | `routing/{core,host,asgi,fastapi}.py` | `routing/adapters/` leftover |
+| filesystem → HTTP | `routing/{core,host,asgi,fastapi}.py` | a second HTTP pipeline |
 | Isolation door | `wire/` (`boot` / `caps` / `cek`) | any other package; `boot.py` is not the sole importer |
 | specialist probe | `dx/probe.py` | Tailwind compiler |
 | ownable catalog | `kit/` | product import path (`uxcompose add`) |
-| leftover shims | `routing/adapters/` | product path |
 
 Name collisions that are **intentional**, not merge candidates:
 
 | Pair | Why two files |
 |------|----------------|
-| `cli.py` / `serve_dev.py` | argv vs origin runtime (ADR 0005) |
+| `cli.py` / `serve/dev.py` | argv vs origin runtime (ADR 0005) |
 | `cli_build.py` / `build.py` | CSS minify verb vs App composition |
-| `helpers.py` / `author.py` | algebra vs Atelier convenience |
-| `chrome.py` / `kit/overlay.py` | GET brand wrap vs overlay widget chrome |
+| `algebra.py` / `author.py` | algebra vs Atelier convenience |
+| `brand.py` / `kit/overlay.py` | GET brand wrap vs overlay widget chrome |
 | `surfaces.py` / `surfaces_host.py` | scan vs host bind |
 | `hmr.py` / `live_client.py` | reload WS vs Cap URL tags |
-| `serve_state.py` vs Channel `FileStateStore` | lifecycle vs store class (ADR 0006) |
+| `serve/state.py` vs Channel `FileStateStore` | lifecycle vs store class (ADR 0006) |
 
-`optional_*` on `__all__` is a leftover name (specialists are hard-deps).
-Expire by teaching (ADR 0004). Do not rename this cut.
+`optional_plan` / `optional_fade` / `optional_slide` are dead names.
+Use `rise_enter` / `fade_enter` / `slide_enter`. Doctor still teaches
+`from ux_compose.routing.adapters` (package removed).
 
 ---
 
@@ -131,12 +131,14 @@ These strings are not the product path. Doctor flags them in app trees.
 |----------|--------|
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` | `host="auto"` |
-| `from ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `.fastapi` |
+| `from ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `.fastapi` (package removed) |
 | Teaching `App.mount` as the product path | `build()` |
 | root `swipe.*` on an overlay card | swipe on dismiss |
 | `stunning-root` / nav brand in `render()` | `brand_wrap(document, brand=…)` / `build(wrap=document)` |
+| `optional_plan` / `optional_fade` / `optional_slide` | `rise_enter` / `fade_enter` / `slide_enter` |
 
-Doctor flags these in product trees. Deleting the aliases is a capability drop.
+Doctor flags leftover **strings** in product trees. The adapters package
+is gone — an old import fails closed.
 
 ---
 

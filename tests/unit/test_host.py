@@ -354,14 +354,6 @@ def test_attach_motion_returns_instances():
     assert list(motion.served_files() or []) is not None
 
 
-def test_adapters_shim_still_imports():
-    from ux_compose.routing.adapters.fastapi import materialize, mount
-    from ux_compose.routing.adapters.asgi import DirectoryASGI
-
-    assert callable(materialize) and callable(mount)
-    assert DirectoryASGI is not None
-
-
 def test_materialize_route_class_fails_closed():
     pytest.importorskip("fastapi")
     from ux_compose.routing.core import DirectoryRoutes

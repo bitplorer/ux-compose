@@ -50,7 +50,7 @@ def test_product_b_stems_resolve():
 
 
 def test_product_b_render_document_trees():
-    from ux_compose.helpers import _serialize_tree
+    from ux_compose.algebra import _serialize_tree
 
     for stem in PRODUCT_B:
         cls = _cls(stem)

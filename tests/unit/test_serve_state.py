@@ -9,7 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ux_compose.serve_state import (
+from ux_compose.serve.state import (
     STATE_STORE_ENV,
     STATE_STORE_NAME,
     clear_shared_state,
@@ -80,7 +80,7 @@ def test_compose_does_not_own_a_store_class():
         tree = ast.parse(src)
         names = {n.name for n in ast.walk(tree) if isinstance(n, ast.ClassDef)}
         assert not (names & banned), (path, names & banned)
-        if path.name == "serve_state.py":
+        if path.parts[-2:] == ("serve", "state.py"):
             assert "import pickle" not in src
             assert "pickle.dumps" not in src
             assert "pickle.loads" not in src

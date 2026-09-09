@@ -84,7 +84,7 @@ def test_fragment_law_scaffold_hello_morph_stays_fragment(tmp_path):
     html, target = morph_html_and_target(ops)
     assert "#hello" in (target or "#hello")
     if not isinstance(inst.render(), str):
-        from ux_compose.helpers import _serialize_tree
+        from ux_compose.algebra import _serialize_tree
 
         html = html or _serialize_tree(inst.render())
     assert_html_is_fragment(html, target_id=HELLO_ID)

@@ -70,7 +70,7 @@ class Component(_BehaviorComponent):
 
     def control(self, action_name: str, **args) -> dict:
         """Progressive control attrs. Delegates to helpers.control."""
-        from ux_compose.helpers import control as _control
+        from ux_compose.algebra import control as _control
         return _control(action_name, **args)
 
     def dirty_fields(self) -> set:
@@ -83,7 +83,7 @@ class Component(_BehaviorComponent):
 
     def __render__(self, pretty: bool = False, **_kw) -> str:
         """Serialize live render() output. Always current MorphState, never a construct-time snapshot."""
-        from ux_compose.helpers import _serialize_tree
+        from ux_compose.algebra import _serialize_tree
 
         tree = self.render()
         if pretty and tree is not None and not isinstance(tree, str):

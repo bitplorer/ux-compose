@@ -172,7 +172,7 @@ def test_doctor_fail_loud_when_stack_incomplete(monkeypatch):
 
 def test_scan_store_clone_flags_file_state_store():
     with tempfile.TemporaryDirectory() as td:
-        bad = Path(td) / "serve_state.py"
+        bad = Path(td) / "app.py"
         bad.write_text(
             "class FileStateStore:\n    def get(self, key):\n        return None\n",
             encoding="utf-8",

@@ -39,7 +39,7 @@ from ux_compose import (
     header,
 )
 
-from examples._common import act, optional_plan, mark_dirty
+from examples._common import act, rise_enter, mark_dirty
 
 
 class Counter(Component):
@@ -84,7 +84,7 @@ class Counter(Component):
         mark_dirty(self)
         return update_with(
             self,
-            optional_plan("counter-inc", f"#{self.id}", ms=120),
+            rise_enter("counter-inc", f"#{self.id}", ms=120),
             extra_ops=[notify(f"n={self.n}")],
         )
 

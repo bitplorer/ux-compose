@@ -64,7 +64,7 @@ def test_p2_d_resolve():
 
 
 def test_p2_d_document_trees():
-    from ux_compose.helpers import _serialize_tree
+    from ux_compose.algebra import _serialize_tree
 
     for stem in P2_D:
         cls = _cls(stem)

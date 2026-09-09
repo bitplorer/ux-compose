@@ -12,18 +12,18 @@ OWNERS = (
     "cli.py",
     "cli_build.py",
     "build.py",
-    "serve_dev.py",
-    "serve_restart.py",
-    "serve_state.py",
+    "serve/dev.py",
+    "serve/restart.py",
+    "serve/state.py",
     "tailwind.py",
     "hmr.py",
     "tunnel.py",
     "scaffold.py",
     "doctor.py",
     "deploy.py",
-    "helpers.py",
+    "algebra.py",
     "author.py",
-    "chrome.py",
+    "brand.py",
     "kit_construct.py",
     "surfaces.py",
     "surfaces_host.py",
@@ -40,7 +40,7 @@ OWNERS = (
     "routing/host.py",
     "routing/asgi.py",
     "routing/fastapi.py",
-    "routing/adapters/__init__.py",
+    "serve/__init__.py",
     "wire/__init__.py",
     "wire/boot.py",
     "wire/caps.py",
@@ -55,28 +55,35 @@ def test_owner_files_exist():
 
 
 def test_do_not_invent_fold_paths():
-    """Package splits that would create dual doors."""
+    """Dead paths stay dead. serve/ is the owner package; cli.py stays argv at root."""
     assert not (SRC / "kit" / "construct.py").exists()
-    assert not (SRC / "serve" / "__init__.py").exists()
     assert not (SRC / "cli" / "__init__.py").exists()
-    assert not (SRC / "algebra.py").exists()
+    assert not (SRC / "helpers.py").exists()
+    assert not (SRC / "chrome.py").exists()
+    assert not (SRC / "serve_dev.py").exists()
+    assert not (SRC / "serve_restart.py").exists()
+    assert not (SRC / "serve_state.py").exists()
+    assert not (SRC / "routing" / "adapters").exists()
+    assert (SRC / "serve" / "__init__.py").is_file()
+    assert (SRC / "algebra.py").is_file()
+    assert (SRC / "brand.py").is_file()
 
 
 def test_architecture_module_map_names_the_pairs():
     text = (ROOT / "docs" / "ARCHITECTURE.md").read_text(encoding="utf-8")
     assert "## Module map (concern → file)" in text
-    assert "`helpers.py`" in text and "`author.py`" in text
-    assert "`chrome.py`" in text and "`kit/overlay.py`" in text
+    assert "`algebra.py`" in text and "`author.py`" in text
+    assert "`brand.py`" in text and "`kit/overlay.py`" in text
     assert "`cli_build.py`" in text and "`build.py`" in text
     assert "`kit_construct.py`" in text
     assert "boot.py` is not the sole importer" in text
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     assert "docs/ARCHITECTURE.md" in agents
-    assert "Folding `author.py` into `helpers.py`" in agents
+    assert "Folding `author.py` into `algebra.py`" in agents
 
 
 def test_helpers_is_algebra_not_junk_drawer():
-    src = (SRC / "helpers.py").read_text(encoding="utf-8")
+    src = (SRC / "algebra.py").read_text(encoding="utf-8")
     assert "Composition algebra" in src
     assert "author.py" in src
     assert "_fragment_for_target" in src
@@ -86,14 +93,14 @@ def test_helpers_is_algebra_not_junk_drawer():
 
 def test_author_is_convenience_not_algebra():
     src = (SRC / "author.py").read_text(encoding="utf-8")
-    assert "helpers.py" in src
-    assert "optional_*" in src or "optional_plan" in src
+    assert "algebra.py" in src
+    assert "optional_*" in src or "rise_enter" in src
     assert "def bind" not in src
     assert "def update_with" not in src
 
 
 def test_chrome_is_get_brand_not_overlay():
-    chrome = (SRC / "chrome.py").read_text(encoding="utf-8")
+    chrome = (SRC / "brand.py").read_text(encoding="utf-8")
     overlay = (SRC / "kit" / "overlay.py").read_text(encoding="utf-8")
     assert "Not OverlayChrome" in chrome
     assert "def brand_wrap" in chrome

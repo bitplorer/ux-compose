@@ -15,7 +15,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose import App, HAS_DOM
 from ux_compose.component import Component
-from ux_compose.helpers import _serialize_tree
+from ux_compose.algebra import _serialize_tree
 from ux_compose.kit.catalog import CATALOG
 from ux_compose.kit.copy import copy_component
 from ux_compose.kit.dialog import Dialog

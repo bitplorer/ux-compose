@@ -27,7 +27,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, mark_dirty, optional_plan, optional_slide, optional_fade
+from examples._common import act, mark_dirty, rise_enter, slide_enter, fade_enter
 
 
 class Toasts(Component):
@@ -66,7 +66,7 @@ class Toasts(Component):
         mark_dirty(self)
         return update_with(
             self,
-            optional_plan("toast-in", f"#toast-{row['id']}", ms=100),
+            rise_enter("toast-in", f"#toast-{row['id']}", ms=100),
             extra_ops=[notify(message)],
         )
 
@@ -116,7 +116,7 @@ class Confirm(Component):
     def ask(self, id: str = ""):
         self.target = id
         self.open = True
-        return update_with(self, optional_plan("confirm-open", f"#{self.id}", ms=140))
+        return update_with(self, rise_enter("confirm-open", f"#{self.id}", ms=140))
 
     @action(caps=())
     def cancel(self):
@@ -173,19 +173,19 @@ class Lightbox(Component):
         self.open = True
         self.index = int(index or 0)
         mark_dirty(self)
-        return update_with(self, optional_plan("lb-open", f"#{self.id}", ms=140))
+        return update_with(self, rise_enter("lb-open", f"#{self.id}", ms=140))
 
     @action(caps=())
     def close(self):
         self.open = False
-        return update_with(self, optional_fade("lb-close", f"#{self.id}", ms=100))
+        return update_with(self, fade_enter("lb-close", f"#{self.id}", ms=100))
 
     @action(caps=())
     def next(self):
         self.index = (int(self.index or 0) + 1) % len(self.SLIDES)
         mark_dirty(self)
         return update_with(
-            self, optional_slide("lb-next", f"#{self.id}", direction="next", ms=160)
+            self, slide_enter("lb-next", f"#{self.id}", direction="next", ms=160)
         )
 
     @action(caps=())
@@ -193,7 +193,7 @@ class Lightbox(Component):
         self.index = (int(self.index or 0) - 1) % len(self.SLIDES)
         mark_dirty(self)
         return update_with(
-            self, optional_slide("lb-prev", f"#{self.id}", direction="prev", ms=160)
+            self, slide_enter("lb-prev", f"#{self.id}", direction="prev", ms=160)
         )
 
 

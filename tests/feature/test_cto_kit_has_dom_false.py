@@ -50,7 +50,7 @@ def _assert_kit_fragment(html: str, *, target_id: str) -> None:
 
 
 def _serialize(tree) -> str:
-    from ux_compose.helpers import _serialize_tree
+    from ux_compose.algebra import _serialize_tree
 
     if isinstance(tree, str):
         return tree

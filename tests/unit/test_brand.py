@@ -10,7 +10,7 @@ import pytest
 HAS_FASTAPI = importlib.util.find_spec("fastapi") is not None
 HAS_DOM = importlib.util.find_spec("ux_dom") is not None
 
-from ux_compose.helpers import _serialize_tree, update_with
+from ux_compose.algebra import _serialize_tree, update_with
 from ux_compose.routing.core import apply_html_document
 
 from tests.asgi_http import asgi_get
@@ -42,7 +42,7 @@ def _pkg(tmp_path: Path, files: dict[str, str], name: str = "chromedemo") -> Pat
 
 def test_chrome_source_is_document_path_not_string_shell():
     """Hard-deps Document path. Do not revive wrap_get_chrome / HAS_DOM shells."""
-    src = (ROOT / "src" / "ux_compose" / "chrome.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "ux_compose" / "brand.py").read_text(encoding="utf-8")
     tree = ast.parse(src)
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -58,7 +58,7 @@ def test_chrome_source_is_document_path_not_string_shell():
 
 
 def test_brand_wrap_requires_callable_document():
-    from ux_compose.chrome import brand_wrap
+    from ux_compose.brand import brand_wrap
 
     with pytest.raises(TypeError):
         brand_wrap(None, brand=BRAND)
@@ -68,7 +68,7 @@ def test_brand_wrap_requires_callable_document():
 def test_brand_wrap_puts_brand_once_outside_fragment():
     from ux_dom import Document
     from ux_compose import div, span
-    from ux_compose.chrome import GET_CHROME_ATTR, brand_wrap
+    from ux_compose.brand import GET_CHROME_ATTR, brand_wrap
 
     document = Document(head=[], body=[], ensure_csrf_token=False)
     wrap = brand_wrap(document, brand=BRAND)
@@ -86,7 +86,7 @@ def test_brand_wrap_puts_brand_once_outside_fragment():
 @pytest.mark.skipif(not HAS_DOM, reason="ux-dom Document path")
 def test_apply_html_document_brand_wrap_keeps_fragment():
     from ux_dom import Document
-    from ux_compose.chrome import GET_CHROME_ATTR, brand_wrap
+    from ux_compose.brand import GET_CHROME_ATTR, brand_wrap
 
     wrap = brand_wrap(Document(head=[], body=[], ensure_csrf_token=False), brand=BRAND)
     out = _html(apply_html_document(wrap, '<div id="hello">hi</div>'))
@@ -100,7 +100,7 @@ def test_apply_html_document_brand_wrap_keeps_fragment():
 def test_build_brand_wrap_get_html_has_brand_once_morph_has_zero(tmp_path: Path):
     from ux_dom import Document
     from ux_compose.build import build
-    from ux_compose.chrome import GET_CHROME_ATTR, brand_wrap
+    from ux_compose.brand import GET_CHROME_ATTR, brand_wrap
 
     pkg = _pkg(
         tmp_path,
@@ -156,7 +156,7 @@ def test_build_brand_wrap_get_html_has_brand_once_morph_has_zero(tmp_path: Path)
 def test_update_with_fragment_never_includes_wrap_brand():
     from ux_dom import Document
     from ux_compose import Component, MorphState, action, div, span
-    from ux_compose.chrome import GET_CHROME_ATTR, brand_wrap
+    from ux_compose.brand import GET_CHROME_ATTR, brand_wrap
 
     class Hello(Component):
         id = "hello"

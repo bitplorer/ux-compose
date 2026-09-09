@@ -316,7 +316,7 @@ README = dedent('''\
     Host is set **only** in `build(host=...)` — swap without rewriting page units.
 
     GET brand chrome (optional): `wrap=brand_wrap(document, brand="Acme")`
-    from `ux_compose.chrome`. Keep `render()` a fragment — never put nav brand
+    from `ux_compose.brand`. Keep `render()` a fragment — never put nav brand
     inside `routes/*.py`.
 
     ## Product path
@@ -418,9 +418,9 @@ def create_app(
 
     brand_label = str(brand).strip() if brand else ""
     if brand_label:
-        chrome_import = "from ux_compose.chrome import brand_wrap\n"
+        chrome_import = "from ux_compose.brand import brand_wrap\n"
         wrap_expr = f"brand_wrap(document, brand={brand_label!r})"
-        readme_chrome_import = "from ux_compose.chrome import brand_wrap\n"
+        readme_chrome_import = "from ux_compose.brand import brand_wrap\n"
     else:
         chrome_import = ""
         wrap_expr = "document"

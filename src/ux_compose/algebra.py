@@ -1,6 +1,6 @@
 """Composition algebra — bind / control / notify / update_with / morph_play.
 
-Not author convenience (that is ``author.py``). Not GET brand (``chrome.py``).
+Not author convenience (that is ``author.py``). Not GET brand (``brand.py``).
 Not a Document serialize clone: ``_fragment_for_target`` is the morph
 safety net owned by ``update_with``.
 

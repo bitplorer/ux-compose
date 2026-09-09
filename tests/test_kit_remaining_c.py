@@ -51,7 +51,7 @@ def test_market_c_resolve():
 
 
 def test_market_c_document_trees():
-    from ux_compose.helpers import _serialize_tree
+    from ux_compose.algebra import _serialize_tree
 
     for stem in MARKET_C:
         cls = _cls(stem)

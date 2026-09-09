@@ -9,7 +9,7 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 | Package root is `ux-compose` | **PASS** | `src/ux_compose/`, pyproject name |
 | No client runtime (React/Vue/JSX/TS) | **PASS** | Pure Python surface only |
 | Hard invariants never broken | **PASS** | Isolation AST + Cap Law + XOR helpers + Document SSoT |
-| Thin composition root (no re-implementation) | **PASS** | Store class lives in ux-channel (`FileStateStore`). Compose `serve_state.py` is lifecycle only (ADR 0006). Isolation AST + Cap Law + XOR helpers + Document SSoT |
+| Thin composition root (no re-implementation) | **PASS** | Store class lives in ux-channel (`FileStateStore`). Compose `serve/state.py` is lifecycle only (ADR 0006). Isolation AST + Cap Law + XOR helpers + Document SSoT |
 | Progressive L0–L3 zero-rewrite | **PASS** | Same Component class at L1 and L3; tests prove it |
 | Offline path works without channel | **PASS** | Pure shim + real Behavior; offline subset green |
 | Live path only through `wire/` | **PASS** | `wire/boot.py` + `wire/caps.py` + `wire/cek.py` sole importers of channel/CEK |

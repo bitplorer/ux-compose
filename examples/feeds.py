@@ -35,7 +35,7 @@ from ux_compose import (
     control,
 )
 
-from examples._common import act, field, mark_dirty, optional_plan, optional_slide, status
+from examples._common import act, field, mark_dirty, rise_enter, slide_enter, status
 
 
 class Carousel(Component):
@@ -96,7 +96,7 @@ class Carousel(Component):
         self.index = (int(self.index or 0) + 1) % len(self.SLIDES)
         mark_dirty(self)
         return update_with(
-            self, optional_slide("car-next", f"#{self.id}", direction="next", ms=180)
+            self, slide_enter("car-next", f"#{self.id}", direction="next", ms=180)
         )
 
     @action(caps=())
@@ -104,7 +104,7 @@ class Carousel(Component):
         self.index = (int(self.index or 0) - 1) % len(self.SLIDES)
         mark_dirty(self)
         return update_with(
-            self, optional_slide("car-prev", f"#{self.id}", direction="prev", ms=180)
+            self, slide_enter("car-prev", f"#{self.id}", direction="prev", ms=180)
         )
 
     @action(caps=())
@@ -115,7 +115,7 @@ class Carousel(Component):
             self.index = 0
         mark_dirty(self)
         return update_with(
-            self, optional_slide("car-go", f"#{self.id}", direction="next", ms=160)
+            self, slide_enter("car-go", f"#{self.id}", direction="next", ms=160)
         )
 
 

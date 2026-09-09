@@ -12,7 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ux_compose.helpers import bind, control
+from ux_compose.algebra import bind, control
 from ux_compose.live_client import (
     CHANNEL_BRIDGE_URL,
     CHANNEL_ENDPOINT,

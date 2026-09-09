@@ -54,15 +54,9 @@ def test_index_owns_product_build_and_compiler():
     assert "leftover `uxdom build`" not in text
 
 
-def test_internals_ownership_defers_to_canonical():
-    text = (ROOT / "docs" / "internals" / "OWNERSHIP.md").read_text(encoding="utf-8")
-    assert "OWNERSHIP.md wins" in text or "../OWNERSHIP.md" in text
-    assert "ux_compose.tailwind" in text
-    assert "create-app · build · serve · deploy" in text
-    assert "Moved" in text or "Successor" in text
-    assert "Do not re-expand" in text
-    # stub, not a second contract body
-    assert "ux-dom      RENDER" not in text
+def test_internals_ownership_is_not_a_second_contract():
+    path = ROOT / "docs" / "internals" / "OWNERSHIP.md"
+    assert not path.exists(), "do not re-add a second OWNERSHIP contract"
 
 
 def test_webassets_lives_on_compose():
@@ -113,6 +107,5 @@ def test_directory_routes_lives_on_compose():
     assert "from ux_dom.routing.core import DirectoryRoutes" not in build
     flow = (ROOT / "docs" / "OWNERSHIP.md").read_text(encoding="utf-8")
     assert "DirectoryRoutes + host.bind" in flow
-    assert "routing/adapters/" in flow
     assert callable(DirectoryRoutes)
     assert callable(DirectoryASGI)

@@ -12,7 +12,7 @@ brand **outside** ``Component.render``. Product path is Document (Python
 
 Usage::
 
-    from ux_compose.chrome import brand_wrap
+    from ux_compose.brand import brand_wrap
     from document import document
 
     app, asgi, bundle = build(

@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose.scaffold import create_app
-from ux_compose.serve_state import STATE_STORE_ENV
+from ux_compose.serve.state import STATE_STORE_ENV
 
 from tests.intent_from_control import intent_from_control
 

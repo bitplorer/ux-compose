@@ -10,4 +10,4 @@
 | Map | [docs/INDEX.md](docs/INDEX.md) |
 | Vulnerability | [SECURITY.md](SECURITY.md) only |
 
-Name the **level** (0–3) and specialist versions. CLI bugs: paste `uxcompose doctor` output. Root `docs/CLI.md` is a Moved stub — use `docs/guides/CLI.md`.
+Name the **level** (0–3) and specialist versions. CLI bugs: paste `uxcompose doctor` output. CLI how-to: [docs/guides/CLI.md](docs/guides/CLI.md).

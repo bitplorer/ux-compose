@@ -1,9 +1,8 @@
 """Author convenience — the public form of examples/_common.py.
 
-Not the composition algebra (that is ``helpers.py``: bind / control /
-notify / update_with / morph_play). ``optional_*`` names are leftover
-labels kept on ``__all__`` — specialists are hard-deps, not an optional
-fork. Expire by teaching (ADR 0004). Do not rename this cut.
+Not the composition algebra (that is ``algebra.py``: bind / control /
+notify / update_with / morph_play). Motion enters are ``rise_enter`` /
+``fade_enter`` / ``slide_enter`` (honest names; specialists are hard-deps).
 
 Isolation Law: this module never imports ux_channel or CEK.
 
@@ -15,7 +14,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from ux_compose.dom import button, form, input_, span
-from ux_compose.helpers import control
+from ux_compose.algebra import control
 from ux_motion import scene, rise, fade, slide, tokens  # type: ignore
 
 
@@ -25,18 +24,18 @@ def mark_dirty(comp: Any, *, on: str = "tick", off: str = "tock") -> None:
     setattr(comp, "dirty", off if cur == on else on)
 
 
-def optional_plan(name: str, target: str, *, ms: int = 140):
-    """Motion IR via ux-motion. Public name kept; not an optional fork."""
+def rise_enter(name: str, target: str, *, ms: int = 140):
+    """Motion IR via ux-motion (``rise.enter``)."""
     return scene(name).enter(target, rise.enter(ms=ms))
 
 
-def optional_fade(name: str, target: str, *, ms: int = 120):
-    """Motion IR via ux-motion. Public name kept; not an optional fork."""
+def fade_enter(name: str, target: str, *, ms: int = 120):
+    """Motion IR via ux-motion (``fade.enter``)."""
     return scene(name).enter(target, fade.enter(ms=ms))
 
 
-def optional_slide(name: str, target: str, *, direction: str = "next", ms: int = 180):
-    """Motion IR via ux-motion. Public name kept; not an optional fork."""
+def slide_enter(name: str, target: str, *, direction: str = "next", ms: int = 180):
+    """Motion IR via ux-motion (``slide.enter``)."""
     dist = float(tokens.dist("md"))
     x = -dist if direction == "prev" else dist
     return scene(name).enter(target, slide.enter(x=x, ms=ms))
@@ -95,9 +94,9 @@ def status(text: Optional[str], *, kind: str = "note"):
 
 __all__ = [
     "mark_dirty",
-    "optional_plan",
-    "optional_fade",
-    "optional_slide",
+    "rise_enter",
+    "fade_enter",
+    "slide_enter",
     "act",
     "field",
     "status",

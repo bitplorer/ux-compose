@@ -9,23 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Module map: every concern has one owner file
-  ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). ``helpers.py`` is
-  composition algebra, not a junk drawer; ``author.py`` is Atelier
-  convenience; ``chrome.py`` is GET brand wrap (not OverlayChrome);
-  ``kit_construct.py`` stays at package root so copied kit files do
-  not import ``ux_compose.kit``. Isolation door is ``wire/`` (not
-  ``boot.py`` alone). ``docs/internals/OWNERSHIP.md`` is a pointer,
-  not a second contract. Doctor leftover teaching covers
-  ``routing.adapters``.
-- CLI spine lock: ``cli.py`` is argv dispatch. ``serve_dev.py`` stays
+- No PyPI surface: leftover shims deleted, names made honest.
+  ``serve_dev.py`` / ``serve_restart.py`` / ``serve_state.py`` →
+  ``serve/{dev,restart,state}.py``. ``helpers.py`` → ``algebra.py``.
+  ``chrome.py`` → ``brand.py``. ``optional_plan`` / ``optional_fade`` /
+  ``optional_slide`` → ``rise_enter`` / ``fade_enter`` / ``slide_enter``.
+  ``routing/adapters/`` removed. Docs Moved stubs
+  (``docs/CLI.md``, ``DX.md``, ``TESTING.md``, ``FLOW.md``,
+  ``docs/internals/OWNERSHIP.md``) removed. Usages updated. ``cli.py``
+  stays argv — do not fold ``serve/`` into it. ``kit_construct.py``
+  stays at package root so copied kit files do not import
+  ``ux_compose.kit``.
+- CLI spine lock: ``cli.py`` is argv dispatch. ``serve/dev.py`` stays
   the origin + ui + channel runtime (do not fold). CSS ``--watch``
   moved to ``tailwind.start_watch`` (compiler locality). Dead
-  ``start_css_watcher`` hook removed from ``serve_dev.run``.
-  ``routing/adapters/`` remains a leftover shim; product path is
-  ``routing.asgi`` / ``routing.fastapi``.
+  ``start_css_watcher`` hook removed from ``serve.dev.run``.
+  Product routing path is ``routing.asgi`` / ``routing.fastapi``.
+- Module map: every concern has one owner file
+  ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)). Isolation door is
+  ``wire/`` (not ``boot.py`` alone). Doctor leftover teaching still
+  flags the dead ``routing.adapters`` import string.
 - serve-dev shared session store is Channel's ``FileStateStore``
-  (JSON sqlite). ``serve_state.py`` is lifecycle only: env, path,
+  (JSON sqlite). ``serve/state.py`` is lifecycle only: env, path,
   prepare / clear / drop (ADR 0006). Isolation unchanged (``wire/``
   remains the only ``ux_channel`` door). ``Channel.boot`` honors
   ``UXCOMPOSE_STATE_STORE``; compose no longer duck-assigns
@@ -128,7 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- `ux_compose.chrome.wrap_get_chrome` / `shell.py` Document-absent primary.
+- `ux_compose.brand.wrap_get_chrome` / `shell.py` Document-absent primary.
 - Kit HTML-string fallbacks (`_render_html`, catalog `html_fallback`).
 - CI py3.12 offline-shim job and Makefile `test312`.
 - Optional `_LocalBehavior` / specialist soft-import shims on the product path.
@@ -146,7 +151,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `ux_compose.chrome.brand_wrap(document, brand=…)` — Document-path GET
+- `ux_compose.brand.brand_wrap(document, brand=…)` — Document-path GET
   nav brand (`wrap(child)`). Clock A GET includes brand once; Clock B morph
   HTML has brand=0. `Component.render()` stays a fragment. Optional
   `uxcompose create-app --brand LABEL` wires `wrap=`. Not a

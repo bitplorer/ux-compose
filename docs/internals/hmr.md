@@ -233,9 +233,9 @@ That path does not morph and does not reload.
 
 | File | Owns |
 |------|------|
-| `src/ux_compose/serve_dev.py` | origin, `worker_for`, held sockets, supervisor, SIGUSR1. Not argv. Not CSS. |
-| `src/ux_compose/serve_restart.py` | pidfile + one-shot `SIGUSR1` |
-| `src/ux_compose/serve_state.py` | env / path / prepare / clear / drop. Not a store class |
+| `src/ux_compose/serve/dev.py` | origin, `worker_for`, held sockets, supervisor, SIGUSR1. Not argv. Not CSS. |
+| `src/ux_compose/serve/restart.py` | pidfile + one-shot `SIGUSR1` |
+| `src/ux_compose/serve/state.py` | env / path / prepare / clear / drop. Not a store class |
 | `src/ux_compose/hmr.py` | client JS (`softReload` / `morphLive` / `hardReload`), HMR WS, HTML insert |
 | `src/ux_compose/cli.py` | argv dispatch: `serve dev` / `prod` / `restart-channel`. Spawns `tailwind.start_watch`. |
 | `src/ux_compose/tailwind.py` | compiler resolve + sibling `--watch` |

@@ -18,14 +18,13 @@ ux-dom      RENDER     tree → __render__ / __async_render__ → HTML str | byt
 
 ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
             + ROUTES   DirectoryRoutes + host.bind (filesystem → HTTP)
-                       leftover: routing/adapters/ (prefer routing.asgi / .fastapi)
             + CSS      Tailwind CLI finder / ensure / minify (ux_compose.tailwind)
             + ASSETS   app folders (ux_compose.assets.WebAssets) · /css mount
             + DELIVERY HTTP bind, host strategy, live units
             + CHANNEL  wire/ only
             + DEV      origin + ui + channel · HMR · CSS sibling --watch · tunnel
                        prepares UXCOMPOSE_STATE_STORE (Channel FileStateStore)
-                       cli.py = argv; serve_dev.py = origin runtime; tailwind.start_watch = CSS
+                       cli.py = argv; serve/dev.py = origin runtime; tailwind.start_watch = CSS
 
 ux-behavior units, MorphState, @action (offline)
 ux-channel  Intent/Caps behind wire/ only. StateStore protocol +

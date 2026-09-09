@@ -34,9 +34,9 @@ def test_help_lists_serve_modes():
 
 
 def test_cli_does_not_own_origin_runtime():
-    """cli.py is argv. Origin lives in serve_dev.py. Next bot: do not fold."""
+    """cli.py is argv. Origin lives in serve/dev.py. Next bot: do not fold."""
     cli = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
-    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    serve = (ROOT / "src" / "ux_compose" / "serve/dev.py").read_text(encoding="utf-8")
     assert "def worker_for" in serve
     assert "def origin_asgi" in serve
     assert "def make_origin_asgi" in serve

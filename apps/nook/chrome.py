@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ux_compose import a, div, footer, header, nav, p, span
-from ux_compose.chrome import GET_CHROME_ATTR
+from ux_compose.brand import GET_CHROME_ATTR
 
 from .theme import KICKER, LEDE, SHELL, TITLE, WRAP
 
@@ -22,7 +22,7 @@ def html_of(tree: Any) -> str:
         return ""
     if isinstance(tree, str):
         return tree
-    from ux_compose.helpers import _serialize_tree
+    from ux_compose.algebra import _serialize_tree
 
     return _serialize_tree(tree)
 

@@ -42,7 +42,7 @@ def _load_hello(root: Path):
 def _hello_html(mod) -> str:
     tree = mod.Hello().render()
     if not isinstance(tree, str):
-        from ux_compose.helpers import _serialize_tree
+        from ux_compose.algebra import _serialize_tree
 
         return _serialize_tree(tree)
     return tree
@@ -75,7 +75,7 @@ def test_create_app_hello_render_stays_fragment_with_brand_flag(tmp_path):
     assert BRAND not in hello
     assert "wrap_get_chrome" not in hello
     assert "wrap_get_chrome" not in app_py
-    assert "from ux_compose.chrome import brand_wrap" in app_py
+    assert "from ux_compose.brand import brand_wrap" in app_py
     assert "brand_wrap(document" in app_py
     assert BRAND in app_py
     assert "shell.py" not in app_py
@@ -92,8 +92,8 @@ def test_brand_wrap_get_brand_once_morph_brand_zero(tmp_path):
     """Clock A GET includes brand once; Clock B morph HTML has brand=0."""
     from ux_dom import Document
     from ux_compose.build import build
-    from ux_compose.chrome import GET_CHROME_ATTR, brand_wrap
-    from ux_compose.helpers import update_with
+    from ux_compose.brand import GET_CHROME_ATTR, brand_wrap
+    from ux_compose.algebra import update_with
     from tests.asgi_http import asgi_get
 
     root = create_app(tmp_path / "livebrand", name="livebrand", level=1, host="fastapi")

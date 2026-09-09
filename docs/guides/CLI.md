@@ -27,7 +27,7 @@ uxcompose doctor .
 `assets/css/input.css`, the Document `<link href="/css/output.css">`,
 and the `/css` mount. `serve dev` CSS `--watch` is the same compiler
 (`tailwind.start_watch`), spawned by the CLI around the origin runtime —
-not by `hmr.py` and not by `serve_dev.py`.
+not by `hmr.py` and not by `serve/dev.py`.
 
 ## Pure-dom tooling
 

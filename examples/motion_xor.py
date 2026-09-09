@@ -35,7 +35,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, mark_dirty, optional_plan, scene, rise, fade
+from examples._common import act, mark_dirty, rise_enter, scene, rise, fade
 
 
 class MotionBox(Component):
@@ -75,7 +75,7 @@ class MotionBox(Component):
     def hop(self):
         self.pose = "air"
         self.hops = int(self.hops or 0) + 1
-        plan = optional_plan("box-hop", "#motionbox-face", ms=220)
+        plan = rise_enter("box-hop", "#motionbox-face", ms=220)
         return update_with(self, plan, extra_ops=[notify("hop")])
 
     @action(caps=())

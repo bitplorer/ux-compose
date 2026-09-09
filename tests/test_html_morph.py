@@ -88,7 +88,7 @@ def test_product_class_cannot_also_inherit_ux_dom_component():
 
 @pytest.mark.skipif(not HAS_DOM, reason="ux-dom required for tree morph")
 def test_ux_dom_tree_serializes_via_render_pretty_false():
-    from ux_compose.helpers import _serialize_tree, update_with
+    from ux_compose.algebra import _serialize_tree, update_with
     from ux_compose import Component, MorphState, div, span
 
     class Card(Component):

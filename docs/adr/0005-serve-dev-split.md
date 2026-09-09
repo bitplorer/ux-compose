@@ -80,7 +80,7 @@ channel. It only asks `worker_for(path)`:
 
 ## Consequences for the tree
 
-- `src/ux_compose/serve_dev.py` owns origin, `worker_for`, held sockets.
+- `src/ux_compose/serve/dev.py` owns origin, `worker_for`, held sockets.
 - `src/ux_compose/hmr.py` owns client JS + HTML insert. No watcher.
 - `src/ux_compose/cli.py` owns mode + extras check. Spawns
   `tailwind.start_watch` (sibling Tailwind). Does not own origin.

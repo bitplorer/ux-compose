@@ -26,9 +26,9 @@ ADDED = {
     "mark_dirty",
     "field",
     "status",
-    "optional_plan",
-    "optional_fade",
-    "optional_slide",
+    "rise_enter",
+    "fade_enter",
+    "slide_enter",
     "AttachNote",
     "attach_notes",
 }
@@ -50,8 +50,16 @@ def test_author_helpers_are_public_and_match_common():
     assert ux.mark_dirty is common_mark_dirty
 
 
-def test_nomen_cut_drops_maybe_and_tick_names():
-    leftover = {"tick", "maybe_plan", "maybe_fade", "maybe_slide"} & set(ux.__all__)
+def test_nomen_cut_drops_maybe_tick_and_optional_names():
+    leftover = {
+        "tick",
+        "maybe_plan",
+        "maybe_fade",
+        "maybe_slide",
+        "optional_plan",
+        "optional_fade",
+        "optional_slide",
+    } & set(ux.__all__)
     assert not leftover, leftover
 
 

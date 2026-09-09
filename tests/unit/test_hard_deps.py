@@ -84,7 +84,7 @@ def test_has_dom_is_constant_true():
 
 
 def test_helpers_use_specialist_facades_not_parallel_shims():
-    import ux_compose.helpers as helpers
+    import ux_compose.algebra as helpers
     import inspect
 
     src = inspect.getsource(helpers)
@@ -92,21 +92,21 @@ def test_helpers_use_specialist_facades_not_parallel_shims():
     assert "html_attrs" not in src
     assert "_HAS_BEHAVIOR" not in src
     assert "to_html_bytes" in src
-    from ux_compose.author import optional_plan
+    from ux_compose.author import rise_enter
 
-    plan = optional_plan("x", "#y", ms=10)
+    plan = rise_enter("x", "#y", ms=10)
     assert plan is not None
     assert type(plan).__name__ in {"Scene", "Plan"} or hasattr(plan, "enter") or hasattr(plan, "ops")
 
 
 def test_chrome_is_document_path_brand_wrap_not_string_shell():
     """GET chrome is Document-path brand_wrap. wrap_get_chrome stays gone."""
-    from ux_compose import chrome as chrome_mod
-    from ux_compose.chrome import brand_wrap
+    from ux_compose import brand as brand_mod
+    from ux_compose.brand import brand_wrap
 
     assert callable(brand_wrap)
-    assert not hasattr(chrome_mod, "wrap_get_chrome")
-    src = (ROOT / "src" / "ux_compose" / "chrome.py").read_text(encoding="utf-8")
+    assert not hasattr(brand_mod, "wrap_get_chrome")
+    src = (ROOT / "src" / "ux_compose" / "brand.py").read_text(encoding="utf-8")
     assert "wrap_get_chrome" not in src
     assert "<!DOCTYPE html>" not in src
     assert "HAS_DOM" not in src

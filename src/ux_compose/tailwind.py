@@ -6,7 +6,7 @@ Finding, downloading, and invoking the compiler is ``uxcompose build``.
 Same split as React vs ``next build``.
 
 Dev ``--watch`` is ``start_watch`` (spawned by ``cli.py`` around serve).
-Not ``hmr.py``. Not ``serve_dev.py``.
+Not ``hmr.py``. Not ``serve/dev.py``.
 
 Order (first hit wins):
 
@@ -312,7 +312,7 @@ def start_watch(*, cwd: str | Path | None = None) -> subprocess.Popen | None:
     """Sibling Tailwind ``--watch``. Compiler, not a fourth server.
 
     ``cli.py`` spawns this around ``serve dev``. ``hmr.py`` must not
-    Popen. ``serve_dev.py`` must not own the compiler. None is quiet
+    Popen. ``serve/dev.py`` must not own the compiler. None is quiet
     when the tree has no ``input.css``. Missing CLI is a warning, not
     a failed serve.
     """

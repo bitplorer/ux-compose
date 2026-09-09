@@ -6,9 +6,9 @@ Hard ownership (SoC + locality):
 
     create-app           → scaffold.py
     build (CSS minify)   → cli_build.py   (not build.py — that is App composition)
-    serve dev            → serve_dev.py   origin + ui + channel (ADR 0005)
+    serve dev            → serve/dev.py   origin + ui + channel (ADR 0005)
     serve prod           → uvicorn here   clocks off; no origin
-    serve restart-channel→ serve_restart.py
+    serve restart-channel→ serve/restart.py
     deploy               → deploy.py
     doctor               → doctor.py
     add                  → kit/copy.py
@@ -267,7 +267,7 @@ def _serve(argv: list[str]) -> int:
                 file=sys.stderr,
             )
             return 2
-        from ux_compose.serve_restart import restart_channel
+        from ux_compose.serve.restart import restart_channel
 
         return restart_channel()
 
@@ -359,7 +359,7 @@ def _serve(argv: list[str]) -> int:
             )
             _stop_proc(css_proc)
             return 1
-        from ux_compose.serve_dev import run as run_serve_dev
+        from ux_compose.serve.dev import run as run_serve_dev
 
         print(
             f"uxcompose serve dev {args.app} http://{args.host}:{args.port} "

@@ -21,7 +21,7 @@ from ux_compose import (
     title,
     div,
 )
-from ux_compose.chrome import GET_CHROME_ATTR
+from ux_compose.brand import GET_CHROME_ATTR
 
 from apps.atelier_studio.chrome import (
     catalog_page,

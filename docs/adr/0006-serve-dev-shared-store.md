@@ -20,7 +20,7 @@ ui + channel cannot lose increments.
 **Compose owns delivery lifecycle only.** `uxcompose serve dev`
 prepares `.uxcompose-serve-dev.state`, exports
 `UXCOMPOSE_STATE_STORE`, clears the bag on `serve restart-channel`,
-and unlinks WAL sidecars on shutdown. `src/ux_compose/serve_state.py`
+and unlinks WAL sidecars on shutdown. `src/ux_compose/serve/state.py`
 never imports `ux_channel` and does not define a store class.
 Doctor `scan_store_clone` fails closed if a store class reappears.
 
@@ -39,7 +39,7 @@ serve-dev accepted objects production Redis would stringify).
 
 ## Consequences
 
-- `src/ux_compose/serve_state.py` — env, path, prepare / clear / drop.
+- `src/ux_compose/serve/state.py` — env, path, prepare / clear / drop.
 - `src/ux_compose/wire/boot.py` — no `channel.state =` assignment.
 - Sister: `ux_channel.host.stores.FileStateStore` + boot env honor.
 - Restart-channel still means "empty the bag and respawn Channel".

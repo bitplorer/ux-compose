@@ -109,7 +109,7 @@ _STORE_CLONE_CLASS_NAMES = frozenset(
 def scan_store_clone(paths: Iterable[str | Path]) -> list[str]:
     """Ownership Law: Channel owns StateStore. Compose must not clone it.
 
-    ``serve_state.py`` is lifecycle (env / path / prepare / clear / drop).
+    ``serve/state.py`` is lifecycle (env / path / prepare / clear / drop).
     A second ``class FileStateStore`` in this tree is the PR #58 failure.
     """
     diagnostics: list[str] = []
@@ -131,7 +131,7 @@ def scan_store_clone(paths: Iterable[str | Path]) -> list[str]:
                 diagnostics.append(
                     f"Ownership violation in {p}: cloned StateStore class "
                     f"`{node.name}`. Channel owns stores; compose "
-                    f"serve_state.py is lifecycle only (ADR 0006)."
+                    f"serve/state.py is lifecycle only (ADR 0006)."
                 )
     return diagnostics
 

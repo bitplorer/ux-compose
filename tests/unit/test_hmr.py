@@ -107,13 +107,17 @@ def test_cli_serve_does_not_xor():
 
 def test_cli_css_watch_is_sibling_not_hmr_watcher():
     cli = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
+    tw = (ROOT / "src" / "ux_compose" / "tailwind.py").read_text(encoding="utf-8")
     hmr = (ROOT / "src" / "ux_compose" / "hmr.py").read_text(encoding="utf-8")
-    assert "def _start_tailwind_watch" in cli
-    assert "argv_with_io" in cli
-    assert "Popen" in cli
+    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    assert "start_watch" in cli
+    assert "def start_watch" in tw
+    assert "Popen" in tw
     assert "Popen" not in hmr
+    assert "Popen" not in cli
     assert "subprocess" not in hmr
     assert "discover_css_io" not in hmr
+    assert "start_css_watcher" not in serve
 
 
 def test_docs_do_not_teach_css_mtime_hmr():
@@ -131,6 +135,7 @@ def test_agents_lock_three_clocks():
     assert "Dev clocks under `uxcompose serve`" in agents
     assert "HmrHub" in agents
     assert "sibling Tailwind" in agents
+    assert "argv dispatch" in agents
     assert "Popen` inside `hmr.py" in flow
     assert "CSS sibling --watch" in flow
 
@@ -191,7 +196,7 @@ def test_middleware_keeps_length_on_non_html():
     assert b"data-uxcompose-hmr" not in body["body"]
 
 
-def test_start_tailwind_watch_none_without_input(tmp_path):
-    from ux_compose.cli import _start_tailwind_watch
+def test_start_watch_none_without_input(tmp_path):
+    from ux_compose.tailwind import start_watch
 
-    assert _start_tailwind_watch(cwd=str(tmp_path)) is None
+    assert start_watch(cwd=str(tmp_path)) is None

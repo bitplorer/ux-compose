@@ -8,7 +8,9 @@ Three processes, one browser URL. Names match what each process owns:
     channel   /ux-channel*         wire, session, morph. does not reload
 
 A sibling Tailwind ``--watch`` writes ``output.css``. That is not a
-fourth server — it is a compiler next to these three.
+fourth server — it is a compiler next to these three. ``cli.py``
+spawns ``tailwind.start_watch`` around this runtime. This module
+does not Popen the compiler and does not parse argv.
 
 ``pages`` is not a word in this tree (the folder is ``routes/``).
 ``host`` is already ``--host`` / ``host=fastapi``. Do not reuse it.
@@ -35,7 +37,7 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Callable, Literal
+from typing import Literal
 from urllib.parse import urlsplit
 
 from ux_compose.serve_restart import clear_pid, write_pid
@@ -261,9 +263,11 @@ def run(
     port: int,
     reload_dirs: list[str],
     cwd: str | None = None,
-    start_css_watcher: Callable[[], subprocess.Popen | None] | None = None,
 ) -> int:
-    """Start the css watcher + both workers, then block on the origin process."""
+    """Start both workers, then block on the origin process.
+
+    CSS ``--watch`` is ``tailwind.start_watch``, spawned by ``cli.py``.
+    """
     import uvicorn
 
     root = cwd or os.getcwd()
@@ -280,7 +284,6 @@ def run(
     prepare_shared_state(root)
 
     py = sys.executable
-    css_watcher = start_css_watcher() if start_css_watcher is not None else None
 
     channel_cmd = [
         py, "-m", "uvicorn", app_ref,
@@ -402,7 +405,6 @@ def run(
             clear_pid(root)
         _stop(ui_proc)
         _stop(channel_holder[0])
-        _stop(css_watcher)
         drop_shared_state(root)
         try:
             channel_sock.close()

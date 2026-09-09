@@ -22,10 +22,32 @@ def test_help_lists_serve_modes():
     assert "--reload-channel" not in src
     assert "--no-css-watch" not in src
     assert "--no-hmr" not in src
-    assert "def _start_tailwind_watch" in src
+    assert "def _start_tailwind_watch" not in src
+    assert "start_watch" in src
     assert "run_serve_dev" in src
     assert "--one-process" not in src
     assert "def _missing_serve_dev_extras" in src
+    assert "def worker_for" not in src
+    assert "origin_asgi" not in src
+    assert "SIGUSR1" not in src
+    assert "argv dispatch" in src
+
+
+def test_cli_does_not_own_origin_runtime():
+    """cli.py is argv. Origin lives in serve_dev.py. Next bot: do not fold."""
+    cli = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
+    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    assert "def worker_for" in serve
+    assert "def origin_asgi" in serve
+    assert "def make_origin_asgi" in serve
+    assert "argparse" not in serve
+    assert "def main" not in serve
+    assert "start_css_watcher" not in serve
+    assert "start_watch" in cli
+    tw = (ROOT / "src" / "ux_compose" / "tailwind.py").read_text(encoding="utf-8")
+    assert "def start_watch" in tw
+    assert "Popen" in tw
+    assert "Popen" not in cli
 
 
 def test_serve_dev_rejects_one_process(capsys):

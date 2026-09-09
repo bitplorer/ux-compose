@@ -25,7 +25,9 @@ uxcompose doctor .
 (`discover_css_io` / `resolve_tailwind` / `argv_with_io`) to
 `assets/static/file/css/output.css`. create-app already emits
 `assets/css/input.css`, the Document `<link href="/css/output.css">`,
-and the `/css` mount.
+and the `/css` mount. `serve dev` CSS `--watch` is the same compiler
+(`tailwind.start_watch`), spawned by the CLI around the origin runtime —
+not by `hmr.py` and not by `serve_dev.py`.
 
 ## Pure-dom tooling
 

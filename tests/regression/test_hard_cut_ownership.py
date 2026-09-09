@@ -99,7 +99,7 @@ def test_bind_pages_alias_still_accepted():
 
 def test_directory_routes_lives_on_compose():
     from ux_compose.routing.core import DirectoryRoutes
-    from ux_compose.routing.adapters.asgi import DirectoryASGI
+    from ux_compose.routing.asgi import DirectoryASGI
 
     src = (ROOT / "src" / "ux_compose" / "surfaces_host.py").read_text(encoding="utf-8")
     assert "from ux_compose.routing.core import DirectoryRoutes" in src

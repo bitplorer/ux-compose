@@ -45,6 +45,9 @@ Do not document them. Tags are imported from `ux_compose`.
 - App asset layout / `WebAssets` on ux-dom (`ux_compose.assets` owns it)
 - HMR as a `Document.use` product API
 - A file watcher, `HmrHub`, or Tailwind `Popen` inside `hmr.py`
+- Tailwind `Popen` inside `serve_dev.py` (compiler watch is `tailwind.start_watch`)
+- Origin / `worker_for` / `origin_asgi` / `SIGUSR1` inside `cli.py`
+- argparse inside `serve_dev.py`
 - Clock flags (`--no-hmr`, `--no-reload`, `--css-watch`). Modes choose clocks.
 - Process-reloading the worker because `input.css` changed
 - A second Tailwind `--watch` next to serve's sibling (two writers on `output.css`)
@@ -63,7 +66,7 @@ Do not collapse these. The stale design is an in-process hub + watcher.
 |-------|-------|--------|
 | Process reload | ui worker, uvicorn `--reload` on `*.py` | new ui process, cold import |
 | Browser live-reload | `hmr.py` WebSocket `/__uxcompose/hmr` | ui death → GET 200 → morph; `location.reload()` on fail |
-| CSS | `cli.py` sibling Tailwind `--watch` + client HEAD `/css/output.css` | stylesheet swap. No process dies |
+| CSS | `tailwind.start_watch` sibling `--watch` + client HEAD `/css/output.css` | stylesheet swap. No process dies. Spawned by `cli.py`. |
 
 `uxcompose serve dev` is origin + ui + channel. Always.
 `uxcompose serve prod` is one process, clocks off.
@@ -83,6 +86,27 @@ uxcompose build
 uxcompose deploy --provider docker
 uxcompose doctor .
 ```
+
+`cli.py` is **argv dispatch**. Each verb's runtime is a sibling module.
+Do not fold those in — that is how serve-dev became a god file in the
+stale design, and how FileStateStore got cloned into compose.
+
+| Verb | Runtime |
+|------|---------|
+| `create-app` | `scaffold.py` |
+| `build` (CSS minify) | `cli_build.py` — **not** `build.py` (`build.py` is App composition: host.open → Channel → DirectoryRoutes) |
+| `serve dev` | `serve_dev.py` origin + ui + channel (ADR 0005). No argparse. |
+| `serve prod` | uvicorn in `cli.py` (clocks off; no origin) |
+| `serve restart-channel` | `serve_restart.py` |
+| `deploy` | `deploy.py` |
+| `doctor` | `doctor.py` |
+| `add` | `kit/copy.py` |
+| CSS `--watch` | `tailwind.start_watch` sibling Tailwind `--watch`. `cli.py` spawns it around serve. Not `hmr.py`. Not `serve_dev.py`. |
+
+Do not put `worker_for` / `origin_asgi` / `SIGUSR1` in `cli.py`.
+Do not put argparse in `serve_dev.py`.
+`routing/adapters/` is a leftover shim (`routing.asgi` / `routing.fastapi`
+are the product path).
 
 Pure-dom: `uxdom doctor | lint | profile | add`.
 Product CSS: `uxcompose build` (`ux_compose.tailwind` finds / ensures the CLI).

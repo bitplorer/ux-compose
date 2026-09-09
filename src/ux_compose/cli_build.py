@@ -1,4 +1,7 @@
-"""Product build — production CSS minify for app.py trees.
+"""Product CLI ``uxcompose build`` — production CSS minify for app.py trees.
+
+Not ``ux_compose.build`` (that module is App composition: host.open →
+Channel → DirectoryRoutes). This module is the CLI verb.
 
 Ownership (FLOW law):
   - Compiler resolution lives HERE (``ux_compose.tailwind``).

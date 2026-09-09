@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- CLI spine lock: ``cli.py`` is argv dispatch. ``serve_dev.py`` stays
+  the origin + ui + channel runtime (do not fold). CSS ``--watch``
+  moved to ``tailwind.start_watch`` (compiler locality). Dead
+  ``start_css_watcher`` hook removed from ``serve_dev.run``.
+  ``routing/adapters/`` remains a leftover shim; product path is
+  ``routing.asgi`` / ``routing.fastapi``.
 - serve-dev shared session store is Channel's ``FileStateStore``
   (JSON sqlite). ``serve_state.py`` is lifecycle only: env, path,
   prepare / clear / drop (ADR 0006). Isolation unchanged (``wire/``

@@ -71,6 +71,7 @@ These strings are not the product path. Doctor flags them in app trees.
 |----------|--------|
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` | `host="auto"` |
+| `from ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `.fastapi` |
 | Teaching `App.mount` as the product path | `build()` |
 | root `swipe.*` on an overlay card | swipe on dismiss |
 | `stunning-root` / nav brand in `render()` | `brand_wrap(document, brand=…)` / `build(wrap=document)` |

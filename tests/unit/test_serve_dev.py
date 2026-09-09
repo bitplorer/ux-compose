@@ -98,6 +98,16 @@ def test_workers_inherit_a_held_fd():
     assert "prepare_shared_state" in src
     assert "UXCOMPOSE_STATE_STORE" in src
     assert "session lives with Channel" in src or "ch.draft" in src
+    assert "start_css_watcher" not in src
+    assert "import argparse" not in src
+    assert "def main" not in src
+
+
+def test_cli_dispatches_serve_dev_not_implements_it():
+    cli = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
+    assert "run_serve_dev" in cli
+    assert "def worker_for" not in cli
+    assert "def listen_loopback" not in cli
 
 
 def test_restart_channel_helpers(tmp_path):

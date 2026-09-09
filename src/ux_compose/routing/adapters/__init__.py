@@ -1,6 +1,7 @@
-"""Compat shims for DirectoryRoutes host modules.
+"""Leftover shims. Expire by teaching (ADR 0004).
 
-Product code: ``ux_compose.routing.fastapi`` and ``ux_compose.routing.asgi``.
+Product path: ``ux_compose.routing.fastapi`` and ``ux_compose.routing.asgi``.
+Do not add new symbols here.
 """
 from __future__ import annotations
 

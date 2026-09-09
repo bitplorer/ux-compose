@@ -24,6 +24,7 @@ ux-compose  PRODUCT    create-app · build · serve · deploy · doctor
             + CHANNEL  wire/ only
             + DEV      origin + ui + channel · HMR · CSS sibling --watch · tunnel
                        prepares UXCOMPOSE_STATE_STORE (Channel FileStateStore)
+                       cli.py = argv; serve_dev.py = origin runtime; tailwind.start_watch = CSS
 
 ux-behavior units, MorphState, @action (offline)
 ux-channel  Intent/Caps behind wire/ only. StateStore protocol +

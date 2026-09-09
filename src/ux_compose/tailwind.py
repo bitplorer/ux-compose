@@ -5,6 +5,9 @@ App folders + compiler I/O live here (``ux_compose.assets.WebAssets``).
 Finding, downloading, and invoking the compiler is ``uxcompose build``.
 Same split as React vs ``next build``.
 
+Dev ``--watch`` is ``start_watch`` (spawned by ``cli.py`` around serve).
+Not ``hmr.py``. Not ``serve_dev.py``.
+
 Order (first hit wins):
 
 1. ``UXCOMPOSE_TAILWIND`` (alias: ``UXDOM_TAILWIND``) or ``TAILWINDCSS``
@@ -24,6 +27,7 @@ import os
 import platform
 import shutil
 import stat
+import subprocess
 import sys
 import urllib.request
 from dataclasses import dataclass
@@ -40,6 +44,7 @@ __all__ = [
     "resolve_tailwind",
     "resolve_tailwind_argv",
     "standalone_asset_name",
+    "start_watch",
 ]
 
 # Pinned so serve/dev are reproducible. Override with UXCOMPOSE_TAILWIND_VERSION.
@@ -301,3 +306,47 @@ def discover_css_io(root: Path) -> Optional[tuple[Path, Path]]:
         else:
             return None
     return input_css, wa.output_css
+
+
+def start_watch(*, cwd: str | Path | None = None) -> subprocess.Popen | None:
+    """Sibling Tailwind ``--watch``. Compiler, not a fourth server.
+
+    ``cli.py`` spawns this around ``serve dev``. ``hmr.py`` must not
+    Popen. ``serve_dev.py`` must not own the compiler. None is quiet
+    when the tree has no ``input.css``. Missing CLI is a warning, not
+    a failed serve.
+    """
+    root = Path(cwd or ".").resolve()
+    io = discover_css_io(root)
+    if io is None:
+        return None
+    input_css, output_css = io
+    hit = resolve_tailwind(cwd=root, ensure=False)
+    if hit is None:
+        print(
+            "CSS: Tailwind CLI not found — skip sibling --watch "
+            "(pip install pytailwindcss, or run uxcompose build)",
+            file=sys.stderr,
+        )
+        return None
+    output_css.parent.mkdir(parents=True, exist_ok=True)
+    cmd = argv_with_io(
+        hit.argv,
+        input_css=input_css,
+        output_css=output_css,
+        minify=False,
+        watch=True,
+    )
+    cmd = [("--watch=always" if part == "--watch" else part) for part in cmd]
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join([str(root), env.get("PYTHONPATH", "")])
+    env["UXDOM_TAILWIND_OWNED"] = "1"
+    try:
+        proc = subprocess.Popen(
+            cmd, cwd=str(root), env=env, stdin=subprocess.DEVNULL
+        )
+    except OSError as exc:
+        print(f"CSS: sibling --watch spawn failed: {exc}", file=sys.stderr)
+        return None
+    print(f"CSS: tailwind --watch ({hit.source}) → {output_css}")
+    return proc

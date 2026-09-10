@@ -250,3 +250,11 @@ def test_internals_ownership_is_moved_stub_lock():
     assert text.count("\n") <= 12
     assert "DirectoryRoutes + thin adapters" not in text
     assert "ux_compose.tailwind" not in text
+
+
+def test_docs_start_here_is_not_a_second_cli_recipe():
+    text = (DOCS / "START_HERE.md").read_text(encoding="utf-8")
+    assert "uxcompose create-app" not in text
+    contrib = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    assert "in sync with the root START_HERE" not in contrib
+    assert "not a second CLI recipe" in contrib

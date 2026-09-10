@@ -34,13 +34,7 @@ python3.14 -m venv .venv && source .venv/bin/activate
 pip install -e ".[serve]"    # from this repo
 ```
 
-Product CLI:
-
-```bash
-uxcompose create-app myapp --level 1
-cd myapp
-uxcompose serve dev
-```
+Product CLI recipe lives on the root 5-minute path: [../START_HERE.md](../START_HERE.md).
 
 ---
 
@@ -75,7 +69,7 @@ app, asgi, bundle = build(
 app.dispatch("hello.inc")
 ```
 
-Product path is `uxcompose create-app` then `build()` — not `App.mount`.
+Product path is the root START_HERE CLI then `build()` — not `App.mount`.
 Full-stack Clock A GET: `examples/live_asgi.py`.
 
 ---

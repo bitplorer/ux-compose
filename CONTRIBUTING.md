@@ -54,8 +54,8 @@ Authoritative: [docs/OWNERSHIP.md](docs/OWNERSHIP.md). Agent contract: [AGENTS.m
 | `docs/adr/` | Architecture decisions | Mixed how-to |
 | `docs/INDEX.md` | Audience + Diátaxis routing | Empty folder trees |
 
-Map: [docs/INDEX.md](docs/INDEX.md). Keep [docs/START_HERE.md](docs/START_HERE.md)
-in sync with the root START_HERE.
+Map: [docs/INDEX.md](docs/INDEX.md). Root 5-minute path: [START_HERE.md](START_HERE.md).
+Mental model: [docs/START_HERE.md](docs/START_HERE.md) (not a second CLI recipe).
 
 ## Pull requests
 

@@ -307,7 +307,7 @@ and not a 0.2 line.
   [docs/adr/0002-product-host.md](docs/adr/0002-product-host.md).
 - **Host spec.** Payload law, path law, created-app layout, file map, CSP
   layers, wrap-vs-mount, and future protocol:
-  [docs/reference/host.md](reference/host.md). Author recipes:
+  [docs/reference/host.md](docs/reference/host.md). Author recipes:
   [docs/guides/HOST.md](docs/guides/HOST.md).
 - Community health files: Code of Conduct, Security, Support, Governance, issue and pull-request templates.
 - Standard Readme README with canonical (non-stub) doc links.

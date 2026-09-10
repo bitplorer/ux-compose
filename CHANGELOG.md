@@ -31,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ``insert_live_client`` leaves HTML fragments unwrapped. No synthesized
   ``<!DOCTYPE html>`` shell (HMR-shell). Complete documents still get
   Channel scripts before ``</body>``.
+- Sibling Tailwind ``--watch`` spawn lives in ``tailwind.py``
+  (``start_tailwind_watch``). ``cli.py`` dispatches; ``hmr.py`` still
+  does not ``Popen`` (CSS-spawn).
 - ``helpers._live_channel`` swallows ``ImportError`` only. Other errors
   fail loud so live ``control()`` cannot emit no-cap dual attrs (SWALLOW-1).
 - ``ChannelConfig(secret=)`` and ``Channel.boot`` in ``wire/boot.py`` fail

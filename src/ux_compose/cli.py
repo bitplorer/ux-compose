@@ -16,7 +16,6 @@ deploy still starts raw uvicorn — it does not call serve.
 """
 from __future__ import annotations
 
-import os
 import sys
 import threading
 
@@ -183,53 +182,6 @@ def _build(argv: list[str]) -> int:
     return 0 if report.ok else 1
 
 
-def _start_tailwind_watch(*, cwd: str | None = None):
-    """Sibling Tailwind --watch. Lives in serve, not in hmr.py.
-
-    Returns a Popen or None. None is quiet when the tree has no input.css.
-    Missing CLI is a warning, not a failed serve.
-    """
-    import subprocess
-    from pathlib import Path
-
-    from ux_compose.tailwind import argv_with_io, discover_css_io, resolve_tailwind
-
-    root = Path(cwd or ".").resolve()
-    io = discover_css_io(root)
-    if io is None:
-        return None
-    input_css, output_css = io
-    hit = resolve_tailwind(cwd=root, ensure=False)
-    if hit is None:
-        print(
-            "CSS: Tailwind CLI not found — skip sibling --watch "
-            "(pip install pytailwindcss, or run uxcompose build)",
-            file=sys.stderr,
-        )
-        return None
-    output_css.parent.mkdir(parents=True, exist_ok=True)
-    cmd = argv_with_io(
-        hit.argv,
-        input_css=input_css,
-        output_css=output_css,
-        minify=False,
-        watch=True,
-    )
-    cmd = [("--watch=always" if part == "--watch" else part) for part in cmd]
-    env = os.environ.copy()
-    env["PYTHONPATH"] = os.pathsep.join([str(root), env.get("PYTHONPATH", "")])
-    env["UXDOM_TAILWIND_OWNED"] = "1"
-    try:
-        proc = subprocess.Popen(
-            cmd, cwd=str(root), env=env, stdin=subprocess.DEVNULL
-        )
-    except OSError as exc:
-        print(f"CSS: sibling --watch spawn failed: {exc}", file=sys.stderr)
-        return None
-    print(f"CSS: tailwind --watch ({hit.source}) → {output_css}")
-    return proc
-
-
 def _stop_proc(proc) -> None:
     if proc is None:
         return
@@ -363,7 +315,9 @@ def _serve(argv: list[str]) -> int:
         return 2
 
     tunnel_handle = None
-    css_proc = _start_tailwind_watch() if css_watch else None
+    from ux_compose.tailwind import start_tailwind_watch
+
+    css_proc = start_tailwind_watch() if css_watch else None
 
     def _tunnel_worker() -> None:
         nonlocal tunnel_handle

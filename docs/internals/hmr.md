@@ -84,7 +84,7 @@ The next `*.py` save still leaves Channel up.
 |-------|-------|----------------|
 | Process reload | ui worker, uvicorn `--reload` + `*.py` | new ui process, cold import, new page class |
 | Browser live-reload | `hmr.py` WebSocket `/__uxcompose/hmr` | ui death → GET 200 → morph page units; `location.reload()` on fail |
-| CSS | `cli.py` sibling Tailwind `--watch` + client HEAD `/css/output.css` | stylesheet swap. No process dies |
+| CSS | `tailwind.py` sibling Tailwind `--watch` + client HEAD `/css/output.css` | stylesheet swap. No process dies |
 
 `hmr.py` does not watch files and does not spawn Tailwind.
 HTML insert is `HmrClientMiddleware`, not `Document.use`.
@@ -237,7 +237,8 @@ That path does not morph and does not reload.
 | `src/ux_compose/serve_restart.py` | pidfile + one-shot `SIGUSR1` |
 | `src/ux_compose/serve_state.py` | env / path / prepare / clear / drop. Not a store class |
 | `src/ux_compose/hmr.py` | client JS (`softReload` / `morphLive` / `hardReload`), HMR WS, HTML insert |
-| `src/ux_compose/cli.py` | `serve dev` / `serve prod` / `serve restart-channel`, sibling Tailwind, extras check |
+| `src/ux_compose/cli.py` | `serve dev` / `serve prod` / `serve restart-channel`, extras check; dispatches CSS watch |
+| `src/ux_compose/tailwind.py` | sibling Tailwind `--watch` spawn (`start_tailwind_watch`) |
 | `src/ux_compose/assets.py` | HEAD + ETag for `/css` |
 | `pyproject.toml` extra `serve` | `httpx`, `starlette`, `websockets`, `watchfiles` |
 | `docs/adr/0005-serve-dev-split.md` | process split |

@@ -334,3 +334,20 @@ def test_live_client_does_not_synthesize_html_shell():
     assert "synthesize a Document" in chunk
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
     assert "synthesized HTML shell for fragments" in arch
+
+
+def test_css_watch_spawn_lives_in_tailwind():
+    cli = _read("cli.py")
+    tw = _read("tailwind.py")
+    hmr = _read("hmr.py")
+    assert "def start_tailwind_watch" in tw
+    assert "def _start_tailwind_watch" not in cli
+    assert "start_tailwind_watch" in cli
+    assert "subprocess.Popen" in tw
+    assert "subprocess.Popen" not in cli
+    assert "Popen" not in hmr
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    assert "`tailwind.py` sibling Tailwind" in agents
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "Tailwind `Popen` in `cli.py`" in arch
+    assert not (SRC / "cli").exists()

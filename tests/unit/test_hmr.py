@@ -107,10 +107,14 @@ def test_cli_serve_does_not_xor():
 
 def test_cli_css_watch_is_sibling_not_hmr_watcher():
     cli = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
+    tw = (ROOT / "src" / "ux_compose" / "tailwind.py").read_text(encoding="utf-8")
     hmr = (ROOT / "src" / "ux_compose" / "hmr.py").read_text(encoding="utf-8")
-    assert "def _start_tailwind_watch" in cli
-    assert "argv_with_io" in cli
-    assert "Popen" in cli
+    assert "def start_tailwind_watch" in tw
+    assert "def _start_tailwind_watch" not in cli
+    assert "start_tailwind_watch" in cli
+    assert "argv_with_io" in tw
+    assert "Popen" in tw
+    assert "Popen" not in cli
     assert "Popen" not in hmr
     assert "subprocess" not in hmr
     assert "discover_css_io" not in hmr
@@ -192,6 +196,6 @@ def test_middleware_keeps_length_on_non_html():
 
 
 def test_start_tailwind_watch_none_without_input(tmp_path):
-    from ux_compose.cli import _start_tailwind_watch
+    from ux_compose.tailwind import start_tailwind_watch
 
-    assert _start_tailwind_watch(cwd=str(tmp_path)) is None
+    assert start_tailwind_watch(cwd=str(tmp_path)) is None

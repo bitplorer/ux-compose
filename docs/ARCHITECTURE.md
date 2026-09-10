@@ -51,7 +51,7 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Isolation door | `wire/boot.py`, `wire/caps.py`, `wire/cek.py` | `ux_channel` import outside `wire/` |
 | Cap mint | `wire/caps.py` | empty-token dual attrs |
 | Product CLI | `cli.py` | second verb, clock flags |
-| Build / CSS | `cli_build.py`, `tailwind.py`, `assets.py` | Tailwind on ux-dom |
+| Build / CSS | `cli_build.py`, `tailwind.py`, `assets.py` | Tailwind on ux-dom; Tailwind `Popen` in `cli.py` / `hmr.py` |
 | Product host | `routing/host.py`, `routing/fastapi.py`, `routing/asgi.py`, `routing/core.py` | fold FastAPI into DirectoryASGI |
 | Composition | `app.py`, `component.py`, `helpers.py` | clone MorphState / Cap |
 | Surfaces / scan | `surfaces.py`, `surfaces_host.py`, `build.py` | second HTTP pipeline |

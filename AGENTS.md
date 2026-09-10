@@ -76,7 +76,7 @@ Do not collapse these. The stale design is an in-process hub + watcher.
 |-------|-------|--------|
 | Process reload | ui worker, uvicorn `--reload` on `*.py` | new ui process, cold import |
 | Browser live-reload | `hmr.py` WebSocket `/__uxcompose/hmr` | ui death → GET 200 → morph; `location.reload()` on fail |
-| CSS | `cli.py` sibling Tailwind `--watch` + client HEAD `/css/output.css` | stylesheet swap. No process dies |
+| CSS | `tailwind.py` sibling Tailwind `--watch` + client HEAD `/css/output.css` | stylesheet swap. No process dies |
 
 `uxcompose serve dev` is origin + ui + channel. Always.
 `uxcompose serve prod` is one process, clocks off.

@@ -4,6 +4,8 @@ Render (className, ``<link>``) stays on ux-dom.
 App folders + compiler I/O live here (``ux_compose.assets.WebAssets``).
 Finding, downloading, and invoking the compiler is ``uxcompose build``.
 Same split as React vs ``next build``.
+Sibling ``--watch`` spawn for ``serve dev`` lives here
+(``start_tailwind_watch``).
 
 Order (first hit wins):
 
@@ -40,6 +42,7 @@ __all__ = [
     "resolve_tailwind",
     "resolve_tailwind_argv",
     "standalone_asset_name",
+    "start_tailwind_watch",
 ]
 
 # Pinned so serve/dev are reproducible. Override with UXCOMPOSE_TAILWIND_VERSION.
@@ -301,3 +304,47 @@ def discover_css_io(root: Path) -> Optional[tuple[Path, Path]]:
         else:
             return None
     return input_css, wa.output_css
+
+
+def start_tailwind_watch(*, cwd: str | None = None):
+    """Sibling Tailwind --watch. Lives here, not in cli.py or hmr.py.
+
+    Returns a Popen or None. None is quiet when the tree has no input.css.
+    Missing CLI is a warning, not a failed serve.
+    """
+    import subprocess
+
+    root = Path(cwd or ".").resolve()
+    io = discover_css_io(root)
+    if io is None:
+        return None
+    input_css, output_css = io
+    hit = resolve_tailwind(cwd=root, ensure=False)
+    if hit is None:
+        print(
+            "CSS: Tailwind CLI not found — skip sibling --watch "
+            "(pip install pytailwindcss, or run uxcompose build)",
+            file=sys.stderr,
+        )
+        return None
+    output_css.parent.mkdir(parents=True, exist_ok=True)
+    cmd = argv_with_io(
+        hit.argv,
+        input_css=input_css,
+        output_css=output_css,
+        minify=False,
+        watch=True,
+    )
+    cmd = [("--watch=always" if part == "--watch" else part) for part in cmd]
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join([str(root), env.get("PYTHONPATH", "")])
+    env["UXDOM_TAILWIND_OWNED"] = "1"
+    try:
+        proc = subprocess.Popen(
+            cmd, cwd=str(root), env=env, stdin=subprocess.DEVNULL
+        )
+    except OSError as exc:
+        print(f"CSS: sibling --watch spawn failed: {exc}", file=sys.stderr)
+        return None
+    print(f"CSS: tailwind --watch ({hit.source}) → {output_css}")
+    return proc

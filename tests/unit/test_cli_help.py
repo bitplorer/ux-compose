@@ -22,7 +22,10 @@ def test_help_lists_serve_modes():
     assert "--reload-channel" not in src
     assert "--no-css-watch" not in src
     assert "--no-hmr" not in src
-    assert "def _start_tailwind_watch" in src
+    assert "def start_tailwind_watch" not in src
+    tw = (ROOT / "src" / "ux_compose" / "tailwind.py").read_text(encoding="utf-8")
+    assert "def start_tailwind_watch" in tw
+    assert "start_tailwind_watch" in src
     assert "run_serve_dev" in src
     assert "--one-process" not in src
     assert "def _missing_serve_dev_extras" in src

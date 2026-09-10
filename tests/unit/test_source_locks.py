@@ -92,3 +92,13 @@ def test_app_mount_is_scan_step_not_secondary_door():
         if "secondary door" in text.lower() or "secondary-door" in text.lower():
             hits.append(str(path.relative_to(ROOT)))
     assert hits == [], hits
+
+
+def test_critic_names_fragment_walker_residual():
+    critic = (ROOT / "CRITIC.md").read_text(encoding="utf-8")
+    assert "homemade fragment walker" in critic
+    assert "_fragment_for_target" in critic
+    assert "PASS with residual" in critic
+    helpers = _read("helpers.py")
+    assert "def _fragment_for_target" in helpers
+    assert "def _element_end" in helpers

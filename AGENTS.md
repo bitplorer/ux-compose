@@ -39,6 +39,8 @@ Folders are import/copy laws. Full table: [docs/ARCHITECTURE.md](docs/ARCHITECTU
   library import. Do not move it under `kit/`.
 - No `cli/` package. `cli.py` is argv dispatch. Verb bodies are also
   libraries (`doctor.py`, `build.py` / `cli_build.py`, `scaffold.py`).
+- No `serve/` package. Origin runtime stays `serve_dev.py` /
+  `serve_restart.py` / `serve_state.py` next to `cli.py`.
 - `wire/` is the only `ux_channel` door. `routing/` is the host pair.
 - Do not add `helpers/` or grow `dx/` into a product.
 
@@ -106,6 +108,20 @@ uxcompose build
 uxcompose deploy --provider docker
 uxcompose doctor .
 ```
+
+`cli.py` is argv. Each verb body is a sibling module, not a folder:
+
+| Verb | Runtime |
+|------|---------|
+| `create-app` | `scaffold.py` |
+| `build` (CSS minify) | `cli_build.py` — not `build.py` |
+| `serve dev` | `serve_dev.py` origin + ui + channel |
+| `serve prod` | uvicorn in `cli.py` (clocks off) |
+| `serve restart-channel` | `serve_restart.py` |
+| `deploy` | `deploy.py` |
+| `doctor` | `doctor.py` |
+| `add` | `kit/copy.py` |
+| CSS `--watch` | `tailwind.start_tailwind_watch` |
 
 Pure-dom: `uxdom doctor | lint | profile | add`.
 Product CSS: `uxcompose build` (`ux_compose.tailwind` finds / ensures the CLI).

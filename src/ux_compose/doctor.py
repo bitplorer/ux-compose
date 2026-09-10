@@ -258,7 +258,6 @@ def scan_render_chrome(paths: Iterable[str | Path]) -> list[str]:
             diagnostics.append(
                 f"residual in {p}: render() contains GET chrome ({', '.join(hits)}). {teach}"
             )
-            break
     return diagnostics
 
 

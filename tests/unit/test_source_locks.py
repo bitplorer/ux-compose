@@ -190,3 +190,29 @@ def test_leftover_scan_has_no_first_token_break():
         assert "batteries" in joined
         assert "DirectoryRouter" in joined
         assert len(diags) >= 2
+
+
+def test_render_chrome_scan_has_no_first_hit_break():
+    chunk = _fn(_read("doctor.py"), "scan_render_chrome")
+    assert "break" not in chunk
+    import tempfile
+    from pathlib import Path as P
+
+    doctor = _load_doctor()
+    with tempfile.TemporaryDirectory() as td:
+        product = P(td) / "routes" / "hello.py"
+        product.parent.mkdir(parents=True)
+        product.write_text(
+            "class Hello:\n"
+            "    def render(self):\n"
+            "        return '<div id=\"stunning-root\">a</div>'\n"
+            "class Other:\n"
+            "    def render(self):\n"
+            "        return '<nav class=\"nav\"><span class=\"brand\">Acme</span></nav>'\n",
+            encoding="utf-8",
+        )
+        diags = doctor.scan_render_chrome([product])
+        joined = "\n".join(diags)
+        assert "stunning-root" in joined
+        assert 'class="nav"' in joined
+        assert len(diags) >= 2

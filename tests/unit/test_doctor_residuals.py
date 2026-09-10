@@ -112,6 +112,26 @@ def test_render_nav_brand_is_residual():
         assert any('class="nav"' in d and "brand" in d for d in diags)
 
 
+def test_render_chrome_reports_every_render():
+    with tempfile.TemporaryDirectory() as td:
+        product = Path(td) / "routes" / "hello.py"
+        product.parent.mkdir(parents=True)
+        product.write_text(
+            "class Hello:\n"
+            "    def render(self):\n"
+            "        return '<div id=\"stunning-root\">a</div>'\n"
+            "class Other:\n"
+            "    def render(self):\n"
+            "        return '<nav class=\"nav\"><span class=\"brand\">Acme</span></nav>'\n",
+            encoding="utf-8",
+        )
+        diags = scan_render_chrome([product])
+        joined = "\n".join(diags)
+        assert "stunning-root" in joined
+        assert 'class="nav"' in joined
+        assert len(diags) >= 2
+
+
 def test_render_chrome_skips_non_routes():
     with tempfile.TemporaryDirectory() as td:
         other = Path(td) / "shell.py"

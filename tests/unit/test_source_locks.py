@@ -324,3 +324,13 @@ def test_command_does_not_import_overlay_chrome():
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
     assert "`kit/command.py` owns local" in arch
     assert "must not import" in arch
+
+
+def test_live_client_does_not_synthesize_html_shell():
+    src = _read("live_client.py")
+    chunk = _fn(src, "insert_live_client")
+    assert "<!DOCTYPE html>" not in chunk
+    assert "return page" in chunk
+    assert "synthesize a Document" in chunk
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "synthesized HTML shell for fragments" in arch

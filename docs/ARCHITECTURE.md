@@ -59,7 +59,7 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Kit catalog / copy | `kit/catalog.py`, `kit/copy.py` | overlay in CATALOG |
 | Author helpers on copies | `kit_construct.py` (outside `kit/`) | move under `kit/` |
 | HMR | `hmr.py` | `Document.use` HMR |
-| Channel scripts | `live_client.py` | fold into `hmr.py` |
+| Channel scripts | `live_client.py` | fold into `hmr.py`; synthesized HTML shell for fragments |
 | Serve-dev clocks | `serve_dev.py`, `cli.py` | `--one-process` |
 | Store lifecycle | `serve_state.py` | compose `FileStateStore` class |
 | Probe | `dx/probe.py` | junk-drawer growth |

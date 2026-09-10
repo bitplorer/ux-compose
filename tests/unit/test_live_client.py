@@ -80,14 +80,15 @@ def test_bind_string_fallback_emits_dual_attrs():
     assert attrs["data-ux-arg-sku"] == "oak"
 
 
-def test_insert_live_client_wraps_fragment_not_document():
+def test_insert_live_client_leaves_fragment_unwrapped():
     page = b'<div id="hello">hi</div>'
     out = insert_live_client(page)
+    assert out == page
     text = out.decode("utf-8")
-    assert '<div id="hello">hi</div>' in text
-    assert CHANNEL_JS_URL in text
-    assert f'data-channel-endpoint="{CHANNEL_ENDPOINT}"' in text
-    assert "data-uxcompose-live-client" in text
+    assert "<!DOCTYPE" not in text
+    assert "<html" not in text
+    assert CHANNEL_JS_URL not in text
+    assert "data-channel-endpoint" not in text
     assert insert_live_client(out) == out  # idempotent
 
 
@@ -139,13 +140,20 @@ def _run_asgi(app, *, path="/", content_type: bytes, body: bytes):
 
 
 def test_middleware_injects_html_and_skips_css():
-    page = b'<div id="hello">hi</div>'
+    page = b"<!DOCTYPE html><html><body><div id=\"hello\">hi</div></body></html>"
     captured = _run_asgi(None, content_type=b"text/html; charset=utf-8", body=page)
     body = next(m for m in captured if m["type"] == "http.response.body")
     assert CHANNEL_JS_URL.encode() in body["body"]
     start = next(m for m in captured if m["type"] == "http.response.start")
     headers = dict(start["headers"])
     assert b"content-length" not in headers
+
+    fragment = b'<div id="hello">hi</div>'
+    captured = _run_asgi(None, content_type=b"text/html; charset=utf-8", body=fragment)
+    body = next(m for m in captured if m["type"] == "http.response.body")
+    assert body["body"] == fragment
+    assert CHANNEL_JS_URL.encode() not in body["body"]
+    assert b"<!DOCTYPE" not in body["body"]
 
     css = b"body{color:red}"
     captured = _run_asgi(None, path="/css/output.css", content_type=b"text/css", body=css)

@@ -12,7 +12,8 @@ Product path is ``Document.use(XElement(), Csp.auto(), Channel.optional())``
 (the ``ux_dom.runtime`` alias). This helper is **not** the Document-absent
 primary: ``build()`` does not auto-attach it when ``document=None``.
 
-Never wrap HTML-string fragments with a synthesized ux-dom Document (a
+Never wrap HTML-string fragments with a synthesized Document — not a
+ux-dom ``Document`` and not a string ``<!DOCTYPE html>`` shell (a
 positional ``str`` becomes script ``src``).
 """
 from __future__ import annotations
@@ -77,9 +78,9 @@ def insert_live_client(page: bytes, markup: bytes | None = None) -> bytes:
     """Put Channel client tags into HTML, once.
 
     Complete documents (``<html>`` / ``</body>``) get an insert before
-    ``</body>`` — never a second shell. Fragments without a body get a
-    **string** HTML shell (not a ux-dom ``Document``). Idempotent if the
-    live-client marker or ``ux-channel.js`` is already present.
+    ``</body>`` — never a second shell. Fragments without a body stay
+    fragments: this helper does **not** synthesize a Document. Idempotent
+    if the live-client marker or ``ux-channel.js`` is already present.
     """
     if _already_wired(page):
         return page
@@ -93,14 +94,7 @@ def insert_live_client(page: bytes, markup: bytes | None = None) -> bytes:
         if idx >= 0:
             return stamped[:idx] + script + stamped[idx:]
         return stamped + script
-    return (
-        b'<!DOCTYPE html><html><body data-channel-endpoint="'
-        + CHANNEL_ENDPOINT.encode("ascii")
-        + b'">'
-        + page
-        + script
-        + b"</body></html>"
-    )
+    return page
 
 
 class LiveClientMiddleware:

@@ -110,7 +110,7 @@ from document import document
 app, asgi, bundle = build(PACKAGE, host="auto", live="auto", document=document)
 ```
 
-`App.mount` remains a secondary door (tests, surfaces).
+`App.mount` remains a page-unit scan step (tests, surfaces). Product path is `build()`.
 
 Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PATH.md](docs/guides/PATH.md). UI kit: [docs/guides/UI.md](docs/guides/UI.md). Mental model: [docs/START_HERE.md](docs/START_HERE.md).
 

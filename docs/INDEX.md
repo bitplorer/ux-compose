@@ -80,7 +80,7 @@ Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005
 | [guides/PATH.md](guides/PATH.md) | Scaffold → serve dev → HMR → Tailwind → live |
 | [guides/TAILWIND.md](guides/TAILWIND.md) | Production CSS how-to |
 | [../examples/README.md](../examples/README.md) | Example map |
-| [../examples/page_unit_mount.py](../examples/page_unit_mount.py) | App.mount secondary-door proof |
+| [../examples/page_unit_mount.py](../examples/page_unit_mount.py) | App.mount page-unit scan step |
 
 ### How-to
 

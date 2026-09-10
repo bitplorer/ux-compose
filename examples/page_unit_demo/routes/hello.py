@@ -1,6 +1,6 @@
 """Page unit — module stem matches class name (hello.py → Hello).
 
-Used by DirectoryRoutes + App.mount (secondary door). Product path is build().
+Used by DirectoryRoutes + App.mount (page-unit scan step). Product path is build().
 """
 from __future__ import annotations
 

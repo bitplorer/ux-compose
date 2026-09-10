@@ -72,6 +72,7 @@ These strings are not the product path. Doctor flags them in app trees.
 | `pip install ux-compose` / PyPI cell | git clone + `pip install -e ".[serve]"` |
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` | `host="auto"` |
+| Teaching `App.mount` as a "secondary door" | page-unit scan step; product path is `build()` |
 | Teaching `App.mount` as the product path | `build()` |
 | root `swipe.*` on an overlay card | swipe on dismiss |
 | `stunning-root` / nav brand in `render()` | `brand_wrap(document, brand=…)` / `build(wrap=document)` |

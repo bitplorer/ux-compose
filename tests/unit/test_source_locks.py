@@ -70,3 +70,25 @@ def test_pypi_unclaimed_in_brand_tables():
     assert "pip install -e '.[serve]'" in cli
     assert "pip install 'ux-compose[serve]'" not in cli
     assert 'pip install "ux-compose[serve]"' not in cli
+
+
+def test_app_mount_is_scan_step_not_secondary_door():
+    app_src = _read("app.py")
+    assert "def mount(" in app_src
+    leftover = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "secondary door" in leftover
+    hits = []
+    skip = {ROOT / "CHANGELOG.md", DOCS / "ARCHITECTURE.md"}
+    for path in (
+        list(ROOT.glob("*.md"))
+        + list(DOCS.rglob("*.md"))
+        + list((ROOT / "examples").rglob("*.py"))
+        + list((ROOT / "src").rglob("*.py"))
+        + [ROOT / "AGENTS.md"]
+    ):
+        if path.resolve() in {p.resolve() for p in skip}:
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "secondary door" in text.lower() or "secondary-door" in text.lower():
+            hits.append(str(path.relative_to(ROOT)))
+    assert hits == [], hits

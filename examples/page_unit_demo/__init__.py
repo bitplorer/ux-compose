@@ -1,2 +1,2 @@
-"""Minimal page-unit package for the App.mount secondary-door demo."""
+"""Minimal page-unit package for the App.mount scan-step demo."""
 

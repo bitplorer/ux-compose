@@ -1,5 +1,5 @@
 """
-E2E demo — App.mount as a secondary door (page unit + doctor evidence).
+E2E demo — App.mount as a page-unit scan step (page unit + doctor evidence).
 
 The product front door is uxcompose create-app + build():
 
@@ -65,12 +65,12 @@ def build(*, level: int = 1, with_asgi: bool = False):
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Page-unit App.mount secondary-door demo")
+    parser = argparse.ArgumentParser(description="Page-unit App.mount scan-step demo")
     parser.add_argument("--asgi", action="store_true", help="Attach FastAPI for DirectoryRoutes page bind")
     parser.add_argument("--level", type=int, default=1, choices=(1, 2, 3))
     args = parser.parse_args(argv)
 
-    print("=== App.mount (secondary door) ===")
+    print("=== App.mount (page-unit scan step) ===")
     print(f"  package: {PACKAGE}")
     print(f"  level:   {args.level}")
     print(f"  asgi:    {args.asgi}")
@@ -106,7 +106,7 @@ def main(argv: list[str] | None = None) -> int:
         n_routes = len(getattr(asgi, "routes", []) or [])
         print(f"\nASGI routes registered: {n_routes}")
 
-    print("\nOK — App.mount secondary door proven (page unit + mount + dispatch + doctor).")
+    print("\nOK — App.mount page-unit scan step proven (page unit + mount + dispatch + doctor).")
     return 0
 
 

@@ -83,7 +83,7 @@ Reports:
 4. Isolation AST scan + dual-Document heuristic (fail-closed unless `--no-fail`)
 
 Page-unit teaching names **create-app + build()** (`DirectoryRoutes`).
-`App.mount` is a secondary door. `host="batteries"` fails closed.
+`App.mount` is a page-unit scan step. `host="batteries"` fails closed.
 
 ## Probe API (library)
 

@@ -22,7 +22,7 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 - Live Cap mint path: `App.mint_cap` / `App.submit_intent` — checkout succeeds only with a real Channel Cap
 - Channel FastAPI host: `Behavior.attach(asgi)` owns `Channel.boot`; never `attach(Channel)` (include_router)
 - Optional CEK door via `wire/cek.py` (`App.use_cek`) — Isolation-safe, degrades if absent
-- Product app: `apps/atelier_shop` (cart + confirm modal + Document shell)
+- Product apps: `apps/atelier_shop`, `apps/atelier_studio`, `apps/nook`, `apps/pulse`
 - Presence continuity cookbook: `cookbooks/PRESENCE.md`
 - GitHub Actions CI: full-stack py3.14 only (specialists are hard dependencies)
 - create-app scaffold emits settings.py + document.py + assets/css/input.css + progressive L1–L3 app (`build(document=)`)
@@ -30,10 +30,10 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 ## Soft notes (non-kill)
 
 1. **Python floor is ≥3.14** — ux-dom / channel / behavior / motion are hard dependencies.
-2. **Doctor dual-Document** when scanning `examples/` may still list multiple educational Document() calls — product packages construct one Document at boot (`apps/atelier_shop`).
+2. **Doctor dual-Document** when scanning `examples/` may still list multiple educational Document() calls — product packages construct one Document at boot (`apps/atelier_shop` and the other product apps).
 3. After `use_channel`, `App.dispatch` is Host-internal (Behavior skips Caps when `_wire` is set). Live Cap verification is `submit_intent` / Channel edge. This is specialist contract, not a compose bug.
 4. **Fragment walker residual** — `helpers._fragment_for_target` walks HTML strings. KEEP until ux-dom owns extract (deleting drops fragment-law). Not a second serialize.
 
 ## Recommendation
 
-**Ship 0.1.0** under the frozen mental model. Live Cap + Isolation-safe FastAPI attach + one product app now exist. Do not reopen the mental model.
+**Ship 0.1.0** under the frozen mental model. Live Cap + Isolation-safe FastAPI attach + four product apps now exist (`apps/atelier_shop`, `atelier_studio`, `nook`, `pulse`). Do not reopen the mental model.

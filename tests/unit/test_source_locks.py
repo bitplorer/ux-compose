@@ -309,3 +309,18 @@ def test_unknown_host_fail_closed_lock():
     assert "alias of `auto`" not in spec
     doctor = _read("doctor.py")
     assert 'host="starlette"' in doctor
+
+
+def test_command_does_not_import_overlay_chrome():
+    src = _read("kit/command.py")
+    assert "from ux_compose.kit.overlay" not in src
+    assert "overlay_chrome" not in src
+    assert "def _chrome" not in src
+    assert "click keydown.escape" in src
+    overlay = _read("kit/overlay.py")
+    doc = overlay.split('"""', 2)[1]
+    assert "Command take ids" not in doc
+    assert "does not import this" in doc
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "`kit/command.py` owns local" in arch
+    assert "must not import" in arch

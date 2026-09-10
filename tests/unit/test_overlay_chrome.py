@@ -74,3 +74,28 @@ def test_dialog_sheet_actionsheet_take_chrome_from_primitive():
     assert action._chrome().swipe_on_handle() == (
         "click swipe.down swipe.vertical threshold:48"
     )
+
+
+def test_command_is_not_overlay_chrome_family():
+    from pathlib import Path
+
+    src = (
+        Path(__file__).resolve().parents[2]
+        / "src"
+        / "ux_compose"
+        / "kit"
+        / "command.py"
+    ).read_text(encoding="utf-8")
+    assert "from ux_compose.kit.overlay" not in src
+    assert "overlay_chrome" not in src
+    assert "def _chrome" not in src
+    overlay = (
+        Path(__file__).resolve().parents[2]
+        / "src"
+        / "ux_compose"
+        / "kit"
+        / "overlay.py"
+    ).read_text(encoding="utf-8")
+    doc = overlay.split('"""', 2)[1]
+    assert "Command take ids" not in doc
+    assert "does not import this" in doc

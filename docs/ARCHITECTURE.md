@@ -134,7 +134,9 @@ plan from `kit/overlay.py`. Markup and Tailwind stay on the widget.
 Swipe lives on dismiss / handle, never the root.
 
 Anchored popovers and Command are a different family. They do not copy
-these ids.
+these ids. `kit/command.py` owns local `{id}-scrim` / `{id}-panel` /
+`{id}-dismiss` plus `click keydown.escape`. It must not import
+`kit/overlay.py`.
 
 ---
 

@@ -8,12 +8,12 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 MorphState: ``open``, ``dirty``. RefState: ``query``. Caps: ``auth.logout``
 on ``sign_out``. Other ``run`` keys are open mint.
 A11y: ``role=dialog`` ``aria-modal`` labelledby; search ``role=combobox``.
-Escape / scrim via OverlayChrome. Focus: panel tabindex + input autofocus.
+Not OverlayChrome (popover family). Escape / scrim: local ``{id}-scrim`` /
+``{id}-panel`` / ``{id}-dismiss`` plus ``click keydown.escape``. Focus:
+panel tabindex + input autofocus.
 """
 
 from __future__ import annotations
-
-from ux_compose.kit.overlay import overlay as overlay_chrome
 
 from ux_compose.component import Component
 from ux_compose.kit_construct import apply_slots, kit_shell
@@ -117,9 +117,6 @@ class Command(Component):
     def _mark_dirty(self):
         self.dirty = "b" if self.dirty == "a" else "a"
 
-    def _chrome(self):
-        return overlay_chrome(self.id, kind="dialog")
-
     def _resting(self):
         return [
             span("Jump", className=self.class_kicker),
@@ -139,10 +136,12 @@ class Command(Component):
         q = str(self.query or "")
         kids = list(self._resting()) if getattr(self, "shell", True) else []
         if is_open:
-            ch = self._chrome()
             hits = self._hits()
             list_id = f"{self.id}-list"
             title_id = f"{self.id}-title"
+            scrim_id = f"{self.id}-scrim"
+            panel_id = f"{self.id}-panel"
+            dismiss_id = f"{self.id}-dismiss"
             rows = []
             for key, caption, hint in hits[:7]:
                 verb = bind(self.sign_out) if key == "sign-out" else bind(self.run, key=key)
@@ -173,10 +172,10 @@ class Command(Component):
                 button(
                     span("Close", className=self.class_sr),
                     type="button",
-                    id=ch.scrim_id,
+                    id=scrim_id,
                     className=self.class_scrim,
                     aria_label="Close",
-                    data_channel_on=ch.dismiss_on(),
+                    data_channel_on="click keydown.escape",
                     **bind(self.close),
                 ),
                 div(
@@ -212,17 +211,17 @@ class Command(Component):
                     button(
                         "Close",
                         type="button",
-                        id=ch.dismiss_id,
+                        id=dismiss_id,
                         className=self.class_btn_ghost,
-                        data_channel_on=ch.dismiss_on(),
+                        data_channel_on="click keydown.escape",
                         **bind(self.close),
                     ),
-                    id=ch.panel_id,
+                    id=panel_id,
                     className=self.class_panel,
                     role="dialog",
                     aria_modal="true",
                     aria_labelledby=title_id,
-                    **ch.focus_attrs(),
+                    tabindex="-1",
                 ),
             ])
         return kit_shell(self,
@@ -243,7 +242,7 @@ class Command(Component):
         self.open = True
         self.query = ""
         self._mark_dirty()
-        return update_with(self, self._chrome().open_plan())
+        return update_with(self)
 
     @action(caps=())
     def close(self):

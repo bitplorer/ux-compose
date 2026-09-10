@@ -101,7 +101,7 @@ def test_copy_page_unit(tmp_path: Path):
     assert "class Login(LoginCard)" in text
 
 
-@pytest.mark.parametrize("stem", ("dialog", "sheet", "actionsheet", "command", "alertdialog"))
+@pytest.mark.parametrize("stem", ("dialog", "sheet", "actionsheet", "alertdialog"))
 def test_copy_overlay_widgets_copy_kit_sibling(tmp_path: Path, stem: str):
     """Rewritten ``from .overlay import`` must land overlay.py — overlay is not in CATALOG."""
     assert "overlay" not in CATALOG
@@ -121,6 +121,20 @@ def test_copy_overlay_widgets_copy_kit_sibling(tmp_path: Path, stem: str):
     assert f"uxcompose add {stem}" in overlay_text
     assert written.get("page") is None
     assert not (root / "routes" / "overlay.py").exists()
+
+
+def test_copy_command_does_not_invent_overlay(tmp_path: Path):
+    """Command is popover family. Ownable copy must not copy overlay.py."""
+    assert "overlay" not in CATALOG
+    root = _fake_app(tmp_path)
+    written = copy_component("command", root=root)
+    py = written["py"].read_text(encoding="utf-8")
+    assert "from ux_compose.kit.overlay import" not in py
+    assert "from .overlay import" not in py
+    assert "overlay_chrome" not in py
+    assert not (root / "components" / "overlay.py").exists()
+    ast.parse(py)
+    assert written.get("overlay") is None
 
 
 @pytest.mark.parametrize("stem", ("fab", "dialog"))

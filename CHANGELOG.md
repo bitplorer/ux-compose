@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Command palette no longer imports OverlayChrome. Local ``{id}-scrim`` /
+  ``{id}-panel`` / ``{id}-dismiss`` and ``click keydown.escape`` (KIT-1).
+  Dialog / Sheet / ActionSheet / AlertDialog stay on the primitive.
 - ``helpers._live_channel`` swallows ``ImportError`` only. Other errors
   fail loud so live ``control()`` cannot emit no-cap dual attrs (SWALLOW-1).
 - ``ChannelConfig(secret=)`` and ``Channel.boot`` in ``wire/boot.py`` fail

@@ -268,3 +268,12 @@ def test_makefile_has_no_ghost_property_suite():
     assert not (ROOT / "tests" / "property").exists()
     contrib = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     assert "load, property, security" not in contrib
+
+
+def test_wire_boot_names_package_door():
+    boot = _read("wire/boot.py")
+    assert "ONLY place" not in boot
+    assert "package door" in boot
+    assert "boot.py, caps.py, cek.py" in boot
+    assert (SRC / "wire" / "caps.py").is_file()
+    assert (SRC / "wire" / "cek.py").is_file()

@@ -1,5 +1,6 @@
 """
-wire/boot.py — the ONLY place that may import ux_channel, MotionChannel, or CEK.
+wire/ is the package door that may import ux_channel, MotionChannel, or CEK.
+This module is one of three files in that door (boot.py, caps.py, cek.py).
 
 Isolation Law is enforced by package structure + doctor.
 Product code and the public surface of ux_compose never import from here

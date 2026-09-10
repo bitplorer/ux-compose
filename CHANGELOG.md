@@ -51,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CONTRIBUTING no longer syncs the two START_HERE files (DOC-1).
 - Makefile / TESTING.md no longer name a missing ``tests/property``
   tree (MAKE-1).
+- ``wire/boot.py`` names the package door (three files), not a single
+  module (ISO-1).
 - serve-dev no longer pickle-serializes MorphState into a cwd file.
   JSON matches the Redis production domain.
 - Kit Batch A APG holds: menubar submenu ids ``{id}-m-{key}`` stay in the

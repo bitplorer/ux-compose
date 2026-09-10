@@ -1,6 +1,7 @@
 """Source-level locks. Do not import ux_compose (sandbox 3.10 / no specialists)."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -13,14 +14,15 @@ def _read(rel: str) -> str:
 
 
 def _fn(src: str, name: str) -> str:
-    needle = f"def {name}"
-    start = src.index(needle)
-    next_def = len(src)
-    for token in ("\ndef ", "\nclass ", "\n@"):
-        p = src.find(token, start + 1)
-        if p != -1:
-            next_def = min(next_def, p)
-    return src[start:next_def]
+    m = re.search(rf"^([ \t]*)def {re.escape(name)}\b", src, re.M)
+    if not m:
+        raise AssertionError(f"def {name} not found")
+    indent = m.group(1)
+    start = m.start()
+    rest = src[m.end() :]
+    nxt = re.search(rf"\n{re.escape(indent)}(?:def |class |@)", rest)
+    end = m.end() + nxt.start() if nxt else len(src)
+    return src[start:end]
 
 
 def test_live_channel_swallows_importerror_only():
@@ -30,3 +32,30 @@ def test_live_channel_swallows_importerror_only():
     assert "except Exception" not in chunk
     assert "fail loud" in chunk
     assert "return None" in chunk
+
+
+def test_attach_channel_secret_and_boot_fail_closed():
+    src = _read("wire/boot.py")
+    chunk = _fn(src, "attach_channel")
+    assert "ChannelConfig(secret=secret)" in chunk
+    assert "cfg = None" not in chunk
+    assert "ch = None" not in chunk
+    assert "fail closed" in chunk
+
+
+def test_use_channel_stamps_l2_only_when_channel_exists():
+    src = _read("app.py")
+    chunk = _fn(src, "use_channel")
+    stamp = "self._level = max(self._level, Level.L2)"
+    assert stamp in chunk
+    before, _, after = chunk.partition(stamp)
+    assert "if ch is not None:" in before
+    assert "register_live_channel(ch)" in after
+    assert "except ImportError" in chunk
+    assert 'self._note("use_channel", "L2", exc)' in chunk
+
+
+def test_app_boot_keeps_attach_notes_on_channel_stepdown():
+    src = _read("app.py")
+    chunk = _fn(src, "boot")
+    assert 'app._note("boot.use_channel", "L2", exc)' in chunk

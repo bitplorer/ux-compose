@@ -23,6 +23,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - ``helpers._live_channel`` swallows ``ImportError`` only. Other errors
   fail loud so live ``control()`` cannot emit no-cap dual attrs (SWALLOW-1).
+- ``ChannelConfig(secret=)`` and ``Channel.boot`` in ``wire/boot.py`` fail
+  closed (no silent ``cfg=None`` / ``ch=None``). ``App.use_channel`` stamps
+  L2 only when a Channel instance exists (SWALLOW-boot).
 - serve-dev no longer pickle-serializes MorphState into a cwd file.
   JSON matches the Redis production domain.
 - Kit Batch A APG holds: menubar submenu ids ``{id}-m-{key}`` stay in the

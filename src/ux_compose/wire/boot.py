@@ -69,6 +69,8 @@ def attach_channel(
       - If *channel* is already a Channel, bind it as _wire — never
         Channel.boot(channel) / Behavior.attach(channel).
       - Headless (no ASGI): Channel.boot(config=) for mint/submit tests.
+        ChannelConfig(secret=) and Channel.boot fail closed (no silent
+        cfg=None / ch=None).
 
     Returns the Channel instance (or None if ux-channel is used later by the host).
     Raises ImportError with a clear progressive message if ux-channel is absent.
@@ -99,10 +101,7 @@ def attach_channel(
 
     cfg = config
     if cfg is None and secret is not None:
-        try:
-            cfg = ChannelConfig(secret=secret)
-        except Exception:
-            cfg = None
+        cfg = ChannelConfig(secret=secret)
 
     # Preferred path: Behavior.attach owns Channel.boot on real ASGI
     if behavior is not None and hasattr(behavior, "attach") and asgi is not None:
@@ -127,14 +126,11 @@ def attach_channel(
         except Exception:
             raise
 
-    # Headless / fallback boot
-    try:
-        if cfg is not None:
-            ch = Channel.boot(config=cfg)
-        else:
-            ch = Channel.boot()
-    except Exception:
-        ch = None
+    # Headless / fallback boot — fail closed (do not impersonate offline)
+    if cfg is not None:
+        ch = Channel.boot(config=cfg)
+    else:
+        ch = Channel.boot()
     _bind_wire(behavior, ch)
     _bridge(behavior, ch)
     return ch

@@ -130,8 +130,8 @@ class App:
             ch = attach_channel(self, **config)
             self._channel = ch
             self._channel_asgi = asgi
-            self._level = max(self._level, Level.L2)
             if ch is not None:
+                self._level = max(self._level, Level.L2)
                 register_live_channel(ch)
         except ImportError as exc:
             self._note("use_channel", "L2", exc)

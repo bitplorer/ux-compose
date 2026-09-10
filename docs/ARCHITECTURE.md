@@ -90,7 +90,7 @@ usually library ∩ CLI, or library imports that copies must keep.
 | `routing/` | Clock A host pair (FastAPI ≠ DirectoryASGI) | compatibility shims |
 | `dx/` | slang leftover (one probe file for doctor) | a second DX product |
 
-Do **not** add `cli/`, `helpers/`, `kit/kit_construct.py`, or `docs/MODULE_MAP.md`.
+Do **not** add `cli/`, `serve/`, `helpers/`, `kit/kit_construct.py`, or `docs/MODULE_MAP.md`.
 
 ### Why `kit_construct.py` is next to `component.py`
 
@@ -122,6 +122,8 @@ Each verb's **body** is the concern that is also a library:
 
 Folding those under `cli/` would lie: doctor and `build()` are public
 algebra. `cli_build.py` is the CSS minify CLI wrap of `tailwind.py`.
+The same lie is a `serve/` package: argv and origin runtime stay
+sibling modules, not a sixth product folder.
 
 ### Three helper modules (not one junk package)
 
@@ -187,6 +189,7 @@ names. Doctor will not print these from `scan_leftover_aliases`.
 | Leftover | Prefer |
 |----------|--------|
 | `src/ux_compose/cli/` package | `cli.py` dispatch + verb modules |
+| `src/ux_compose/serve/` package | `serve_dev.py` / `serve_restart.py` / `serve_state.py` |
 | `kit/kit_construct.py` | `ux_compose.kit_construct` (library import) |
 | `tests/property/` | drop; no property suite in this tree |
 | argv `create` | `uxcompose create-app` |

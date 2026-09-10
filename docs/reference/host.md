@@ -194,8 +194,9 @@ the product path.
 | `auto` | FastAPI if importable, else DirectoryASGI | never |
 | `fastapi` | FastAPI | closed if FastAPI missing |
 | `asgi` | DirectoryASGI (no Starlette) | never |
-| `starlette` | alias of `auto` | — |
+| `starlette` | — | closed (`ValueError`) |
 | `batteries` / `directory_router` | — | `ProductBatteriesRejected` |
+| other names | — | closed (`ValueError`) |
 
 FastAPI is **not** given `default_response_class=HTMLResponse`. Author
 `@asgi.get("/api/...")` returning a dict stays JSON.

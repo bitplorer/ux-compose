@@ -277,3 +277,17 @@ def test_wire_boot_names_package_door():
     assert "boot.py, caps.py, cek.py" in boot
     assert (SRC / "wire" / "caps.py").is_file()
     assert (SRC / "wire" / "cek.py").is_file()
+
+
+def test_unknown_host_fail_closed_lock():
+    host = _read("routing/host.py")
+    chunk = _fn(host, "open")
+    assert 'want == "starlette"' not in chunk
+    assert "unknown host" in chunk
+    assert 'want not in ("auto", "fastapi", "asgi")' in chunk
+    surfaces = _read("surfaces_host.py")
+    assert '"starlette"' not in _fn(surfaces, "attach_page_router")
+    spec = (DOCS / "reference" / "host.md").read_text(encoding="utf-8")
+    assert "alias of `auto`" not in spec
+    doctor = _read("doctor.py")
+    assert 'host="starlette"' in doctor

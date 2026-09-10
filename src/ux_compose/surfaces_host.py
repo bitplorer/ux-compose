@@ -50,7 +50,7 @@ def attach_page_router(
     if host in ("batteries", "directory_router"):
         raise ProductBatteriesRejected(_BATTERIES_TEACH)
 
-    if host not in ("auto", "fastapi", "starlette", "asgi"):
+    if host not in ("auto", "fastapi", "asgi"):
         raise ValueError(
             "unknown host %r — use auto|fastapi|asgi" % host
         )

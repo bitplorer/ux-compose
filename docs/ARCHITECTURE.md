@@ -97,6 +97,7 @@ These strings are not the product path. Doctor flags them in app trees.
 | Leftover | Prefer |
 |----------|--------|
 | `tests/property/` | drop; no property suite in this tree |
+| `host="starlette"` | `auto` \| `fastapi` \| `asgi` (fail closed) |
 | argv `create` | `uxcompose create-app` |
 | `ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `routing.fastapi` |
 | `docs/MODULE_MAP.md` | this table (INDEX remains the audience map) |

@@ -313,6 +313,15 @@ def test_host_fastapi_missing_fails_closed(monkeypatch):
         hostmod.open(name="T", host="fastapi")
 
 
+def test_unknown_host_fails_closed():
+    from ux_compose.routing import host as hostmod
+
+    with pytest.raises(ValueError, match="unknown host"):
+        hostmod.open(name="T", host="garbage")
+    with pytest.raises(ValueError, match="unknown host"):
+        hostmod.open(name="T", host="starlette")
+
+
 def test_boot_auto_is_l1():
     from ux_compose import App
 

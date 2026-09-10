@@ -47,6 +47,7 @@ def open(
       auto     — FastAPI if importable, else DirectoryASGI
       fastapi  — fail closed if FastAPI missing
       asgi     — DirectoryASGI (no Starlette)
+      other    — fail closed (including leftover host='starlette')
 
     openapi:
       False (default) — FastAPI ``docs_url`` / ``redoc_url`` / ``openapi_url``
@@ -56,8 +57,10 @@ def open(
     want = (host or "auto").lower().strip()
     if want in ("batteries", "directory_router"):
         raise ProductBatteriesRejected(_BATTERIES_TEACH)
-    if want == "starlette":
-        want = "auto"  # Starlette is FastAPI's runtime, not a product host
+    if want not in ("auto", "fastapi", "asgi"):
+        raise ValueError(
+            "unknown host %r — use auto|fastapi|asgi" % (host or want)
+        )
 
     if asgi_app is not None:
         if hasattr(asgi_app, "include_router"):

@@ -240,3 +240,13 @@ def test_flow_citations_point_at_ownership():
     stub = (DOCS / "FLOW.md").read_text(encoding="utf-8")
     assert "# Moved" in stub
     assert "OWNERSHIP.md" in stub
+
+
+def test_internals_ownership_is_moved_stub_lock():
+    path = DOCS / "internals" / "OWNERSHIP.md"
+    text = path.read_text(encoding="utf-8")
+    assert "# Moved" in text
+    assert "../OWNERSHIP.md" in text
+    assert text.count("\n") <= 12
+    assert "DirectoryRoutes + thin adapters" not in text
+    assert "ux_compose.tailwind" not in text

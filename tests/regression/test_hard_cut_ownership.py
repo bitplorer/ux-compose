@@ -54,11 +54,12 @@ def test_index_owns_product_build_and_compiler():
     assert "leftover `uxdom build`" not in text
 
 
-def test_internals_ownership_defers_to_canonical():
+def test_internals_ownership_is_moved_stub():
     text = (ROOT / "docs" / "internals" / "OWNERSHIP.md").read_text(encoding="utf-8")
-    assert "OWNERSHIP.md wins" in text or "../OWNERSHIP.md" in text
-    assert "ux_compose.tailwind" in text
-    assert "create-app · build · serve · deploy" in text
+    assert "# Moved" in text
+    assert "docs/OWNERSHIP.md" in text or "../OWNERSHIP.md" in text
+    assert "Do not cite this stub" in text
+    assert text.count("\n") <= 12
 
 
 def test_webassets_lives_on_compose():

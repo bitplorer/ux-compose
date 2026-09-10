@@ -25,6 +25,7 @@ _IMPORT_REWRITES = [
     (_KIT_MODULE_IMPORT, r"from .\1 import"),
     (re.compile(r"from ux_compose\.kit import"), "from . import"),
 ]
+# kit_construct lives outside kit/. Copies keep the library import.
 # catalog/copy are CLI internals, not ownable widgets.
 _TOOLING_STEMS = frozenset({"catalog", "copy"})
 

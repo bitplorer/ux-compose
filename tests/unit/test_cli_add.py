@@ -123,6 +123,17 @@ def test_copy_overlay_widgets_copy_kit_sibling(tmp_path: Path, stem: str):
     assert not (root / "routes" / "overlay.py").exists()
 
 
+@pytest.mark.parametrize("stem", ("fab", "dialog"))
+def test_copy_keeps_kit_construct_library_import(tmp_path: Path, stem: str):
+    """kit_construct stays a library import after ownable copy."""
+    root = _fake_app(tmp_path)
+    written = copy_component(stem, root=root)
+    text = written["py"].read_text(encoding="utf-8")
+    assert "from ux_compose.kit_construct import" in text
+    assert "from .kit_construct import" not in text
+    ast.parse(text)
+
+
 def test_copy_login_does_not_invent_overlay(tmp_path: Path):
     root = _fake_app(tmp_path)
     copy_component("login", root=root)

@@ -216,3 +216,12 @@ def test_render_chrome_scan_has_no_first_hit_break():
         assert "stunning-root" in joined
         assert 'class="nav"' in joined
         assert len(diags) >= 2
+
+
+def test_copy_keeps_kit_construct_library_import_lock():
+    copy = _read("kit/copy.py")
+    assert "kit_construct lives outside kit/" in copy
+    assert r"from ux_compose\.kit_construct" not in copy
+    for stem in ("fab.py", "dialog.py"):
+        src = _read(f"kit/{stem}")
+        assert "from ux_compose.kit_construct import" in src

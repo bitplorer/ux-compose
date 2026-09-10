@@ -129,3 +129,20 @@ def test_architecture_concern_table_is_the_module_map():
     assert "MODULE_MAP.md" in index
     assert "MODULE_MAP.md" in agents
     assert "Concern→file" in index or "Concern → file" in arch
+
+
+def test_routing_adapters_path_absent_and_taught():
+    adapters = SRC / "routing" / "adapters"
+    assert not adapters.exists()
+    src_hits = []
+    for path in SRC.rglob("*.py"):
+        if path.name == "doctor.py":
+            continue
+        text = path.read_text(encoding="utf-8")
+        if "routing.adapters" in text or "routing/adapters" in text:
+            src_hits.append(str(path.relative_to(ROOT)))
+    assert src_hits == [], src_hits
+    doctor = _read("doctor.py")
+    assert "ux_compose.routing.adapters" in doctor
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "`ux_compose.routing.adapters`" in arch

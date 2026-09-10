@@ -35,6 +35,7 @@ _LEFTOVER_TOKENS = (
     'host="batteries"', "host='batteries'",
     'use_host("batteries")', "use_host('batteries')",
     "DirectoryRouter", 'serve="webassets"', "serve='webassets'",
+    "ux_compose.routing.adapters",
 )
 
 

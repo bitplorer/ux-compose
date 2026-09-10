@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   residual. Walker stays (CRIT-1).
 - ``docs/ARCHITECTURE.md`` holds the concern→file table. Do not add
   ``docs/MODULE_MAP.md`` (MAP-1).
+- Deleted ``routing/adapters/`` shims. Import ``routing.asgi`` /
+  ``routing.fastapi``. Doctor leftover-teaches the old path (SHIM-1).
 - serve-dev no longer pickle-serializes MorphState into a cwd file.
   JSON matches the Redis production domain.
 - Kit Batch A APG holds: menubar submenu ids ``{id}-m-{key}`` stay in the

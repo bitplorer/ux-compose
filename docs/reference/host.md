@@ -176,7 +176,8 @@ Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs,
 | Scaffold? | `src/ux_compose/scaffold.py` |
 | Fitness tests? | `tests/unit/test_host.py` |
 
-`routing/adapters/` are thin re-export shims. Do not put logic there.
+`routing/adapters/` is leftover (deleted). Product imports
+`ux_compose.routing.asgi` / `ux_compose.routing.fastapi`.
 
 Invisible Strategy: authors import `build` / `App.mount`. They do not import
 `routing.fastapi` / `routing.host`. Maintainers always do. Product examples
@@ -282,7 +283,7 @@ Do **not**:
 | `document.mount` in scaffold `main()` | host.bind already does it |
 | `HTMLResponse` in page units | host wraps; Isolation of concerns |
 | A second path function next to `http_path` | two scanners, two URLs |
-| Logic in `routing/adapters/` | shims only |
+| `ux_compose.routing.adapters` | leftover; use `routing.asgi` / `routing.fastapi` |
 | Mini HTML builder when `HAS_DOM` is false | invents a sixth product; ux-dom is a hard dep |
 | Wrap GET with a synthesized Document | HTML `str` becomes script `src`; fragment vanishes |
 | Scaffold `page()` as the GET wrap | host calls `document(child)`; two wrap stories |

@@ -96,7 +96,7 @@ These strings are not the product path. Doctor flags them in app trees.
 
 | Leftover | Prefer |
 |----------|--------|
-| `docs/MODULE_MAP.md` | this table (INDEX remains the audience map) |
+| `ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `routing.fastapi` |
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` | `host="auto"` |
 | Teaching `App.mount` as a "secondary door" | page-unit scan step; product path is `build()` |

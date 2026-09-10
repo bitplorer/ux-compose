@@ -14,7 +14,7 @@ def test_directory_routes_exported_from_compose():
 
     assert DR is DirectoryRoutes
     assert RH is RouterHooks
-    from ux_compose.routing.adapters.asgi import DirectoryASGI as ASGI
+    from ux_compose.routing.asgi import DirectoryASGI as ASGI
 
     assert DirectoryASGI is ASGI
 
@@ -62,7 +62,7 @@ def test_batteries_host_fails_closed():
 def test_fastapi_adapter_binds_stem_path(tmp_path: Path):
     pytest.importorskip("fastapi")
 
-    from ux_compose.routing.adapters.fastapi import materialize
+    from ux_compose.routing.fastapi import materialize
 
     pkg = tmp_path / "shop"
     routes = pkg / "routes"

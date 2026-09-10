@@ -55,6 +55,15 @@ def test_unknown_command():
     assert main(["not-a-real-cmd"]) == 2
 
 
+def test_create_argv_is_unknown(capsys):
+    """Leftover alias. Frozen verb is create-app."""
+    assert main(["create", "myapp"]) == 2
+    text = capsys.readouterr().out + capsys.readouterr().err
+    src = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
+    assert 'cmd in ("create-app", "create")' not in src
+    assert 'cmd == "create-app"' in src
+
+
 def test_restart_channel_without_pidfile_fails_closed(capsys, tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     code = main(["serve", "restart-channel"])

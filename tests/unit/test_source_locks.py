@@ -146,3 +146,15 @@ def test_routing_adapters_path_absent_and_taught():
     assert "ux_compose.routing.adapters" in doctor
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
     assert "`ux_compose.routing.adapters`" in arch
+
+
+def test_create_argv_dropped_create_app_stays():
+    cli = _read("cli.py")
+    assert 'cmd in ("create-app", "create")' not in cli
+    assert 'cmd == "create-app"' in cli
+    assert "argv ``create`` is leftover" in cli
+    help_fn = _fn(cli, "_help")
+    assert "create-app" in help_fn
+    assert "create |" not in help_fn and '", "create"' not in help_fn
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "argv `create`" in arch

@@ -2,6 +2,7 @@
 
 Hard ownership (SoC + locality):
   create-app · build · serve · deploy · doctor · add  →  here only
+  argv ``create`` is leftover — use ``create-app``.
   Pure Document tooling stays on uxdom (lint / profile / add ui|component).
   Tailwind *compiler resolution* lives here (``ux_compose.tailwind``).
   ux-dom owns className, the Document ``<link>``, and package static.
@@ -26,7 +27,7 @@ def main(argv: list[str] | None = None) -> int:
         _help()
         return 0
     cmd, rest = argv[0], argv[1:]
-    if cmd in ("create-app", "create"):
+    if cmd == "create-app":
         return _create_app(rest)
     if cmd == "build":
         return _build(rest)

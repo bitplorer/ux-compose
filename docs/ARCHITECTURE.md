@@ -96,7 +96,10 @@ These strings are not the product path. Doctor flags them in app trees.
 
 | Leftover | Prefer |
 |----------|--------|
+| argv `create` | `uxcompose create-app` |
 | `ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `routing.fastapi` |
+| `docs/MODULE_MAP.md` | this table (INDEX remains the audience map) |
+| `pip install ux-compose` / PyPI cell | git clone + `pip install -e ".[serve]"` |
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` | `host="auto"` |
 | Teaching `App.mount` as a "secondary door" | page-unit scan step; product path is `build()` |

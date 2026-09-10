@@ -17,7 +17,9 @@
     )
 
 Orchestra only: host.open → L1 boot → document → channel on asgi →
-DirectoryRoutes.discover → host.bind. Path law and HTML wrap live elsewhere.
+App.mount (catalog scan, bind_pages=False) → DirectoryRoutes.discover
+(HTTP path law) → host.bind. Two walkers, one product door. Path law
+and HTML wrap live elsewhere.
 """
 from __future__ import annotations
 

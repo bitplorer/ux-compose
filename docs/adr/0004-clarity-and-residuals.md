@@ -27,9 +27,13 @@ still lock them. Confusion must stop growing.
 1. **One author door.** Public helpers live in `ux_compose.author` and are
    re-exported from `ux_compose.__all__`. `examples/_common.py` re-exports
    the same objects.
-2. **One product door.** `create-app` → `serve dev` → `build` → `serve prod`. `App.mount`
-   is the scan step inside `build()` — one implementation, two callers
-   (product vs tests/surfaces).
+2. **One product door.** `create-app` → `serve dev` → `build` → `serve prod`.
+   `App.mount` is the catalog scan (`scan_surfaces` / Behavior registry)
+   inside `build()`. HTTP path law is a second walk:
+   `DirectoryRoutes.discover`, also called by `build()` after mount
+   (`bind_pages=False` so mount does not bind HTTP). Two walkers, one
+   product door. Do not merge them. Do not teach this as one filesystem
+   implementation.
 3. **One catalog.** `ux_compose.kit` is the source. `uxcompose add` copies.
    `examples/` is the Atelier, not a second catalog. Product trees do not
    import the kit.

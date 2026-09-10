@@ -142,4 +142,6 @@ page in the same change). `build()` wraps GET only with the author Document
 `App.mount` / `attach_page_router` pass the same `wrap=` as `build()`.
 `materialize(route_class=)` fails closed. Scaffold does not emit `page()`.
 Examples (`examples/live_asgi.py`) use `build()` for Clock A GET — not a
-handmade `@app.get` + `HTMLResponse`. `App.mount` is a page-unit scan step.
+handmade `@app.get` + `HTMLResponse`. `App.mount` is the catalog scan
+(`scan_surfaces`). HTTP path law is `DirectoryRoutes.discover`. Two
+walkers, one product door (`build()`). Do not merge them.

@@ -351,3 +351,27 @@ def test_css_watch_spawn_lives_in_tailwind():
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
     assert "Tailwind `Popen` in `cli.py`" in arch
     assert not (SRC / "cli").exists()
+
+
+def test_catalog_scan_and_http_discover_are_two_walkers():
+    """SURF-1: KEEP both walks. Stop teaching them as one implementation."""
+    build = _read("build.py")
+    assert "app.mount(" in build
+    assert "bind_pages=False" in build
+    assert "core.discover()" in build
+    assert "Two walkers, one product door" in build
+    surfaces = _read("surfaces.py")
+    assert "def scan_surfaces(" in surfaces
+    core = _read("routing/core.py")
+    assert "def discover(" in core
+    adr = (DOCS / "adr" / "0004-clarity-and-residuals.md").read_text(encoding="utf-8")
+    assert "DirectoryRoutes.discover" in adr
+    assert "one implementation, two callers" not in adr
+    assert "Do not merge them" in adr
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "Two walkers, one product" in arch
+    assert "fold `scan_surfaces` into `DirectoryRoutes.discover`" in arch
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Two" in agents and "walkers" in agents.lower()
+    assert _read("app.py").count("def mount(") == 1
+    assert "thin adapter" not in surfaces

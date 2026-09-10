@@ -310,7 +310,7 @@ def mount_surfaces(
     """Scan → validate → Behavior.add → optional page router.
 
     Host bind is delegated to ``surfaces_host.attach_page_router``
-    (Invisible Strategy: ``ux_compose.routing.DirectoryRoutes`` + thin adapter).
+    (``ux_compose.routing.DirectoryRoutes`` + ``host.bind``).
     ``host="batteries"`` fails closed. ``include_directory_router`` is a
     deprecated alias of ``bind_pages``.
     """

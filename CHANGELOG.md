@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- ``build()`` catalog scan (``App.mount`` / ``scan_surfaces``) and HTTP
+  path law (``DirectoryRoutes.discover``) are two walkers. ADR 0004 no
+  longer claims one filesystem implementation (SURF-1-claim). Both
+  walks stay. Product door is still ``build()``.
 - Command palette no longer imports OverlayChrome. Local ``{id}-scrim`` /
   ``{id}-panel`` / ``{id}-dismiss`` and ``click keydown.escape`` (KIT-1).
   Dialog / Sheet / ActionSheet / AlertDialog stay on the primitive.

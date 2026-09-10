@@ -19,7 +19,8 @@ Author  →  ux_compose (this package root)
               ├─ author helpers   act mark_dirty field status optional_*
               ├─ composition      App Component MorphState @action helpers
               ├─ product host     create-app → serve dev → build → serve prod
-              ├─ scan step        App.mount  (called by build())
+              ├─ catalog scan     App.mount  (scan_surfaces / Behavior)
+              ├─ HTTP path law    DirectoryRoutes.discover  (called by build())
               ├─ catalog          ux_compose.kit  +  uxcompose add
               └─ wire/            only importer of channel / CEK
 ```
@@ -36,8 +37,9 @@ uxcompose serve prod
 ```
 
 `serve dev` clocks stay ADR 0005. Channel stays off the ui reload path.
-`build()` calls `App.mount` internally. Mount is the scan step, not a
-second product.
+`build()` calls `App.mount` (catalog scan, `bind_pages=False`) then
+`DirectoryRoutes.discover` (HTTP path law). Two walkers, one product
+door. Mount is not a second product. Do not merge the walks.
 
 ---
 
@@ -54,7 +56,7 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Build / CSS | `cli_build.py`, `tailwind.py`, `assets.py` | Tailwind on ux-dom; Tailwind `Popen` in `cli.py` / `hmr.py` |
 | Product host | `routing/host.py`, `routing/fastapi.py`, `routing/asgi.py`, `routing/core.py` | fold FastAPI into DirectoryASGI |
 | Composition | `app.py`, `component.py`, `helpers.py` | clone MorphState / Cap |
-| Surfaces / scan | `surfaces.py`, `surfaces_host.py`, `build.py` | second HTTP pipeline |
+| Surfaces / scan | `surfaces.py`, `surfaces_host.py`, `build.py` | second HTTP pipeline; fold `scan_surfaces` into `DirectoryRoutes.discover` |
 | Doctor | `doctor.py` | leftover scan as kill |
 | Kit catalog / copy | `kit/catalog.py`, `kit/copy.py` | overlay in CATALOG |
 | Author helpers on copies | `kit_construct.py` (outside `kit/`) | move under `kit/` |
@@ -167,8 +169,9 @@ These strings are not the product path. Doctor flags them in app trees.
 | `pip install ux-compose` / PyPI cell | git clone + `pip install -e ".[serve]"` |
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` | `host="auto"` |
-| Teaching `App.mount` as a "secondary door" | page-unit scan step; product path is `build()` |
+| Teaching `App.mount` as a "secondary door" | catalog scan step; product path is `build()` |
 | Teaching `App.mount` as the product path | `build()` |
+| Teaching `scan_surfaces` as `DirectoryRoutes.discover` | two walkers; `build()` orchestrates both |
 | root `swipe.*` on an overlay card | swipe on dismiss |
 | `stunning-root` / nav brand in `render()` | `brand_wrap(document, brand=…)` / `build(wrap=document)` |
 

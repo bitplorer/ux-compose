@@ -155,27 +155,40 @@ do not leak. This is not a message bus and not part of HMR.
 
 ## Leftovers that expire by teaching
 
-These strings are not the product path. Doctor flags them in app trees.
+These strings are not the product path. Deleting aliases that tests still
+lock is a capability drop.
+
+### Doctor leftover tokens (product trees)
+
+`scan_leftover_aliases` / `scan_kit_product_imports` / `scan_render_chrome`
+flag these in app trees. Teaching, not kill.
+
+| Leftover | Prefer |
+|----------|--------|
+| `host="starlette"` | `auto` \| `fastapi` \| `asgi` (fail closed) |
+| `ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `routing.fastapi` |
+| `from ux_compose.kit import` in an app | `uxcompose add` |
+| `host="batteries"` / `DirectoryRouter` / `use_host("batteries")` | `host="auto"` |
+| `serve="webassets"` | package-static `serve="dual_copy"` |
+| `stunning-root` / nav brand in `render()` | `brand_wrap(document, brand=…)` / `build(wrap=document)` |
+
+### Agent leftovers (do not recreate)
+
+Not scanned as leftover tokens in product trees. Map locks and argv/docs
+names. Doctor will not print these from `scan_leftover_aliases`.
 
 | Leftover | Prefer |
 |----------|--------|
 | `src/ux_compose/cli/` package | `cli.py` dispatch + verb modules |
 | `kit/kit_construct.py` | `ux_compose.kit_construct` (library import) |
 | `tests/property/` | drop; no property suite in this tree |
-| `host="starlette"` | `auto` \| `fastapi` \| `asgi` (fail closed) |
 | argv `create` | `uxcompose create-app` |
-| `ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `routing.fastapi` |
 | `docs/MODULE_MAP.md` | this table (INDEX remains the audience map) |
 | `pip install ux-compose` / PyPI cell | git clone + `pip install -e ".[serve]"` |
-| `from ux_compose.kit import` in an app | `uxcompose add` |
-| `host="batteries"` / `DirectoryRouter` | `host="auto"` |
 | Teaching `App.mount` as a "secondary door" | catalog scan step; product path is `build()` |
 | Teaching `App.mount` as the product path | `build()` |
 | Teaching `scan_surfaces` as `DirectoryRoutes.discover` | two walkers; `build()` orchestrates both |
 | root `swipe.*` on an overlay card | swipe on dismiss |
-| `stunning-root` / nav brand in `render()` | `brand_wrap(document, brand=…)` / `build(wrap=document)` |
-
-Doctor flags these in product trees. Deleting the aliases is a capability drop.
 
 ---
 

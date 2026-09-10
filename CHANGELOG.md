@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Leftover table in ``docs/ARCHITECTURE.md`` splits doctor-scanned
+  tokens from agent-only locks (cli/ package, kit_construct placement,
+  argv ``create``, MODULE_MAP). Doctor is not credited for names it
+  does not scan (LEFTOVER-split).
 - ``build()`` catalog scan (``App.mount`` / ``scan_surfaces``) and HTTP
   path law (``DirectoryRoutes.discover``) are two walkers. ADR 0004 no
   longer claims one filesystem implementation (SURF-1-claim). Both

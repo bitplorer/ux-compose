@@ -375,3 +375,30 @@ def test_catalog_scan_and_http_discover_are_two_walkers():
     assert "Two" in agents and "walkers" in agents.lower()
     assert _read("app.py").count("def mount(") == 1
     assert "thin adapter" not in surfaces
+
+def test_leftover_table_splits_doctor_tokens_from_agent_locks():
+    """Doctor is not credited for names it does not scan in product trees."""
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "### Doctor leftover tokens" in arch
+    assert "### Agent leftovers" in arch
+    assert "Doctor flags these in product trees" not in arch
+    assert "Doctor will not print these from `scan_leftover_aliases`" in arch
+    doctor_src = _read("doctor.py")
+    for token in (
+        'host="batteries"',
+        "DirectoryRouter",
+        "ux_compose.routing.adapters",
+        'host="starlette"',
+        'serve="webassets"',
+    ):
+        assert token in doctor_src, token
+    doctor_sec = arch.split("### Doctor leftover tokens")[1].split("### Agent leftovers")[0]
+    agent_sec = arch.split("### Agent leftovers")[1]
+    assert "`ux_compose.routing.adapters`" in doctor_sec
+    assert '`host="starlette"`' in doctor_sec
+    assert "argv `create`" in agent_sec
+    assert "`src/ux_compose/cli/` package" in agent_sec
+    assert "`kit/kit_construct.py`" in agent_sec
+    assert "`docs/MODULE_MAP.md`" in agent_sec
+    assert "argv `create`" not in doctor_sec
+    assert "`src/ux_compose/cli/` package" not in doctor_sec

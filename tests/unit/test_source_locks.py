@@ -158,3 +158,35 @@ def test_create_argv_dropped_create_app_stays():
     assert "create |" not in help_fn and '", "create"' not in help_fn
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
     assert "argv `create`" in arch
+
+
+def _load_doctor():
+    import importlib.util
+    import sys
+
+    path = SRC / "doctor.py"
+    spec = importlib.util.spec_from_file_location("ux_compose_doctor_src", path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_leftover_scan_has_no_first_token_break():
+    chunk = _fn(_read("doctor.py"), "scan_leftover_aliases")
+    assert "break" not in chunk
+    import tempfile
+    from pathlib import Path as P
+
+    doctor = _load_doctor()
+    with tempfile.TemporaryDirectory() as td:
+        product = P(td) / "app.py"
+        product.write_text(
+            'build(PACKAGE, host="batteries")\nfrom leftover import DirectoryRouter\n',
+            encoding="utf-8",
+        )
+        diags = doctor.scan_leftover_aliases([product])
+        joined = "\n".join(diags)
+        assert "batteries" in joined
+        assert "DirectoryRouter" in joined
+        assert len(diags) >= 2

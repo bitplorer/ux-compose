@@ -280,7 +280,6 @@ def scan_leftover_aliases(paths: Iterable[str | Path]) -> list[str]:
                 diagnostics.append(
                     f"residual in {p}: leftover `{token}`. Clock A host is FastAPI."
                 )
-                break
     return diagnostics
 
 

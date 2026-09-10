@@ -64,6 +64,21 @@ def test_leftover_routing_adapters_is_residual():
         assert any("routing.adapters" in d for d in diags)
 
 
+def test_leftover_scan_reports_every_token():
+    with tempfile.TemporaryDirectory() as td:
+        product = Path(td) / "app.py"
+        product.write_text(
+            'build(PACKAGE, host="batteries")\n'
+            "from leftover import DirectoryRouter\n",
+            encoding="utf-8",
+        )
+        diags = scan_leftover_aliases([product])
+        joined = "\n".join(diags)
+        assert "batteries" in joined
+        assert "DirectoryRouter" in joined
+        assert len(diags) >= 2
+
+
 def test_render_stunning_root_is_residual_not_violation():
     with tempfile.TemporaryDirectory() as td:
         product = Path(td) / "routes" / "hello.py"

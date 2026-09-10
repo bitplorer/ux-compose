@@ -5,7 +5,7 @@ Canonical taxonomy: ux-dom `docs/resilience/MATRIX.md`.
 ## Objective
 
 Verify product-lifecycle ownership, delivery boundaries, and residual-free
-FLOW law on the compose surface. Additive tests only.
+OWNERSHIP law on the compose surface. Additive tests only.
 
 ## Repository safety
 

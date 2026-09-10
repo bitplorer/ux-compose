@@ -19,7 +19,7 @@ This file is the GitHub `docs/` landing. It is not the map — [INDEX.md](INDEX.
 ## Learning path
 
 ```text
-New user:     START_HERE → FLOW (ownership) → README quick start → examples/
+New user:     START_HERE → OWNERSHIP → README quick start → examples/
 Builder:      OWNERSHIP → CLI → DX → examples/README → TESTING
 Maintainer:   OWNERSHIP · resilience/MATRIX · AGENTS
 ```

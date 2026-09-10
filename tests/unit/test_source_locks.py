@@ -225,3 +225,18 @@ def test_copy_keeps_kit_construct_library_import_lock():
     for stem in ("fab.py", "dialog.py"):
         src = _read(f"kit/{stem}")
         assert "from ux_compose.kit_construct import" in src
+
+
+def test_flow_citations_point_at_ownership():
+    readme = (DOCS / "README.md").read_text(encoding="utf-8")
+    assert "FLOW (ownership)" not in readme
+    assert "START_HERE → OWNERSHIP" in readme
+    matrix = (DOCS / "resilience" / "MATRIX.md").read_text(encoding="utf-8")
+    assert "FLOW law on the compose surface" not in matrix
+    assert "OWNERSHIP law on the compose surface" in matrix
+    cli_build = _read("cli_build.py")
+    assert "Ownership (FLOW law):" not in cli_build
+    assert "Ownership (OWNERSHIP law):" in cli_build
+    stub = (DOCS / "FLOW.md").read_text(encoding="utf-8")
+    assert "# Moved" in stub
+    assert "OWNERSHIP.md" in stub

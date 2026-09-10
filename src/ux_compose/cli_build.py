@@ -1,6 +1,6 @@
 """Product build — production CSS minify for app.py trees.
 
-Ownership (FLOW law):
+Ownership (OWNERSHIP law):
   - Compiler resolution lives HERE (``ux_compose.tailwind``).
     Finding / downloading / invoking the Tailwind CLI is product DX.
   - Render stays on ux-dom: className, ``<link>``, package static.

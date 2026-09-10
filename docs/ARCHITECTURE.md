@@ -67,6 +67,13 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Probe | `dx/probe.py` | junk-drawer growth |
 | Scaffold | `scaffold.py` | product CLI on uxdom |
 | Chrome / brand | `chrome.py` | GET chrome in `routes/*.py` `render()` |
+| Tunnel | `tunnel.py` | Document.use tunnel; start before origin health |
+| Deploy | `deploy.py` | product CLI on uxdom; upload secrets |
+| Channel restart | `serve_restart.py` | clock flag; `--one-process`; fold into `hmr.py` |
+| Author helpers | `author.py` | Caps; HTML walk; live in `helpers.py` |
+| Progressive levels | `progressive.py` | optional-package unlock ladder |
+| Tag re-exports | `dom.py` | Document serialize |
+| Attach notes | `attach_notes.py` | message bus |
 
 ---
 

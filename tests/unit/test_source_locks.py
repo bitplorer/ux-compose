@@ -131,6 +131,32 @@ def test_architecture_concern_table_is_the_module_map():
     assert "Concern→file" in index or "Concern → file" in arch
 
 
+def test_architecture_owner_column_names_delivery_files():
+    """MAP-2: concern table names delivery files. Still no MODULE_MAP.md."""
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    for owner in (
+        "tunnel.py",
+        "deploy.py",
+        "serve_restart.py",
+        "author.py",
+        "progressive.py",
+        "dom.py",
+        "attach_notes.py",
+    ):
+        assert owner in arch, owner
+    assert not (DOCS / "MODULE_MAP.md").exists()
+    for rel in (
+        "tunnel.py",
+        "deploy.py",
+        "serve_restart.py",
+        "author.py",
+        "progressive.py",
+        "dom.py",
+        "attach_notes.py",
+    ):
+        assert (SRC / rel).is_file(), rel
+
+
 def test_folder_law_keeps_kit_construct_and_cli_at_package_root():
     """Folders are copy/isolation laws. Do not invent cli/ or kit/kit_construct."""
     assert (SRC / "kit_construct.py").is_file()
@@ -375,6 +401,7 @@ def test_catalog_scan_and_http_discover_are_two_walkers():
     assert "Two" in agents and "walkers" in agents.lower()
     assert _read("app.py").count("def mount(") == 1
     assert "thin adapter" not in surfaces
+
 
 def test_leftover_table_splits_doctor_tokens_from_agent_locks():
     """Doctor is not credited for names it does not scan in product trees."""

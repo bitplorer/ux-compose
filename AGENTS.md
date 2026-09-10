@@ -44,9 +44,19 @@ Folders are import/copy laws. Full table: [docs/ARCHITECTURE.md](docs/ARCHITECTU
 
 ## Author-facing surface (do not invent names)
 
-From `__all__`: `App`, `Component`, `MorphState`, `RefState`, `action`, `bind`,
-`control`, `notify`, `update_with`, `morph_play`, `Level`, `doctor`,
-`Surface` / `mount_surfaces`, and DOM tags (`div`, `h1`, `button`, …).
+From `__all__` (author verbs): `App`, `Component`, `MorphState`, `RefState`,
+`action`, `bind`, `control`, `notify`, `update_with`, `morph_play`,
+`act`, `mark_dirty`, `field`, `status`, `optional_plan`, `optional_fade`,
+`optional_slide`, `AttachNote`, `attach_notes`, `Level`, `doctor`.
+
+Host / surface / motion also on `__all__`: `build`, `WebAssets`,
+`DirectoryRoutes`, `DirectoryASGI`, `RouterHooks`, `Surface` /
+`SurfaceBundle` / `SurfaceError` / `mount_surfaces` / `scan_surfaces` /
+`validate_surfaces`, `DoctorResult`, `scene`, `fade`, `rise`, `slide`,
+`HAS_DOM`, and DOM tags (`div`, `h1`, `button`, …).
+
+Kit is not a public import path for product apps. Own a copy with
+`uxcompose add`. `from ux_compose.kit import X` is leftover.
 
 There is **no** public `ux.div` / `when` / `forall` / `Page` on this package.
 Do not document them. Tags are imported from `ux_compose`.

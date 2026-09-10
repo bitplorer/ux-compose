@@ -10,18 +10,33 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 
 def test_cold_import_does_not_load_channel():
-    # Ensure channel not already loaded from other tests' side effects as a hard fail
-    # We only assert the public package import does not *require* channel.
-    mods_before = set(sys.modules)
+    boot_before = "ux_compose.wire.boot" in sys.modules
     import ux_compose
     importlib.reload(ux_compose)
-    # Public surface should not force ux_channel into modules as a dependency of cold import
-    # (it may already be present from other tests — assert the import itself succeeds)
     assert hasattr(ux_compose, "App")
     assert hasattr(ux_compose, "Component")
     assert hasattr(ux_compose, "doctor")
-    # wire is a subpackage but not auto-imported by __init__
-    assert "ux_compose.wire.boot" not in sys.modules or True  # soft: reload may not clear
+    if not boot_before:
+        assert "ux_compose.wire.boot" not in sys.modules
+
+
+def test_init_does_not_import_wire_or_channel():
+    init = Path(__file__).resolve().parents[1] / "src" / "ux_compose" / "__init__.py"
+    tree = ast.parse(init.read_text(encoding="utf-8"), filename=str(init))
+    hits = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for a in node.names:
+                if a.name.startswith(("ux_compose.wire", "ux_channel")):
+                    hits.append(a.name)
+        elif isinstance(node, ast.ImportFrom):
+            mod = node.module or ""
+            if mod.startswith(("ux_compose.wire", "ux_channel")):
+                hits.append(mod)
+    assert hits == [], hits
+    text = init.read_text(encoding="utf-8")
+    assert "ux_compose.wire" not in text
+    assert "import ux_channel" not in text
 
 
 def test_public_modules_have_no_channel_imports():

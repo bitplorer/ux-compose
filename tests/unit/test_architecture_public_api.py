@@ -34,6 +34,25 @@ ADDED = {
 }
 
 
+HOST = {
+    "WebAssets",
+    "DirectoryRoutes",
+    "DirectoryASGI",
+    "RouterHooks",
+    "Surface",
+    "SurfaceBundle",
+    "SurfaceError",
+    "mount_surfaces",
+    "scan_surfaces",
+    "validate_surfaces",
+    "DoctorResult",
+    "scene",
+    "fade",
+    "rise",
+    "slide",
+}
+
+
 def test_required_public_names_still_exported():
     missing = REQUIRED - set(ux.__all__)
     assert not missing, missing
@@ -48,6 +67,13 @@ def test_author_helpers_are_public_and_match_common():
 
     assert ux.act is common_act
     assert ux.mark_dirty is common_mark_dirty
+
+
+def test_host_surface_motion_names_still_exported():
+    missing = HOST - set(ux.__all__)
+    assert not missing, missing
+    for name in HOST:
+        assert getattr(ux, name) is not None
 
 
 def test_nomen_cut_drops_maybe_and_tick_names():

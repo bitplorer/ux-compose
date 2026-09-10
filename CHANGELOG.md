@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- Public ``__all__`` lock now covers host / surface / motion names
+  (``WebAssets``, ``Directory*``, ``Surface*``, ``DoctorResult``,
+  ``scene`` / ``fade`` / ``rise`` / ``slide``) (LOCK-1).
+- Concern table names delivery files that already exist: ``tunnel.py``,
+  ``deploy.py``, ``serve_restart.py``, ``author.py``, ``progressive.py``,
+  ``dom.py``, ``attach_notes.py``. Still no ``docs/MODULE_MAP.md`` (MAP-2).
+- Cold-import isolation test no longer asserts ``or True``. ``__init__.py``
+  is AST + text locked against ``wire`` / ``ux_channel`` imports (ISO-2).
+- ``AGENTS.md`` public-name paragraph matches ``__all__`` in three bands.
+  Kit is ``uxcompose add``, not a product import path (DOC-4).
+- ``CRITIC.md`` names four product apps (``atelier_shop``,
+  ``atelier_studio``, ``nook``, ``pulse``). Walker residual stays (CRIT-2).
+
 ### Changed
 
 - Folder law locked in ``docs/ARCHITECTURE.md`` / ``AGENTS.md``: ``kit/``

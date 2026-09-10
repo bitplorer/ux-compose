@@ -19,7 +19,7 @@ Compose is allowed to look like “the product” to authors. It must **import**
 
 | Layer | Name |
 |-------|------|
-| **PyPI / pip** | `ux-compose` |
+| **Install** | git clone + `pip install -e ".[serve]"` (not on PyPI) |
 | **Import** | `ux_compose` |
 | **CLI** | **`uxcompose`** (sole product lifecycle) |
 | **Version** | `0.1.0` |

@@ -24,7 +24,7 @@ uxcompose doctor .
 Need the origin extras once:
 
 ```bash
-pip install 'ux-compose[serve]'
+pip install -e '.[serve]'    # from the clone; not on PyPI
 ```
 
 Missing `httpx` / `starlette` / `websockets` → `serve dev` exits 1.

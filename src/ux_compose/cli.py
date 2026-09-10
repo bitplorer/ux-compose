@@ -387,7 +387,7 @@ def _serve(argv: list[str]) -> int:
             print(
                 "serve dev needs "
                 + ", ".join(missing)
-                + " — pip install 'ux-compose[serve]'",
+                + " — from the clone: pip install -e '.[serve]'",
                 file=sys.stderr,
             )
             _stop_proc(css_proc)

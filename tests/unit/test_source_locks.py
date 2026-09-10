@@ -59,3 +59,14 @@ def test_app_boot_keeps_attach_notes_on_channel_stepdown():
     src = _read("app.py")
     chunk = _fn(src, "boot")
     assert 'app._note("boot.use_channel", "L2", exc)' in chunk
+
+
+def test_pypi_unclaimed_in_brand_tables():
+    for rel in (ROOT / "README.md", DOCS / "README.md"):
+        text = rel.read_text(encoding="utf-8")
+        assert "**PyPI / pip**" not in text
+        assert "not on PyPI" in text
+    cli = _read("cli.py")
+    assert "pip install -e '.[serve]'" in cli
+    assert "pip install 'ux-compose[serve]'" not in cli
+    assert 'pip install "ux-compose[serve]"' not in cli

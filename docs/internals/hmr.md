@@ -116,7 +116,7 @@ The document stays alive because the client morphs instead of calling
 ## Fail-safe (not a second architecture)
 
 If `httpx`, `starlette`, or `websockets` are missing, `serve dev`
-prints `pip install 'ux-compose[serve]'` and exits 1.
+prints `pip install -e '.[serve]'` (from the clone; not on PyPI) and exits 1.
 
 It does **not** fall back to one uvicorn with reload.
 If a worker dies after bind, origin stops.

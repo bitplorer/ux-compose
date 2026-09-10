@@ -42,7 +42,7 @@ See `docs/OWNERSHIP.md`.
 `uxcompose serve dev` is origin + ui + channel, clocks on.
 `uxcompose serve prod` is one process, clocks off, disk CSS.
 `uxcompose serve restart-channel` drops Channel RAM once in a running `serve dev`.
-Missing origin extras fail closed (`pip install 'ux-compose[serve]'`).
+Missing origin extras fail closed (`pip install -e '.[serve]'` from the clone; not on PyPI).
 There is no `--one-process` / `--hmr` / `--css-watch` flag.
 `uxcompose serve` without a mode exits 2. `uxcompose build` is the
 one-shot minify. Deploy runs raw uvicorn, not `serve`.

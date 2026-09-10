@@ -31,7 +31,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # Specialists are hard dependencies (see [project].dependencies). These extras
-# remain as no-op aliases so existing `pip install ux-compose[full]` commands
+# remain as no-op aliases so existing `pip install -e ".[full]"` commands
 # do not fail closed on a missing extra name.
 dom = []
 behavior = []

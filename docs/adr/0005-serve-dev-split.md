@@ -19,7 +19,7 @@ There is no `--one-process`, `--no-hmr`, `--no-reload`, or
 `--css-watch`. Missing origin extras fail closed:
 
 ```text
-pip install 'ux-compose[serve]'
+pip install -e '.[serve]'    # from the clone; not on PyPI
 ```
 
 The old single-uvicorn-with-reload path is deleted. It was a second

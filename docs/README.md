@@ -10,7 +10,7 @@ This file is the GitHub `docs/` landing. It is not the map — [INDEX.md](INDEX.
 
 | Layer | Name |
 |-------|------|
-| **PyPI / pip** | `ux-compose` |
+| **Install** | git clone + `pip install -e ".[serve]"` (not on PyPI) |
 | **Import** | `ux_compose` |
 | **CLI** | **`uxcompose`** |
 

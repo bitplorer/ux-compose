@@ -69,6 +69,7 @@ These strings are not the product path. Doctor flags them in app trees.
 
 | Leftover | Prefer |
 |----------|--------|
+| `pip install ux-compose` / PyPI cell | git clone + `pip install -e ".[serve]"` |
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` | `host="auto"` |
 | Teaching `App.mount` as the product path | `build()` |

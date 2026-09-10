@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ``ChannelConfig(secret=)`` and ``Channel.boot`` in ``wire/boot.py`` fail
   closed (no silent ``cfg=None`` / ``ch=None``). ``App.use_channel`` stamps
   L2 only when a Channel instance exists (SWALLOW-boot).
+- Brand tables no longer claim PyPI. Install is git clone +
+  ``pip install -e ".[serve]"`` (PYPI-1).
 - serve-dev no longer pickle-serializes MorphState into a cwd file.
   JSON matches the Redis production domain.
 - Kit Batch A APG holds: menubar submenu ids ``{id}-m-{key}`` stay in the

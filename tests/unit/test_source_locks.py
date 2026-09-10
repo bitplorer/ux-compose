@@ -102,3 +102,30 @@ def test_critic_names_fragment_walker_residual():
     helpers = _read("helpers.py")
     assert "def _fragment_for_target" in helpers
     assert "def _element_end" in helpers
+
+
+def test_architecture_concern_table_is_the_module_map():
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "## Concern → file (lock)" in arch
+    assert "Do **not** add `docs/MODULE_MAP.md`" in arch
+    for owner in (
+        "wire/boot.py",
+        "wire/caps.py",
+        "wire/cek.py",
+        "cli.py",
+        "routing/host.py",
+        "routing/fastapi.py",
+        "routing/asgi.py",
+        "kit_construct.py",
+        "serve_state.py",
+        "dx/probe.py",
+        "live_client.py",
+        "hmr.py",
+    ):
+        assert owner in arch, owner
+    assert not (DOCS / "MODULE_MAP.md").exists()
+    index = (DOCS / "INDEX.md").read_text(encoding="utf-8")
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    assert "MODULE_MAP.md" in index
+    assert "MODULE_MAP.md" in agents
+    assert "Concern→file" in index or "Concern → file" in arch

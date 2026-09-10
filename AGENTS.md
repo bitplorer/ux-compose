@@ -3,6 +3,7 @@
 Orientation for humans and agents continuing this package.
 
 **First-time:** [START_HERE.md](START_HERE.md). **Map:** [docs/INDEX.md](docs/INDEX.md).
+Concern→file: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Do not add `docs/MODULE_MAP.md`.
 
 Read [docs/OWNERSHIP.md](docs/OWNERSHIP.md) (ownership SSoT) then [START_HERE.md](START_HERE.md)
 then [docs/INDEX.md](docs/INDEX.md). Public names: `src/ux_compose/__init__.py` `__all__`.

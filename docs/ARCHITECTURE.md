@@ -41,6 +41,33 @@ second product.
 
 ---
 
+## Concern → file (lock)
+
+This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
+`docs/INDEX.md` stays the audience map; this page owns concern→file.
+
+| Concern | Owner file(s) | Must not |
+|---------|---------------|----------|
+| Isolation door | `wire/boot.py`, `wire/caps.py`, `wire/cek.py` | `ux_channel` import outside `wire/` |
+| Cap mint | `wire/caps.py` | empty-token dual attrs |
+| Product CLI | `cli.py` | second verb, clock flags |
+| Build / CSS | `cli_build.py`, `tailwind.py`, `assets.py` | Tailwind on ux-dom |
+| Product host | `routing/host.py`, `routing/fastapi.py`, `routing/asgi.py`, `routing/core.py` | fold FastAPI into DirectoryASGI |
+| Composition | `app.py`, `component.py`, `helpers.py` | clone MorphState / Cap |
+| Surfaces / scan | `surfaces.py`, `surfaces_host.py`, `build.py` | second HTTP pipeline |
+| Doctor | `doctor.py` | leftover scan as kill |
+| Kit catalog / copy | `kit/catalog.py`, `kit/copy.py` | overlay in CATALOG |
+| Author helpers on copies | `kit_construct.py` (outside `kit/`) | move under `kit/` |
+| HMR | `hmr.py` | `Document.use` HMR |
+| Channel scripts | `live_client.py` | fold into `hmr.py` |
+| Serve-dev clocks | `serve_dev.py`, `cli.py` | `--one-process` |
+| Store lifecycle | `serve_state.py` | compose `FileStateStore` class |
+| Probe | `dx/probe.py` | junk-drawer growth |
+| Scaffold | `scaffold.py` | product CLI on uxdom |
+| Chrome / brand | `chrome.py` | GET chrome in `routes/*.py` `render()` |
+
+---
+
 ## OverlayChrome — edge overlays
 
 Dialog, Sheet, and ActionSheet take ids, dismiss grammar, and the open
@@ -69,7 +96,7 @@ These strings are not the product path. Doctor flags them in app trees.
 
 | Leftover | Prefer |
 |----------|--------|
-| `pip install ux-compose` / PyPI cell | git clone + `pip install -e ".[serve]"` |
+| `docs/MODULE_MAP.md` | this table (INDEX remains the audience map) |
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` | `host="auto"` |
 | Teaching `App.mount` as a "secondary door" | page-unit scan step; product path is `build()` |

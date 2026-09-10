@@ -18,6 +18,7 @@ This layer owns composition + product CLI (`uxcompose`).
 
 Specialized folders (`security/`, `ship/`, `design/`, `tutorial/`, `patterns/`, `archive/`) stay.
 `docs/INDEX.md` is the map. Do not add a second competing map.
+Concern→file lock lives in [ARCHITECTURE.md](ARCHITECTURE.md). Do not add `docs/MODULE_MAP.md`.
 
 It does **not** reimplement ux-dom / ux-channel / ux-behavior / ux-motion.
 

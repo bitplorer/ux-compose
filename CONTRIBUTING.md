@@ -24,7 +24,7 @@ PYTHONPATH=src:. pytest tests/regression -q   # hard-cut ownership
 ```
 
 See [docs/guides/TESTING.md](docs/guides/TESTING.md) for the full matrix (unit, integration,
-regression, concurrency, load, property, security).
+regression, concurrency, load, security).
 
 Live showcase: `apps/pulse` via `uxcompose serve apps.pulse.server:app`.
 

@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ``docs/OWNERSHIP.md`` (OWN-1).
 - ``docs/START_HERE.md`` is not a second ``create-app`` recipe.
   CONTRIBUTING no longer syncs the two START_HERE files (DOC-1).
+- Makefile / TESTING.md no longer name a missing ``tests/property``
+  tree (MAKE-1).
 - serve-dev no longer pickle-serializes MorphState into a cwd file.
   JSON matches the Redis production domain.
 - Kit Batch A APG holds: menubar submenu ids ``{id}-m-{key}`` stay in the

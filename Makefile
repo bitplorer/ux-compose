@@ -33,7 +33,7 @@ test:
 test-matrix:
 	PYTHONPATH=src:. python -m pytest \
 	  tests/unit tests/integration tests/regression tests/feature \
-	  tests/concurrency tests/load tests/property tests/security -q
+	  tests/concurrency tests/load tests/security -q
 
 # CTO gates (scaffold fragment, Cap mint / fail-closed, fragment-law).
 # Isolation: product never imports ux_channel.

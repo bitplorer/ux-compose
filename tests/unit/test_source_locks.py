@@ -258,3 +258,13 @@ def test_docs_start_here_is_not_a_second_cli_recipe():
     contrib = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
     assert "in sync with the root START_HERE" not in contrib
     assert "not a second CLI recipe" in contrib
+
+
+def test_makefile_has_no_ghost_property_suite():
+    mk = (ROOT / "Makefile").read_text(encoding="utf-8")
+    assert "tests/property" not in mk
+    testing = (DOCS / "guides" / "TESTING.md").read_text(encoding="utf-8")
+    assert "tests/property" not in testing
+    assert not (ROOT / "tests" / "property").exists()
+    contrib = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    assert "load, property, security" not in contrib

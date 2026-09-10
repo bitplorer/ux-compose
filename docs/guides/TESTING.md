@@ -42,7 +42,6 @@ Also: `apps/atelier_shop`, `apps/atelier_studio` (Makefile `shop` / `studio`).
 | **Regression** | `tests/regression/` | hard-cut ownership (no product CLI dual path) |
 | **Concurrency** | `tests/concurrency/` | parallel dispatch |
 | **Load / stress** | `tests/load/` | many sequential + threaded ops |
-| **Property** | `tests/property/` | invariants on control/update_with |
 | **Security (pen-style)** | `tests/security/` | Isolation Law, argument sanitization, path safety |
 | **Legacy** | `tests/test_*.py` | existing offline / morph / doctor suites |
 
@@ -58,7 +57,7 @@ PYTHONPATH=src:. pytest tests/ -q
 PYTHONPATH=src:. pytest tests/unit tests/regression tests/feature -q
 PYTHONPATH=src:. pytest tests/integration -q
 PYTHONPATH=src:. pytest tests/concurrency tests/load -q
-PYTHONPATH=src:. pytest tests/property tests/security -q
+PYTHONPATH=src:. pytest tests/security -q
 
 # coverage
 PYTHONPATH=src:. pytest tests/ --cov=ux_compose --cov-report=term-missing -q

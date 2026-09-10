@@ -29,12 +29,16 @@ def notify(message: str, **kwargs) -> Any:
 
 
 def _live_channel() -> Any:
-    """Isolation: Channel instance from App.use_channel, never ux_channel import."""
+    """Isolation: Channel instance from App.use_channel, never ux_channel import.
+
+    ImportError (wire/caps missing) → offline (None). Other errors fail loud
+    so live ``control()`` cannot impersonate the no-cap dual-attr path.
+    """
     try:
         from ux_compose.wire.caps import live_channel
 
         return live_channel()
-    except Exception:
+    except ImportError:
         return None
 
 

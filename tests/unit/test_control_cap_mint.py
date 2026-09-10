@@ -344,3 +344,14 @@ def test_helpers_control_empty_mint_fails_loud_when_channel_live(_restore_live_c
     register_live_channel(_EmptyCap())
     with pytest.raises(RuntimeError, match=r"empty Cap|failed to mint"):
         control("hello.pulse")
+
+
+def test_helpers_live_channel_runtimeerror_fails_loud(monkeypatch):
+    """live_channel() raising RuntimeError must not yield no-cap dual attrs."""
+
+    def _boom():
+        raise RuntimeError("registry exploded")
+
+    monkeypatch.setattr("ux_compose.wire.caps.live_channel", _boom)
+    with pytest.raises(RuntimeError, match="registry exploded"):
+        control("hello.pulse")

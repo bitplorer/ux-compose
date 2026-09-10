@@ -1,8 +1,12 @@
 """Tiny helpers for ownable kit Components — not a base class.
 
-Isolation Law: this module never pulls the wire. Kits import helpers from
-the library the same way they import ``Component`` — ``uxcompose add``
-does not rewrite the path, so copied files stay self-contained.
+Not under ``kit/``. Copy rewrites ``from ux_compose.kit.X import`` to a
+relative sibling and drops ``X.py`` into the app. This module must stay a
+library import, same as ``Component``::
+
+    from ux_compose.kit_construct import apply_slots, kit_shell
+
+Isolation Law: this module never pulls the wire.
 
 Host seam = ``render(*, shell=None, **slots)`` OR subclass class consts.
 Passed slots write through to instance attrs so later morph / ``update_with``

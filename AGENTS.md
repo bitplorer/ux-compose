@@ -30,6 +30,18 @@ specialists and must **not** reimplement them.
 
 Do not invent a sixth product. `ux-app` is retired.
 
+## Folder law (do not "tidy" into drawers)
+
+Folders are import/copy laws. Full table: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) **Folder law**.
+
+- `kit/` is the ownable catalog. `uxcompose add` rewrites `ux_compose.kit.X`.
+  `kit_construct.py` stays **next to** `component.py` so copies keep the
+  library import. Do not move it under `kit/`.
+- No `cli/` package. `cli.py` is argv dispatch. Verb bodies are also
+  libraries (`doctor.py`, `build.py` / `cli_build.py`, `scaffold.py`).
+- `wire/` is the only `ux_channel` door. `routing/` is the host pair.
+- Do not add `helpers/` or grow `dx/` into a product.
+
 ## Author-facing surface (do not invent names)
 
 From `__all__`: `App`, `Component`, `MorphState`, `RefState`, `action`, `bind`,

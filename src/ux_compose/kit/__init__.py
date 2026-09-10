@@ -8,7 +8,9 @@ The library keeps the source of truth. The copy is yours to edit.
 ``from ux_compose.kit import Login`` stays for tests, the Atelier, and
 agents — product apps own the file after ``add``.
 
-See docs/ARCHITECTURE.md (one catalog rule).
+See docs/ARCHITECTURE.md (one catalog rule). Host seam
+``apply_slots`` / ``kit_shell`` lives in ``ux_compose.kit_construct``
+(outside this package) so ``uxcompose add`` does not fork it.
 """
 
 from ux_compose.kit.accordion import Accordion

@@ -131,6 +131,24 @@ def test_architecture_concern_table_is_the_module_map():
     assert "Concern→file" in index or "Concern → file" in arch
 
 
+def test_folder_law_keeps_kit_construct_and_cli_at_package_root():
+    """Folders are copy/isolation laws. Do not invent cli/ or kit/kit_construct."""
+    assert (SRC / "kit_construct.py").is_file()
+    assert not (SRC / "kit" / "kit_construct.py").exists()
+    assert not (SRC / "cli").exists()
+    assert (SRC / "cli.py").is_file()
+    assert (SRC / "cli_build.py").is_file()
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "## Folder law" in arch
+    assert "Do **not** add `cli/`" in arch
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Folder law" in agents
+    construct = _read("kit_construct.py")
+    assert "Not under ``kit/``" in construct
+    copy = _read("kit/copy.py")
+    assert "kit_construct lives outside kit/" in copy
+
+
 def test_routing_adapters_path_absent_and_taught():
     adapters = SRC / "routing" / "adapters"
     assert not adapters.exists()

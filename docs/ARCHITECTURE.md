@@ -68,6 +68,65 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 
 ---
 
+## Folder law
+
+Folders are **import / copy laws**, not drawers. A new folder is a sixth
+product unless it encodes a hard cut. Root files that look homeless are
+usually library ∩ CLI, or library imports that copies must keep.
+
+| Folder | Law | Must not live here |
+|--------|-----|--------------------|
+| `wire/` | only `ux_channel` / CEK import | product / kit / helpers |
+| `kit/` | ownable catalog. `uxcompose add` rewrites `from ux_compose.kit.X` → `from .X` and copies `X.py` | library helpers, CLI internals |
+| `routing/` | Clock A host pair (FastAPI ≠ DirectoryASGI) | compatibility shims |
+| `dx/` | slang leftover (one probe file for doctor) | a second DX product |
+
+Do **not** add `cli/`, `helpers/`, `kit/kit_construct.py`, or `docs/MODULE_MAP.md`.
+
+### Why `kit_construct.py` is next to `component.py`
+
+`apply_slots` / `kit_shell` are the host seam (`render(*, shell=, **slots)`).
+They are not a widget and not a `Kit` base (`Kit` is dead). Copies must keep:
+
+```python
+from ux_compose.kit_construct import apply_slots, kit_shell
+```
+
+the same way they keep `from ux_compose.component import Component`.
+If this file moved under `kit/`, copy would rewrite the import to
+`from .kit_construct import` and drop a fork into every app. That is the
+inorganic tree. 56 lines on purpose.
+
+### Why CLI verbs are not a `cli/` package
+
+`uxcompose = ux_compose.cli:main`. `cli.py` is argv dispatch only.
+Each verb's **body** is the concern that is also a library:
+
+| Verb | Body | Also imported as |
+|------|------|------------------|
+| create-app | `scaffold.py` | `create_app()` |
+| build | `cli_build.py` | named because `build.py` is `build()` orchestra |
+| serve | `serve_dev.py` / `serve_restart.py` / `serve_state.py` | clocks, ADR 0005 |
+| deploy | `deploy.py` | checklist / images |
+| doctor | `doctor.py` | `from ux_compose import doctor` |
+| add | `kit/copy.py` | ownable copy, not CLI-only |
+
+Folding those under `cli/` would lie: doctor and `build()` are public
+algebra. `cli_build.py` is the CSS minify CLI wrap of `tailwind.py`.
+
+### Three helper modules (not one junk package)
+
+| Module | Owns | Not |
+|--------|------|-----|
+| `helpers.py` | Ops algebra (`bind` / `control` / `update_with`) + fragment walker residual | kit seams, author `act` |
+| `author.py` | public `act` / `mark_dirty` / `optional_*` (ADR 0004) | Caps, HTML walk |
+| `kit_construct.py` | `apply_slots` / `kit_shell` | catalog stems |
+
+The homemade walker in `helpers.py` stays until ux-dom owns extract.
+Do not give it a forever `fragment.py` home (agents will grow it).
+
+---
+
 ## OverlayChrome — edge overlays
 
 Dialog, Sheet, and ActionSheet take ids, dismiss grammar, and the open
@@ -96,6 +155,8 @@ These strings are not the product path. Doctor flags them in app trees.
 
 | Leftover | Prefer |
 |----------|--------|
+| `src/ux_compose/cli/` package | `cli.py` dispatch + verb modules |
+| `kit/kit_construct.py` | `ux_compose.kit_construct` (library import) |
 | `tests/property/` | drop; no property suite in this tree |
 | `host="starlette"` | `auto` \| `fastapi` \| `asgi` (fail closed) |
 | argv `create` | `uxcompose create-app` |

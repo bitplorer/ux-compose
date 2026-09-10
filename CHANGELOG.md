@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Folder law locked in ``docs/ARCHITECTURE.md`` / ``AGENTS.md``: ``kit/``
+  is the ownable-copy prefix, ``kit_construct.py`` stays next to
+  ``Component``, CLI verbs stay as library modules not a ``cli/`` package.
+  Do not add ``cli/`` or ``kit/kit_construct.py``.
 - serve-dev shared session store is Channel's ``FileStateStore``
   (JSON sqlite). ``serve_state.py`` is lifecycle only: env, path,
   prepare / clear / drop (ADR 0006). Isolation unchanged (``wire/``

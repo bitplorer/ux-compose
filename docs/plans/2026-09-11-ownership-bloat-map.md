@@ -24,7 +24,59 @@ Compose has **no** `poetry.lock` / `uv.lock` / root `requirements.txt`.
 Pins are VCS SHAs in `pyproject.toml` (SSOT with `Makefile` + scaffold
 `REQUIREMENTS`). Create-app `COMPOSE_VCS_PIN` is `957f81f` — one commit
 behind this tip (the pin-bump *is* `7546013`). That lag is chicken-egg,
-not drift.
+not drift. Specialist pins are **not rotting** — each SHA is the
+current `origin/main` tip.
+
+---
+
+## Library quality gate gather (proven SHAs — folded here)
+
+Read-only gather against the pins above. **Do not implement Soft cuts
+in this PR.** Plan-only tip.
+
+**Confirmed: DOM clone in channel.** README ownership table says
+channel does **not** own HTML trees / Document (`README.md:92-97`).
+The tree still implements HTML:
+
+| Clone | Path | What it does |
+|-------|------|--------------|
+| `lower_html` | `ux_channel/render/morph_ir.py:162-182` | IR → HTML string (`html_lib.escape` + tag assembly). Module claims it never imports a document library (`morph_ir.py:6-7`). |
+| `to_html` | `ux_channel/components/primitive.py:129-164` | Coerce values to HTML **without importing ux-dom** (`primitive.py:131`). Walks `__html__` / `__render__` / `render()`. |
+| `ChannelComponent` | `ux_channel/components/base.py:34-48` | Optional channel-side UI blocks; docstring says prefer ux-dom (`base.py:6-17`). Naming avoids ux-dom `Component`. |
+
+**ASGI nuance (do not collapse).**
+
+| Surface | Verdict |
+|---------|---------|
+| `ux_channel.asgi.mount_channel` (`asgi/__init__.py:15-25`, `asgi/fastapi.py:79`) | **OWNER Cap HTTP door.** KEEP. Do **not** delete. Compose Clock A is page GET; this is Intent `/action`. Two hosts, two telsos. |
+| Fat FastAPI product surface inside `asgi/fastapi.py` (~1610 LOC: trace UI, static, MCP, enhance) | Dual *product* door vs compose Clock A / `uxcompose`. Soft later — **not** by gutting this file as one concern. |
+| `uxchannel create-app` (`devtools/cli.py`, `scaffold/`) | Dual product CLI vs `uxcompose create-app`. Soft (2) honesty only. |
+
+**KEEP (quality gate — deleting drops L or invents a sixth product):**
+
+| Keep | Why |
+|------|-----|
+| Cap / Isolation / compose `wire/` | Law. Cold import never pulls channel. |
+| ux-dom serialize (`to_html_bytes`) | Document SSoT |
+| compose `helpers._fragment_for_target` | E13 until ux-dom owns extract-by-id |
+| compose Clock A + `serve-dev` clocks | ADR 0002 / 0005 |
+| behavior / motion owner doors | `@action` / MorphState / `scene` — re-export, do not fork |
+| `ux_channel_ux_dom` glue | Optional interop; neither core imports the other (`ux_channel_ux_dom/__init__.py:11-20`) |
+| `mount_channel` Cap HTTP | Owner door (above) |
+
+**Later Soft — one concern each, after human proceed.** Gutting
+`asgi/fastapi.py` is **not** one Soft.
+
+| Soft | Concern | Where |
+|------|---------|-------|
+| **S1** | HTML lower via ux-dom **when present** (`lower_html` / `to_html` call owner; stdlib escape stays if ux-dom absent) | channel `render/morph_ir.py`, `components/primitive.py` |
+| **S2** | `uxchannel create-app` honesty (lab, not product path) | channel CLI help / docs |
+| **S3** | Demote kit teaching (`ChannelComponent` / `components/` — already "prefer ux-dom") | channel `components/`, `LAYERS.md` |
+| **S4** | `render/response.py` → reuse `ux_dom.response` when present | channel `render/response.py:1-49` |
+
+**Kill (any Soft that does these is rejected):** fashion folder
+restyle; cutting trust-boundary validation (Cap, CSRF, empty
+`Content-Type` Cut C, Isolation AST); inventing a sixth product.
 
 ---
 
@@ -38,7 +90,7 @@ end. Re-implementing it elsewhere is bloat even when the clone is
 |-------|--------------|--------------|
 | **ux-dom** | Tree → HTML (`__render__` / `to_html_bytes`), `Document` shell, package static, pure-dom `uxdom` | Product CLI, Tailwind compiler, `WebAssets`, Clock A host, HMR, Intent/Cap |
 | **ux-behavior** | Product meaning → verified `list[Op]`; `MorphState` / `@action` | Raw HTML, wire codecs, Cap crypto, product serve |
-| **ux-channel** | Intent → Cap → Result; wire codecs; Cap Host (cek-runtime); `StateStore` | HTML trees, CSS, Document serialize, product `uxcompose serve` |
+| **ux-channel** | Intent → Cap → Result; wire codecs; Cap Host (cek-runtime); `StateStore`; Cap HTTP `mount_channel` | HTML trees, CSS, Document serialize, product `uxcompose serve` / Clock A |
 | **ux-motion** | Presence / transition plans as data (IR v1) + reference player | `@action`, Document construction, Cap mint, product CLI |
 | **cek-host** | Cap mint / verify / project (authority kernel) | HTTP Product host (Clock A), ux-dom trees |
 | **cek-surface** | CEK Surface / Peer IR / carriers | ux-channel wire; a second Cap machine |
@@ -139,21 +191,24 @@ FastAPI as the protocol. `LAYERS.md:22`: `components/` is optional kit
 `audit`. CLI: `uxchannel` → `ux_channel.devtools.cli:main`. Sibling
 package `ux_channel_ux_dom` (glue, not Document serialize).
 
-**Implements (tension).**
+**Implements (tension vs KEEP).**
 
-| Area | Path | vs owner |
-|------|------|----------|
-| FastAPI-shaped HTTP host (~1610 LOC) | `python/src/ux_channel/asgi/fastapi.py:79` `mount_channel` | FastAPI already owns routes / WS / `StaticFiles` |
-| Starlette + pure ASGI `/action` | `asgi/starlette.py`, `asgi/core.py:38` `handle_action_asgi` | same host frameworks |
-| HTML encode + fragment target guess | `protocol/encode.py:132-158` `_guess_target_from_html` | ux-dom serialize / extract |
-| Demo HTML kit + `HTMLResponse` duck-type | `render/kit.py`, `render/response.py` | ux-dom + FastAPI |
-| String-template UI kit (~2.5k LOC) | `components/` | ux-dom + compose `kit/` |
-| Product-shaped CLI (`create-app`, doctor, dashboard) | `devtools/cli.py` (~956 LOC), `scaffold/` | **ux-compose** `uxcompose` |
-| Optional pydantic actions | `devtools/pydantic_actions.py` | YAGNI overlay |
+| Area | Path | Verdict |
+|------|------|---------|
+| Cap HTTP mount | `asgi/__init__.py:15-25` → `asgi/fastapi.py:79` `mount_channel` | **KEEP** — owner Cap HTTP door. Not Clock A. Do not delete. |
+| Fat FastAPI product surface (trace / static / MCP / enhance in the same ~1610-line module) | `asgi/fastapi.py` | Dual *product* door vs compose. Soft later; **not** one Soft to gut the file. |
+| Starlette + pure ASGI `/action` | `asgi/starlette.py`, `asgi/core.py:38` | Cap transport adapters; keep the door |
+| `lower_html` IR → HTML string | `render/morph_ir.py:162-182` | **DOM clone** (README says channel does not own HTML). Soft **S1** |
+| `to_html` / `ChannelComponent` | `components/primitive.py:129-164`, `components/base.py:34-48` | **DOM clone** + optional kit. Soft **S1** + **S3** |
+| `HTMLResponse` duck-type | `render/response.py:1-49` | Clone of `ux_dom.response`. Soft **S4** |
+| `_guess_target_from_html` | `protocol/encode.py:151-158` | Extract guess; stays until ux-dom extract (compose walker is the product residual) |
+| `uxchannel create-app` | `devtools/cli.py`, `scaffold/` | Dual product CLI. Soft **S2** honesty |
+| Optional pydantic actions | `devtools/pydantic_actions.py` | Overlay — do not promote |
 
 **Legitimate (not bloat):** `host/stores.py` `StateStore` / `FileStateStore`
-/ Redis; `Channel.boot` (`host/channel.py:335`); wire codecs; CEK adapter;
-client JS under `static/`. Compose **must** use these, not clone them.
+/ Redis; `Channel.boot` (`host/channel.py:335`); `mount_channel`; wire
+codecs; CEK adapter; client JS under `static/`; `ux_channel_ux_dom`
+glue. Compose **must** use these, not clone them.
 
 ### 2.2 ux-dom @ `e8be99a`
 
@@ -234,13 +289,16 @@ orthogonal to `uxcompose create-app`.
 | Tree → HTML serialize | **ux-dom** `to_html_bytes` | compose delegates only | `src/ux_compose/helpers.py:112-118` |
 | Extract-by-id on serialized HTML | **ux-dom** (missing on serialize `__all__` @ `e8be99a`) | **compose** homemade walker | `helpers.py:121-124`, `127-274`, `360-392`; ux-dom `response/serialize.py:12-18` |
 | Guess morph target from HTML | ux-dom extract (missing) | **channel** regex | `ux_channel/protocol/encode.py:151-158` |
-| Document shell / CSP / package static | **ux-dom** | channel `render/` + `components/` string HTML | channel `LAYERS.md:16-22`; compose kit is ownable catalog |
+| HTML lower / coerce (IR + kit) | **ux-dom** serialize | **channel** `lower_html` + `to_html` / `ChannelComponent` | `render/morph_ir.py:162-182`; `components/primitive.py:129-164`; `components/base.py:34-48`. README forbids HTML ownership (`README.md:92-97`). Soft **S1** / **S3** |
+| Starlette `HTMLResponse` + `__render__` | **ux-dom** `response` | **channel** `render/response.py` | `render/response.py:1-49`. Soft **S4** |
+| Document shell / CSP / package static | **ux-dom** | channel `render/kit.py` + `components/` string HTML | channel `LAYERS.md:16-22`; compose kit is ownable catalog |
 | Intent / Cap / Result / codecs | **ux-channel** | compose `wire/` **uses** (allowed) | `wire/boot.py:84`, `wire/caps.py:208` |
 | `Channel.boot` Cap door | **ux-channel** `host/channel.py:335` | leftover `ActionRegistry.from_config` as a compose door | `wire/boot.py:75-78`; `tests/unit/test_source_locks.py:474` |
 | `StateStore` / File / Redis | **ux-channel** `host/stores.py` | compose must not define the class | `serve_state.py:1-11`; doctor `doctor.py:89-127` |
 | Session bag clear | Channel store schema | compose `sqlite3` on shared path | `serve_state.py:50-65` |
 | HTTP Product host (Clock A GET) | **compose** + **FastAPI** | ux-dom leftover `DirectoryRouter` | compose `routing/fastapi.py:1-16`; ux-dom `_directory_router_impl.py` |
-| Channel HTTP `/action` mount | **channel** `asgi/` + FastAPI | channel re-implements a large FastAPI app surface instead of a thin router | `asgi/fastapi.py:79-90` (~1610 LOC) |
+| Cap HTTP `/action` mount | **channel** `ux_channel.asgi.mount_channel` | — (owner door) | `asgi/__init__.py:15-25`, `asgi/fastapi.py:79`. **KEEP.** Do not delete. |
+| Fat FastAPI *product* surface next to Cap mount | **compose** Clock A + FastAPI native | channel `asgi/fastapi.py` extras (trace / MCP / enhance / static kitchen-sink) | Dual product door vs Clock A. Soft later; **not** one Soft to gut the file. |
 | Cap Host (CEK) | **cek-host** via channel adapter | compose `wire/cek.py` **uses** | `wire/cek.py:1-8`, `32-69` |
 | MorphState / `@action` | **ux-behavior** | compose re-exports | `component.py:20-25` |
 | Motion IR | **ux-motion** | compose re-exports; motion `_render` duck-types `__render__` | `__init__.py:40`; motion `_render.py` |
@@ -270,10 +328,11 @@ TELOS tags used here:
 | `host="auto"\|"fastapi"\|"asgi"` | `host="batteries"\|"starlette"` | Already fail-closed (`routing/host.py:50-59`) |
 | FastAPI Clock A + DirectoryASGI degrade | Fold FastAPI into DirectoryASGI | **Forbidden** (`ARCHITECTURE.md:57`) |
 | `Channel.boot` via `wire/boot.py` | `ActionRegistry.from_config` as compose import | Keep teaching; do not add the import (`wire/boot.py:75-78`) |
-| `Channel.boot` / `create_channel` (channel) | `mount_channel` direct | Channel-internal; compose stays on `Channel.boot` |
+| `mount_channel` Cap HTTP (KEEP owner) | Fat FastAPI product extras in the same `asgi/fastapi.py` | Soft later; **do not delete** `mount_channel`. Gutting the file is **not** one Soft. |
+| `uxcompose create-app` | `uxchannel create-app` (and `cek create-app`) | Soft **S2** honesty — lab, not product. Do not delete the CLI binary. |
 | `Document.use(..., Channel.optional())` | `live_client.attach_live_client` | Teach Document path; do not delete middleware until tests migrate |
 | `uxcompose serve {dev,prod,restart-channel}` | argv `development` / `production` / `restart_channel` | Already exit 2 |
-| `uxcompose` product CLI | `uxchannel create-app` / `cek create-app` / `uxdom build` | Sister CLIs stay in their repos; compose regression forbids delegation (`tests/regression/test_hard_cut_ownership.py:18-29`) |
+| `uxcompose` product CLI | `uxdom build` name collision | ux-dom already redirects compose trees; keep fail-closed (`cli/cli.py:108-112` on dom) |
 | `bind_pages=` | `include_directory_router=` | **E13** — alias locked (`test_hard_cut_ownership.py:94-98`) |
 | `from ux_compose import div` | `from ux_compose.kit import X` in apps | Doctor teaching; `uxcompose add` |
 | `ux_channel` root import | `ux_channel.api` (same objects) | Channel-internal E5; not compose's to close |
@@ -293,6 +352,8 @@ TELOS tags used here:
 | Channel `FileStateStore` | Compose must USE it | ADR 0006 |
 | ux-dom fail-closed stubs (`WebAssets`, `TailwindCommand`, `HotReload`) | Fail-loud teaching; deleting the *class* invites a silent re-add | ux-dom `test_ownership_hard_cut.py` |
 | Two walkers inside `build()` | Catalog ≠ HTTP path law | `build.py:230-250`; `test_source_locks.py:450-465` |
+| `ux_channel.asgi.mount_channel` | Owner Cap HTTP door (≠ Clock A) | `asgi/__init__.py:15-25`; channel layout gate imports it |
+| `ux_channel_ux_dom` glue | Optional interop; neither core imports the other | `ux_channel_ux_dom/__init__.py:11-20` |
 
 ### 4.3 E14 — forbidden (do not invent)
 
@@ -310,39 +371,46 @@ TELOS tags used here:
 | Sibling package (`ux-app`, `ux-compose-host`, `ux-channel-http`) | Sixth product |
 | `extract_by_id` on compose `__all__` | If extract moves, it moves to **ux-dom** serialize `__all__` |
 | Merging Clock A (page GET) with Channel `/action` or CEK Host | Three hosts, three telsos |
+| Deleting `mount_channel` to "slim" ASGI | Owner Cap HTTP door. Fat extras ≠ the door. |
 
 ---
 
-## 5. Ranked DO / KEEP / DEAD
+## 5. Ranked Soft / KEEP / DEAD
 
-Ponytail applied. **This PR implements none of the DOs.**
+Ponytail applied. **This PR implements none of the Softs.**
+**Gutting `asgi/fastapi.py` is not one Soft.**
 
-### 5.1 DO (focused specialist or compose PRs, after human proceed)
+### 5.1 Soft (one concern each, after human proceed)
 
-Ranked by (reuse owner) × (unlocked L) × (LOC removed without new surface).
+Quality-gate Softs first. Older D-numbers that are *not* Soft stay
+parked (extract-by-id, live_client, pin dance) until a later proceed.
 
-| # | Action | Where | Ponytail | Unlocks |
-|---|--------|-------|----------|---------|
-| D1 | **ux-dom owns extract-by-id** on serialize `__all__` (same change: predicate + tests + spec). Then compose walker becomes a thin call. | ux-dom `response/serialize.py`; compose `helpers.py` | reuse owner | Drops homemade HTML walk; channel `_guess_target_from_html` can call the same API |
-| D2 | **Channel `asgi/fastapi.py` slim to FastAPI-native** — keep `APIRouter` + Channel security/codecs; stop growing a second mini-framework (trace UI, static, MCP, enhance) inside one 1610-line module. Split is internal; **no new public names**. | ux-channel `asgi/` | reuse FastAPI | Shrinks the "channel owns HTTP" leak |
-| D3 | **Channel `components/` + `render/kit.py` → document as non-product** (already claimed). Do not port into compose `kit/`. Optional later: stop shipping kit on default install. | ux-channel | YAGNI | Stops DOM-in-channel teaching |
-| D4 | **Stop teaching `uxchannel create-app` as a product path** (CLI can stay for channel-only labs). Point humans at `uxcompose create-app`. | ux-channel docs/CLI help | YAGNI | E5 with compose CLI |
-| D5 | **ux-dom `DirectoryRouter` leftover** — keep until demosite/standalone tests die; then delete with the ux-dom hard-cut suite. Do not re-home in compose. | ux-dom `routing/_directory_router_impl.py` | YAGNI after tests | Removes Clock A clone |
-| D6 | **`live_client` middleware** — migrate remaining callers to `Document.use(Channel.optional())`; then delete the byte-insert path. | compose `live_client.py` | reuse owner | One HTML insert door (HMR middleware stays) |
-| D7 | **Motion JS dedupe** (`static/` vs `scripts/`) | ux-motion | YAGNI | Byte identity, not API |
-| D8 | **cek-runtime `ports/cek-host-py`** — keep README warning; do not publish | cek-runtime | YAGNI | Prevents fourth Host |
-| D9 | **Pin dance (optional):** bump `COMPOSE_VCS_PIN` in a *follow-up* commit after this tip is the base. | compose scaffold + `test_hard_deps.py` | honesty | Create-app tracks tip; not ownership |
+| # | Action | Where | Ponytail | Not this Soft |
+|---|--------|-------|----------|---------------|
+| **S1** | HTML lower via ux-dom **when present**. `lower_html` / `to_html` call owner serialize / `__render__`; stdlib escape remains if ux-dom is absent (channel still has no hard ux-dom dep). | `render/morph_ir.py:162-182`, `components/primitive.py:129-164` | reuse owner | Do not add `ux_channel.extract`. Do not move compose `_fragment_for_target` in the same PR. |
+| **S2** | `uxchannel create-app` honesty — teach lab / channel-only, not the product path. Point humans at `uxcompose create-app`. Keep the verb if tests lock it. | channel `devtools/cli.py`, `scaffold/`, docs | YAGNI teaching | Do not delete `uxchannel`. Do not fold into compose. |
+| **S3** | Demote kit teaching. `ChannelComponent` / `components/` already say prefer ux-dom (`base.py:6-17`). Stop presenting the kit as product UI. Do not port into compose `kit/`. | channel `components/`, `LAYERS.md` | YAGNI teaching | Do not invent a sixth kit package. |
+| **S4** | `render/response.py` → reuse `ux_dom.response` when present; Starlette `HTMLResponse` stays the container. | `render/response.py:1-49` | reuse owner | Do not delete Cap mount. Do not merge Clock A GET into this adapter. |
+
+Parked (not Soft until a later proceed): ux-dom extract-by-id then
+compose walker wrap; `live_client` retire; `COMPOSE_VCS_PIN` bump;
+ux-dom `DirectoryRouter` after standalone tests die; motion JS
+dedupe; cek `ports/cek-host-py` warning only.
 
 ### 5.2 KEEP (do not "tidy")
 
 | Item | Reason |
 |------|--------|
-| Isolation `wire/` only | Law |
+| Cap / Isolation / compose `wire/` | Law. Cold import never pulls channel. |
+| `ux_channel.asgi.mount_channel` | Owner Cap HTTP door. Do **not** delete. |
+| Fat `asgi/fastapi.py` module (until a *multi-concern* channel pass, never one Soft) | Cap mount lives here; gutting drops L |
+| ux-dom serialize (`to_html_bytes`) | Document SSoT |
+| compose `helpers._fragment_for_target` | E13 / fragment-law until ux-dom extract |
+| compose Clock A + `serve-dev` clocks | ADR 0002 / 0005 |
+| behavior / motion owner doors | Re-export only |
+| `ux_channel_ux_dom` glue | Optional interop; not a Document clone |
 | `Channel.boot` as the compose Cap door | Frozen import set |
-| FastAPI Clock A + DirectoryASGI pair | ADR 0002 |
-| Three serve-dev clocks / no flags | ADR 0005 |
 | Channel-owned `FileStateStore` + compose lifecycle | ADR 0006 |
-| Fragment walker **until D1 lands** | Fragment-law / FullShellHello |
 | `kit_construct.py` next to `component.py` | Copy law |
 | Leftover teaching tables | Doctor + `test_source_locks.py` |
 | Fail-closed stubs on ux-dom | Silent re-add is worse than a stub |
@@ -364,7 +432,7 @@ Ranked by (reuse owner) × (unlocked L) × (LOC removed without new surface).
 | `ux_channel.cli:main` / fashion `cli/` | `devtools.cli:main` |
 | `MemoryStateStore` on channel root `__all__` | `host.stores` |
 | `docs/MODULE_MAP.md` | ARCHITECTURE concern table |
-| `fragment.py` | walker in `helpers.py` until D1 |
+| `fragment.py` | walker in `helpers.py` until ux-dom extract |
 | Clock flags / one-process fallback | ADR 0005 |
 | `pip install ux-compose` as the primary door | clone + `.[serve]` |
 
@@ -378,9 +446,10 @@ These look like hygiene and destroy L or invent a sixth product.
 |------|----------------------|
 | **Fashion folder restyle** (`cli/`, `helpers/`, `ports/`, `adapters/` growth, `serve/`) | Folders are import/copy laws (`ARCHITECTURE.md:80-93`). |
 | **Pydantic / hexagonal overlay** | Channel already quarantines pydantic under `devtools/`. Clock A payload law is type-predicates, not models (`routing/fastapi.py:9-16`). |
-| **Sibling packages** (`ux-compose-host`, `ux-channel-http`, `ux-dom-extract` as a new repo) | Extract belongs **on ux-dom serialize**, not a sixth product. |
+| **Sibling packages / sixth product** (`ux-compose-host`, `ux-channel-http`, `ux-dom-extract`, a second kit repo) | Extract belongs **on ux-dom serialize**. Glue stays `ux_channel_ux_dom`. |
 | **Docs-first** (new ontology, second ownership SSoT, `MODULE_MAP.md`) | This plan is projection. Law stays `OWNERSHIP.md`. |
-| **Cutting trust-boundary validation** | Do not delete Cap verify, CSRF, empty `Content-Type` reject (channel Cut C @ `985e58a`), Isolation AST, doctor `FileStateStore` clone scan, or fail-closed missing-specialist imports to "slim" the tree. |
+| **Cutting trust-boundary validation** | Do not delete Cap verify, CSRF, empty `Content-Type` reject (channel Cut C @ `985e58a`), Isolation AST, doctor `FileStateStore` clone scan, `mount_channel`, or fail-closed missing-specialist imports to "slim" the tree. |
+| **Gutting `asgi/fastapi.py` as one Soft** | Cap mount is the owner door. Fat extras are a later multi-concern pass, not S1–S4. |
 
 ---
 
@@ -408,53 +477,58 @@ never delete the token first.
 ## 8. Projection plan (after human proceed)
 
 Same products. Native composition. One concern per PR. No deletes in
-the PR that only writes this map.
+the PR that only writes this map. **Softs are S1–S4 only.**
 
 ```text
 human proceed
     │
-    ├─ P0  (optional, compose)  bump COMPOSE_VCS_PIN after 7546013  [D9]
+    ├─ S1  channel   HTML lower via ux-dom when present
+    │                 lower_html / to_html → owner; no hard ux-dom dep
     │
-    ├─ P1  ux-dom     extract-by-id on serialize __all__            [D1]
-    │         └─ compose follow: helpers._fragment_for_target → call
-    │            (keep function name; do not add fragment.py)
+    ├─ S2  channel   uxchannel create-app honesty (lab, not product)
     │
-    ├─ P2  ux-channel asgi/fastapi.py internal slim                 [D2]
-    │         no new public names; keep mount_channel + Channel.boot
+    ├─ S3  channel   demote ChannelComponent / components/ kit teaching
     │
-    ├─ P3  ux-channel docs/CLI: create-app is lab, not product      [D4]
+    ├─ S4  channel   render/response.py → ux_dom.response when present
     │
-    ├─ P4  compose live_client retire after caller migration        [D6]
-    │
-    └─ later / other repos
-          channel components kit stay optional or drop from default [D3]
-          ux-dom DirectoryRouter after standalone tests die         [D5]
-          motion JS dedupe                                          [D7]
+    └─ not Soft (do not schedule as one concern)
+          gut asgi/fastapi.py
+          delete mount_channel
+          compose helpers walker
+          live_client retire / pin dance / extract-by-id
 ```
 
-**P1 contract (when it happens):**
+**S1 contract:**
 
-- New ux-dom API lives next to `to_html_bytes` on
-  `ux_dom.response.serialize.__all__`.
-- Compose `helpers._fragment_for_target` becomes a one-call wrapper
-  (same name — tests and leftover teaching keep pointing here until
-  a later teaching-only PR).
-- Channel `_guess_target_from_html` may call the same API or stay regex
-  until a channel PR; do not invent `ux_channel.extract`.
-- Fragment-law / `cto_red` tests stay green before and after.
+- If `ux_dom` is importable, `lower_html` / `to_html` reuse owner
+  serialize / `__render__` (same duck-type order, no second stringify).
+- If ux-dom is absent, keep stdlib `html.escape` (channel has no hard
+  ux-dom dep — `pyproject.toml:47`).
+- Do not add names to channel root `__all__`.
+- Compose `_fragment_for_target` stays in `helpers.py` (E13).
 
-**P2 contract:**
+**S2 contract:**
 
-- `from ux_channel.asgi import mount_channel` remains.
-- FastAPI types stay in the adapter; host core stays framework-free
-  (`LAYERS.md:45-61`).
-- Do not fold Channel `/action` into compose Clock A.
+- Help / docs say product create-app is `uxcompose`.
+- Do not delete `uxchannel` or fold scaffold into compose.
+
+**S3 contract:**
+
+- Teaching only (or extra-install). Prefer ux-dom + `ch.control`.
+- Do not copy `ChannelComponent` into compose `kit/`.
+
+**S4 contract:**
+
+- When ux-dom is present, `render/response.py` delegates to
+  `ux_dom.response` prepare/`HTMLResponse` behavior.
+- Starlette/FastAPI response *container* stays the host framework.
+- `mount_channel` remains the Cap HTTP door.
 
 **Stop conditions (any PR):**
 
-- Isolation AST red, leftover-teaching test red, or a new name on
-  compose / channel root `__all__` without a human-approved surface
-  change → revert, do not "fix forward" with a sibling module.
+- Isolation AST red, leftover-teaching test red, new name on compose /
+  channel root `__all__`, or `mount_channel` removed → revert. Do not
+  "fix forward" with a sibling module or a sixth product.
 
 ---
 
@@ -465,7 +539,7 @@ human proceed
 | FastAPI | `APIRouter`, payload-type dispatch, no `default_response_class`, no `StreamingRoute` product path |
 | Starlette | Origin proxy + optional Channel mount; not a second Clock A |
 | ux-dom | Tag trees + `Document.use` + `to_html_bytes` |
-| ux-channel | `Channel.boot` + Intent/Result ops |
+| ux-channel | `Channel.boot` + `mount_channel` Cap HTTP + Intent/Result ops |
 | ux-behavior | `@action` + MorphState |
 | ux-motion | `scene` / recipes as data |
 | cek-host | Cap Host behind `wire/cek` |
@@ -486,7 +560,8 @@ ux-behavior, ux-motion, and cek-python at the SHAs above; key
 | Channel / behavior / motion / cek have **no lockfiles** — transitive extras float | Range risk, not ownership |
 | `cek-runtime` Rust tree not line-audited beyond README / ports warning | Cap Host SSOT is already "via Channel adapter" |
 | `ux-fnbase` exists at bitplorer but is unused | Out of scope; do not add |
-| Channel `asgi/fastapi.py` internals beyond `mount_channel` / static / WS were sampled, not every route | D2 needs a channel-repo pass before a slim PR |
+| Fat extras inside `asgi/fastapi.py` beyond `mount_channel` | Not a Soft. Needs a later multi-concern channel pass if ever. |
 | This page is **not** a second ownership SSoT | If it disagrees with `OWNERSHIP.md`, the law wins |
 
-**Human proceed required** before any D1–D9 implementation PR.
+**Human proceed required** before any S1–S4 implementation PR.
+This PR stays plan-only.

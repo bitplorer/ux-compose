@@ -20,6 +20,7 @@ __all__ = [
     "scan_cek_host",
     "scan_fastapi_docs_collision",
     "scan_store_clone",
+    "scan_store_precedence",
 ]
 
 
@@ -336,6 +337,24 @@ def scan_fastapi_docs_collision(
     ]
 
 
+def scan_store_precedence() -> list[str]:
+    """Fail-loud when both store envs are set.
+
+    Channel prefers ``REDIS_URL`` and ignores ``UXCOMPOSE_STATE_STORE``.
+    Exporting both is a lie (sqlite looks like the session; it is not).
+    """
+    import os
+
+    file_path = (os.environ.get("UXCOMPOSE_STATE_STORE") or "").strip()
+    redis = (os.environ.get("REDIS_URL") or "").strip()
+    if not file_path or not redis:
+        return []
+    return [
+        "Store precedence violation: both UXCOMPOSE_STATE_STORE and REDIS_URL "
+        "are set; Channel prefers Redis and ignores the sqlite path. Unset one."
+    ]
+
+
 def scan_cek_host(app: Any) -> list[str]:
     """Fail-loud when cek=require and Channel is live but Cap identity is not cek-runtime.
 
@@ -361,7 +380,7 @@ def scan_cek_host(app: Any) -> list[str]:
         "Cap Host identity violation: cek=require with live Channel but "
         f"registry._caps is {name!r} (kernel_ssot={ssot!r}); "
         "expected CekHostCapService / kernel_ssot='cek-runtime'. "
-        "Install ux-channel (pin ≥ d0fe716), cek-host>=0.1.3, cek-surface>=0.1.3."
+        "Install ux-channel (pin ≥ b0cc17d), cek-host>=0.1.3, cek-surface>=0.1.3."
     ]
 
 
@@ -495,6 +514,7 @@ def doctor(
     diagnostics.extend(scan_fastapi_docs_collision(expanded, route_paths=route_paths))
     if app is None and bundle is not None:
         app = getattr(bundle, "compose_app", None) or getattr(bundle, "app", None)
+    diagnostics.extend(scan_store_precedence())
     diagnostics.extend(scan_cek_host(app))
     hard = [
         d

@@ -24,6 +24,12 @@ Python modules it names) to answer “what happens on GET /hello?”.
 Clock A serves the document. Clock B patches it. A page unit has **no HTTP
 verbs**. Extra JSON/POST APIs live on the FastAPI process, not on the class.
 
+Clock B is Channel HTTP (`/ux-channel*`), not Clock A `routes/health.py`.
+Channel `GET /ux-channel/health` advertises **`formats`** (HTTP today:
+`application/ux-channel+json`) vs **`codecs`** (library: json, cxb, …),
+matching the Rust peer. Compose does not re-implement that body. Product
+`/health` / `/api/health` remain Clock A JSON (`dict` → `application/json`).
+
 ---
 
 ## 2. Process order

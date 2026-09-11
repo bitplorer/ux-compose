@@ -72,6 +72,10 @@ def attach_channel(
       - Headless (no ASGI): Channel.boot(config=) for mint/submit tests.
         ChannelConfig(secret=) and Channel.boot fail closed (no silent
         cfg=None / ch=None).
+      - Compose door is Channel.boot (not ActionRegistry.from_config —
+        that name is not a frozen wire import). Boot applies the same
+        Cap adapter as from_config when cek != off. Do not assume
+        classic CapService after boot with cek=require.
 
     Returns the Channel instance (or None if ux-channel is used later by the host).
     Raises ImportError with a clear progressive message if ux-channel is absent.

@@ -15,12 +15,13 @@ fourth server — it is a compiler next to these three.
 
 Both workers import ``app:asgi``. origin only forwards. Session /
 MorphState live on Channel (``ch.draft`` → ``ch.state``). Origin still
-sends Document GET to ui. Compose prepares one sqlite file
-(``UXCOMPOSE_STATE_STORE`` / ``.uxcompose-serve-dev.state``);
-``Channel.boot`` opens Channel's ``FileStateStore`` on that path.
+sends Document GET to ui. When ``REDIS_URL`` is unset, compose prepares
+one sqlite file (``UXCOMPOSE_STATE_STORE`` / ``.uxcompose-serve-dev.state``)
+and ``Channel.boot`` opens Channel's ``FileStateStore`` on that path.
+``REDIS_URL`` wins inside Channel — serve-dev will not export both.
 A ui reload does not wipe that bag. ``serve restart-channel`` clears
-it and respawns Channel on the same fd. It is not a sticky flag and
-does not change the next ``*.py`` save.
+the sqlite bag (not Redis) and respawns Channel on the same fd. It is
+not a sticky flag and does not change the next ``*.py`` save.
 
 httpx re-issues HTTP from origin to a worker. Starlette is origin's
 ASGI app. websockets forwards HMR and Channel sockets. None of these
@@ -40,10 +41,12 @@ from urllib.parse import urlsplit
 
 from ux_compose.serve_restart import clear_pid, write_pid
 from ux_compose.serve_state import (
+    REDIS_URL_ENV,
     STATE_STORE_ENV,
     clear_shared_state,
     drop_shared_state,
     prepare_shared_state,
+    redis_url,
 )
 
 Worker = Literal["ui", "channel"]
@@ -362,11 +365,12 @@ def run(
         else:
             print("serve-dev: workers did not bind in time", file=sys.stderr)
             return 1
+        session = REDIS_URL_ENV if redis_url() else os.environ.get(STATE_STORE_ENV)
         print(
             f"serve-dev: origin http://{host}:{port}  "
             f"ui {ui_url} (reload *.py)  "
             f"channel {channel_url} (stable)  "
-            f"session {os.environ.get(STATE_STORE_ENV)}"
+            f"session {session}"
         )
         try:
             import watchfiles  # noqa: F401

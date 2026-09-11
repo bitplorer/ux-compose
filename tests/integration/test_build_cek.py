@@ -31,20 +31,13 @@ def _registry_caps(app):
 
 
 def _assert_product_cap(caps, registry=None) -> None:
+    """Identity only — type name + kernel_ssot. No Channel internals."""
     assert type(caps).__name__ == "CekHostCapService"
     ssot = getattr(caps, "kernel_ssot", None)
     flag = getattr(caps, "cap_machine_is_cek_runtime", None)
     if callable(flag):
         flag = flag()
-    honest = None
-    if registry is not None:
-        try:
-            from ux_channel.cek.layer_honesty import cap_machine_is_cek_runtime
-
-            honest = cap_machine_is_cek_runtime(registry)
-        except ImportError:
-            honest = None
-    assert ssot == "cek-runtime" or flag is True or honest is True
+    assert ssot == "cek-runtime" or flag is True
 
 
 @needs_cap

@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose.serve_state import (
+    REDIS_URL_ENV,
     STATE_STORE_ENV,
     STATE_STORE_NAME,
     clear_shared_state,
@@ -21,11 +22,13 @@ from ux_compose.serve_state import (
 def test_frozen_names():
     assert STATE_STORE_ENV == "UXCOMPOSE_STATE_STORE"
     assert STATE_STORE_NAME == ".uxcompose-serve-dev.state"
+    assert REDIS_URL_ENV == "REDIS_URL"
 
 
 def test_lifecycle_exports_env_and_clears_kv(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv(STATE_STORE_ENV, raising=False)
+    monkeypatch.delenv("REDIS_URL", raising=False)
     path = prepare_shared_state(tmp_path)
     assert path.name == STATE_STORE_NAME
     assert os.environ[STATE_STORE_ENV] == str(path)
@@ -42,9 +45,21 @@ def test_lifecycle_exports_env_and_clears_kv(tmp_path, monkeypatch):
     assert not path.exists()
 
 
+def test_prepare_does_not_export_file_store_when_redis_url_set(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+    monkeypatch.setenv(STATE_STORE_ENV, str(tmp_path / "stale.state"))
+    path = prepare_shared_state(tmp_path)
+    assert path is None
+    assert STATE_STORE_ENV not in os.environ
+    leftover = tmp_path / STATE_STORE_NAME
+    assert not leftover.exists()
+
+
 def test_drop_unlinks_wal_sidecars(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv(STATE_STORE_ENV, raising=False)
+    monkeypatch.delenv("REDIS_URL", raising=False)
     path = prepare_shared_state(tmp_path)
     path.write_bytes(b"x")
     wal = Path(str(path) + "-wal")

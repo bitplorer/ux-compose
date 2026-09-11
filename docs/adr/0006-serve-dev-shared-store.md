@@ -25,7 +25,8 @@ never imports `ux_channel` and does not define a store class.
 Doctor `scan_store_clone` fails closed if a store class reappears.
 
 `Channel.boot` opens `FileStateStore` when `UXCOMPOSE_STATE_STORE`
-is set and `REDIS_URL` is not. Compose does not duck-assign
+is set and `REDIS_URL` is not. Channel prefers Redis when both are
+set. `serve dev` will not export both. Compose does not duck-assign
 `channel.state`.
 
 ## Why

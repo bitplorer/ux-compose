@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Pin ux-channel @ `15cb1ed9dd03dbee8826823a7ab46efd4f215b5c`
+  (channel Cuts 1–2: CLI script honesty, ``ops/`` ``enhance/`` mapped,
+  region CLI → scaffold). Makefile / scaffold / nook lockstep. Cap /
+  Isolation / store doors from #69 stay (``Channel.boot``, Redis wins,
+  wire/ frozen imports).
+
+### Fixed
+
+- Cut 3 leftover dual doors: ``cli.py`` is argv only. ``serve_dev.py``
+  starts sibling Tailwind ``--watch`` and tunnel (clock body). Leftover
+  ``start_css_watcher=`` hook is gone.
+- Serve argv synonyms ``development`` / ``production`` / ``restart_channel``
+  fail closed (frozen names: ``dev`` / ``prod`` / ``restart-channel``).
+- Console script ``uxcompose = ux_compose.cli:main`` is import-resolve
+  locked. On-disk packages (``dx`` ``kit`` ``routing`` ``wire``) stay on
+  the concern table — no ghost dirs, no ``cli/`` / ``serve/`` /
+  ``services/``. Channel ``ops/`` / ``enhance/`` are not compose doors.
+
+### Changed
+
 - Pin ux-channel @ `b0cc17d87348fa65578f41e95879b35c43b0ecfa`
   (channel #27: ``from_config`` applies the Cap adapter; health
   ``formats`` vs ``codecs``). Makefile / scaffold / nook lockstep.

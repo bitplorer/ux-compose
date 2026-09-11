@@ -47,8 +47,9 @@ serve-dev accepted objects production Redis would stringify).
 - Sister: `ux_channel.host.stores.FileStateStore` + boot env honor.
 - Restart-channel still means "empty the sqlite bag and respawn
   Channel". It does not clear Redis.
-- Pin ux-channel to a SHA that includes `FileStateStore` and the
-  #27 Cap / health honesty (`b0cc17d87348fa65578f41e95879b35c43b0ecfa`).
+- Pin ux-channel to a SHA that includes `FileStateStore`, the
+  #27 Cap / health honesty, and Cuts 1–2 CLI/layout honesty
+  (`15cb1ed9dd03dbee8826823a7ab46efd4f215b5c`).
 
 ## Rejected
 

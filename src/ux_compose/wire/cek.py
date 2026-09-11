@@ -110,7 +110,7 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
         if resolved == "require":
             raise RuntimeError("Channel has no registry for CEK adapter")
         return None
-    # Idempotent after Channel.boot / from_config (channel ≥ b0cc17d).
+    # Idempotent after Channel.boot / from_config (channel ≥ 15cb1ed).
     return apply_host_adapter(registry, cfg)
 
 

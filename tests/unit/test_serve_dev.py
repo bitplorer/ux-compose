@@ -48,6 +48,10 @@ def test_cli_has_no_dead_names():
     assert "glue_factory" not in cli
     assert "--one-process" not in cli
     assert "hmr:asgi_factory" in serve
+    assert "start_css_watcher:" not in cli
+    assert "start_css_watcher:" not in serve
+    assert "start_tailwind_watch" in serve
+    assert "start_tailwind_watch" not in cli
 
 
 def test_hmr_module_does_not_spawn_watchers():

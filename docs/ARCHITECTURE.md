@@ -53,7 +53,7 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Isolation door | `wire/boot.py`, `wire/caps.py`, `wire/cek.py` | `ux_channel` import outside `wire/` |
 | Cap mint | `wire/caps.py` | empty-token dual attrs |
 | Product CLI | `cli.py` | second verb, clock flags |
-| Build / CSS | `cli_build.py`, `tailwind.py`, `assets.py` | Tailwind on ux-dom; Tailwind `Popen` in `cli.py` / `hmr.py` |
+| Build / CSS | `cli_build.py`, `tailwind.py`, `assets.py` | Tailwind on ux-dom; Tailwind `Popen` in `cli.py` / `hmr.py`; leftover `start_css_watcher=` |
 | Product host | `routing/host.py`, `routing/fastapi.py`, `routing/asgi.py`, `routing/core.py` | fold FastAPI into DirectoryASGI |
 | Composition | `app.py`, `component.py`, `helpers.py` | clone MorphState / Cap |
 | Surfaces / scan | `surfaces.py`, `surfaces_host.py`, `build.py` | second HTTP pipeline; fold `scan_surfaces` into `DirectoryRoutes.discover` |
@@ -62,7 +62,7 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Author helpers on copies | `kit_construct.py` (outside `kit/`) | move under `kit/` |
 | HMR | `hmr.py` | `Document.use` HMR |
 | Channel scripts | `live_client.py` | fold into `hmr.py`; synthesized HTML shell for fragments |
-| Serve-dev clocks | `serve_dev.py`, `cli.py` | `--one-process` |
+| Serve-dev clocks | `serve_dev.py` (body), `cli.py` (argv) | `--one-process`; clock spawn in `cli.py` |
 | Store lifecycle | `serve_state.py` | compose `FileStateStore` class |
 | Probe | `dx/probe.py` | junk-drawer growth |
 | Scaffold | `scaffold.py` | product CLI on uxdom |
@@ -115,7 +115,7 @@ Each verb's **body** is the concern that is also a library:
 |------|------|------------------|
 | create-app | `scaffold.py` | `create_app()` |
 | build | `cli_build.py` | named because `build.py` is `build()` orchestra |
-| serve | `serve_dev.py` / `serve_restart.py` / `serve_state.py` | clocks, ADR 0005 |
+| serve | `serve_dev.py` / `serve_restart.py` / `serve_state.py` | clocks, ADR 0005 (argv in `cli.py`; spawn here) |
 | deploy | `deploy.py` | checklist / images |
 | doctor | `doctor.py` | `from ux_compose import doctor` |
 | add | `kit/copy.py` | ownable copy, not CLI-only |
@@ -190,6 +190,10 @@ names. Doctor will not print these from `scan_leftover_aliases`.
 | `kit/kit_construct.py` | `ux_compose.kit_construct` (library import) |
 | `tests/property/` | drop; no property suite in this tree |
 | argv `create` | `uxcompose create-app` |
+| argv `development` / `production` / `restart_channel` | `dev` / `prod` / `restart-channel` |
+| `start_css_watcher=` on `serve_dev.run` | `serve_dev` calls `start_tailwind_watch` |
+| `src/ux_compose/serve/` / `services/` packages | `serve_dev.py` + `cli.py` (no fashion folders) |
+| Channel `ops/` / `enhance/` as a compose door | Isolation `wire/` only (`ops_to_wire` is wire dicts) |
 | `docs/MODULE_MAP.md` | this table (INDEX remains the audience map) |
 | `pip install ux-compose` / PyPI cell | git clone + `pip install -e ".[serve]"` |
 | Teaching `App.mount` as a "secondary door" | catalog scan step; product path is `build()` |

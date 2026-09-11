@@ -162,6 +162,8 @@ def test_folder_law_keeps_kit_construct_and_cli_at_package_root():
     assert (SRC / "kit_construct.py").is_file()
     assert not (SRC / "kit" / "kit_construct.py").exists()
     assert not (SRC / "cli").exists()
+    assert not (SRC / "serve").exists()
+    assert not (SRC / "services").exists()
     assert (SRC / "cli.py").is_file()
     assert (SRC / "cli_build.py").is_file()
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
@@ -173,6 +175,28 @@ def test_folder_law_keeps_kit_construct_and_cli_at_package_root():
     assert "Not under ``kit/``" in construct
     copy = _read("kit/copy.py")
     assert "kit_construct lives outside kit/" in copy
+
+
+def test_on_disk_packages_are_mapped_not_ghosts():
+    """Cut 3 / channel Cut 2 class: every package dir is on the concern table."""
+    packages = sorted(
+        p.name
+        for p in SRC.iterdir()
+        if p.is_dir() and (p / "__init__.py").is_file() and p.name != "__pycache__"
+    )
+    assert packages == ["dx", "kit", "routing", "wire"], packages
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    for name in packages:
+        assert f"`{name}/`" in arch, name
+    assert not (SRC / "cli").exists()
+    assert not (SRC / "serve").exists()
+    assert not (SRC / "services").exists()
+    cli = _read("cli.py")
+    serve = _read("serve_dev.py")
+    assert "argv only" in cli or "argv ``create``" in cli
+    assert "start_tailwind_watch" in serve
+    assert "start_css_watcher:" not in serve
+    assert "start_css_watcher=" in serve
 
 
 def test_routing_adapters_path_absent_and_taught():
@@ -200,8 +224,13 @@ def test_create_argv_dropped_create_app_stays():
     help_fn = _fn(cli, "_help")
     assert "create-app" in help_fn
     assert "create |" not in help_fn and '", "create"' not in help_fn
+    assert '"development": "dev"' not in cli
+    assert '"production": "prod"' not in cli
+    assert '"restart_channel": "restart-channel"' not in cli
+    assert "argv ``development``" in cli
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
     assert "argv `create`" in arch
+    assert "argv `development`" in arch
 
 
 def _load_doctor():
@@ -368,7 +397,13 @@ def test_css_watch_spawn_lives_in_tailwind():
     hmr = _read("hmr.py")
     assert "def start_tailwind_watch" in tw
     assert "def _start_tailwind_watch" not in cli
-    assert "start_tailwind_watch" in cli
+    serve = _read("serve_dev.py")
+    assert "start_tailwind_watch" not in cli
+    assert "start_tailwind_watch" in serve
+    assert "start_css_watcher:" not in cli
+    assert "start_css_watcher:" not in serve
+    assert "start_css_watcher=" in cli
+    assert "start_css_watcher=" in serve
     assert "subprocess.Popen" in tw
     assert "subprocess.Popen" not in cli
     assert "Popen" not in hmr
@@ -455,7 +490,7 @@ def test_store_precedence_docs_name_redis_wins():
     assert "will not export both" in adr
     assert "does not clear Redis" in adr
     assert "d0fe716" not in adr
-    assert "b0cc17d" in adr
+    assert "15cb1ed" in adr
     doctor = _read("doctor.py")
     assert "scan_store_precedence" in doctor
     assert "diagnostics.extend(scan_store_precedence())" in doctor
@@ -485,5 +520,10 @@ def test_leftover_table_splits_doctor_tokens_from_agent_locks():
     assert "`src/ux_compose/cli/` package" in agent_sec
     assert "`kit/kit_construct.py`" in agent_sec
     assert "`docs/MODULE_MAP.md`" in agent_sec
+    assert "argv `development`" in agent_sec
+    assert "`start_css_watcher=`" in agent_sec
+    assert "`src/ux_compose/serve/`" in agent_sec
+    assert "Channel `ops/`" in agent_sec
     assert "argv `create`" not in doctor_sec
     assert "`src/ux_compose/cli/` package" not in doctor_sec
+    assert "`start_css_watcher=`" not in doctor_sec

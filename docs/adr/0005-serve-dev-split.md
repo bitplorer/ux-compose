@@ -82,7 +82,8 @@ channel. It only asks `worker_for(path)`:
 
 - `src/ux_compose/serve_dev.py` owns origin, `worker_for`, held sockets.
 - `src/ux_compose/hmr.py` owns client JS + HTML insert. No watcher.
-- `src/ux_compose/cli.py` owns mode + extras check; dispatches CSS watch.
+- `src/ux_compose/cli.py` owns mode + extras check (argv only).
+- `src/ux_compose/serve_dev.py` starts sibling Tailwind `--watch` and tunnel.
 - `src/ux_compose/tailwind.py` owns sibling Tailwind `--watch` spawn.
 - Dead names: `devstack`, `glue_factory`, `pages` worker, `public_asgi`,
   `owner_for`, `A`/`X`/`Y`, `--one-process`, `--no-css-watch`, `--no-hmr`.

@@ -1,4 +1,4 @@
-"""Public tunnel helpers for ``uxcompose serve --tunnel``.
+"""Public tunnel helpers for ``uxcompose serve dev --tunnel``.
 
 Providers (optional binaries on PATH):
 * ``ngrok``      — local API :4040 for public URL

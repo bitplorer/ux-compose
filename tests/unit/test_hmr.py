@@ -111,7 +111,12 @@ def test_cli_css_watch_is_sibling_not_hmr_watcher():
     hmr = (ROOT / "src" / "ux_compose" / "hmr.py").read_text(encoding="utf-8")
     assert "def start_tailwind_watch" in tw
     assert "def _start_tailwind_watch" not in cli
-    assert "start_tailwind_watch" in cli
+    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    assert "start_tailwind_watch" not in cli
+    assert "start_tailwind_watch" in serve
+    assert "start_css_watcher:" not in cli
+    assert "start_css_watcher:" not in serve
+    assert "start_css_watcher=" in cli
     assert "argv_with_io" in tw
     assert "Popen" in tw
     assert "Popen" not in cli

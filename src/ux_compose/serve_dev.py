@@ -8,7 +8,10 @@ Three processes, one browser URL. Names match what each process owns:
     channel   /ux-channel*         wire, session, morph. does not reload
 
 A sibling Tailwind ``--watch`` writes ``output.css``. That is not a
-fourth server — it is a compiler next to these three.
+fourth server — it is a compiler next to these three. This module
+starts that sibling (``start_tailwind_watch``) and the optional
+tunnel. ``cli.py`` is argv only — leftover ``start_css_watcher=`` is
+gone.
 
 ``pages`` is not a word in this tree (the folder is ``routes/``).
 ``host`` is already ``--host`` / ``host=fastapi``. Do not reuse it.
@@ -36,7 +39,7 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Callable, Literal
+from typing import Literal
 from urllib.parse import urlsplit
 
 from ux_compose.serve_restart import clear_pid, write_pid
@@ -264,10 +267,21 @@ def run(
     port: int,
     reload_dirs: list[str],
     cwd: str | None = None,
-    start_css_watcher: Callable[[], subprocess.Popen | None] | None = None,
+    css_watch: bool = True,
+    tunnel: str = "none",
+    tunnel_token: str | None = None,
+    health_path: str = "/",
+    health_timeout: float = 30.0,
 ) -> int:
-    """Start the css watcher + both workers, then block on the origin process."""
+    """Start the css watcher + both workers, then block on the origin process.
+
+    Clock body lives here. ``cli.py`` is argv only. Do not take a leftover
+    ``start_css_watcher=`` hook — call ``start_tailwind_watch`` directly.
+    """
     import uvicorn
+
+    from ux_compose.tailwind import start_tailwind_watch
+    from ux_compose.tunnel import parse_provider, start_tunnel, wait_for_health
 
     root = cwd or os.getcwd()
     ui_sock = listen_loopback()
@@ -283,7 +297,29 @@ def run(
     prepare_shared_state(root)
 
     py = sys.executable
-    css_watcher = start_css_watcher() if start_css_watcher is not None else None
+    provider = parse_provider(tunnel)
+    css_watcher = start_tailwind_watch(cwd=root) if css_watch else None
+    tunnel_holder: list = [None]
+
+    def _tunnel_worker() -> None:
+        try:
+            wait_for_health(
+                port,
+                host=host,
+                path=health_path,
+                timeout=health_timeout,
+            )
+            handle = start_tunnel(provider, port, token=tunnel_token, host=host)
+            tunnel_holder[0] = handle
+            if handle:
+                print(f"tunnel[{handle.provider}]: {handle.public_url}")
+        except Exception as exc:
+            print(f"tunnel failed: {exc}", file=sys.stderr)
+
+    if provider != "none":
+        threading.Thread(
+            target=_tunnel_worker, name="uxcompose-tunnel", daemon=True
+        ).start()
 
     channel_cmd = [
         py, "-m", "uvicorn", app_ref,
@@ -407,6 +443,9 @@ def run(
         _stop(ui_proc)
         _stop(channel_holder[0])
         _stop(css_watcher)
+        handle = tunnel_holder[0]
+        if handle is not None:
+            handle.close()
         drop_shared_state(root)
         try:
             channel_sock.close()

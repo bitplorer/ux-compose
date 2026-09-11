@@ -3,6 +3,10 @@
 Hard ownership (SoC + locality):
   create-app · build · serve · deploy · doctor · add  →  here only
   argv ``create`` is leftover — use ``create-app``.
+  argv ``development`` / ``production`` / ``restart_channel`` are leftover —
+  use ``dev`` / ``prod`` / ``restart-channel``.
+  ``cli.py`` is argv only. Clock bodies (sibling Tailwind ``--watch``,
+  tunnel) live in ``serve_dev.py``. Leftover ``start_css_watcher=`` is gone.
   Pure Document tooling stays on uxdom (lint / profile / add ui|component).
   Tailwind *compiler resolution* lives here (``ux_compose.tailwind``).
   ux-dom owns className, the Document ``<link>``, and package static.
@@ -17,7 +21,6 @@ deploy still starts raw uvicorn — it does not call serve.
 from __future__ import annotations
 
 import sys
-import threading
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -182,16 +185,6 @@ def _build(argv: list[str]) -> int:
     return 0 if report.ok else 1
 
 
-def _stop_proc(proc) -> None:
-    if proc is None:
-        return
-    proc.terminate()
-    try:
-        proc.wait(timeout=3)
-    except Exception:
-        proc.kill()
-
-
 def _missing_serve_dev_extras() -> list[str]:
     """Packages origin needs. Missing → fail closed, no second architecture."""
     missing: list[str] = []
@@ -205,11 +198,8 @@ def _missing_serve_dev_extras() -> list[str]:
 
 _SERVE_MODES = {
     "dev": "dev",
-    "development": "dev",
     "prod": "prod",
-    "production": "prod",
     "restart-channel": "restart-channel",
-    "restart_channel": "restart-channel",
 }
 
 
@@ -291,7 +281,6 @@ def _serve(argv: list[str]) -> int:
             print("clocks live on 'serve dev', not flags on prod", file=sys.stderr)
         return 2
 
-    css_watch = mode == "dev"
     tunnel_value = getattr(args, "tunnel", "none")
     tunnel_token = getattr(args, "tunnel_token", None)
     health_path = getattr(args, "health_path", "/")
@@ -306,35 +295,13 @@ def _serve(argv: list[str]) -> int:
         print("uvicorn required: pip install uvicorn", file=sys.stderr)
         return 1
 
-    from ux_compose.tunnel import parse_provider, start_tunnel, wait_for_health
+    from ux_compose.tunnel import parse_provider
 
     try:
         provider = parse_provider(tunnel_value)
     except ValueError as e:
         print(str(e), file=sys.stderr)
         return 2
-
-    tunnel_handle = None
-    from ux_compose.tailwind import start_tailwind_watch
-
-    css_proc = start_tailwind_watch() if css_watch else None
-
-    def _tunnel_worker() -> None:
-        nonlocal tunnel_handle
-        try:
-            wait_for_health(
-                args.port,
-                host=args.host,
-                path=health_path,
-                timeout=health_timeout,
-            )
-            tunnel_handle = start_tunnel(
-                provider, args.port, token=tunnel_token, host=args.host
-            )
-            if tunnel_handle:
-                print(f"tunnel[{tunnel_handle.provider}]: {tunnel_handle.public_url}")
-        except Exception as exc:
-            print(f"tunnel failed: {exc}", file=sys.stderr)
 
     if mode == "dev":
         missing = _missing_serve_dev_extras()
@@ -345,41 +312,30 @@ def _serve(argv: list[str]) -> int:
                 + " — from the clone: pip install -e '.[serve]'",
                 file=sys.stderr,
             )
-            _stop_proc(css_proc)
             return 1
         from ux_compose.serve_dev import run as run_serve_dev
 
         print(
             f"uxcompose serve dev {args.app} http://{args.host}:{args.port} "
-            f"origin+ui+channel css_watch={css_proc is not None} tunnel={provider}"
+            f"origin+ui+channel css_watch=on tunnel={provider}"
         )
-        if provider != "none":
-            threading.Thread(target=_tunnel_worker, name="uxcompose-tunnel", daemon=True).start()
-        try:
-            return run_serve_dev(
-                app_ref=args.app,
-                host=args.host,
-                port=args.port,
-                reload_dirs=reload_dirs,
-                start_css_watcher=None,
-            )
-        finally:
-            _stop_proc(css_proc)
-            if tunnel_handle is not None:
-                tunnel_handle.close()
+        return run_serve_dev(
+            app_ref=args.app,
+            host=args.host,
+            port=args.port,
+            reload_dirs=reload_dirs,
+            css_watch=True,
+            tunnel=tunnel_value,
+            tunnel_token=tunnel_token,
+            health_path=health_path,
+            health_timeout=health_timeout,
+        )
 
     print(
         f"uxcompose serve prod {args.app} http://{args.host}:{args.port} "
-        f"clocks=off tunnel={provider}"
+        f"clocks=off"
     )
-    if provider != "none":
-        threading.Thread(target=_tunnel_worker, name="uxcompose-tunnel", daemon=True).start()
-    try:
-        uvicorn.run(args.app, host=args.host, port=args.port)
-    finally:
-        _stop_proc(css_proc)
-        if tunnel_handle is not None:
-            tunnel_handle.close()
+    uvicorn.run(args.app, host=args.host, port=args.port)
     return 0
 
 

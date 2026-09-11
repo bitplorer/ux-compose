@@ -48,8 +48,9 @@ serve-dev accepted objects production Redis would stringify).
 - Restart-channel still means "empty the sqlite bag and respawn
   Channel". It does not clear Redis.
 - Pin ux-channel to a SHA that includes `FileStateStore`, the
-  #27 Cap / health honesty, and Cuts 1–2 CLI/layout honesty
-  (`15cb1ed9dd03dbee8826823a7ab46efd4f215b5c`).
+  #27 Cap / health honesty, Cuts 1–2 CLI/layout honesty, and Cut C
+  empty Content-Type fail-closed
+  (`985e58aee76ca683774c4d4d58ab30a1d3b6efee`).
 
 ## Rejected
 

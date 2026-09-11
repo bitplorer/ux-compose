@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- Cut B leftover teaching: homemade ``helpers.py`` fragment walker
+  (``_fragment_for_target``) stays until ux-dom owns extract. Serialize
+  remains ``to_html_bytes``. No ``fragment.py``. Same-commit source locks.
+  Kit Cut 2 stretch skipped — no evidenced leftover dual door / shadow
+  export in kit vs channel ``15cb1ed`` / compose locks.
+
 ### Changed
 
 - Pin ux-channel @ `15cb1ed9dd03dbee8826823a7ab46efd4f215b5c`

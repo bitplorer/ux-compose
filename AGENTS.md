@@ -79,6 +79,7 @@ Do not document them. Tags are imported from `ux_compose`.
 - A single-uvicorn fallback next to origin + ui + channel
 - Product code importing `ux_channel` outside compose `wire/`
 - A copy of Channel codecs, Document serialize, motion IR, **or the StateStore protocol** in this tree
+- A `fragment.py` (or `helpers/`) home for the HTML walker. `_fragment_for_target` stays in `helpers.py` until ux-dom owns extract — leftover, not a second serialize
 - Dual product paths
 - A second HTTP pipeline, FastAPI HTML `default_response_class`, `StreamingRoute`, or HTTP verbs on page units (see Product host below)
 - `location.reload()` as the happy path after a `.py` save (morph first)

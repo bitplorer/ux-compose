@@ -32,7 +32,7 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 1. **Python floor is ≥3.14** — ux-dom / channel / behavior / motion are hard dependencies.
 2. **Doctor dual-Document** when scanning `examples/` may still list multiple educational Document() calls — product packages construct one Document at boot (`apps/atelier_shop` and the other product apps).
 3. After `use_channel`, `App.dispatch` is Host-internal (Behavior skips Caps when `_wire` is set). Live Cap verification is `submit_intent` / Channel edge. This is specialist contract, not a compose bug.
-4. **Fragment walker residual** — `helpers._fragment_for_target` walks HTML strings. KEEP until ux-dom owns extract (deleting drops fragment-law). Not a second serialize.
+4. **Fragment walker residual** — `helpers._fragment_for_target` walks HTML strings. KEEP until ux-dom owns extract (deleting drops fragment-law). Serialize is `to_html_bytes`. Not a second serialize. No `fragment.py`.
 
 ## Recommendation
 

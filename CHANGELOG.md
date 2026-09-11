@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Pin ux-channel @ `985e58aee76ca683774c4d4d58ab30a1d3b6efee`
+  (channel Cut C: empty Content-Type on HTTP ``/action`` is
+  ``bad_request``). Makefile / scaffold / nook lockstep. Compose does
+  not POST without a declared type. Plan: #73.
+
 ### Fixed
 
 - Cut B leftover teaching: homemade ``helpers.py`` fragment walker

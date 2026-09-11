@@ -521,7 +521,7 @@ def test_store_precedence_docs_name_redis_wins():
     assert "will not export both" in adr
     assert "does not clear Redis" in adr
     assert "d0fe716" not in adr
-    assert "15cb1ed" in adr
+    assert "985e58a" in adr
     doctor = _read("doctor.py")
     assert "scan_store_precedence" in doctor
     assert "diagnostics.extend(scan_store_precedence())" in doctor
@@ -576,7 +576,7 @@ def test_encyclopedia_teaches_cut3_leftovers():
     assert "start_css_watcher=" in agents
     assert "development" in agents and "restart_channel" in agents
     assert "serve_dev.py" in agents
-    assert "15cb1ed" in agents
+    assert "985e58a" in agents
     assert "Channel.boot" in agents
     assert "start_css_watcher=" in start
     assert "development" in start
@@ -593,6 +593,6 @@ def test_encyclopedia_teaches_cut3_leftovers():
     assert "_fragment_for_target" in adr4
     assert "authors import `build()`" in host
     assert "Channel.boot" in host
-    assert "15cb1ed" in host
+    assert "985e58a" in host
     assert "uxcompose serve apps.pulse" not in contrib
     assert "serve dev apps.pulse.server:app" in contrib

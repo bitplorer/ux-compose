@@ -118,6 +118,12 @@ def _serialize_tree(tree: Any) -> str:
     return to_html_bytes(tree).decode("utf-8")
 
 
+# Extract-by-id is not a ux-dom public API (serialize ``__all__`` is
+# ``to_html_bytes`` / prepare). String ``render()`` / ``html=`` still
+# need a strip (CTO FullShellHello). KEEP these walkers here until
+# ux-dom owns extract. Not a second serialize. No ``fragment.py``.
+
+
 _VOID_TAGS = frozenset(
     {
         "area",

@@ -43,7 +43,9 @@ still lock them. Confusion must stop growing.
    Cut 3 leftovers (not doctor tokens): argv `development` / `production` /
    `restart_channel`; `start_css_watcher=` on `serve_dev.run`; ghost
    `cli/` / `serve/` / `services/` packages. Prefer frozen serve verbs and
-   `serve_dev` calling `start_tailwind_watch`. See
+   `serve_dev` calling `start_tailwind_watch`. Homemade `helpers.py`
+   `_fragment_for_target` walker stays until ux-dom owns extract (not a
+   second serialize; no `fragment.py`). See
    [../ARCHITECTURE.md](../ARCHITECTURE.md) **Agent leftovers**.
 5. **Attach step-downs are visible and per-App.** Each `App` owns attach notes (`app.attach_notes`).
    `note()` dual-writes a process notebook so doctor has a process-wide audit.

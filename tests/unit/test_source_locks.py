@@ -102,6 +102,37 @@ def test_critic_names_fragment_walker_residual():
     helpers = _read("helpers.py")
     assert "def _fragment_for_target" in helpers
     assert "def _element_end" in helpers
+    assert "def _open_tag_id" in helpers
+
+
+def test_fragment_walker_stays_until_dom_extract():
+    """B1: homemade extract stays in helpers.py. ux-dom pin owns serialize only.
+
+    Evidence: ux-dom @ e8be99a serialize ``__all__`` is ``to_html_bytes`` /
+    prepare — no extract-by-id. ``Fragment`` is an invisible tree shell.
+    ``parse_html`` / ``defHTML`` are ingest. CTO FullShellHello ``render()``
+    is an HTML string, so ``dom_tag.get(id=)`` is not the morph path.
+    Deleting the walker drops fragment-law. Not a second serialize.
+    """
+    helpers = _read("helpers.py")
+    assert "from ux_dom.response.serialize import to_html_bytes" in helpers
+    assert "No homemade HTML-string renderer" in helpers
+    assert "until" in helpers and "owns extract" in helpers
+    assert "No ``fragment.py``" in helpers or "No `fragment.py`" in helpers
+    assert "tokenize_html" not in helpers
+    assert "defHTML" not in helpers
+    assert "parse_html" not in helpers
+    assert not (SRC / "fragment.py").exists()
+    assert not (SRC / "helpers").exists()
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    assert "_fragment_for_target" in agents
+    assert "fragment.py" in agents
+    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
+    assert "KEEP until ux-dom owns extract" in arch
+    assert "to_html_bytes" in arch
+    adr4 = (DOCS / "adr" / "0004-clarity-and-residuals.md").read_text(encoding="utf-8")
+    assert "_fragment_for_target" in adr4
+    assert "fragment.py" in adr4
 
 
 def test_architecture_concern_table_is_the_module_map():
@@ -524,9 +555,13 @@ def test_leftover_table_splits_doctor_tokens_from_agent_locks():
     assert "`start_css_watcher=`" in agent_sec
     assert "`src/ux_compose/serve/`" in agent_sec
     assert "Channel `ops/`" in agent_sec
+    assert "`_fragment_for_target`" in agent_sec
+    assert "`fragment.py`" in agent_sec
+    assert "KEEP until ux-dom owns extract" in agent_sec
     assert "argv `create`" not in doctor_sec
     assert "`src/ux_compose/cli/` package" not in doctor_sec
     assert "`start_css_watcher=`" not in doctor_sec
+    assert "`_fragment_for_target`" not in doctor_sec
 
 
 def test_encyclopedia_teaches_cut3_leftovers():
@@ -555,6 +590,7 @@ def test_encyclopedia_teaches_cut3_leftovers():
     assert "do not raise when a specialist is absent" not in adr4
     assert "fail loud" in adr4
     assert "start_css_watcher=" in adr4
+    assert "_fragment_for_target" in adr4
     assert "authors import `build()`" in host
     assert "Channel.boot" in host
     assert "15cb1ed" in host

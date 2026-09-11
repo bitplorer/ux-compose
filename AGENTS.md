@@ -37,8 +37,13 @@ Folders are import/copy laws. Full table: [docs/ARCHITECTURE.md](docs/ARCHITECTU
 - `kit/` is the ownable catalog. `uxcompose add` rewrites `ux_compose.kit.X`.
   `kit_construct.py` stays **next to** `component.py` so copies keep the
   library import. Do not move it under `kit/`.
-- No `cli/` package. `cli.py` is argv dispatch. Verb bodies are also
-  libraries (`doctor.py`, `build.py` / `cli_build.py`, `scaffold.py`).
+- No `cli/` package. `cli.py` is argv dispatch only. Verb bodies are also
+  libraries (`doctor.py`, `build.py` / `cli_build.py`, `scaffold.py`,
+  `serve_dev.py`). `serve_dev.py` starts sibling CSS `--watch` and tunnel.
+  Leftover `start_css_watcher=` is gone.
+- Frozen serve verbs: `dev` / `prod` / `restart-channel`. argv
+  `development` / `production` / `restart_channel` fail closed. No
+  `serve/` / `services/` ghost packages.
 - `wire/` is the only `ux_channel` door. `routing/` is the host pair.
 - Do not add `helpers/` or grow `dx/` into a product.
 
@@ -90,7 +95,8 @@ Do not collapse these. The stale design is an in-process hub + watcher.
 
 `uxcompose serve dev` is origin + ui + channel. Always.
 `uxcompose serve prod` is one process, clocks off.
-Missing extras fail closed — no single-uvicorn fallback.
+`cli.py` parses the mode; `serve_dev.py` starts the clocks (CSS watch +
+tunnel). Missing extras fail closed — no single-uvicorn fallback.
 HTML insert is `HmrClientMiddleware`, not `Document.use`.
 `assets.py` `_StaticDirASGI` must emit `ETag` / `Last-Modified`.
 Architecture: [docs/internals/hmr.md](docs/internals/hmr.md).
@@ -133,6 +139,11 @@ Channel's `FileStateStore`. Channel prefers Redis when `REDIS_URL` is set
 — do not export both. Do not reimplement that store in this tree. Redis
 (`REDIS_URL`) is the product multi-worker path. Do not route HTML GET to
 channel — that would drop HMR for route edits.
+
+Cap door is `Channel.boot` (not `ActionRegistry.from_config` — that name
+is not a frozen wire import). Pin: ux-channel @ `15cb1ed`. Leftover
+teaching for retired hooks lives on [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+**Agent leftovers**.
 
 ## Product host (Clock A)
 

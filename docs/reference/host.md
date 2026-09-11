@@ -185,7 +185,8 @@ Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs,
 `routing/adapters/` is leftover (deleted). Product imports
 `ux_compose.routing.asgi` / `ux_compose.routing.fastapi`.
 
-Invisible Strategy: authors import `build` / `App.mount`. They do not import
+Invisible Strategy: authors import `build()`. `App.mount` is the catalog
+scan inside `build()`, not a second product path. They do not import
 `routing.fastapi` / `routing.host`. Maintainers always do. Product examples
 call `build()`; handmade Clock A GET (`@app.get` + `HTMLResponse`) is not
 the product path.
@@ -218,6 +219,11 @@ OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
 ## 8. Isolation / Document / Channel
 
 - Product modules never import `ux_channel`. Door: `App.use_channel(asgi_app=)`.
+- Cap door is `Channel.boot` (wire/ only). `ActionRegistry.from_config` is
+  not a frozen compose import. Boot applies the Cap adapter when
+  `cek != "off"`. Do not assume classic `CapService` at `cek=require`.
+- Channel prefers Redis when `REDIS_URL` is set. serve-dev will not export
+  both `REDIS_URL` and `UXCOMPOSE_STATE_STORE`. Pin: ux-channel @ `15cb1ed`.
 - Cold import never pulls `wire/`.
 - Document is SSoT: one `Document` in `document.py`. `build(document=)` attaches
   it. Dual-Document is a doctor fail.

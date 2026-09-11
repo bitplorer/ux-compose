@@ -40,10 +40,16 @@ still lock them. Confusion must stop growing.
 4. **Leftovers expire by teaching.** Doctor scans kit-imports and leftover
    aliases in product trees and prints guidance. It does not fail-close on
    them. Deleting aliases while 0.1 tests lock them is a capability drop.
+   Cut 3 leftovers (not doctor tokens): argv `development` / `production` /
+   `restart_channel`; `start_css_watcher=` on `serve_dev.run`; ghost
+   `cli/` / `serve/` / `services/` packages. Prefer frozen serve verbs and
+   `serve_dev` calling `start_tailwind_watch`. See
+   [../ARCHITECTURE.md](../ARCHITECTURE.md) **Agent leftovers**.
 5. **Attach step-downs are visible and per-App.** Each `App` owns attach notes (`app.attach_notes`).
    `note()` dual-writes a process notebook so doctor has a process-wide audit.
-   Two Apps in one process do not leak. Attach methods still do not raise
-   when a specialist is absent.
+   Two Apps in one process do not leak. `use_channel` / `use_motion` fail loud
+   (`ImportError`) when the hard-dep is missing. Attach notes still
+   record non-import step-downs.
 6. **OverlayChrome owns edge-overlay chrome.** Dialog, Sheet, and
    ActionSheet take ids, dismiss/handle grammar, and the open plan from
    the primitive. Markup and Tailwind stay on the widget. Handle grammar

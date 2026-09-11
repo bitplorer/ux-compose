@@ -134,8 +134,8 @@ Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005
 |------|------------------|
 | Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder + app asset layout (`WebAssets`) | DOM serialize / tag trees / package static (ux-dom) |
 | App composition, host strategy, delivery | Channel transport (wire/ only) |
-| HMR + tunnel under `uxcompose serve dev` | Pure-dom tooling (`uxdom doctor` / lint / profile / add) |
-| Page-unit mount (`App.mount` + `routes/`) | Behavior units (ux-behavior) |
+| HMR + tunnel under `uxcompose serve dev` (`serve_dev.py`; `cli.py` argv) | Pure-dom tooling (`uxdom doctor` / lint / profile / add) |
+| Page-unit catalog scan (`App.mount` inside `build()`) + `routes/` | Behavior units (ux-behavior) |
 
 **Author rule:** Render? → **ux-dom**. Product lifecycle? → **ux-compose** only.
 

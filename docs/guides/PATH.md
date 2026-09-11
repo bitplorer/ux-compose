@@ -197,7 +197,10 @@ uxcompose serve dev
 ```
 
 Process reload is the ui worker. Browser HMR is the live-reload client.
-Channel stays in its own process. See [serve-hmr-tunnel.md](serve-hmr-tunnel.md).
+Channel stays in its own process. `cli.py` is argv only; `serve_dev.py`
+starts CSS watch and tunnel. Frozen serve verbs: `dev` / `prod` /
+`restart-channel`. argv `development` / `production` / `restart_channel`
+fail closed. See [serve-hmr-tunnel.md](serve-hmr-tunnel.md).
 
 Prove the unit without HTTP:
 

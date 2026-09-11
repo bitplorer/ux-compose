@@ -87,6 +87,9 @@ Full-stack Clock A GET: `examples/live_asgi.py`.
 | HTML / JSON / stream from `render()` | **payload type** — [guides/HOST.md](guides/HOST.md) |
 
 HMR is `uxcompose serve dev`, not a Document API.
+`cli.py` is argv only; `serve_dev.py` starts CSS watch and tunnel.
+Frozen serve verbs: `dev` / `prod` / `restart-channel`. argv
+`development` / `production` / `restart_channel` fail closed.
 
 ---
 

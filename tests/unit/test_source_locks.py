@@ -527,3 +527,36 @@ def test_leftover_table_splits_doctor_tokens_from_agent_locks():
     assert "argv `create`" not in doctor_sec
     assert "`src/ux_compose/cli/` package" not in doctor_sec
     assert "`start_css_watcher=`" not in doctor_sec
+
+
+def test_encyclopedia_teaches_cut3_leftovers():
+    """Cut 4: encyclopedia names leftover dual doors instead of teaching them live."""
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    start = (ROOT / "START_HERE.md").read_text(encoding="utf-8")
+    cli = (DOCS / "guides" / "CLI.md").read_text(encoding="utf-8")
+    own = (DOCS / "OWNERSHIP.md").read_text(encoding="utf-8")
+    adr4 = (DOCS / "adr" / "0004-clarity-and-residuals.md").read_text(encoding="utf-8")
+    host = (DOCS / "reference" / "host.md").read_text(encoding="utf-8")
+    contrib = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    assert "start_css_watcher=" in agents
+    assert "development" in agents and "restart_channel" in agents
+    assert "serve_dev.py" in agents
+    assert "15cb1ed" in agents
+    assert "Channel.boot" in agents
+    assert "start_css_watcher=" in start
+    assert "development" in start
+    assert "serve_dev.py" in start
+    assert "start_css_watcher=" in cli
+    assert "development" in cli
+    assert "argv only" in cli
+    assert "Channel.attach(asgi)" not in own
+    assert "Channel.boot" in own
+    assert "serve_dev.py" in own
+    assert "do not raise when a specialist is absent" not in adr4
+    assert "fail loud" in adr4
+    assert "start_css_watcher=" in adr4
+    assert "authors import `build()`" in host
+    assert "Channel.boot" in host
+    assert "15cb1ed" in host
+    assert "uxcompose serve apps.pulse" not in contrib
+    assert "serve dev apps.pulse.server:app" in contrib

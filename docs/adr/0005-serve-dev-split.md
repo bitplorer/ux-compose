@@ -86,4 +86,6 @@ channel. It only asks `worker_for(path)`:
 - `src/ux_compose/serve_dev.py` starts sibling Tailwind `--watch` and tunnel.
 - `src/ux_compose/tailwind.py` owns sibling Tailwind `--watch` spawn.
 - Dead names: `devstack`, `glue_factory`, `pages` worker, `public_asgi`,
-  `owner_for`, `A`/`X`/`Y`, `--one-process`, `--no-css-watch`, `--no-hmr`.
+  `owner_for`, `A`/`X`/`Y`, `--one-process`, `--no-css-watch`, `--no-hmr`,
+  leftover `start_css_watcher=`, argv `development` / `production` /
+  `restart_channel`.

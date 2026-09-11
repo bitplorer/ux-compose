@@ -11,7 +11,7 @@ Compose owns **product lifecycle**. Specialist DX stays on the specialist.
 uxcompose create-app / build / serve / deploy / doctor
         │
         ├─ probe specialists (find_spec + CLI on PATH)
-        ├─ boot via build() / App.mount (ux_compose.routing.DirectoryRoutes + thin adapter)
+        ├─ boot via build() (catalog scan App.mount; HTTP via DirectoryRoutes.discover)
         ├─ CSS minify via ux_compose.tailwind (finder + ensure)
         └─ Isolation + Progressive Superpower
 ```

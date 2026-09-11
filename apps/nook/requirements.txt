@@ -1,4 +1,4 @@
-ux-compose @ git+https://github.com/bitplorer/ux-compose.git@6d61c9e616652d996e55a36886ccfec218308c30
+ux-compose @ git+https://github.com/bitplorer/ux-compose.git@957f81fb5fed060213e623c6434e240ea6587a1f
 ux-dom @ git+https://github.com/bitplorer/ux-dom.git@e8be99a52bfecd6026c200fa1c3dc6a74f87aacb
 ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@793f120e3b1388925772cd069b070d7918b78baa
 ux-motion @ git+https://github.com/bitplorer/ux-motion.git@67ff3f0c4912b70b7056f8226a6f226b6fe93f60

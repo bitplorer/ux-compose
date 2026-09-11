@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (channel Cut C: empty Content-Type on HTTP ``/action`` is
   ``bad_request``). Makefile / scaffold / nook lockstep. Compose does
   not POST without a declared type. Plan: #73.
+- scaffold/nook: ``COMPOSE_VCS_PIN`` tracks main tip ``957f81f`` so cold
+  ``pip -r`` installs pin-aligned compose (includes channel Cut C #74;
+  same #56 residual). Plan: #73.
 
 ### Fixed
 

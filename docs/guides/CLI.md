@@ -46,6 +46,11 @@ Missing origin extras fail closed (`pip install -e '.[serve]'` from the clone; n
 There is no `--one-process` / `--hmr` / `--css-watch` flag.
 `uxcompose serve` without a mode exits 2. `uxcompose build` is the
 one-shot minify. Deploy runs raw uvicorn, not `serve`.
+`cli.py` is argv only (`uxcompose = ux_compose.cli:main`). Clock bodies
+live in `serve_dev.py` (sibling Tailwind `--watch` + tunnel). Leftover
+`start_css_watcher=` is gone. argv `development` / `production` /
+`restart_channel` fail closed — not synonyms. No `cli/` / `serve/` /
+`services/` packages.
 Architecture: [../internals/hmr.md](../internals/hmr.md).
 Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md).
 CSS how-to: [TAILWIND.md](TAILWIND.md).

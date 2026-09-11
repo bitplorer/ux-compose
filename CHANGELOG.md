@@ -17,6 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Cut 4 encyclopedia honesty after Cut 3 dual-door locks: START_HERE /
+  AGENTS / OWNERSHIP / CLI / ADRs / package docs name leftover
+  ``start_css_watcher=``, serve argv synonyms, ghost ``cli/`` /
+  ``serve/`` / ``services/``, Cap door ``Channel.boot``, and channel pin
+  ``15cb1ed``. ADR 0004 attach fail-loud. CONTRIBUTING pulse serve needs
+  a mode. Compose has no FEATURES.md / ONTOLOGY.md — ARCHITECTURE +
+  OWNERSHIP are the encyclopedia.
+
 - Cut 3 leftover dual doors: ``cli.py`` is argv only. ``serve_dev.py``
   starts sibling Tailwind ``--watch`` and tunnel (clock body). Leftover
   ``start_css_watcher=`` hook is gone.

@@ -72,7 +72,12 @@ How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.
 Architecture: [internals/hmr.md](internals/hmr.md) · decision: [adr/0005-serve-dev-split.md](adr/0005-serve-dev-split.md).
 
 `serve dev` is origin + ui + channel. `serve prod` is one process, clocks off.
+`cli.py` is argv only. `serve_dev.py` starts sibling CSS `--watch` and tunnel.
+Leftover `start_css_watcher=` is gone. Frozen serve verbs: `dev` / `prod` /
+`restart-channel`. argv `development` / `production` / `restart_channel`
+fail closed. No `cli/` / `serve/` / `services/` ghost packages.
 Three clocks on `serve dev` only: process reload (`*.py`) · browser WS live-reload · sibling Tailwind `--watch` + client HEAD `/css/output.css`. No watcher and no `Popen` in `hmr.py`. CSS save must not kill the worker.
+Cap door is `Channel.boot` (pin ux-channel @ `15cb1ed`). Channel prefers Redis.
 
 ## 6. Forbidden
 
@@ -99,7 +104,8 @@ Page GET is one pipeline. Authors never implement it. Spec:
 · recipes: [guides/HOST.md](guides/HOST.md).
 
 ```text
-host.open  →  App L1  →  Document  →  Channel.attach(asgi)  →  host.bind
+host.open  →  App L1  →  Document  →  App.use_channel(asgi)  →  host.bind
+                                                          Channel.boot
                                                           document.mount
                                                           page routes
 ```

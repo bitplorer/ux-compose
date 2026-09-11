@@ -119,8 +119,8 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 | Owns | Does **not** own |
 |------|------------------|
 | Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder + app asset layout | DOM serialize / tag trees / package static (ux-dom) |
-| `App` composition, `App.mount`, delivery, HMR + tunnel under serve | Channel transport (wire/ only) |
-| Page-unit mount (`routes/` + `build()`); CSS minify via `ux_compose.tailwind` | MorphState / Cap / Plan IR implementations |
+| `App` composition, delivery, HMR + tunnel under `serve dev` (`serve_dev.py`; `cli.py` is argv) | Channel transport (wire/ only) |
+| Page-unit catalog scan (`App.mount` inside `build()`) + CSS minify via `ux_compose.tailwind` | MorphState / Cap / Plan IR implementations |
 
 ## Audience
 
@@ -152,6 +152,9 @@ Level 1 page units stay correct at L2/L3. Zero rewrite. Not an optional-package 
 - Product lifecycle CLI is **`uxcompose` only**
 - Channel attach is `App.use_channel(asgi_app=…)` — Isolation-safe
 - HMR / tunnel are delivery under `uxcompose serve dev`, not Document APIs
+- Frozen serve verbs: `dev` / `prod` / `restart-channel`. argv
+  `development` / `production` / `restart_channel` fail closed
+- Cap door is `Channel.boot` (pin ux-channel @ `15cb1ed`)
 - Authors do not import `ux_channel` outside compose `wire/`
 - Do not reimplement specialists in this repo
 

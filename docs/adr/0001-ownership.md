@@ -23,7 +23,9 @@ the old `app/main.py` layout, while `uxcompose create-app` emitted `app.py`.
 
 **Author rule:** Render? → ux-dom. Product app lifecycle? → ux-compose only.
 
-Product path: `uxcompose create-app` → `build` → `serve` → `deploy`.
+Product path: `uxcompose create-app` → `serve dev` → `build` → `serve prod` → `deploy`.
+`cli.py` is argv only. `serve_dev.py` starts CSS watch + tunnel.
+Frozen serve verbs: `dev` / `prod` / `restart-channel`.
 
 ## Consequences
 

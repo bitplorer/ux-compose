@@ -86,8 +86,9 @@ Full diagram: [../internals/hmr.md](../internals/hmr.md).
 ## When Channel RAM is stale
 
 Default: a `.py` save does **not** restart Channel. MorphState stays
-(Channel `FileStateStore` on the serve-dev sqlite path, not
-channel-process RAM alone).
+(Channel `FileStateStore` on the serve-dev sqlite path when
+`REDIS_URL` is unset, not channel-process RAM alone). `REDIS_URL`
+wins inside Channel — serve-dev will not export both.
 
 If that bag is wrong — stuck session, bad morph cache — drop it once:
 

@@ -403,6 +403,64 @@ def test_catalog_scan_and_http_discover_are_two_walkers():
     assert "thin adapter" not in surfaces
 
 
+def test_wire_imports_only_frozen_channel_paths():
+    """Isolation Law: wire/ may import only Channel, ChannelConfig,
+    apply_host_adapter, Intent. ActionRegistry is not a compose door."""
+    import ast
+
+    allowed = {
+        ("ux_channel", ("Channel", "ChannelConfig")),
+        ("ux_channel.cek.host_adapter", ("apply_host_adapter",)),
+        ("ux_channel.protocol.types", ("Intent",)),
+    }
+    wire = SRC / "wire"
+    for path in sorted(wire.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name == "ux_channel" or alias.name.startswith("ux_channel."):
+                        raise AssertionError(
+                            f"{path.name}: bare import {alias.name!r} — use frozen from-imports"
+                        )
+            elif isinstance(node, ast.ImportFrom):
+                mod = node.module or ""
+                if mod == "ux_channel" or mod.startswith("ux_channel."):
+                    names = tuple(sorted(alias.name for alias in node.names))
+                    assert (mod, names) in allowed or (
+                        mod == "ux_channel" and set(names) <= {"Channel", "ChannelConfig"}
+                    ), f"{path.name}: from {mod} import {', '.join(names)}"
+
+
+def test_channel_health_formats_vs_codecs_documented():
+    """Compose fronts Channel HTTP. Health formats (HTTP) ≠ codecs (library)."""
+    spec = (DOCS / "reference" / "host.md").read_text(encoding="utf-8")
+    assert "formats" in spec and "codecs" in spec
+    assert "application/ux-channel+json" in spec or "HTTP today" in spec
+    assert "/ux-channel/health" in spec
+
+
+def test_store_precedence_docs_name_redis_wins():
+    """Do not set UXCOMPOSE_STATE_STORE and REDIS_URL as if both were the session."""
+    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    hmr = (DOCS / "internals" / "hmr.md").read_text(encoding="utf-8")
+    adr = (DOCS / "adr" / "0006-serve-dev-shared-store.md").read_text(encoding="utf-8")
+    serve = _read("serve_state.py")
+    serve_dev = _read("serve_dev.py")
+    assert "REDIS_URL" in agents
+    assert "prefers Redis" in agents or "Redis wins" in agents
+    assert "REDIS_URL" in hmr
+    assert "REDIS_URL" in serve
+    assert "REDIS_URL" in serve_dev
+    assert "will not export both" in adr
+    assert "does not clear Redis" in adr
+    assert "d0fe716" not in adr
+    assert "b0cc17d" in adr
+    doctor = _read("doctor.py")
+    assert "scan_store_precedence" in doctor
+    assert "diagnostics.extend(scan_store_precedence())" in doctor
+
+
 def test_leftover_table_splits_doctor_tokens_from_agent_locks():
     """Doctor is not credited for names it does not scan in product trees."""
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")

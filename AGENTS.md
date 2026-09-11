@@ -127,11 +127,12 @@ Cold import never pulls the wire. `App.use_channel(asgi_app=…)` is the live do
 `app.use_motion()` is the motion door. Level 1 code remains correct at L2/L3.
 
 `uxcompose serve dev` session lives with Channel (`ch.draft`). Origin still
-sends Document GET to the ui worker. Compose prepares one sqlite path
-(`UXCOMPOSE_STATE_STORE`); `Channel.boot` opens Channel's `FileStateStore`.
-Do not reimplement that store in this tree. Redis (`REDIS_URL`) is the
-product multi-worker path. Do not route HTML GET to channel — that would
-drop HMR for route edits.
+sends Document GET to the ui worker. When `REDIS_URL` is unset, compose
+prepares one sqlite path (`UXCOMPOSE_STATE_STORE`); `Channel.boot` opens
+Channel's `FileStateStore`. Channel prefers Redis when `REDIS_URL` is set
+— do not export both. Do not reimplement that store in this tree. Redis
+(`REDIS_URL`) is the product multi-worker path. Do not route HTML GET to
+channel — that would drop HMR for route edits.
 
 ## Product host (Clock A)
 

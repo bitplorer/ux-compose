@@ -97,6 +97,7 @@ def test_workers_inherit_a_held_fd():
     assert "UXCOMPOSE_UI_URL" in src
     assert "prepare_shared_state" in src
     assert "UXCOMPOSE_STATE_STORE" in src
+    assert "REDIS_URL" in src
     assert "session lives with Channel" in src or "ch.draft" in src
 
 

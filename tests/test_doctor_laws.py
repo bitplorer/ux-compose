@@ -5,9 +5,24 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from ux_compose.doctor import doctor, scan_isolation, scan_dual_document, IsolationViolation, scan_store_clone
+from ux_compose.doctor import (
+    doctor,
+    scan_isolation,
+    scan_dual_document,
+    IsolationViolation,
+    scan_store_clone,
+    scan_store_precedence,
+)
+
+
+@pytest.fixture(autouse=True)
+def _clear_store_envs(monkeypatch):
+    monkeypatch.delenv("UXCOMPOSE_STATE_STORE", raising=False)
+    monkeypatch.delenv("REDIS_URL", raising=False)
 
 
 def test_isolation_clean_on_package():
@@ -186,3 +201,34 @@ def test_scan_store_clone_clean_on_package():
     root = Path(__file__).resolve().parents[1] / "src" / "ux_compose"
     files = [p for p in root.rglob("*.py")]
     assert scan_store_clone(files) == []
+
+
+def test_scan_store_precedence_flags_both_envs(monkeypatch):
+    monkeypatch.setenv("UXCOMPOSE_STATE_STORE", "/tmp/compose.state")
+    monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+    diags = scan_store_precedence()
+    assert diags
+    assert any("REDIS_URL" in d and "UXCOMPOSE_STATE_STORE" in d for d in diags)
+    assert any("violation" in d.lower() for d in diags)
+
+
+def test_scan_store_precedence_ok_when_only_one(monkeypatch):
+    monkeypatch.setenv("UXCOMPOSE_STATE_STORE", "/tmp/compose.state")
+    monkeypatch.delenv("REDIS_URL", raising=False)
+    assert scan_store_precedence() == []
+    monkeypatch.delenv("UXCOMPOSE_STATE_STORE", raising=False)
+    monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+    assert scan_store_precedence() == []
+
+
+def test_doctor_fail_loud_when_both_store_envs(monkeypatch):
+    monkeypatch.setenv("UXCOMPOSE_STATE_STORE", "/tmp/compose.state")
+    monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:6379/0")
+    report = doctor([], fail=False)
+    assert report.ok is False
+    assert any("REDIS_URL" in d and "UXCOMPOSE_STATE_STORE" in d for d in report.diagnostics)
+
+
+def test_doctor_store_ok_when_neither_env():
+    report = doctor([], fail=False)
+    assert not any("Store precedence" in d for d in report.diagnostics)

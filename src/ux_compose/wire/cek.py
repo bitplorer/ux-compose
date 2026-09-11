@@ -34,6 +34,11 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
 
     Cap Host (cek-runtime via Channel) ≠ HTTP Product host (Clock A).
 
+    ``Channel.boot`` / ``ActionRegistry.from_config`` already apply the
+    adapter when ``cek != "off"``. This second ``apply_host_adapter`` is
+    idempotent (same machine). Do not assume classic ``CapService`` when
+    ``cek=require``.
+
     mode:
       off     — not a silent no-op after require. Refuses if Cap Host is
                 already live; boot ChannelConfig(cek="off") instead.
@@ -105,6 +110,7 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
         if resolved == "require":
             raise RuntimeError("Channel has no registry for CEK adapter")
         return None
+    # Idempotent after Channel.boot / from_config (channel ≥ b0cc17d).
     return apply_host_adapter(registry, cfg)
 
 

@@ -41,10 +41,12 @@ browser → origin :8080            serve_dev.origin_asgi  (no reload)
 
 `worker_for(path)` is the only router. Env origin reads:
 `UXCOMPOSE_UI_URL`, `UXCOMPOSE_CHANNEL_URL`. Do not set them by hand.
-Session lives with Channel (`ch.draft` → `ch.state`). Compose
-prepares `UXCOMPOSE_STATE_STORE` (sqlite path). `Channel.boot` opens
-Channel's `FileStateStore` so Document GET on ui paints the same
-MorphState Caps wrote on channel. Do not send HTML GET to channel.
+Session lives with Channel (`ch.draft` → `ch.state`). When `REDIS_URL`
+is unset, compose prepares `UXCOMPOSE_STATE_STORE` (sqlite path) and
+`Channel.boot` opens Channel's `FileStateStore` so Document GET on ui
+paints the same MorphState Caps wrote on channel. `REDIS_URL` wins
+inside Channel — serve-dev will not export both. Do not send HTML GET
+to channel.
 
 `serve_dev.run` binds a held loopback socket (`listen_loopback`) and
 passes uvicorn `--fd`. No probe-and-close port race.

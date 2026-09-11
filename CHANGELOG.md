@@ -7,8 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- Pin ux-channel @ `b0cc17d87348fa65578f41e95879b35c43b0ecfa`
+  (channel #27: ``from_config`` applies the Cap adapter; health
+  ``formats`` vs ``codecs``). Makefile / scaffold / nook lockstep.
+
 ### Fixed
 
+- Cap door honesty after channel #27: ``Channel.boot`` is the compose
+  door (same machine as ``ActionRegistry.from_config``). ``attach_cek``
+  still calls ``apply_host_adapter`` (idempotent). Do not assume classic
+  ``CapService`` when ``cek=require``. wire/ stays on frozen imports
+  (``Channel``, ``ChannelConfig``, ``apply_host_adapter``, ``Intent``).
+- serve-dev / doctor do not set ``UXCOMPOSE_STATE_STORE`` and
+  ``REDIS_URL`` as if both were the session. Channel prefers Redis;
+  ``prepare_shared_state`` skips the sqlite env when Redis is set.
+  ``scan_store_precedence`` fails closed if both remain.
+- Product host spec notes Channel ``/ux-channel/health`` ``formats``
+  (HTTP today) vs ``codecs`` (library), matching the Rust peer.
+  Clock A ``/health`` is still ``dict`` JSON.
 - Public ``__all__`` lock now covers host / surface / motion names
   (``WebAssets``, ``Directory*``, ``Surface*``, ``DoctorResult``,
   ``scene`` / ``fade`` / ``rise`` / ``slide``) (LOCK-1).

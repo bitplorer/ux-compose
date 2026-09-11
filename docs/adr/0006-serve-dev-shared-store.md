@@ -17,12 +17,14 @@ next to `MemoryStateStore` / `RedisStateStore` in
 domain as Redis — not pickle. `change()` uses `BEGIN IMMEDIATE` so
 ui + channel cannot lose increments.
 
-**Compose owns delivery lifecycle only.** `uxcompose serve dev`
-prepares `.uxcompose-serve-dev.state`, exports
-`UXCOMPOSE_STATE_STORE`, clears the bag on `serve restart-channel`,
-and unlinks WAL sidecars on shutdown. `src/ux_compose/serve_state.py`
-never imports `ux_channel` and does not define a store class.
-Doctor `scan_store_clone` fails closed if a store class reappears.
+**Compose owns delivery lifecycle only.** When `REDIS_URL` is unset,
+`uxcompose serve dev` prepares `.uxcompose-serve-dev.state`, exports
+`UXCOMPOSE_STATE_STORE`, clears that sqlite bag on
+`serve restart-channel`, and unlinks WAL sidecars on shutdown. It
+does not export both envs. `src/ux_compose/serve_state.py` never
+imports `ux_channel` and does not define a store class. Doctor
+`scan_store_clone` / `scan_store_precedence` fail closed if a store
+class reappears or both envs are set.
 
 `Channel.boot` opens `FileStateStore` when `UXCOMPOSE_STATE_STORE`
 is set and `REDIS_URL` is not. Channel prefers Redis when both are
@@ -43,9 +45,10 @@ serve-dev accepted objects production Redis would stringify).
 - `src/ux_compose/serve_state.py` — env, path, prepare / clear / drop.
 - `src/ux_compose/wire/boot.py` — no `channel.state =` assignment.
 - Sister: `ux_channel.host.stores.FileStateStore` + boot env honor.
-- Restart-channel still means "empty the bag and respawn Channel".
-- Pin ux-channel to a SHA that includes `FileStateStore`
-  (`d0fe7169e687d2935f8b74d40b990b1ee63ef3d4`).
+- Restart-channel still means "empty the sqlite bag and respawn
+  Channel". It does not clear Redis.
+- Pin ux-channel to a SHA that includes `FileStateStore` and the
+  #27 Cap / health honesty (`b0cc17d87348fa65578f41e95879b35c43b0ecfa`).
 
 ## Rejected
 

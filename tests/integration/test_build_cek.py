@@ -30,7 +30,7 @@ def _registry_caps(app):
     return getattr(getattr(app._channel, "registry", None), "_caps", None)
 
 
-def _assert_product_cap(caps, registry=None) -> None:
+def _assert_product_cap(caps) -> None:
     """Identity only — type name + kernel_ssot. No Channel internals."""
     assert type(caps).__name__ == "CekHostCapService"
     ssot = getattr(caps, "kernel_ssot", None)
@@ -55,4 +55,4 @@ def test_build_attaches_cek_host_without_hand_use_cek(tmp_path):
     if app._channel is None:
         pytest.skip("Channel did not boot")
     assert app._cek == "require"
-    _assert_product_cap(_registry_caps(app), app._channel.registry)
+    _assert_product_cap(_registry_caps(app))

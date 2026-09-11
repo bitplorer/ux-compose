@@ -27,9 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Product host spec notes Channel ``/ux-channel/health`` ``formats``
   (HTTP today) vs ``codecs`` (library), matching the Rust peer.
   Clock A ``/health`` is still ``dict`` JSON.
-
-### Fixed
-
 - Public ``__all__`` lock now covers host / surface / motion names
   (``WebAssets``, ``Directory*``, ``Surface*``, ``DoctorResult``,
   ``scene`` / ``fade`` / ``rise`` / ``slide``) (LOCK-1).

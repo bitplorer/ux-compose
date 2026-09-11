@@ -23,7 +23,7 @@ def _registry_caps(app):
     return getattr(getattr(app._channel, "registry", None), "_caps", None)
 
 
-def _assert_product_cap(caps, registry=None) -> None:
+def _assert_product_cap(caps) -> None:
     """Identity only — type name + kernel_ssot. No Channel internals."""
     assert type(caps).__name__ == "CekHostCapService"
     ssot = getattr(caps, "kernel_ssot", None)
@@ -70,7 +70,7 @@ def test_use_cek_off_refuses_after_live_cap_host():
         with pytest.raises(RuntimeError, match=r'ChannelConfig\(cek="off"\)'):
             attach_cek(app._channel, mode="off")
         assert app._cek != "off"
-        _assert_product_cap(_registry_caps(app), app._channel.registry)
+        _assert_product_cap(_registry_caps(app))
         _assert_off_is_honest(app)
     else:
         app.use_cek(mode="off")
@@ -163,7 +163,7 @@ def test_use_cek_default_is_require_product_cap():
     if HAS_CEK:
         app.use_cek()
         assert app._cek == "require"
-        _assert_product_cap(_registry_caps(app), app._channel.registry)
+        _assert_product_cap(_registry_caps(app))
     else:
         with pytest.raises(ImportError):
             app.use_cek()
@@ -177,7 +177,7 @@ def test_cek_require_raises_or_attaches():
     if HAS_CEK:
         app.use_cek(mode="require")
         assert app._cek == "require"
-        _assert_product_cap(_registry_caps(app), app._channel.registry)
+        _assert_product_cap(_registry_caps(app))
     else:
         with pytest.raises(ImportError):
             app.use_cek(mode="require")
@@ -191,7 +191,7 @@ def test_unknown_cek_mode_resolves_to_require():
     if HAS_CEK:
         app.use_cek(mode="wat")
         assert app._cek == "require"
-        _assert_product_cap(_registry_caps(app), app._channel.registry)
+        _assert_product_cap(_registry_caps(app))
     else:
         with pytest.raises(ImportError):
             app.use_cek(mode="wat")

@@ -444,6 +444,7 @@ def test_store_precedence_docs_name_redis_wins():
     """Do not set UXCOMPOSE_STATE_STORE and REDIS_URL as if both were the session."""
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     hmr = (DOCS / "internals" / "hmr.md").read_text(encoding="utf-8")
+    adr = (DOCS / "adr" / "0006-serve-dev-shared-store.md").read_text(encoding="utf-8")
     serve = _read("serve_state.py")
     serve_dev = _read("serve_dev.py")
     assert "REDIS_URL" in agents
@@ -451,8 +452,13 @@ def test_store_precedence_docs_name_redis_wins():
     assert "REDIS_URL" in hmr
     assert "REDIS_URL" in serve
     assert "REDIS_URL" in serve_dev
+    assert "will not export both" in adr
+    assert "does not clear Redis" in adr
+    assert "d0fe716" not in adr
+    assert "b0cc17d" in adr
     doctor = _read("doctor.py")
     assert "scan_store_precedence" in doctor
+    assert "diagnostics.extend(scan_store_precedence())" in doctor
 
 
 def test_leftover_table_splits_doctor_tokens_from_agent_locks():

@@ -10,9 +10,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 UX_DOM_SHA = "2e894cd7bca66e1da6c2f9d42b2d1a8bb937c92c"
-UX_CHANNEL_SHA = "d0412c62b5180f69e76d16c913809f6c34dee269"
-UX_BEHAVIOR_SHA = "793f120e3b1388925772cd069b070d7918b78baa"
-UX_MOTION_SHA = "67ff3f0c4912b70b7056f8226a6f226b6fe93f60"
+UX_CHANNEL_SHA = "a6ab1594959b287b4754afe09d8aced5504edd8f"
+UX_BEHAVIOR_SHA = "7d46979f59f284bc2d6d961ed372ec849e851dfc"
+UX_MOTION_SHA = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
 COMPOSE_SHA = "24a182f35e3d0743a2faafddb5ba0396324b2d9a"
 
 
@@ -29,6 +29,9 @@ def test_pyproject_requires_314_and_pins_specialists():
     assert "25338a6" not in text
     assert "76adc72" not in text
     assert "e8be99a" not in text
+    assert "d0412c6" not in text
+    assert "793f120" not in text
+    assert "67ff3f0" not in text
 
 
 def test_pin_ssot_lockstep_makefile_scaffold_ci():
@@ -54,6 +57,15 @@ def test_pin_ssot_lockstep_makefile_scaffold_ci():
     assert "e8be99a" not in makefile
     assert "e8be99a" not in scaffold
     assert "e8be99a" not in nook
+    assert "d0412c6" not in makefile
+    assert "d0412c6" not in scaffold
+    assert "d0412c6" not in nook
+    assert "793f120" not in makefile
+    assert "793f120" not in scaffold
+    assert "793f120" not in nook
+    assert "67ff3f0" not in makefile
+    assert "67ff3f0" not in scaffold
+    assert "67ff3f0" not in nook
     assert 'python-version: "3.14"' in ci
     assert "3.12" not in ci
     assert "offline-shim" not in ci

@@ -51,7 +51,8 @@ serve-dev accepted objects production Redis would stringify).
   #27 Cap / health honesty, Cuts 1–2 CLI/layout honesty, and Cut C
   empty Content-Type fail-closed
   (`985e58aee76ca683774c4d4d58ab30a1d3b6efee`). Current compose pin
-  `d0412c62b5180f69e76d16c913809f6c34dee269` is Soft 3+4 on that floor.
+  `a6ab1594959b287b4754afe09d8aced5504edd8f` is the Python ≥3.14 tip
+  on that floor.
 
 ## Rejected
 

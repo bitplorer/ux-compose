@@ -10,7 +10,11 @@
 > Architecture or feature folders. Do not cut Cap / Isolation / Cut C
 > empty Content-Type. Do not invent load/chaos harnesses for vanity.
 >
-> **Verified 2026-09-12** vs compose `main` `24a182f` and live tips.
+> **Verified 2026-09-12** vs compose `main` `52714fc` (#79 merged) and
+> live tips. P0 pin `ae5a675` → `d0412c6` **landed** on
+> [#79](https://github.com/bitplorer/ux-compose/pull/79). Duplicate
+> [#81](https://github.com/bitplorer/ux-compose/pull/81) closed — do
+> not relaunch.
 
 Prior snapshots (still open, now stale as inventory):
 [#73](https://github.com/bitplorer/ux-compose/pull/73) Cut B,
@@ -25,8 +29,8 @@ into one encyclopedia.
 
 | Layer | Compose pin | Fresh `origin/main` | Status |
 |-------|-------------|---------------------|--------|
-| **ux-compose** | `24a182f` (this tip) | same | current |
-| **ux-channel** | `ae5a675` (Soft 1+2) | **`d0412c6`** Soft 4 | **rotting +2** |
+| **ux-compose** | `52714fc` (#79) | same | current |
+| **ux-channel** | **`d0412c6`** Soft 4 | `d0412c6` | pin == tip (via #79) |
 | **ux-dom** | `e8be99a` | `e8be99a` | pin == tip |
 | **ux-behavior** | `793f120` | `793f120` | pin == tip |
 | **ux-motion** | `67ff3f0` | `67ff3f0` | pin == tip |
@@ -42,11 +46,10 @@ Channel Soft 1–4 are **DONE** on tip `d0412c6`:
 | S4 | `d0412c6` #37 | `render/response.py` → `ux_dom.response` | shipped |
 
 **Cap `mount_channel` KEEP.** Soft queue is **empty of S1–S4**. No Soft 5
-is evidenced. Next honesty is the **compose pin**, not a new product
-surface.
+is evidenced. Channel pin honesty **landed** (#79). No further pin PR.
 
-`COMPOSE_VCS_PIN` `957f81f` vs HEAD `24a182f` is the #56 chicken-egg
-(+ #78). Not a fail-closed hole.
+`COMPOSE_VCS_PIN` `24a182f` vs HEAD `52714fc` is the #56 chicken-egg
+(#79 could not pin its own merge SHA). Not a fail-closed hole.
 
 ---
 
@@ -81,13 +84,13 @@ folders. One taught path per job.
 ## 2. Dep tree (pins + transitive)
 
 ```text
-ux-compose @ 24a182f
+ux-compose @ 52714fc
 ├── ux-dom @ e8be99a
 │   ├── Jinja2, valio, marko, anyio, typer
 │   └── [optional] fastapi, uvicorn, pytailwindcss, watchfiles
 ├── ux-behavior @ 793f120          (zero hard deps)
 ├── ux-motion @ 67ff3f0            (zero hard deps)
-├── ux-channel @ ae5a675  → tip d0412c6
+├── ux-channel @ d0412c6
 │   ├── itsdangerous
 │   ├── cek-host >=0.1.3
 │   └── cek-surface >=0.1.3 → cek-host
@@ -227,15 +230,15 @@ is dropped** (`ARCHITECTURE.md:197`; `test_source_locks.py`).
 | Two walkers, one product door | `test_source_locks.py:448-469` | source lock | **none** |
 | `Channel.boot` / no silent cfg | `test_source_locks.py:37-55` | fail-closed strings | **none** |
 | Store: no compose `StateStore` class; Redis wins | `test_serve_state.py`, `test_doctor_laws.py`, ADR lock | doctor + source | **none** |
-| Hard-dep pins lockstep | `test_hard_deps.py` | pyproject / Makefile / scaffold / nook / CI 3.14 | **P0:** lock still names `ae5a675`, not tip `d0412c6` |
-| Soft 1+2 encyclopedia pin speech | AGENTS / OWNERSHIP / host / ADR 0006 | `test_source_locks.py:567-598` locks Cut C `985e58a` + `Channel.boot`, **not** Soft 3+4 | **P0 same-commit:** pin strings still say Soft 1+2 |
+| Hard-dep pins lockstep | `test_hard_deps.py` | pyproject / Makefile / scaffold / nook / CI 3.14 | **closed:** #79 lockstep names `d0412c6` |
+| Soft 1–4 encyclopedia pin speech | AGENTS / OWNERSHIP / host / ADR 0006 | `test_source_locks.py:567-598` locks Cut C `985e58a` + `Channel.boot` | **closed:** #79 names Soft 3+4 / `d0412c6` |
 | Serve argv frozen verbs | `test_cli_help.py` | synonyms + clock flags fail-closed | **none** |
 | Console script `ux_compose.cli:main` | `test_cli_script_honesty.py` | no `cli/` package | **none** |
 | Folder law / no `fragment.py` | `test_source_locks.py` | kit_construct + packages `dx kit routing wire` | **none** |
 | `__all__` author / host / motion | `test_architecture_public_api.py` | REQUIRED / ADDED / HOST; no `maybe_*` | **none** |
 | HMR: no hub / watcher / Popen | `test_hmr.py` | path + source | **none** |
 | CSS watch in `tailwind.py` | `test_source_locks.py:425-445` | not in `cli`/`hmr` | **none** |
-| Scaffold create-app Document path | `tests/integration/test_scaffold_create_app.py` + CTO hello | layout + pins ≥ `ae5a675` | pin floor rotting (same P0) |
+| Scaffold create-app Document path | `tests/integration/test_scaffold_create_app.py` + CTO hello | layout + pins ≥ `d0412c6` | **closed** (#79) |
 | Kit copy / `kit_construct` import | `test_cli_add.py`, `test_kit_construct.py` | copy rewrite law | **none** |
 | Kit APG / stems | `tests/test_kit_*.py` | render + roles | not a dual door |
 | Brand wrap GET=1 morph=0 | `test_cto_brand_wrap.py` | feature | **none** |
@@ -279,7 +282,7 @@ or raise the 15s budget into an SLO.
 | Pulse as live showcase | integration build/doctor only |
 
 E3 that is **not** a DO: unused markers, missing cov gate, pulse HTTP
-thinness. Prefer missing **locks on rotting pins** over new suites.
+thinness. Prefer missing **locks on claimed L** over new suites.
 
 ---
 
@@ -289,13 +292,10 @@ thinness. Prefer missing **locks on rotting pins** over new suites.
 
 | Pri | Concern | Evidence | Pattern | Clarity |
 |-----|---------|----------|---------|---------|
-| **P0** | Pin ux-channel `ae5a675` → `d0412c62b5180f69e76d16c913809f6c34dee269` lockstep pyproject / Makefile / scaffold / nook / `test_hard_deps.py` / scaffold integration / encyclopedia pin strings (AGENTS, README, OWNERSHIP, host.md, ADR 0006). Cut C floor `985e58a` **stays**. Name Soft 1–4 on tip. | `pyproject.toml:25`; `Makefile:10`; `scaffold.py:267`; `test_hard_deps.py:13`; `test_scaffold_create_app.py:103,180`; `AGENTS.md:145-146`; `docs/OWNERSHIP.md:80`; `docs/reference/host.md:226-227`; `docs/adr/0006-serve-dev-shared-store.md:53-54` | #78 pin bump | Soft 3+4 already on tip. No Kit/helpers/HTTP. No `mount_channel` touch |
-| **P1** | Refresh `COMPOSE_VCS_PIN` `957f81f` → inventory `main` tip after P0 merges (`24a182f` is stale the moment P0 lands). Lockstep nook + `test_hard_deps.py:16` + integration `957f81f` asserts | `scaffold.py:271`; `apps/nook/requirements.txt:1` | #75 / #56 | Self-pin tracks last merged main, not this PR’s merge SHA |
+| **P0** | Pin ux-channel `ae5a675` → `d0412c6` | landed [#79](https://github.com/bitplorer/ux-compose/pull/79) @ `52714fc`. Duplicate #81 closed. | #78 pin bump | **DONE.** Do not relaunch |
+| **P1** | `COMPOSE_VCS_PIN` → last merged main before the pin PR | #79 set `24a182f`. HEAD is now `52714fc` (#56 lag). | #75 / #56 | **KEEP** chicken-egg. Do not open a self-pin PR this turn |
 
-Do **not** combine P0 and P1. Do **not** fold encyclopedia rewrite
-beyond the pin strings the locks already require.
-
-**No E13 DO.** No Soft 5.
+**No open E13 / P0 / P1 DO.** No Soft 5.
 
 ### KEEP
 
@@ -338,14 +338,14 @@ path · kit HTML-string fallbacks · Soft 1–4 as an *open* channel queue.
 | # | Status | Next |
 |---|--------|------|
 | S1–S4 | **empty** (shipped on channel `d0412c6`) | none |
-| Compose pin | **P0** (this map) | after this plan |
-| Compose self-pin | **P1** | after P0 merge |
+| Compose pin | **DONE** #79 | do not relaunch (#81 closed) |
+| Compose self-pin | **KEEP** #56 lag (`24a182f` vs `52714fc`) | not a third honesty PR |
 | ux-dom extract-by-id | parked owner gap | not a compose Soft; walker stays |
 | `live_client` retire | parked | tests still use insert |
 | atelier `HTMLResponse` | parked | not one Soft |
 | FastAPI `_live_instance` swallow | parked | characterization |
 
-Stop after P0 (+ P1 later). Residuals in KEEP are not a mega-PR.
+Stop. Residuals in KEEP are not a mega-PR.
 
 ---
 
@@ -366,38 +366,21 @@ root `__all__` · `mount_channel` removed · `fragment.py` added ·
 
 ---
 
-## 9. Implementation notes (P0 only)
+## 9. P0 record (landed — do not re-run)
 
-Files: `pyproject.toml`, `Makefile`, `src/ux_compose/scaffold.py`,
-`apps/nook/requirements.txt`, `tests/unit/test_hard_deps.py`,
-`tests/integration/test_scaffold_create_app.py`, `AGENTS.md`,
-`README.md`, `docs/OWNERSHIP.md`, `docs/reference/host.md`,
-`docs/adr/0006-serve-dev-shared-store.md`, `CHANGELOG.md` Unreleased.
+[#79](https://github.com/bitplorer/ux-compose/pull/79) @ `52714fc`
+already lockstepped the pin to `d0412c62b5180f69e76d16c913809f6c34dee269`.
+Cut C floor `985e58a` stays. Doctor copy `pin ≥ 985e58a` stays.
+Historical CHANGELOG `#78` `ae5a675` row stays. Duplicate #81 closed.
 
-- Replace current pin with `d0412c62b5180f69e76d16c913809f6c34dee269`.
-- Encyclopedia: “Soft 1–4 on tip”; Cut C floor stays `985e58a`.
-- Doctor copy `pin ≥ 985e58a` **stays** (behavior floor, not Soft 3+4).
-- Historical CHANGELOG rows that *record* #78 `ae5a675` stay.
-- No `live_client.py` / helpers / Kit / `routing/` edits.
-
-Verify:
-
-```bash
-PYTHONPATH=src:. python -m pytest \
-  tests/unit/test_hard_deps.py \
-  tests/unit/test_source_locks.py \
-  tests/integration/test_scaffold_create_app.py \
-  tests/unit/test_cli_script_honesty.py \
-  tests/test_cek_door.py \
-  tests/test_cold_isolation.py -q
-```
+Do not open another channel-pin PR. Do not rebase #81.
 
 ---
 
 ## Appendix. One screen
 
 ```text
-COMPOSE @ 24a182f
+COMPOSE @ 52714fc (#79)
   build()         Clock A product door     KEEP
   wire/           Isolation / Channel.boot KEEP
   helpers.py      walker until dom extract KEEP
@@ -406,17 +389,18 @@ COMPOSE @ 24a182f
 
 SOFT 1–4          done on channel tip      EMPTY QUEUE
 PINS
-  channel  ae5a675 → d0412c6 (Soft 1–4)    DO P0
-  compose  957f81f → after P0 tip          DO P1 later
+  channel  d0412c6 (Soft 1–4)              DONE #79
+  compose  24a182f vs HEAD 52714fc         KEEP #56
   dom/behavior/motion == main              KEEP
 
 TESTS
   Isolation / Clock A / CTO / pins         LOCKED
   property                                 DROPPED (KEEP)
   load / concurrency                       THEATRE — do not grow
-  channel Soft 3+4 gates                   on tip; pin to install
+  channel Soft 3+4 gates                   installed via #79 pin
 
 DO NOT
   PR #67 serve/ · sixth product · chaos theatre
   gut mount_channel · docs-first restyle
+  relaunch pin (#81 closed)
 ```

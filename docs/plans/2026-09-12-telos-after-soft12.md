@@ -42,3 +42,25 @@
 **Soft 3** remains queued. Do not duplicate kit teaching here.
 
 **Stop:** Isolation AST red, leftover-teaching red, new root `__all__`, or `mount_channel` removed → revert.
+
+## Soft 4 contract (channel; this agent got 403 on push)
+
+When a channel-write agent picks this up, one concern only:
+
+- If `ux_dom` is importable, `render_content` / `HTMLResponse.render` call
+  `ux_dom.response.serialize.prepare_html_body` for `None` / `str` / `bytes` /
+  `is_html_renderable` values. `SafeHtml` is a `str` subclass → owner string
+  prepare (CSP stamp).
+- Non-str `__html__` / uid.html stay on the local fallback.
+- Starlette remains the HTTP container. Do not subclass-swap in a way that
+  drops channel-only types.
+- No hard ux-dom dep. No root `__all__` add. Do not touch `asgi/fastapi.py`.
+- Gate: `python/tests/gate/test_response_owner_ux_dom.py` (pattern matches
+  Soft 1 `test_html_owner_ux_dom.py`).
+- Leftover-teach in `CHANGELOG.md` + `LAYERS.md` render/ row + FEATURES
+  leftover sentence. Do **not** expand the Soft 1/2 encyclopedia-wide lock
+  unless you also update every encyclopedia file in the same change.
+
+Local implementation existed on `cursor/soft4-response-ux-dom-d030` @
+`abc5869` in this run and could not be pushed (`Permission denied to
+cursor[bot]`).

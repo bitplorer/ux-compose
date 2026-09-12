@@ -1,5 +1,5 @@
 ux-compose @ git+https://github.com/bitplorer/ux-compose.git@24a182f35e3d0743a2faafddb5ba0396324b2d9a
-ux-dom @ git+https://github.com/bitplorer/ux-dom.git@e8be99a52bfecd6026c200fa1c3dc6a74f87aacb
+ux-dom @ git+https://github.com/bitplorer/ux-dom.git@2e894cd7bca66e1da6c2f9d42b2d1a8bb937c92c
 ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@793f120e3b1388925772cd069b070d7918b78baa
 ux-motion @ git+https://github.com/bitplorer/ux-motion.git@67ff3f0c4912b70b7056f8226a6f226b6fe93f60
 ux-channel @ git+https://github.com/bitplorer/ux-channel.git@d0412c62b5180f69e76d16c913809f6c34dee269#subdirectory=python

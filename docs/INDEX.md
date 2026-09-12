@@ -3,6 +3,7 @@
 **Start:** [../START_HERE.md](../START_HERE.md) · mental model: [START_HERE.md](START_HERE.md)
 **Ownership SSoT:** [OWNERSHIP.md](OWNERSHIP.md)
 **Docs landing:** [README.md](README.md)
+**Residuals (projection):** [plans/2026-09-12-telos-after-soft12.md](plans/2026-09-12-telos-after-soft12.md)
 
 This layer owns composition + product CLI (`uxcompose`).
 

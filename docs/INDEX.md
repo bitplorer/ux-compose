@@ -16,7 +16,7 @@ This layer owns composition + product CLI (`uxcompose`).
 | `docs/examples/` | examples | Worked recipes / pointers | Law |
 | `docs/adr/` | ADR | Decisions (or an index of them) | Mixed how-to |
 
-Specialized folders (`security/`, `ship/`, `design/`, `tutorial/`, `patterns/`, `archive/`) stay.
+Specialized folders (`security/`, `ship/`, `design/`, `tutorial/`, `patterns/`, `archive/`, `plans/`) stay. `plans/` is projection, not law.
 `docs/INDEX.md` is the map. Do not add a second competing map.
 Concern→file lock lives in [ARCHITECTURE.md](ARCHITECTURE.md). Do not add `docs/MODULE_MAP.md`.
 
@@ -125,6 +125,7 @@ Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005
 | [adr/0006-serve-dev-shared-store.md](adr/0006-serve-dev-shared-store.md) | serve-dev shared session store (Channel-owned) |
 | [examples/README.md](examples/README.md) | Example slot |
 | [../CRITIC.md](../CRITIC.md) | Critic notes |
+| [plans/2026-09-12-telos-maturity-map.md](plans/2026-09-12-telos-maturity-map.md) | Projection (not law): capability × owner × test-lock after Soft 1–4. Law stays OWNERSHIP.md |
 
 ---
 

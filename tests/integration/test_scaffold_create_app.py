@@ -101,7 +101,7 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     assert any(ln.startswith("cek-surface") and ">=0.1.3" in ln for ln in active)
     assert any("ux-channel" in ln for ln in active)
     assert any("d0412c6" in ln for ln in active), "Channel VCS pin must be ≥ d0412c6 (Soft 3+4)"
-    assert any("ux-dom" in ln and "e8be99a" in ln for ln in active)
+    assert any("ux-dom" in ln and "2e894cd" in ln for ln in active)
     assert any("ux-motion" in ln and "67ff3f0" in ln for ln in active)
     assert any("ux-behavior" in ln and "793f120" in ln for ln in active)
     assert "subdirectory=python" in req
@@ -178,7 +178,7 @@ def test_create_app_requirements_boot_cap_require(tmp_path):
     assert any(ln.startswith("cek-host") and ">=0.1.3" in ln for ln in active)
     assert any(ln.startswith("cek-surface") and ">=0.1.3" in ln for ln in active)
     assert any("ux-channel" in ln and "d0412c6" in ln for ln in active)
-    assert any("ux-dom" in ln and "e8be99a" in ln for ln in active)
+    assert any("ux-dom" in ln and "2e894cd" in ln for ln in active)
     assert any("ux-behavior" in ln and "793f120" in ln for ln in active)
     assert any("ux-motion" in ln and "67ff3f0" in ln for ln in active)
     assert "subdirectory=python" in req

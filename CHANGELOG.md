@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Pin ux-dom @ `2e894cd7bca66e1da6c2f9d42b2d1a8bb937c92c`
+  (ux-dom Soft extract-by-id [#20](https://github.com/bitplorer/ux-dom/pull/20)
+  / plan [#19](https://github.com/bitplorer/ux-dom/pull/19); compose
+  [#80](https://github.com/bitplorer/ux-compose/pull/80) C2 owner gap
+  closed on tip). Makefile / scaffold / nook lockstep. Cap door
+  ``Channel.boot`` unchanged. Soft USE of ``extract_by_id`` is a
+  separate PR.
 - Pin ux-channel @ `d0412c62b5180f69e76d16c913809f6c34dee269`
   (channel Soft 3 kit leftover-teach + Soft 4 ``render/response.py``
   prefers ux-dom). Makefile / scaffold / nook lockstep. Cut C floor

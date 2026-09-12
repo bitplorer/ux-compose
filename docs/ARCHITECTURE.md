@@ -131,14 +131,16 @@ algebra. `cli_build.py` is the CSS minify CLI wrap of `tailwind.py`.
 | `author.py` | public `act` / `mark_dirty` / `optional_*` (ADR 0004) | Caps, HTML walk |
 | `kit_construct.py` | `apply_slots` / `kit_shell` | catalog stems |
 
-The homemade walker in `helpers.py` stays until ux-dom owns extract.
-Serialize is already library-owned (`to_html_bytes`). ux-dom pin
-`e8be99a` has no extract-by-id on serialize `__all__` (`Fragment` is an
-invisible tree shell; `parse_html` / `defHTML` are ingest, not extract).
-String `render()` / `html=` (CTO FullShellHello) still need a strip —
-`dom_tag.get(id=)` does not cover that path. Deleting the walker drops
-fragment-law. Do not give it a forever `fragment.py` home (agents will
-grow it).
+`_fragment_for_target` prefers `ux_dom.response.serialize.extract_by_id`
+when importable (ux-dom#20 / tip `2e894cd`; compose#80 C2). The homemade
+walker in `helpers.py` is escape if the owner symbol is absent. Serialize
+is already library-owned (`to_html_bytes`). `Fragment` is an invisible
+tree shell; `parse_html` / `defHTML` are ingest, not extract. String
+`render()` / `html=` (CTO FullShellHello) still need a strip —
+`dom_tag.get(id=)` does not cover that path. Deleting the escape drops
+fragment-law when the owner is missing. Do not give it a forever
+`fragment.py` home (agents will grow it). Do not invent Actions on
+ux-dom. Do not merge stale encyclopedia plans #73/#76/#77/#80.
 
 ---
 
@@ -200,7 +202,7 @@ names. Doctor will not print these from `scan_leftover_aliases`.
 | `start_css_watcher=` on `serve_dev.run` | `serve_dev` calls `start_tailwind_watch` |
 | `src/ux_compose/serve/` / `services/` packages | `serve_dev.py` + `cli.py` (no fashion folders) |
 | Channel `ops/` / `enhance/` as a compose door | Isolation `wire/` only (`ops_to_wire` is wire dicts) |
-| homemade `_fragment_for_target` HTML walker in `helpers.py` | KEEP until ux-dom owns extract; serialize is `to_html_bytes`; no `fragment.py` |
+| homemade `_fragment_for_target` HTML walker in `helpers.py` | prefer `extract_by_id` (ux-dom#20); KEEP walker as escape if absent; serialize is `to_html_bytes`; no `fragment.py` |
 | `docs/MODULE_MAP.md` | this table (INDEX remains the audience map) |
 | `pip install ux-compose` / PyPI cell | git clone + `pip install -e ".[serve]"` |
 | Teaching `App.mount` as a "secondary door" | catalog scan step; product path is `build()` |

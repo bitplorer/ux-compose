@@ -9,7 +9,7 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 | Package root is `ux-compose` | **PASS** | `src/ux_compose/`, pyproject name |
 | No client runtime (React/Vue/JSX/TS) | **PASS** | Pure Python surface only |
 | Hard invariants never broken | **PASS** | Isolation AST + Cap Law + XOR helpers + Document SSoT |
-| Thin composition root (no re-implementation) | **PASS with residual** | Store class lives in ux-channel (`FileStateStore`). Compose `serve_state.py` is lifecycle only (ADR 0006). Residual: homemade fragment walker in `helpers.py` (`_fragment_for_target`, `_element_end`, `_open_tag_id`) until ux-dom owns extract. Isolation AST + Cap Law + XOR helpers + Document SSoT |
+| Thin composition root (no re-implementation) | **PASS with residual** | Store class lives in ux-channel (`FileStateStore`). Compose `serve_state.py` is lifecycle only (ADR 0006). Residual: homemade fragment walker in `helpers.py` (`_fragment_for_target`, `_element_end`, `_open_tag_id`) as escape if ux-dom `extract_by_id` is absent (prefer owner, ux-dom#20). Isolation AST + Cap Law + XOR helpers + Document SSoT |
 | Progressive L0–L3 zero-rewrite | **PASS** | Same Component class at L1 and L3; tests prove it |
 | Offline path works without channel | **PASS** | Pure shim + real Behavior; offline subset green |
 | Live path only through `wire/` | **PASS** | `wire/boot.py` + `wire/caps.py` + `wire/cek.py` sole importers of channel/CEK |
@@ -32,7 +32,7 @@ Against the mission kill criteria and Composition Laws (mental model frozen).
 1. **Python floor is ≥3.14** — ux-dom / channel / behavior / motion are hard dependencies.
 2. **Doctor dual-Document** when scanning `examples/` may still list multiple educational Document() calls — product packages construct one Document at boot (`apps/atelier_shop` and the other product apps).
 3. After `use_channel`, `App.dispatch` is Host-internal (Behavior skips Caps when `_wire` is set). Live Cap verification is `submit_intent` / Channel edge. This is specialist contract, not a compose bug.
-4. **Fragment walker residual** — `helpers._fragment_for_target` walks HTML strings. KEEP until ux-dom owns extract (deleting drops fragment-law). Serialize is `to_html_bytes`. Not a second serialize. No `fragment.py`.
+4. **Fragment walker residual** — `helpers._fragment_for_target` prefers ux-dom `extract_by_id` when importable (ux-dom#20; compose#80 C2). KEEP homemade walker as escape if absent (deleting drops fragment-law). Serialize is `to_html_bytes`. Not a second serialize. No `fragment.py`.
 
 ## Recommendation
 

@@ -105,20 +105,23 @@ def test_critic_names_fragment_walker_residual():
     assert "def _open_tag_id" in helpers
 
 
-def test_fragment_walker_stays_until_dom_extract():
-    """B1: homemade extract stays in helpers.py. ux-dom pin owns serialize only.
+def test_fragment_walker_escape_prefers_dom_extract():
+    """C2 Soft USE: prefer ux-dom extract_by_id; homemade walker is escape.
 
-    Evidence: ux-dom @ e8be99a serialize ``__all__`` is ``to_html_bytes`` /
-    prepare — no extract-by-id. ``Fragment`` is an invisible tree shell.
+    Cite ux-dom#19/#20 and compose#80 C2. ``Fragment`` is a tree shell.
     ``parse_html`` / ``defHTML`` are ingest. CTO FullShellHello ``render()``
     is an HTML string, so ``dom_tag.get(id=)`` is not the morph path.
-    Deleting the walker drops fragment-law. Not a second serialize.
+    Deleting the escape drops fragment-law when the owner symbol is
+    absent. Not a second serialize. No ``fragment.py``.
     """
     helpers = _read("helpers.py")
     assert "from ux_dom.response.serialize import to_html_bytes" in helpers
+    assert "extract_by_id" in helpers
     assert "No homemade HTML-string renderer" in helpers
-    assert "until" in helpers and "owns extract" in helpers
+    assert "escape" in helpers.lower()
     assert "No ``fragment.py``" in helpers or "No `fragment.py`" in helpers
+    chunk = _fn(helpers, "_fragment_for_target")
+    assert "_owner_extract_by_id" in chunk or "extract_by_id" in chunk
     assert "tokenize_html" not in helpers
     assert "defHTML" not in helpers
     assert "parse_html" not in helpers
@@ -127,12 +130,16 @@ def test_fragment_walker_stays_until_dom_extract():
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     assert "_fragment_for_target" in agents
     assert "fragment.py" in agents
+    assert "extract_by_id" in agents
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
-    assert "KEEP until ux-dom owns extract" in arch
+    assert "extract_by_id" in arch
+    assert "escape" in arch
     assert "to_html_bytes" in arch
+    assert "KEEP until ux-dom owns extract" not in arch
     adr4 = (DOCS / "adr" / "0004-clarity-and-residuals.md").read_text(encoding="utf-8")
     assert "_fragment_for_target" in adr4
     assert "fragment.py" in adr4
+    assert "extract_by_id" in adr4
 
 
 def test_architecture_concern_table_is_the_module_map():
@@ -557,7 +564,9 @@ def test_leftover_table_splits_doctor_tokens_from_agent_locks():
     assert "Channel `ops/`" in agent_sec
     assert "`_fragment_for_target`" in agent_sec
     assert "`fragment.py`" in agent_sec
-    assert "KEEP until ux-dom owns extract" in agent_sec
+    assert "extract_by_id" in agent_sec
+    assert "escape if absent" in agent_sec
+    assert "KEEP until ux-dom owns extract" not in agent_sec
     assert "argv `create`" not in doctor_sec
     assert "`src/ux_compose/cli/` package" not in doctor_sec
     assert "`start_css_watcher=`" not in doctor_sec

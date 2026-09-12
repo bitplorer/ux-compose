@@ -9,7 +9,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-UX_DOM_SHA = "e8be99a52bfecd6026c200fa1c3dc6a74f87aacb"
+UX_DOM_SHA = "2e894cd7bca66e1da6c2f9d42b2d1a8bb937c92c"
 UX_CHANNEL_SHA = "d0412c62b5180f69e76d16c913809f6c34dee269"
 UX_BEHAVIOR_SHA = "793f120e3b1388925772cd069b070d7918b78baa"
 UX_MOTION_SHA = "67ff3f0c4912b70b7056f8226a6f226b6fe93f60"
@@ -28,6 +28,7 @@ def test_pyproject_requires_314_and_pins_specialists():
     assert 'subdirectory=python' in text
     assert "25338a6" not in text
     assert "76adc72" not in text
+    assert "e8be99a" not in text
 
 
 def test_pin_ssot_lockstep_makefile_scaffold_ci():
@@ -50,6 +51,9 @@ def test_pin_ssot_lockstep_makefile_scaffold_ci():
     assert "76adc72" not in makefile
     assert "25338a6" not in scaffold
     assert "76adc72" not in scaffold
+    assert "e8be99a" not in makefile
+    assert "e8be99a" not in scaffold
+    assert "e8be99a" not in nook
     assert 'python-version: "3.14"' in ci
     assert "3.12" not in ci
     assert "offline-shim" not in ci

@@ -6,9 +6,10 @@
 - Isolation Law: never imports ux_channel directly
 - Style: Tailwind utility className (CDN stand-in for TailwindStyle/WebAssets)
 - GET chrome via Document wrap; HX / morph stays fragment-only
+- Feature matrix room: GET /matrix (see MATRIX.md)
 
 Serve:
-  PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080
+  PYTHONPATH=src:. uxcompose serve dev apps.pulse.server:app --host 0.0.0.0 --port 8080
 """
 from __future__ import annotations
 
@@ -62,6 +63,7 @@ NAV = (
     ("/", "Home"),
     ("/shop", "Shop"),
     ("/lab", "Lab"),
+    ("/matrix", "Matrix"),
     ("/settings", "Settings"),
 )
 
@@ -222,6 +224,8 @@ def _page_for_path(path: str) -> str:
         return "shop"
     if pth.startswith("/lab"):
         return "lab"
+    if pth.startswith("/matrix"):
+        return "matrix"
     if pth.startswith("/settings"):
         return "settings"
     return "home"

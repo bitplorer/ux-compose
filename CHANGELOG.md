@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- Pulse live feature matrix: `GET /matrix` room +
+  `apps/pulse/MATRIX.md` + httpx locks in
+  `tests/integration/test_pulse_feature_matrix.py`. Covers
+  `build(document=)` HTML, ux-dom `extract_by_id` fragment path,
+  `Channel.boot` / `mount_channel` HTTP, bind + verified Ops,
+  morph-then-fade/rise/slide, Isolation, Cap deny, empty
+  Content-Type fail-closed. Showcase reuse (not a sixth product).
+  Cap / ``Channel.boot`` / ``mount_channel`` KEEP.
+
 ### Changed
 
 - Pin lockstep to Python ≥3.14 tips: ux-channel @

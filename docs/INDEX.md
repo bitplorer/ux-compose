@@ -107,7 +107,6 @@ Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005
 | `src/ux_compose/__init__.py` | Public names (`__all__`) |
 | [reference/host.md](reference/host.md) | Clock A payload law |
 | [resilience/MATRIX.md](resilience/MATRIX.md) | Resilience matrix |
-| [../apps/pulse/MATRIX.md](../apps/pulse/MATRIX.md) | Pulse live specialist feature matrix |
 
 ### Explanation
 

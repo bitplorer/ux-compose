@@ -7,12 +7,10 @@
 
 **Pulse** (`apps/pulse`) is the locked product-path showcase:
 
-- Page units under `routes/` (home, shop, lab, matrix, settings)
+- Page units under `routes/` (home, shop, lab, settings)
 - `App.mount` + progressive L0–L3 (complete install; attach APIs)
 - Document shell (ux-dom hard dep)
 - `/api/health`, `/api/doctor`, POST `/action/{name}`
-- Specialist happy-path room: `GET /matrix` + Clock B `/ux-channel/action`
-  (matrix: [apps/pulse/MATRIX.md](../../apps/pulse/MATRIX.md))
 
 ```bash
 pip install -e ".[dev,serve]"
@@ -80,7 +78,6 @@ make test-cto-fragment-law  # nested-shell / fragment-law
 make cek-repro-morph-shell  # optional sibling ../cek-auto-suite/repro_morph_shell.py
 make coverage
 make pulse   # live serve Pulse
-make test-pulse-matrix  # Pulse feature-matrix HTTP locks (httpx)
 ```
 
 ### CTO gates (`tests/feature/`)

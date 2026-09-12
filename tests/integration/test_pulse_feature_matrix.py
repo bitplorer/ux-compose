@@ -1,7 +1,8 @@
-"""Live E2E feature matrix locks for Pulse (compose → channel tree).
+"""L5 locks: compose→channel happy paths on existing Pulse rooms.
 
 HTTP merge bar: httpx ASGITransport against Pulse ``build()``.
-Browser / Playwright is optional; these rows are the bar.
+Surfaces: ``/`` home, ``/lab``, ``/shop``, ``/settings``, Clock B
+``/ux-channel/action``. No new Pulse room.
 
 Isolation: this suite never imports ``ux_channel`` in product code under
 test. Channel types are inspected only through compose / HTTP evidence.
@@ -15,6 +16,7 @@ from pathlib import Path
 import httpx
 import pytest
 
+from ux_compose import bind, optional_fade, optional_plan, optional_slide, update_with
 from ux_compose.doctor import scan_isolation
 from ux_compose.helpers import _fragment_for_target, _owner_extract_by_id
 from ux_compose.live_client import CHANNEL_ENDPOINT
@@ -69,23 +71,23 @@ def pulse(pulse_app):
 
 
 def test_matrix_1_dom_build_document_html(pulse):
-    """GET / and GET /matrix are Document-path HTML from build(document=)."""
+    """GET existing Pulse rooms are Document-path HTML from build(document=)."""
     ux, asgi, bundle = pulse
     assert bundle is not None
     assert ux._document is not None
 
-    home = _httpx(asgi, "GET", "/")
-    assert home.status_code == 200, home.text[:400]
-    assert "text/html" in home.headers.get("content-type", "")
-    assert "<html" in home.text.lower()
-    assert 'id="home"' in home.text
-
-    page = _httpx(asgi, "GET", "/matrix")
-    assert page.status_code == 200, page.text[:400]
-    assert "text/html" in page.headers.get("content-type", "")
-    assert "<html" in page.text.lower()
-    assert 'id="matrix"' in page.text
-    assert "data-uxcompose-get-chrome" in page.text
+    for path, eid in (
+        ("/", "home"),
+        ("/lab", "lab"),
+        ("/shop", "shop"),
+        ("/settings", "settings"),
+    ):
+        page = _httpx(asgi, "GET", path)
+        assert page.status_code == 200, (path, page.text[:400])
+        assert "text/html" in page.headers.get("content-type", "")
+        assert "<html" in page.text.lower()
+        assert f'id="{eid}"' in page.text
+        assert "data-uxcompose-get-chrome" in page.text
 
 
 def test_matrix_1_dom_extract_by_id_fragment_path(pulse):
@@ -94,13 +96,12 @@ def test_matrix_1_dom_extract_by_id_fragment_path(pulse):
     owner = _owner_extract_by_id()
     assert owner is not None, "ux-dom extract_by_id must be importable on this pin"
 
-    page = _httpx(asgi, "GET", "/matrix")
+    page = _httpx(asgi, "GET", "/lab")
     assert page.status_code == 200
-    via_owner = owner(page.text, "matrix")
-    via_helper = _fragment_for_target(page.text, "matrix")
+    via_owner = owner(page.text, "lab")
+    via_helper = _fragment_for_target(page.text, "lab")
     assert via_owner == via_helper
-    assert 'id="matrix"' in via_helper
-    assert 'id="matrix-stage"' in via_helper
+    assert 'id="lab"' in via_helper
     assert "<html" not in via_helper.lower()
     assert "data-uxcompose-get-chrome" not in via_helper
     assert "<title" not in via_helper.lower()
@@ -129,17 +130,17 @@ def test_matrix_2_channel_boot_and_mount_http(pulse):
 
 
 def test_matrix_2_channel_cap_path_http(pulse):
-    """POST /ux-channel/action: minted cap is 200; missing cap is 401."""
+    """POST /ux-channel/action: minted home.beat cap is 200; missing cap is 401."""
     _, asgi, _ = pulse
-    page = _httpx(asgi, "GET", "/matrix")
-    minted = intent_from_control(page.text, "matrix.tick_once")
+    page = _httpx(asgi, "GET", "/")
+    minted = intent_from_control(page.text, "home.beat")
     assert minted["cap"].strip(), minted
 
     refused = _httpx(
         asgi,
         "POST",
         CHANNEL_ENDPOINT,
-        json={"v": "1", "action": "matrix.tick_once", "args": {}, "cap": None},
+        json={"v": "1", "action": "home.beat", "args": {}, "cap": None},
         headers={"x-channel": "1"},
     )
     assert refused.status_code == 401, refused.text[:500]
@@ -167,22 +168,28 @@ def test_matrix_2_channel_cap_path_http(pulse):
 
 
 def test_matrix_3_bind_action_verified_ops(pulse):
-    """bind() + @action emit real behavior Ops; GET shows bind attrs."""
+    """Existing Lab @action: GET control attrs; bind() + dispatch → real Ops."""
     ux, asgi, _ = pulse
-    page = _httpx(asgi, "GET", "/matrix")
+    page = _httpx(asgi, "GET", "/lab")
     assert page.status_code == 200
-    assert 'data-channel-action="matrix.tick_once"' in page.text
-    assert 'data-ux-action="matrix.tick_once"' in page.text
+    assert 'data-channel-action="lab.inc"' in page.text
+    assert 'data-ux-action="lab.inc"' in page.text
     assert "data-channel-cap" in page.text
 
-    ops = ux.dispatch("matrix.tick_once")
+    lab = ux._behavior.get("lab")
+    attrs = bind(lab.inc)
+    assert attrs.get("data-channel-action") == "lab.inc"
+    assert attrs.get("data-ux-action") == "lab.inc"
+    assert str(attrs.get("data-channel-cap") or "").strip()
+
+    ops = ux.dispatch("lab.inc")
     assert isinstance(ops, list) and ops
     first = ops[0]
     assert getattr(first, "ns", None) == "ui.dom"
     assert getattr(first, "name", None) == "morph"
     payload = getattr(first, "payload", {}) or {}
     html = str(payload.get("patch") or payload.get("html") or "")
-    assert 'id="matrix"' in html
+    assert 'id="lab"' in html
     assert "<html" not in html.lower()
 
 
@@ -204,33 +211,35 @@ def _ops_blob(ops) -> str:
 
 
 def test_matrix_4_morph_then_motion_after_result(pulse):
-    """Order law: morph first, then scene/play fade|rise|slide. No html= on plan."""
+    """Order law on Pulse Lab via helpers; HTTP home.beat Result is morph-first."""
     ux, asgi, _ = pulse
-    for verb, token in (
-        ("matrix.play_fade", "fade"),
-        ("matrix.play_rise", "rise"),
-        ("matrix.play_slide", "slide"),
+    lab = ux._behavior.get("lab")
+    for plan, token in (
+        (optional_fade("pulse-lab-fade", "#lab"), "fade"),
+        (optional_plan("pulse-lab-rise", "#lab"), "rise"),
+        (optional_slide("pulse-lab-slide", "#lab"), "slide"),
     ):
-        ops = ux.dispatch(verb)
-        assert isinstance(ops, list) and len(ops) >= 2, verb
+        ops = update_with(lab, plan)
+        assert isinstance(ops, list) and len(ops) >= 2
         first = ops[0]
         assert getattr(first, "ns", None) == "ui.dom"
         assert getattr(first, "name", None) == "morph"
-        later = ops[1:]
         play = [
             o
-            for o in later
+            for o in ops[1:]
             if getattr(o, "ns", "") == "transition" and getattr(o, "name", "") == "play"
         ]
-        assert play, f"{verb} must append transition.play after morph: {ops!r}"
+        assert play, f"must append transition.play after morph: {ops!r}"
         blob = _ops_blob(play).lower()
-        assert token in blob or "enter" in blob, (verb, blob)
+        assert token in blob or "enter" in blob, blob
         for o in play:
-            plan = (getattr(o, "payload", None) or {}).get("plan")
-            assert "html" not in str(plan).lower() or '"html"' not in str(plan)
+            plan_payload = (getattr(o, "payload", None) or {}).get("plan")
+            assert "html" not in str(plan_payload).lower() or '"html"' not in str(
+                plan_payload
+            )
 
-    page = _httpx(asgi, "GET", "/matrix")
-    minted = intent_from_control(page.text, "matrix.play_fade")
+    page = _httpx(asgi, "GET", "/")
+    minted = intent_from_control(page.text, "home.beat")
     result = _httpx(
         asgi,
         "POST",
@@ -287,11 +296,7 @@ def test_matrix_5_isolation_no_ux_channel_outside_wire():
     assert pulse_files
     assert scan_isolation(pulse_files) == []
 
-    compose_files = [
-        p
-        for p in SRC.rglob("*.py")
-        if "wire" not in p.parts
-    ]
+    compose_files = [p for p in SRC.rglob("*.py") if "wire" not in p.parts]
     diags = scan_isolation(compose_files)
     assert diags == [], diags
     for path in compose_files:
@@ -309,31 +314,27 @@ def test_matrix_5_isolation_no_ux_channel_outside_wire():
 
 
 def test_matrix_6_cap_deny_fail_closed(pulse):
-    """Cap-gated matrix.gated without cap is 401; minted cap is 200."""
-    _, asgi, _ = pulse
-    page = _httpx(asgi, "GET", "/matrix")
-    minted = intent_from_control(page.text, "matrix.gated")
-    assert minted["cap"].strip(), minted
+    """Cap-gated shop.checkout without cap is 401; minted cap is 200."""
+    ux, asgi, _ = pulse
+    from ux_compose.helpers import control as live_control
 
     denied = _httpx(
         asgi,
         "POST",
         CHANNEL_ENDPOINT,
-        json={"v": "1", "action": "matrix.gated", "args": {}, "cap": None},
+        json={"v": "1", "action": "shop.checkout", "args": {}, "cap": None},
         headers={"x-channel": "1"},
     )
     assert denied.status_code == 401, denied.text[:500]
 
+    minted = live_control("shop.checkout")
+    cap = str(minted.get("data-channel-cap") or "").strip()
+    assert cap, minted
     ok = _httpx(
         asgi,
         "POST",
         CHANNEL_ENDPOINT,
-        json={
-            "v": "1",
-            "action": minted["action"],
-            "args": minted["args"],
-            "cap": minted["cap"],
-        },
+        json={"v": "1", "action": "shop.checkout", "args": {}, "cap": cap},
         headers={"x-channel": "1"},
     )
     assert ok.status_code == 200, ok.text[:500]
@@ -346,7 +347,7 @@ def test_matrix_6_empty_content_type_fail_closed(pulse):
         asgi,
         "POST",
         CHANNEL_ENDPOINT,
-        content=b'{"v":"1","action":"matrix.tick_once","args":{},"cap":null}',
+        content=b'{"v":"1","action":"home.beat","args":{},"cap":null}',
         headers={"x-channel": "1", "content-type": ""},
     )
     assert r.status_code == 400, r.text[:500]

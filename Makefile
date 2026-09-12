@@ -10,7 +10,7 @@ UX_MOTION_SHA = bbe7d73466a6c1eccb47e711568c80ce3b4d5487
 UX_CHANNEL_SHA = a6ab1594959b287b4754afe09d8aced5504edd8f
 UX_DOM_SHA = 2e894cd7bca66e1da6c2f9d42b2d1a8bb937c92c
 
-.PHONY: test test-matrix coverage test314 venv314 specialists examples doctor shop studio pulse nook test-cto test-cto-fragment-law test-pulse-matrix cek-repro-morph-shell
+.PHONY: test test-matrix coverage test314 venv314 specialists examples doctor shop studio pulse nook test-cto test-cto-fragment-law cek-repro-morph-shell
 
 venv314:
 	python3.14 -m venv --without-pip $(VENV) || true
@@ -34,10 +34,6 @@ test-matrix:
 	PYTHONPATH=src:. python -m pytest \
 	  tests/unit tests/integration tests/regression tests/feature \
 	  tests/concurrency tests/load tests/security -q
-
-# Pulse live feature matrix (httpx ASGI → Clock A GET + Clock B /ux-channel).
-test-pulse-matrix:
-	PYTHONPATH=src:. python -m pytest tests/integration/test_pulse_feature_matrix.py -q
 
 # CTO gates (scaffold fragment, Cap mint / fail-closed, fragment-law).
 # Isolation: product never imports ux_channel.

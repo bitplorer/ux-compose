@@ -16,6 +16,27 @@ from ux_behavior import bind as _behavior_bind, notify as _real_notify, update a
 from ux_behavior.ops import Op as _Op
 from ux_dom.response.serialize import to_html_bytes
 
+# Soft USE (ux-dom#20 / compose#80 C2): prefer owner extract when the
+# symbol exists. Homemade walker below is escape if absent. Cached so
+# tests can pin the owner or the escape (channel Soft 1+4 ponytail).
+_UNSET = object()
+_EXTRACT_BY_ID: Any = _UNSET
+
+
+def _owner_extract_by_id():
+    """ux-dom ``extract_by_id`` when importable. None if the symbol is absent."""
+    global _EXTRACT_BY_ID
+    if _EXTRACT_BY_ID is _UNSET:
+        try:
+            from ux_dom.response.serialize import extract_by_id as owner
+        except ImportError:
+            try:
+                from ux_dom.response import extract_by_id as owner
+            except ImportError:
+                owner = None
+        _EXTRACT_BY_ID = owner
+    return _EXTRACT_BY_ID
+
 
 def _as_op(ns: str, name: str, payload: Optional[dict] = None) -> Any:
     """Build a real ux-behavior Op. Compose does not emit parallel dict Ops."""
@@ -118,10 +139,10 @@ def _serialize_tree(tree: Any) -> str:
     return to_html_bytes(tree).decode("utf-8")
 
 
-# Extract-by-id is not a ux-dom public API (serialize ``__all__`` is
-# ``to_html_bytes`` / prepare). String ``render()`` / ``html=`` still
-# need a strip (CTO FullShellHello). KEEP these walkers here until
-# ux-dom owns extract. Not a second serialize. No ``fragment.py``.
+# Prefer ux-dom ``extract_by_id`` (serialize door; ux-dom#20). String
+# ``render()`` / ``html=`` still need a strip (CTO FullShellHello).
+# KEEP the homemade walker as escape if the owner symbol is absent.
+# Not a second serialize. No ``fragment.py``.
 
 
 _VOID_TAGS = frozenset(
@@ -244,11 +265,16 @@ def _open_tag_id(open_tag: str) -> str | None:
 def _fragment_for_target(html: str, target_id: str) -> str:
     """Document law: morph payload is the subtree for ``#target``, not a shell.
 
+    Prefer ``ux_dom.response.serialize.extract_by_id`` when importable
+    (ux-dom#20; compose#80 C2). Homemade walker is escape if absent.
     Authors should still write fragment ``render()``. This strip is a safety
     net when ``render()`` returns a full shell that *contains* ``#target``.
     Already-fragment HTML (root id == target) is returned unchanged. Missing
     target id leaves ``html`` as-is.
     """
+    owner = _owner_extract_by_id()
+    if owner is not None:
+        return owner(html, target_id)
     blob = html or ""
     tid = str(target_id or "").lstrip("#")
     if not blob or not tid:

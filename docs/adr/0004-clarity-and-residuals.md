@@ -44,9 +44,10 @@ still lock them. Confusion must stop growing.
    `restart_channel`; `start_css_watcher=` on `serve_dev.run`; ghost
    `cli/` / `serve/` / `services/` packages. Prefer frozen serve verbs and
    `serve_dev` calling `start_tailwind_watch`. Homemade `helpers.py`
-   `_fragment_for_target` walker stays until ux-dom owns extract (not a
-   second serialize; no `fragment.py`). See
-   [../ARCHITECTURE.md](../ARCHITECTURE.md) **Agent leftovers**.
+   `_fragment_for_target` walker prefers ux-dom `extract_by_id` when
+   importable (ux-dom#20; compose#80 C2). KEEP the walker as escape if
+   the owner symbol is absent (not a second serialize; no `fragment.py`).
+   See [../ARCHITECTURE.md](../ARCHITECTURE.md) **Agent leftovers**.
 5. **Attach step-downs are visible and per-App.** Each `App` owns attach notes (`app.attach_notes`).
    `note()` dual-writes a process notebook so doctor has a process-wide audit.
    Two Apps in one process do not leak. `use_channel` / `use_motion` fail loud

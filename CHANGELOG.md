@@ -31,6 +31,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Soft USE: ``helpers._fragment_for_target`` prefers
+  ``ux_dom.response.serialize.extract_by_id`` when importable
+  (ux-dom [#20](https://github.com/bitplorer/ux-dom/pull/20) /
+  plan [#19](https://github.com/bitplorer/ux-dom/pull/19); compose
+  [#80](https://github.com/bitplorer/ux-compose/pull/80) C2). Homemade
+  walker KEEP as escape if absent. No ``fragment.py``. Cap door
+  ``Channel.boot`` / ``mount_channel`` KEEP. Leftover teaching + locks
+  in the same commit. Pin lockstep is a separate PR.
 - Cut B leftover teaching: homemade ``helpers.py`` fragment walker
   (``_fragment_for_target``) stays until ux-dom owns extract. Serialize
   remains ``to_html_bytes``. No ``fragment.py``. Same-commit source locks.

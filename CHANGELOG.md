@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Pin ux-channel @ `d0412c62b5180f69e76d16c913809f6c34dee269`
+  (channel Soft 3 kit leftover-teach + Soft 4 ``render/response.py``
+  prefers ux-dom). Makefile / scaffold / nook lockstep. Cut C floor
+  ``985e58a`` stays. Cap door ``Channel.boot`` unchanged. No Soft
+  relaunch.
+- scaffold/nook: ``COMPOSE_VCS_PIN`` tracks main tip ``24a182f`` so cold
+  ``pip -r`` installs pin-aligned compose (includes channel Soft 1+2 #78;
+  same #56/#75 honesty).
 - Pin ux-channel @ `ae5a675991db5c168d0b6df018e929d808c7511f`
   (channel Soft 1 HTML→ux-dom + Soft 2 create-app lab honesty).
   Makefile / scaffold / nook lockstep. Cut C floor ``985e58a`` stays.

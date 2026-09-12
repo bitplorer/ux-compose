@@ -10,10 +10,10 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 UX_DOM_SHA = "e8be99a52bfecd6026c200fa1c3dc6a74f87aacb"
-UX_CHANNEL_SHA = "ae5a675991db5c168d0b6df018e929d808c7511f"
+UX_CHANNEL_SHA = "d0412c62b5180f69e76d16c913809f6c34dee269"
 UX_BEHAVIOR_SHA = "793f120e3b1388925772cd069b070d7918b78baa"
 UX_MOTION_SHA = "67ff3f0c4912b70b7056f8226a6f226b6fe93f60"
-COMPOSE_SHA = "957f81fb5fed060213e623c6434e240ea6587a1f"
+COMPOSE_SHA = "24a182f35e3d0743a2faafddb5ba0396324b2d9a"
 
 
 def test_pyproject_requires_314_and_pins_specialists():

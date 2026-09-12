@@ -77,7 +77,8 @@ Leftover `start_css_watcher=` is gone. Frozen serve verbs: `dev` / `prod` /
 `restart-channel`. argv `development` / `production` / `restart_channel`
 fail closed. No `cli/` / `serve/` / `services/` ghost packages.
 Three clocks on `serve dev` only: process reload (`*.py`) · browser WS live-reload · sibling Tailwind `--watch` + client HEAD `/css/output.css`. No watcher and no `Popen` in `hmr.py`. CSS save must not kill the worker.
-Cap door is `Channel.boot` (pin ux-channel @ `985e58a`). Channel prefers Redis.
+Cap door is `Channel.boot` (pin ux-channel @ `ae5a675`; Cut C floor
+`985e58a`). Channel prefers Redis.
 
 ## 6. Forbidden
 

@@ -223,7 +223,8 @@ OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
   not a frozen compose import. Boot applies the Cap adapter when
   `cek != "off"`. Do not assume classic `CapService` at `cek=require`.
 - Channel prefers Redis when `REDIS_URL` is set. serve-dev will not export
-  both `REDIS_URL` and `UXCOMPOSE_STATE_STORE`. Pin: ux-channel @ `985e58a`.
+  both `REDIS_URL` and `UXCOMPOSE_STATE_STORE`. Pin: ux-channel @ `ae5a675`
+  (Soft 1+2; Cut C floor `985e58a`).
 - Cold import never pulls `wire/`.
 - Document is SSoT: one `Document` in `document.py`. `build(document=)` attaches
   it. Dual-Document is a doctor fail.

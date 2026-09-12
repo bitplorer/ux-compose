@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Pin ux-channel @ `ae5a675991db5c168d0b6df018e929d808c7511f`
+  (channel Soft 1 HTML→ux-dom + Soft 2 create-app lab honesty).
+  Makefile / scaffold / nook lockstep. Cut C floor ``985e58a`` stays.
+  Soft 3 kit teaching and Soft 4 ``render/response.py`` are not this PR.
 - Pin ux-channel @ `985e58aee76ca683774c4d4d58ab30a1d3b6efee`
   (channel Cut C: empty Content-Type on HTTP ``/action`` is
   ``bad_request``). Makefile / scaffold / nook lockstep. Compose does

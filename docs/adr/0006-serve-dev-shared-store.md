@@ -50,7 +50,8 @@ serve-dev accepted objects production Redis would stringify).
 - Pin ux-channel to a SHA that includes `FileStateStore`, the
   #27 Cap / health honesty, Cuts 1–2 CLI/layout honesty, and Cut C
   empty Content-Type fail-closed
-  (`985e58aee76ca683774c4d4d58ab30a1d3b6efee`).
+  (`985e58aee76ca683774c4d4d58ab30a1d3b6efee`). Current compose pin
+  `ae5a675991db5c168d0b6df018e929d808c7511f` is Soft 1+2 on that floor.
 
 ## Rejected
 

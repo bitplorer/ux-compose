@@ -100,7 +100,7 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     assert any(ln.startswith("cek-host") and ">=0.1.3" in ln for ln in active)
     assert any(ln.startswith("cek-surface") and ">=0.1.3" in ln for ln in active)
     assert any("ux-channel" in ln for ln in active)
-    assert any("985e58a" in ln for ln in active), "Channel VCS pin must be ≥ 985e58a"
+    assert any("ae5a675" in ln for ln in active), "Channel VCS pin must be ≥ ae5a675 (Soft 1+2)"
     assert any("ux-dom" in ln and "e8be99a" in ln for ln in active)
     assert any("ux-motion" in ln and "67ff3f0" in ln for ln in active)
     assert any("ux-behavior" in ln and "793f120" in ln for ln in active)
@@ -177,7 +177,7 @@ def test_create_app_requirements_boot_cap_require(tmp_path):
     assert "wrap=document" in app_py
     assert any(ln.startswith("cek-host") and ">=0.1.3" in ln for ln in active)
     assert any(ln.startswith("cek-surface") and ">=0.1.3" in ln for ln in active)
-    assert any("ux-channel" in ln and "985e58a" in ln for ln in active)
+    assert any("ux-channel" in ln and "ae5a675" in ln for ln in active)
     assert any("ux-dom" in ln and "e8be99a" in ln for ln in active)
     assert any("ux-behavior" in ln and "793f120" in ln for ln in active)
     assert any("ux-motion" in ln and "67ff3f0" in ln for ln in active)

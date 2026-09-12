@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- L5 httpx locks on existing Pulse rooms (home / lab / shop /
+  settings + ``/ux-channel/action``) in
+  ``tests/integration/test_pulse_feature_matrix.py``. No new Pulse
+  room or MATRIX.md teaching surface. Cap / ``Channel.boot`` /
+  ``mount_channel`` KEEP. Walker escape KEEP.
+
 ### Changed
 
 - Pin lockstep to Python ≥3.14 tips: ux-channel @

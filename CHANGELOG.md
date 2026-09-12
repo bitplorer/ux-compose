@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Pin lockstep to Python ≥3.14 tips: ux-channel @
+  `a6ab1594959b287b4754afe09d8aced5504edd8f` (channel
+  [#39](https://github.com/bitplorer/ux-channel/pull/39)), ux-behavior @
+  `7d46979f59f284bc2d6d961ed372ec849e851dfc` (behavior
+  [#12](https://github.com/bitplorer/ux-behavior/pull/12)), ux-motion @
+  `bbe7d73466a6c1eccb47e711568c80ce3b4d5487` (motion
+  [#8](https://github.com/bitplorer/ux-motion/pull/8)). Makefile /
+  scaffold / nook lockstep. ux-dom stays `2e894cd` (docs-only tip
+  KEEP). ``COMPOSE_VCS_PIN`` / #56 chicken-egg lag stays. Cap door
+  ``Channel.boot`` unchanged. HOLD compose #30. Valio out of scope.
 - Pin ux-dom @ `2e894cd7bca66e1da6c2f9d42b2d1a8bb937c92c`
   (ux-dom Soft extract-by-id [#20](https://github.com/bitplorer/ux-dom/pull/20)
   / plan [#19](https://github.com/bitplorer/ux-dom/pull/19); compose

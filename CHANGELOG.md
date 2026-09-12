@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Pin ux-channel @ `d0412c62b5180f69e76d16c913809f6c34dee269`
+  (channel Soft 1–4 on tip: HTML→ux-dom, create-app lab honesty,
+  kit leftover-teach, ``render/response.py`` → ``ux_dom.response``).
+  Makefile / scaffold / nook lockstep. Cut C floor ``985e58a`` stays.
+  Cap ``mount_channel`` KEEP. Plan: #80.
 - Pin ux-channel @ `ae5a675991db5c168d0b6df018e929d808c7511f`
   (channel Soft 1 HTML→ux-dom + Soft 2 create-app lab honesty).
   Makefile / scaffold / nook lockstep. Cut C floor ``985e58a`` stays.

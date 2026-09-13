@@ -28,7 +28,8 @@ curl -s localhost:8080/api/doctor
 curl -s localhost:8080/
 ```
 
-Also: `apps/atelier_shop`, `apps/atelier_studio` (Makefile `shop` / `studio`).
+Also: `apps/atelier_shop`, `apps/atelier_studio` (Makefile `shop` / `studio`),
+`apps/pulseboard` (Makefile `pulseboard` — SaaS command center).
 
 ---
 

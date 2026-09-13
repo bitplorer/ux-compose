@@ -37,6 +37,7 @@ def nav(*, level: int, label: str):
         a("Atelier", span("of Patterns"), href="/", className="brand"),
         div(
             a("Shop", href="/shop"),
+            a("Pulseboard", href="/pulseboard"),
             span(f"L{level} {label}", className="level-chip"),
             className="nav-meta",
         ),

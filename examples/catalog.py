@@ -56,6 +56,7 @@ from examples.modal import ConfirmModal as DemoModal
 
 # Product cart (atelier) — same class at L1–L3.
 from apps.atelier_shop.shop import Cart as ShopCart, ConfirmModal as ShopModal
+from apps.pulseboard.widgets import PulseClose, PulseKanban, PulseKpis, PulseTimeline
 
 
 def _p(
@@ -919,6 +920,20 @@ PATTERNS: list[dict[str, Any]] = [
         "this is chrome, not money.",
         Shortcuts,
         file="examples/ops.py",
+    ),
+    _p(
+        "pulseboard",
+        "Systems",
+        "Pulseboard",
+        "Command center · kit Stats / Timeline / Rating",
+        "The live SaaS desk. Open /pulseboard for the full composition.",
+        ("Ops-as-data", "Cap Law", "Document SSoT"),
+        "Six KPI magnitudes on RefState (Stats kit). Pipeline columns are "
+        "named RefState lists. Close quarter spends quarter.close; wipe is "
+        "fail-closed without a mint. Full desk: apps/pulseboard.",
+        PulseKpis,
+        companions=(PulseKanban, PulseTimeline, PulseClose),
+        file="apps/pulseboard/widgets.py",
     ),
 ]
 

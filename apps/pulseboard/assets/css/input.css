@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@source "../../**/*.{py,html,js}";
+
+@layer base {
+  :root {
+    --bg: #07090d;
+    --fg: #e8eef6;
+    --font-display: "Fraunces", Georgia, serif;
+    --font-body: "Source Sans 3", system-ui, sans-serif;
+  }
+  html { background: var(--bg); color: var(--fg); }
+  body { margin: 0; font-family: var(--font-body); }
+}

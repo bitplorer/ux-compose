@@ -10,7 +10,7 @@ UX_MOTION_SHA = bbe7d73466a6c1eccb47e711568c80ce3b4d5487
 UX_CHANNEL_SHA = a6ab1594959b287b4754afe09d8aced5504edd8f
 UX_DOM_SHA = 2e894cd7bca66e1da6c2f9d42b2d1a8bb937c92c
 
-.PHONY: test test-matrix coverage test314 venv314 specialists examples doctor shop studio pulse nook test-cto test-cto-fragment-law cek-repro-morph-shell
+.PHONY: test test-matrix coverage test314 venv314 specialists examples doctor shop studio pulse pulseboard nook test-cto test-cto-fragment-law cek-repro-morph-shell
 
 venv314:
 	python3.14 -m venv --without-pip $(VENV) || true
@@ -70,6 +70,7 @@ examples:
 	$(PY314) examples/feeds.py
 	$(PY314) examples/commerce_more.py
 	$(PY314) examples/ops.py
+	$(PY314) examples/pulseboard.py
 	$(PY314) examples/live_caps.py
 	$(PY314) examples/motion_xor.py
 	$(PY314) examples/cart.py
@@ -91,3 +92,6 @@ pulse:
 
 nook:
 	PYTHONPATH=src:. $(PY314) -m uvicorn apps.nook.server:app --host 0.0.0.0 --port 8080
+
+pulseboard:
+	PYTHONPATH=src:. $(PY314) -m uvicorn apps.pulseboard.server:app --host 0.0.0.0 --port 8080

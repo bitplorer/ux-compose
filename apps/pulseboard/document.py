@@ -9,7 +9,16 @@ from ux_dom import Document
 from ux_dom.dom import link, meta, script, title
 from ux_dom.runtime import Channel, Csp, XElement
 
-_plugins = (XElement(), Csp.auto(), Channel.optional())
+from .settings import OUTPUT_CSS
+
+_plugins = (
+    XElement(),
+    Csp.auto(
+        style_hosts=("https://fonts.googleapis.com",),
+        font_src=("'self'", "data:", "https://fonts.gstatic.com"),
+    ),
+    Channel.optional(),
+)
 document = Document(
     head=[
         meta(charset="utf-8"),
@@ -27,7 +36,7 @@ document = Document(
             rel="stylesheet",
             href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap",
         ),
-        script(src="https://cdn.tailwindcss.com"),
+        link(href=f"/css/{OUTPUT_CSS}", rel="stylesheet"),
         link(rel="stylesheet", href="/static/css/pulseboard.css"),
         script(src="/static/pulseboard.js"),
     ],

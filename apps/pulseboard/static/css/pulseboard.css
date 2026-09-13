@@ -1,0 +1,37 @@
+/* Pulseboard — tokens Tailwind CDN cannot express. Utilities stay in className. */
+:root {
+  color-scheme: dark;
+  --pb-bg: #07090d;
+  --pb-rail: #0c1017;
+  --pb-card: #121822;
+  --pb-line: rgba(255, 255, 255, 0.08);
+}
+html.dark,
+html:has(#pulseboard.dark) {
+  color-scheme: dark;
+  background: var(--pb-bg);
+}
+html:not(.dark):has(#pulseboard:not(.dark)) {
+  color-scheme: light;
+  background: #f4f6f9;
+}
+body {
+  margin: 0;
+  font-family: "Source Sans 3", system-ui, sans-serif;
+}
+#pulseboard {
+  background-image:
+    radial-gradient(1200px 500px at 10% -10%, rgba(45, 212, 191, 0.08), transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, rgba(251, 191, 36, 0.05), transparent 50%);
+}
+#pulseboard:not(.dark) {
+  background-image:
+    radial-gradient(1200px 500px at 10% -10%, rgba(13, 148, 136, 0.08), transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, rgba(180, 83, 9, 0.05), transparent 50%);
+}
+progress.pulse-bar::-webkit-progress-value {
+  background: #14b8a6;
+}
+progress.pulse-bar::-moz-progress-bar {
+  background: #14b8a6;
+}

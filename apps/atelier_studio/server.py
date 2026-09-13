@@ -33,6 +33,8 @@ from apps.atelier_studio.chrome import (
 )
 from examples.catalog import PATTERNS, all_components, by_slug
 from apps.atelier_shop.shop import catalog_grid
+from apps.pulseboard.app import register_board
+from apps.pulseboard.chrome import compose as pulseboard_compose
 from ux_dom import Document
 from ux_dom.runtime import XElement, Htmx
 
@@ -50,7 +52,7 @@ _STATIC = Path(__file__).resolve().parent / "static"
 _IDIOMORPH = _STATIC / "idiomorph.min.js"
 
 # Live Cap: these names go through submit_intent, not Host-internal dispatch.
-MINT = {"liveorder.place_minted", "cart.checkout", "checkout.place"}
+MINT = {"liveorder.place_minted", "cart.checkout", "checkout.place", "desk_close.close_quarter"}
 REFUSE = {
     "liveorder.place",
     "confirm.confirm",
@@ -64,6 +66,7 @@ REFUSE = {
     "comments.moderate",
     "calendar.book",
     "settings.wipe",
+    "desk_close.wipe",
 }
 # Host routing keys — never forwarded into @action kwargs.
 HOST_KEYS = {"action", "submit", "slug", "target"}
@@ -85,6 +88,8 @@ def _clean_args(args: dict[str, Any]) -> dict[str, Any]:
 def _slug_for_action(name: str) -> Optional[str]:
     """Map ``component.verb`` to a catalog slug without relying on Referer."""
     cid = (name or "").split(".", 1)[0]
+    if cid.startswith("desk_"):
+        return "pulseboard"
     if cid in {"cart", "confirm-modal"}:
         return "shop"
     for row in PATTERNS:
@@ -177,8 +182,11 @@ def _document():
                 href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;500;600&display=swap",
             ),
             link(rel="stylesheet", href="/static/css/atelier.css"),
+            script(src="https://cdn.tailwindcss.com"),
+            link(rel="stylesheet", href="/pulseboard/static/css/pulseboard.css"),
             script(src="/static/idiomorph.min.js"),
             script(src="/ux-pkg/ux-motion/static/ux-motion-player.js"),
+            script(src="/pulseboard/static/pulseboard.js"),
         ],
         body=[],
         ensure_csrf_token=False,
@@ -193,6 +201,7 @@ UX = App.boot("AtelierStudio", strict_caps=True)
 UX.use_dom(DOCUMENT)
 UX.use_behavior()
 UX.add(*all_components())
+register_board(UX)
 
 
 def _inst(cid: str):
@@ -260,6 +269,16 @@ def _pattern(slug: str, *, flash: str = ""):
     return _wrap_get(div(*parts, className="wrap"), flash=flash)
 
 
+def _pulseboard(*, room: str = "overview", flash: str = ""):
+    stage = pulseboard_compose(room=room, atelier=True, prefix="/pulseboard")
+    flash_nodes = []
+    if flash:
+        from ux_compose import p as p_tag
+
+        flash_nodes = [p_tag(flash, className="status status-ok", role="status")]
+    return DOCUMENT(stage, *flash_nodes)
+
+
 def _shop(*, flash: str = "") -> str:
     from ux_compose import aside, h1, p, section
 
@@ -315,6 +334,8 @@ def _collect_ops(bucket: list, result: Any) -> None:
 
 def _fragment(slug: Optional[str]) -> str:
     """Stage-only HTML for JSON fallback / HTMX. Never the full document."""
+    if slug == "pulseboard":
+        return html_of(pulseboard_compose(room="overview", atelier=True, prefix="/pulseboard"))
     if slug == "shop":
         cart = _inst("cart")
         modal = _inst("confirm-modal")
@@ -356,6 +377,31 @@ def build_asgi():
     @asgi.get("/shop", response_class=HTMLResponse)
     def shop():
         return _html_response(_shop())
+
+    @asgi.get("/pulseboard", response_class=HTMLResponse)
+    def pulseboard():
+        return _html_response(_pulseboard(room="overview"))
+
+    @asgi.get("/pulseboard/pipeline", response_class=HTMLResponse)
+    def pulseboard_pipeline():
+        return _html_response(_pulseboard(room="pipeline"))
+
+    @asgi.get("/pulseboard/signals", response_class=HTMLResponse)
+    def pulseboard_signals():
+        return _html_response(_pulseboard(room="signals"))
+
+    @asgi.get("/pulseboard/static/{rest:path}")
+    def pulseboard_static(rest: str):
+        from apps.pulseboard.settings import BASE_DIR
+
+        path = (BASE_DIR / "static" / rest).resolve()
+        root = (BASE_DIR / "static").resolve()
+        if root not in path.parents and path != root:
+            return Response(status_code=404)
+        if not path.is_file():
+            return Response(status_code=404)
+        media = "text/css" if path.suffix == ".css" else "application/javascript"
+        return FileResponse(path, media_type=media)
 
     @asgi.get("/health")
     def health():
@@ -401,7 +447,9 @@ def build_asgi():
         args = _parse_action_args(ctype, raw_b)
         referer = request.headers.get("referer") or ""
         slug = None
-        if "/shop" in referer:
+        if "/pulseboard" in referer:
+            slug = "pulseboard"
+        elif "/shop" in referer:
             slug = "shop"
         else:
             m = re.search(r"/p/([A-Za-z0-9_-]+)", referer)
@@ -455,6 +503,8 @@ def build_asgi():
                 flash = "Placed." if ok else "Refused — no Cap."
                 if not ok and name == "liveorder.place":
                     _collect_ops(last_ops, UX.dispatch("liveorder.mark_refused", reason="no Cap"))
+                if not ok and name == "desk_close.wipe":
+                    _collect_ops(last_ops, UX.dispatch("desk_close.mark_refused", reason="no Cap"))
             else:
                 _collect_ops(last_ops, UX.dispatch(name, **args))
         except Exception as exc:
@@ -473,6 +523,13 @@ def build_asgi():
             )
         if _wants_fragment(request):
             return HTMLResponse(_fragment(slug))
+        if slug == "pulseboard":
+            room = "overview"
+            if "/pipeline" in referer:
+                room = "pipeline"
+            elif "/signals" in referer:
+                room = "signals"
+            return _html_response(_pulseboard(room=room, flash=flash))
         if slug == "shop":
             return _html_response(_shop(flash=flash))
         if slug:

@@ -17,6 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Pin ux-dom @ `cdb0dd1486e58746c51e98aa51f5fd4d26841196`
+  (ux-dom [#22](https://github.com/bitplorer/ux-dom/pull/22)). A clean
+  install of `2e894cd` has no `style-src-attr`. Dev CSP now emits
+  `style-src-attr 'unsafe-inline'` so element `style=""` is not blocked
+  by the style-src nonce. Makefile / scaffold / nook / pulseboard
+  lockstep. Cap door ``Channel.boot`` unchanged.
 - Pin lockstep to Python ≥3.14 tips: ux-channel @
   `a6ab1594959b287b4754afe09d8aced5504edd8f` (channel
   [#39](https://github.com/bitplorer/ux-channel/pull/39)), ux-behavior @

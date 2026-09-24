@@ -95,7 +95,7 @@ def _action_caps(path: Path) -> list[tuple[str, tuple[str, ...]]]:
     return found
 
 
-def test_chrome_a_stems_resolve():
+def test_presence_a_stems_resolve():
     for stem in CHROME_A:
         meta = resolve(stem)
         assert meta["stem"] == stem
@@ -109,7 +109,7 @@ def test_chrome_a_stems_resolve():
     assert resolve("menu-bar")["stem"] == "menubar"
 
 
-def test_chrome_a_render_document_trees():
+def test_presence_a_render_document_trees():
     from ux_compose.helpers import _serialize_tree
 
     for stem in CHROME_A:
@@ -275,7 +275,7 @@ def test_filterbar_labeled_query_and_named_filter():
     assert "Oak serving board" not in html
 
 
-def test_a11y_smoke_chrome_a():
+def test_a11y_smoke_presence_a():
     app = _boot(*[_cls(s) for s in CHROME_A], strict_caps=False)
     menubar = _html(app, "menubar")
     assert 'role="menubar"' in menubar
@@ -315,7 +315,7 @@ def test_a11y_smoke_chrome_a():
     assert 'tabindex="-1"' in filt
 
 
-def test_chrome_a_caps_are_empty():
+def test_presence_a_caps_are_empty():
     for stem in CHROME_A:
         path = KIT_DIR / f"{stem}.py"
         for fn, caps in _action_caps(path):
@@ -352,7 +352,7 @@ def test_kit_modules_never_import_ux_channel():
 
 
 @pytest.mark.skipif(not HAS_DOM, reason="ux-dom")
-def test_copy_chrome_a_stems(tmp_path: Path):
+def test_copy_presence_a_stems(tmp_path: Path):
     (tmp_path / "app.py").write_text("# app\n", encoding="utf-8")
     (tmp_path / "routes").mkdir()
     for stem in CHROME_A:

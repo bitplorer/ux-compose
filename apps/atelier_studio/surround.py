@@ -1,4 +1,4 @@
-"""Studio chrome — tokens, catalog page, pattern page. Isolation-safe."""
+"""Studio surround — catalog page and pattern page. Isolation-safe."""
 from __future__ import annotations
 
 from typing import Any

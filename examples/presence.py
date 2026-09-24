@@ -1,12 +1,12 @@
-"""Chrome widgets — Tabs, Accordion, Dropdown, Drawer.
+"""Presence widgets — Tabs, Accordion, Dropdown, Drawer.
 
-99% of product chrome is open/value MorphState + open-mint @action.
-No Caps unless the verb spends money, deletes, or changes identity.
+These are open/value MorphState plus an open-mint action.
+No Cap unless the verb spends money, deletes, or changes identity.
 
 Stable ids on panels (``#tab-cut``) let Motion stagger later without rewrite.
 
 Run:
-  PYTHONPATH=src:. python examples/chrome.py
+  PYTHONPATH=src:. python examples/presence.py
 """
 from __future__ import annotations
 

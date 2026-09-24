@@ -1,4 +1,4 @@
-"""Pulseboard chrome — GET shell + composed desk. Isolation: no ux_channel."""
+"""Pulseboard surround — rail, desk, and document wrap. Isolation: no ux_channel."""
 
 from __future__ import annotations
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ux_compose import Component, MorphState, action, div, update_with
 
-from apps.nook.chrome import hero
+from apps.nook.surround import hero
 from apps.nook.theme import CARD
 
 

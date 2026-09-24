@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ux_compose import Component
 
-from apps.pulseboard.chrome import compose
+from apps.pulseboard.surround import compose
 
 
 class Pipeline(Component):

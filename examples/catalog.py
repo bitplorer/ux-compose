@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 from examples.foundation import Counter, Toggle, Planes
-from examples.chrome import Tabs, Accordion, Dropdown, Drawer
+from examples.presence import Tabs, Accordion, Dropdown, Drawer
 from examples.shell import AppShell, Breadcrumbs, BottomNav, Popover, OverflowMenu
 from examples.overlays import Toasts, Confirm, Lightbox, Palette, Banner
 from examples.forms import SignupForm, Wizard, Search
@@ -135,7 +135,7 @@ PATTERNS: list[dict[str, Any]] = [
         "tab is a name, not an index. Panels keep stable ids (#tab-cut) so a "
         "later stagger Plan can address survivors. Opening a tab is public.",
         Tabs,
-        file="examples/chrome.py",
+        file="examples/presence.py",
     ),
     _p(
         "accordion",
@@ -147,7 +147,7 @@ PATTERNS: list[dict[str, Any]] = [
         "toggle adds/removes a key. Nested pages are not a second Component tree "
         "inside the accordion — Host may dispatch a sibling if needed.",
         Accordion,
-        file="examples/chrome.py",
+        file="examples/presence.py",
     ),
     _p(
         "dropdown",
@@ -158,7 +158,7 @@ PATTERNS: list[dict[str, Any]] = [
         ("Ops-as-data",),
         "Click-away is Host JS. State stays on the Component. Choose closes.",
         Dropdown,
-        file="examples/chrome.py",
+        file="examples/presence.py",
     ),
     _p(
         "drawer",
@@ -169,7 +169,7 @@ PATTERNS: list[dict[str, Any]] = [
         ("Document SSoT",),
         "A drawer is not a second Document. One HTML shell, many units.",
         Drawer,
-        file="examples/chrome.py",
+        file="examples/presence.py",
     ),
     _p(
         "modal",

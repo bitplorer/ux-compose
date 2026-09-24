@@ -1,4 +1,4 @@
-"""Nook chrome — product shell. Isolation Law: no ux_channel import."""
+"""Nook surround — nav, hero, and footer outside the room. Isolation Law: no ux_channel import."""
 
 from __future__ import annotations
 

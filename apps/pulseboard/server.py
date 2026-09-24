@@ -15,7 +15,7 @@ from ux_compose.helpers import _serialize_tree
 from ux_compose.routing.core import apply_html_document
 
 from apps.pulseboard.app import BUNDLE, UX, asgi as _asgi
-from apps.pulseboard.chrome import compose, document_wrap
+from apps.pulseboard.surround import compose, document_wrap
 from apps.pulseboard.document import document
 from apps.pulseboard.registry import live
 

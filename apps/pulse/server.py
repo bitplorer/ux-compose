@@ -149,7 +149,7 @@ def _pulse_wrap(document: Any):
 
     def wrap(child: Any = None):
         links = [a(label, href=href) for href, label in NAV]
-        chrome = header(
+        bar = header(
             a(
                 "Pulse ",
                 span("compose", className="text-amber-700 dark:text-amber-400"),
@@ -171,7 +171,7 @@ def _pulse_wrap(document: Any):
         inner = main(child, id="main") if child is not None else main(id="main")
         return document(
             div(
-                chrome,
+                bar,
                 inner,
                 foot,
                 className=(

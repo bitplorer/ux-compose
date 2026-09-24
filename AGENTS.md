@@ -144,7 +144,7 @@ Channel's `FileStateStore`. Channel prefers Redis when `REDIS_URL` is set
 channel — that would drop HMR for route edits.
 
 Cap door is `Channel.boot` (not `ActionRegistry.from_config` — that name
-is not a frozen wire import). Pin: ux-channel @ `257adac` (cek-host 0.2.0;
+is not a frozen wire import). Pin: ux-channel @ `f1a93fc` (cek-host 0.2.0;
 Cut C floor `985e58a`). Leftover
 teaching for retired hooks lives on [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 **Agent leftovers**.

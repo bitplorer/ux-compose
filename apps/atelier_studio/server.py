@@ -23,7 +23,7 @@ from ux_compose import (
 )
 from ux_compose.brand import GET_BRAND_ATTR
 
-from apps.atelier_studio.chrome import (
+from apps.atelier_studio.surround import (
     catalog_page,
     foot,
     html_of,
@@ -34,7 +34,7 @@ from apps.atelier_studio.chrome import (
 from examples.catalog import PATTERNS, all_components, by_slug
 from apps.atelier_shop.shop import catalog_grid
 from apps.pulseboard.app import register_board
-from apps.pulseboard.chrome import compose as pulseboard_compose
+from apps.pulseboard.surround import compose as pulseboard_compose
 from ux_dom import Document
 from ux_dom.runtime import XElement, Htmx
 

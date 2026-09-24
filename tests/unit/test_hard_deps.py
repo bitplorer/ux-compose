@@ -115,14 +115,14 @@ def test_helpers_use_specialist_facades_not_parallel_shims():
     assert type(plan).__name__ in {"Scene", "Plan"} or hasattr(plan, "enter") or hasattr(plan, "ops")
 
 
-def test_chrome_is_document_path_brand_wrap_not_string_shell():
+def test_brand_is_document_path_not_string_shell():
     """Brand bar is Document-path brand_wrap. wrap_get_chrome stays gone."""
-    from ux_compose import chrome as chrome_mod
+    import ux_compose.brand as brand_mod
     from ux_compose.brand import brand_wrap
 
     assert callable(brand_wrap)
-    assert not hasattr(chrome_mod, "wrap_get_chrome")
-    src = (ROOT / "src" / "ux_compose" / "chrome.py").read_text(encoding="utf-8")
+    assert not hasattr(brand_mod, "wrap_get_chrome")
+    src = (ROOT / "src" / "ux_compose" / "brand.py").read_text(encoding="utf-8")
     assert "wrap_get_chrome" not in src
     assert "<!DOCTYPE html>" not in src
     assert "HAS_DOM" not in src

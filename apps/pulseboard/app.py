@@ -11,7 +11,7 @@ from pathlib import Path
 from ux_compose import doctor
 from ux_compose.build import build
 
-from apps.pulseboard.chrome import document_wrap
+from apps.pulseboard.surround import document_wrap
 from apps.pulseboard.document import document
 from apps.pulseboard.registry import bind as bind_registry
 from apps.pulseboard.settings import webassets

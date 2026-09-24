@@ -1,4 +1,4 @@
-"""Drop-in kit chrome: tabs, accordion, dropdown, dialog, sheet, actionsheet, toast,
+"""Presence widgets: tabs, accordion, dropdown, dialog, sheet, actionsheet, toast,
 command, table, pagination, combobox. Public verbs, Caps, attach-on-morph.
 """
 from __future__ import annotations

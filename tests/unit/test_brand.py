@@ -40,9 +40,9 @@ def _pkg(tmp_path: Path, files: dict[str, str], name: str = "chromedemo") -> Pat
     return pkg
 
 
-def test_chrome_source_is_document_path_not_string_shell():
+def test_brand_source_is_document_path_not_string_shell():
     """Hard-deps Document path. Do not revive wrap_get_chrome / HAS_DOM shells."""
-    src = (ROOT / "src" / "ux_compose" / "chrome.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "ux_compose" / "brand.py").read_text(encoding="utf-8")
     tree = ast.parse(src)
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):

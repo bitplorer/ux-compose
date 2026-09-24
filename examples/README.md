@@ -28,7 +28,7 @@ The live-safe form is what the studio uses.
 | Group | File | Cases |
 |-------|------|--------|
 | Foundation | `foundation.py` | Counter, toggle, Morph vs Ref, return algebra, Cap reset |
-| Chrome | `chrome.py` `modal.py` `shell.py` | Tabs, accordion, dropdown, drawer, modal, app shell, breadcrumbs, bottom nav, popover, overflow |
+| Presence | `presence.py` `modal.py` `shell.py` | Tabs, accordion, dropdown, drawer, modal, app frame, breadcrumbs, bottom nav, popover, overflow |
 | Overlays | `overlays.py` | Toasts, confirm, lightbox, command palette, banner |
 | Forms | `forms.py` `fields.py` | Validation, wizard, typeahead, radio/checkbox, combobox, date, files, slider, OTP (Cap), password, autosave, limited note |
 | Collections | `lists.py` `table_board.py` `feeds.py` | Filter+sort+stagger, optimistic, pagination, undo, table bulk, kanban, carousel, comments (Cap moderate), timeline, empty/error/retry, reorder, activity |

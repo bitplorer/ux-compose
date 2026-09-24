@@ -119,7 +119,7 @@ class NavMenu(Component):
             className=self.class_card,
             data_open="1" if is_open else "0",
             data_value=val,
-            lead=(
+            preface=(
                 span("Jump", className=self.class_kicker),
                 h2("Go somewhere", className=self.class_title),
                 p("A named destination. Opening the menu is public.", className=self.class_lede),

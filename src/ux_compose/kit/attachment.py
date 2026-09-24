@@ -81,7 +81,7 @@ class Attachment(Component):
             button("Attach sketch.png", type="button", className=self.class_btn, **bind(self.add, name="sketch.png")),
             id=self.id,
             className=self.class_card,
-            lead=(
+            preface=(
                 span("Files", className=self.class_kicker),
                 h2("On the board", className=self.class_title),
                 p("Names on RefState. Adding is public.", className=self.class_lede),

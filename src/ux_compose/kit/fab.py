@@ -110,7 +110,7 @@ class Fab(Component):
                 aria_label="Create",
                 **bind(self.toggle),
             ),
-            lead=(
+            preface=(
                 span("Make", className=self.class_kicker),
                 h2("A new thing", className=self.class_title),
                 p("The round button is the verb. Opening is public.", className=self.class_lede),

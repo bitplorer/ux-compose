@@ -76,7 +76,7 @@ class ScrollArea(Component):
             id=self.id,
             className=self.class_card,
             data_which=which,
-            lead=(
+            preface=(
                 span("Read", className=self.class_kicker),
                 h2("The long note", className=self.class_title),
                 p("A named jump. The pane is labelled.", className=self.class_lede),

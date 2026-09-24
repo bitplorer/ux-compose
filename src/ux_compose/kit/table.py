@@ -232,7 +232,7 @@ class Table(Component):
             p("", className=self.class_sr) if empty else span("", className=self.class_sr),
             id=self.id,
             className=self.class_card,
-            lead=(
+            preface=(
                 span("Catalog", className=self.class_kicker),
                 h2("Pieces on the table", className=self.class_title),
             ),

@@ -106,7 +106,7 @@ class Tree(Component):
             id=self.id,
             className=self.class_card,
             data_selected=sel,
-            lead=(
+            preface=(
                 span("House", className=self.class_kicker),
                 h2("Rooms", className=self.class_title),
             ),

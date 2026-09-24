@@ -80,7 +80,7 @@ class Feed(Component):
             button("Load more", type="button", className=self.class_btn, **bind(self.append)),
             id=self.id,
             className=self.class_card,
-            lead=(
+            preface=(
                 span("House", className=self.class_kicker),
                 h2("Activity", className=self.class_title),
             ),

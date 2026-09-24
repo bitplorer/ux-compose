@@ -111,7 +111,7 @@ class Questionnaire(Component):
                 id=self.id,
                 className=self.class_card,
                 data_done="1",
-                lead=(
+                preface=(
                     span("Ask", className=self.class_kicker),
                     h2("Noted", className=self.class_title),
                 ),
@@ -155,7 +155,7 @@ class Questionnaire(Component):
             *blocks,
             button("Send answers", type="button", className=self.class_btn, **bind(self.submit)),
             **card_attrs,
-            lead=(
+            preface=(
                 span("Ask", className=self.class_kicker),
                 h2("A few questions", className=self.class_title),
                 p("Named answers. Submit spends form.submit.", className=self.class_lede),

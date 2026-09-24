@@ -90,7 +90,7 @@ class BottomNav(Component):
                 className=self.class_pane,
             ),
             nav(*links, className=self.class_bar, aria_label="Sections"),
-            lead=(
+            preface=(
                 p("The bar is a landmark. Opening a section is public.", className=self.class_lede),
             ),
             id=self.id,

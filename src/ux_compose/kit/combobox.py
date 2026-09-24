@@ -195,7 +195,7 @@ class Combobox(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
-            lead=(
+            preface=(
                 span("Find", className=self.class_kicker),
                 h2("Search the catalog", className=self.class_title),
             ),

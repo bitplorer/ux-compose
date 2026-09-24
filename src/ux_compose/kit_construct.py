@@ -48,10 +48,12 @@ def apply_slots(
     return bool(getattr(inst, "shell", True))
 
 
-def kit_shell(inst: Any, *unit: Any, lead: tuple[Any, ...] | list[Any] = (), **attrs: Any):
-    """Card plus the lead nodes when ``shell``; otherwise the unit only."""
+def kit_shell(inst: Any, *unit: Any, preface: tuple[Any, ...] | list[Any] = (), **attrs: Any):
+    """When ``shell`` is on, the card is the preface nodes and then the unit.
+    When ``shell`` is off, the preface is omitted and only the unit is returned.
+    """
     if getattr(inst, "shell", True):
-        return div(*lead, *unit, **attrs)
+        return div(*preface, *unit, **attrs)
     attrs = dict(attrs)
     attrs.pop("className", None)
     unit_class = getattr(inst, "class_unit", "")

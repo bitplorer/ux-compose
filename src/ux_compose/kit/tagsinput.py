@@ -96,7 +96,7 @@ class TagsInput(Component):
             ),
             id=self.id,
             className=self.class_card,
-            lead=(
+            preface=(
                 span("Tags", className=self.class_kicker),
                 h2("Name the piece", className=self.class_title),
                 p("Chips are names. The field is labeled.", className=self.class_lede),

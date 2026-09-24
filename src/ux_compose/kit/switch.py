@@ -74,7 +74,7 @@ class Switch(Component):
             id=self.id,
             className=self.class_card,
             data_on="1" if on else "0",
-            lead=(
+            preface=(
                 span("Quiet", className=self.class_kicker),
             ),
         )

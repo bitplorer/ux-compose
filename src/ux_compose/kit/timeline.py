@@ -120,7 +120,7 @@ class Timeline(Component):
             id=self.id,
             className=self.class_card,
             data_which=which,
-            lead=(
+            preface=(
                 span("When", className=self.class_kicker),
                 h2("What happened", className=self.class_title),
                 p("A named lane. Filtering is public.", className=self.class_lede),

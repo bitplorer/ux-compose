@@ -103,7 +103,7 @@ class Rating(Component):
             id=self.id,
             className=self.class_card,
             data_value=cur,
-            lead=(
+            preface=(
                 span("Keep", className=self.class_kicker),
             ),
         )

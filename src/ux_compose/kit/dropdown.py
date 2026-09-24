@@ -153,7 +153,7 @@ class Dropdown(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
-            lead=(
+            preface=(
                 span("Material", className=self.class_kicker),
                 h2("Choose a finish", className=self.class_title),
                 p("The menu is presence. The value is a name.", className=self.class_lede),

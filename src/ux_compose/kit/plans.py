@@ -123,7 +123,7 @@ class Plans(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
-            lead=(
+            preface=(
                 span("Join", className=self.class_kicker),
                 h2("Choose a desk", className=self.class_title),
             ),

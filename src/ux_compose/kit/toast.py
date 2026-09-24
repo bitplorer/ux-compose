@@ -135,7 +135,7 @@ class Toast(Component):
             stack,
             id=self.id,
             className=self.class_card,
-            lead=(
+            preface=(
                 span("Notices", className=self.class_kicker),
                 h2("Saved to the table", className=self.class_title),
                 p("notify() is the Op. This unit shows them.", className=self.class_lede),

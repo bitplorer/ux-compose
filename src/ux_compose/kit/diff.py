@@ -73,7 +73,7 @@ class Diff(Component):
             id=self.id,
             className=self.class_card,
             data_which=which,
-            lead=(
+            preface=(
                 span("Revise", className=self.class_kicker),
                 h2("What changed", className=self.class_title),
                 p("A named view. Switching is public.", className=self.class_lede),

@@ -92,7 +92,7 @@ class LogoCloud(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
-            lead=(
+            preface=(
                 span("Houses", className=self.class_kicker),
                 h2("Who we keep", className=self.class_title),
                 p("Named marks. Choosing is public.", className=self.class_lede),

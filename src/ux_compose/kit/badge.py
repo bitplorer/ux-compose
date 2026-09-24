@@ -72,7 +72,7 @@ class Badge(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
-            lead=(
+            preface=(
                 span("Stage", className=self.class_kicker),
                 h2("Status", className=self.class_title),
                 p("A named chip. Quantity never lives here.", className=self.class_lede),

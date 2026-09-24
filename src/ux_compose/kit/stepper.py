@@ -172,7 +172,7 @@ class Stepper(Component):
             id=self.id,
             className=self.class_card,
             data_step=cur,
-            lead=(
+            preface=(
                 span("Flow", className=self.class_kicker),
             ),
         )

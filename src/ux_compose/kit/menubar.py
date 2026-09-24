@@ -158,7 +158,7 @@ class Menubar(Component):
             className=self.class_card,
             data_open=opened,
             data_value=val,
-            lead=(
+            preface=(
                 span("Desk", className=self.class_kicker),
                 h2("The bar", className=self.class_title),
             ),

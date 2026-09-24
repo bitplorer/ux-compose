@@ -56,3 +56,11 @@ def test_build_attaches_cek_host_without_hand_use_cek(tmp_path):
         pytest.skip("Channel did not boot")
     assert app._cek == "require"
     _assert_product_cap(_registry_caps(app))
+
+
+@needs_cap
+def test_build_unknown_cek_raises(tmp_path):
+    """live=auto must not swallow an unknown cek mode."""
+    root = create_app(tmp_path / "badcek", name="badcek", level="auto", host="asgi")
+    with pytest.raises(ValueError, match="off, adapt, or require"):
+        build(root, name="badcek", host="asgi", live="auto", cek="wat")

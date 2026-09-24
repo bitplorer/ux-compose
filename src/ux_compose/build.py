@@ -209,9 +209,11 @@ def build(
     # Product Cap Host: App door → Channel → CekHostCapService → cek-runtime.
     # Isolation: no ux_channel import here. Skip when live=null / no channel.
     if live_l != "null" and getattr(app, "_channel", None) is not None:
-        cek_l = (cek or "require").strip().lower() or "require"
+        cek_l = "require" if cek is None else str(cek).strip().lower()
         try:
             app.use_cek(mode=cek_l)
+        except ValueError:
+            raise
         except Exception:
             if live_l == "channel" and cek_l not in ("off", "0", "false", "no", "adapt"):
                 raise

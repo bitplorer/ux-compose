@@ -7,7 +7,7 @@
 
 A shell is **not** a second Document. One HTML shell, many units. Opening a
 route is public. Spending money / deleting / changing identity is a Cap on
-the *destination* Component, never on the the nav.
+the *destination* Component, never on the nav.
 
 Stable ids (``#shell-table``, ``#crumb-linen``) survive morph so Motion can
 later address the surviving region with zero rewrite.

@@ -190,6 +190,8 @@ def test_unknown_cek_mode_is_refused():
     app = App.boot("T", strict_caps=False).use_channel()
     with pytest.raises(ValueError, match="off, adapt, or require"):
         app.use_cek(mode="wat")
+    with pytest.raises(ValueError, match="off, adapt, or require"):
+        app.use_cek(mode="")
 
 
 def test_cek_module_is_only_in_wire():

@@ -173,7 +173,10 @@ class App:
           require — product Cap Host (cek-runtime via Channel). Default.
                     Unknown values raise ValueError.
         """
-        resolved = (mode or "require").strip().lower()
+        if mode is None:
+            resolved = "require"
+        else:
+            resolved = str(mode).strip().lower()
         is_off = resolved in ("off", "0", "false", "no")
         if self._channel is None:
             if is_off:

@@ -52,7 +52,10 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
     Returns the resolved mode string, or None when the specialist is absent
     and mode is not require (progressive degrade).
     """
-    resolved = (mode or "require").strip().lower()
+    if mode is None:
+        resolved = "require"
+    else:
+        resolved = str(mode).strip().lower()
     if resolved in _OFF_ALIASES:
         if _cap_host_is_live(channel):
             raise RuntimeError(_OFF_REFUSE)

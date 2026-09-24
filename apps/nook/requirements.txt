@@ -2,7 +2,7 @@ ux-compose @ git+https://github.com/bitplorer/ux-compose.git@24a182f35e3d0743a2f
 ux-dom @ git+https://github.com/bitplorer/ux-dom.git@cdb0dd1486e58746c51e98aa51f5fd4d26841196
 ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@7d46979f59f284bc2d6d961ed372ec849e851dfc
 ux-motion @ git+https://github.com/bitplorer/ux-motion.git@bbe7d73466a6c1eccb47e711568c80ce3b4d5487
-ux-channel @ git+https://github.com/bitplorer/ux-channel.git@257adac8d961974fb056622e3c900e9846b28575#subdirectory=python
+ux-channel @ git+https://github.com/bitplorer/ux-channel.git@f1a93fcf298c97a59fa6538697731e19aac8586d#subdirectory=python
 cek-host>=0.2.0
 cek-surface>=0.2.0
 fastapi

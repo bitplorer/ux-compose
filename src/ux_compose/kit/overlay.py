@@ -1,4 +1,4 @@
-"""Shared overlay chrome — ids, edge, swipe-on-dismiss, open plan.
+"""Shared overlay edge — ids, edge, swipe-on-dismiss, open plan.
 
 Dialog / Sheet / ActionSheet / AlertDialog take ids, dismiss
 grammar, and open plan from this primitive. Markup and Tailwind stay on
@@ -61,7 +61,7 @@ def _edge_for(kind: str, root_id: str) -> str:
 
 
 @dataclass(frozen=True)
-class OverlayChrome:
+class OverlayEdge:
     """Stable overlay ids + dismiss grammar. Not a widget.
 
     ``open_plan()`` is selectors-only (no ``html=``). Close stays morph-only:
@@ -136,11 +136,11 @@ class OverlayChrome:
         return {"tabindex": "-1"}
 
 
-def overlay(root_id: str, *, kind: Optional[str] = None, edge: Optional[str] = None) -> OverlayChrome:
+def overlay(root_id: str, *, kind: Optional[str] = None, edge: Optional[str] = None) -> OverlayEdge:
     """Factory. ``kind`` picks the default edge when ``edge`` is omitted."""
     resolved_kind = (kind or root_id or "modal").lower().strip()
     resolved_edge = edge or _edge_for(resolved_kind, root_id)
-    return OverlayChrome(root_id=root_id, kind=resolved_kind, edge=resolved_edge)
+    return OverlayEdge(root_id=root_id, kind=resolved_kind, edge=resolved_edge)
 
 
-__all__ = ["OverlayChrome", "overlay"]
+__all__ = ["OverlayEdge", "overlay"]

@@ -1,4 +1,4 @@
-"""Drop-in login card — MorphState chrome, RefState secrets, Cap on submit.
+"""Drop-in login card — MorphState presence, RefState secrets, Cap on submit.
 
 Show/Hide and tab switches attach live form values onto RefState *before*
 the morph, so the new input paints with ``value=``. The secret never lives

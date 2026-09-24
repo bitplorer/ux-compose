@@ -27,7 +27,7 @@ from ux_compose import (
 
 
 class Hero(Component):
-    """First impression. The CTA is chrome, not a Cap."""
+    """First impression. The CTA is presence, not a Cap."""
 
     id = "hero"
     _SEAMS = {'title': 'TITLE', 'body': 'BODY', 'action': 'ACTION'}

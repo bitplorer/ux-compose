@@ -20,7 +20,7 @@ HELLO_ID = "hello"
 
 
 def stunning_full_shell_html(n: int) -> str:
-    """Full GET shell: brand chrome wrapping the #hello island (broken pattern)."""
+    """Full GET shell: brand bar wrapping the #hello island (broken pattern)."""
     return (
         f'<div id="{SHELL_ROOT_ID}">'
         f'<header class="brand">{SHELL_BRAND}</header>'

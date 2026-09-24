@@ -9,7 +9,7 @@ Instance attrs win over class consts.
 
 MorphState: ``open``. RefState: ``title``, ``body``, ``which``. Caps: none
 on open/close. A11y: ``role=dialog`` ``aria-modal`` labelledby. Escape +
-swipe-right on dismiss (OverlayChrome). Focus: panel tabindex + Close
+swipe-right on dismiss (OverlayEdge). Focus: panel tabindex + Close
 autofocus. Swipe lives on Close / Done, not the root.
 """
 

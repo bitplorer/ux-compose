@@ -206,7 +206,7 @@ class PulseSlider(Slider):
 class PulseEmpty(EmptyState):
     id = "desk_empty"
     TITLE = "No saved views yet"
-    BODY = "Pin a forecast slice. Opening this region is public — Caps stay off chrome."
+    BODY = "Pin a forecast slice. Opening this region is public — Caps stay off this control."
     ACTION = "Pin West desk"
     class_card = (
         KIT_CARD + " items-center border-dashed px-6 py-10 text-center"

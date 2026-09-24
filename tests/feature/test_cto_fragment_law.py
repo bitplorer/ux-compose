@@ -1,6 +1,6 @@
 """CTO gate 3: update_with / morph HTML fragment law.
 
-Morph payload for target #X must not embed outer shell / brand chrome.
+Morph payload for target #X must not embed outer shell / brand bar.
 
 Nested-shell tests characterize FullShellHello (full shell in render(),
 update_with targets #hello). Helpers must emit the #hello subtree — do not

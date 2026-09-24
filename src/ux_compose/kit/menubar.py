@@ -32,7 +32,7 @@ from ux_compose import (
 
 
 class Menubar(Component):
-    """Desk chrome. Submenus are presence. The last command is a name.
+    """Desk bar. Submenus are presence. The last command is a name.
 
     ``MENUS`` is ``(key, label, ((item_key, item_label), …))``.
     """

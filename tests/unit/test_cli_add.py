@@ -113,7 +113,7 @@ def test_copy_overlay_widgets_copy_kit_sibling(tmp_path: Path, stem: str):
     overlay = root / "components" / "overlay.py"
     assert overlay.is_file()
     overlay_text = overlay.read_text(encoding="utf-8")
-    assert "class OverlayChrome" in overlay_text
+    assert "class OverlayEdge" in overlay_text
     assert "def overlay" in overlay_text
     ast.parse(py)
     ast.parse(overlay_text)
@@ -174,7 +174,7 @@ def test_force_regenerates_overlay_sibling(tmp_path: Path):
     overlay.write_text("# stale\n", encoding="utf-8")
     copy_component("dialog", root=root, force=True)
     text = overlay.read_text(encoding="utf-8")
-    assert "class OverlayChrome" in text
+    assert "class OverlayEdge" in text
     assert "# stale" not in text
 
 

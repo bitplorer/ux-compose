@@ -9,7 +9,7 @@ MorphState: ``which`` (named filter), ``dirty``. RefState: ``query``.
 Caps: none. A11y: region ``role=search``; label ``for`` ↔ query id
 ``{id}-q``; chips ``role=radiogroup`` / ``radio`` ``aria-checked``;
 selected ``tabindex=0`` others ``-1``. Hits are a list. Not SearchBar
-(listbox typeahead) — this is chrome that filters a known set in place.
+(listbox typeahead) — this is presence that filters a known set in place.
 """
 
 from __future__ import annotations

@@ -1,6 +1,6 @@
 """Ops / product systems — calendar, progress, copy, settings, offline, presence, KPI, shortcuts.
 
-The last mile of the 99%: operational chrome every working house grows.
+The last mile of the 99%: operational presence every working house grows.
 
     calendar     month is a name; day magnitude in RefState; book is a Cap
     progress     pct RefState; phase named MorphState
@@ -42,7 +42,7 @@ from examples._common import act, mark_dirty, status
 class Calendar(Component):
     """Month is a name. Selected day is a magnitude (RefState). Booking is a Cap.
 
-    A grid of 1–28 is Host chrome. Do not put MorphState(14) on the session plane.
+    A grid of 1–28 is the host page. Do not put MorphState(14) on the session plane.
     """
 
     id = "calendar"

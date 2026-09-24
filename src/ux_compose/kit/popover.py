@@ -9,7 +9,7 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 MorphState: ``open``. Caps: none. A11y (APG Popover): trigger
 ``aria-expanded`` ``aria-controls`` ``aria-haspopup=dialog``. Panel
 ``role=dialog`` without ``aria-modal`` (non-modal). Escape on scrim.
-Not OverlayChrome — no focus trap; dialogs own that.
+Not OverlayEdge — no focus trap; dialogs own that.
 """
 
 from __future__ import annotations

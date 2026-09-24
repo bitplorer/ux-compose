@@ -81,7 +81,7 @@ class Tabs(Component):
             "billing",
             "Billing",
             "Nothing to pay",
-            "Opening a tab is not an authority event. Caps stay off chrome.",
+            "Opening a tab is not an authority event. Caps stay off this control.",
         ),
     )
 

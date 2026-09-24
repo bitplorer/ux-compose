@@ -7,7 +7,7 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``open``. RefState: ``title``, ``body``. Caps: ``items.delete``
 on ``confirm``. A11y (APG Alert Dialog): ``role=alertdialog`` ``aria-modal``
-labelledby + describedby. OverlayChrome owns panel ids + open plan. Escape
+labelledby + describedby. OverlayEdge owns panel ids + open plan. Escape
 and scrim do **not** dismiss an interrupting alert — Keep it / Delete are
 the explicit choices. Not a second Host — Dialog's sibling with a louder
 role.

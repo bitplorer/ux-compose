@@ -47,7 +47,7 @@ class ScrollArea(Component):
     BODY = (
         "The linen is cut to the shoulder. The oak is oiled, then rested. "
         "The wool is folded on the winter list. Nothing is due tonight. "
-        "Caps stay off chrome. A named jump is not a quantity."
+        "Caps stay off this control. A named jump is not a quantity."
     )
     which = MorphState("top")
 

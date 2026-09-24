@@ -105,7 +105,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Foundation",
         "Toggle",
         "Boolean MorphState",
-        "On/off chrome. Booleans are qualitative — legal on the session plane.",
+        "On/off presence. Booleans are qualitative — legal on the session plane.",
         ("Ops-as-data",),
         "Flip mutates MorphState(False|True). No Caps: this is not money, delete, "
         "or identity. Motion can later rise-enter #toggle with zero rewrite.",
@@ -188,7 +188,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Chrome",
         "App shell",
         "Named route + collapsed rail",
-        "Product frame. Regions morph in place. Caps stay off chrome.",
+        "Product frame. Regions morph in place. Caps stay off this control.",
         ("Document SSoT", "Ops-as-data"),
         "current is a named route MorphState. collapsed is a boolean. Body copy "
         "is Host data. This is not a second Document and not a client router.",
@@ -215,7 +215,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Mobile tab bar. Same encoding as Tabs — one MorphState key.",
         ("Ops-as-data",),
         "A fifth item becomes overflow, not a fifth tab. Badge counts live on the "
-        "destination unit (RefState + dirty), never on the nav chrome.",
+        "destination unit (RefState + dirty), never on the the nav.",
         BottomNav,
         file="examples/shell.py",
     ),
@@ -556,7 +556,7 @@ PATTERNS: list[dict[str, Any]] = [
         "empty | loading | error | ready are part of the design.",
         ("Ops-as-data",),
         "phase MorphState. Body RefState. Retry is public; a billed refetch would "
-        "take a Cap. Skeleton chrome reuses .skel from the systems unit.",
+        "take a Cap. The skeleton reuses .skel from the systems unit.",
         EmptyRetry,
         file="examples/feeds.py",
     ),
@@ -821,7 +821,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Pencil / save",
         "editing MorphState. text RefState.",
         ("Ops-as-data",),
-        "contenteditable is Host chrome. Behavior holds the value and the mode.",
+        "contenteditable is the host page. Behavior holds the value and the mode.",
         InlineEdit,
         file="examples/systems.py",
     ),
@@ -830,7 +830,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Systems",
         "Calendar",
         "Named month · day silent · book Cap",
-        "A grid of days is Host chrome. Booking spends authority.",
+        "A grid of days is the host page. Booking spends authority.",
         ("Cap Law",),
         "month MorphState (july/august/september). day RefState. booked tuple "
         "silent. book requires bookings.create. Never MorphState(14).",
@@ -917,7 +917,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Keyboard overlay. Same encoding as the command palette.",
         ("Ops-as-data",),
         "open flag + query. Host JS would bind '?'. Filter is public. No Caps: "
-        "this is chrome, not money.",
+        "this is presence, not money.",
         Shortcuts,
         file="examples/ops.py",
     ),

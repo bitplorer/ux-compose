@@ -1,7 +1,7 @@
 """CTO gate 1: create-app scaffold hello is a Document-path fragment.
 
 Official ROUTES_HELLO_PY is the correct author shape: id=hello root, no
-document chrome. Stunning diverged; this gate locks the scaffold.
+document frame. Stunning diverged; this gate locks the scaffold.
 """
 from __future__ import annotations
 
@@ -41,10 +41,10 @@ def _assert_hello_source_is_fragment(src: str, *, label: str) -> None:
     assert SHELL_ROOT_ID not in src, f"{label}: must not emit #{SHELL_ROOT_ID}"
     assert SHELL_BRAND not in src, f"{label}: must not emit brand {SHELL_BRAND!r}"
     assert KERNEL_SSOT_ID not in src, f"{label}: must not emit #{KERNEL_SSOT_ID}"
-    assert "<html" not in lower, f"{label}: must not emit <html> chrome"
-    assert "<head" not in lower, f"{label}: must not emit <head> chrome"
-    assert "<body" not in lower, f"{label}: must not emit <body> chrome"
-    assert "stylesheet" not in lower, f"{label}: stylesheet chrome belongs on Document"
+    assert "<html" not in lower, f"{label}: must not emit <html>"
+    assert "<head" not in lower, f"{label}: must not emit <head>"
+    assert "<body" not in lower, f"{label}: must not emit <body>"
+    assert "stylesheet" not in lower, f"{label}: the stylesheet belongs on Document"
     assert "<!doctype" not in lower, f"{label}: must not emit a document doctype"
     assert "HAS_DOM" not in src, f"{label}: Document path only — no HAS_DOM branch"
     assert 'f\'<div id="hello"' not in src, f"{label}: no HTML-string fallback"

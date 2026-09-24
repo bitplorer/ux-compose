@@ -144,7 +144,7 @@ ux-dom. Do not merge stale encyclopedia plans #73/#76/#77/#80.
 
 ---
 
-## OverlayChrome — edge overlays
+## OverlayEdge — edge overlays
 
 Dialog, Sheet, and ActionSheet take ids, dismiss grammar, and the open
 plan from `kit/overlay.py`. Markup and Tailwind stay on the widget.

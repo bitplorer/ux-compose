@@ -1,7 +1,7 @@
-"""OverlayChrome is the shared overlay primitive. Widgets adopt it."""
+"""OverlayEdge is the shared overlay primitive. Widgets adopt it."""
 from __future__ import annotations
 
-from ux_compose.kit.overlay import EDGE_SLIDE, HANDLE_SWIPE, OverlayChrome, overlay
+from ux_compose.kit.overlay import EDGE_SLIDE, HANDLE_SWIPE, OverlayEdge, overlay
 
 
 def test_ids_are_stable_and_kind_sets_edge():
@@ -17,7 +17,7 @@ def test_ids_are_stable_and_kind_sets_edge():
 
 
 def test_swipe_lives_on_dismiss_not_a_root_token():
-    sheet = OverlayChrome(kind="sheet", edge="right", root_id="sheet")
+    sheet = OverlayEdge(kind="sheet", edge="right", root_id="sheet")
     grammar = sheet.swipe_on_dismiss()
     assert "swipe" in grammar
     assert "click" in grammar
@@ -44,8 +44,8 @@ def test_shipped_slide_distances():
 
 
 def test_open_plan_degrades_without_motion():
-    chrome = overlay("dialog")
-    plan = chrome.open_plan()
+    edge = overlay("dialog")
+    plan = edge.open_plan()
     assert plan is None or hasattr(plan, "enter")
 
 

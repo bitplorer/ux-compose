@@ -8,7 +8,7 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 MorphState: ``open``, ``dirty``. RefState: ``query``. Caps: ``auth.logout``
 on ``sign_out``. Other ``run`` keys are open mint.
 A11y: ``role=dialog`` ``aria-modal`` labelledby; search ``role=combobox``.
-Not OverlayChrome (popover family). Escape / scrim: local ``{id}-scrim`` /
+Not OverlayEdge (popover family). Escape / scrim: local ``{id}-scrim`` /
 ``{id}-panel`` / ``{id}-dismiss`` plus ``click keydown.escape``. Focus:
 panel tabindex + input autofocus.
 """
@@ -121,7 +121,7 @@ class Command(Component):
         return [
             span("Jump", className=self.class_kicker),
             h2("Command palette", className=self.class_title),
-            p("Type to filter. Run is public chrome.", className=self.class_lede),
+            p("Type to filter. Run is public presence.", className=self.class_lede),
             button(
                 "Open palette",
                 type="button",

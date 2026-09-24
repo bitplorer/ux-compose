@@ -7,7 +7,7 @@ Composition root. Imports specialists. Sole product CLI: uxcompose.
 
 Every block is meant to run (or to be the exact fragment you drop into a running app). Names are public exports. If code and this page disagree, **code wins**.
 
-**14 snippets** covering install, core usage, fail-closed errors, live/async, CLI, host payload, GET brand chrome, and the usage patterns that keep layers from leaking.
+**14 snippets** covering install, core usage, fail-closed errors, live/async, CLI, host payload, GET brand bar, and the usage patterns that keep layers from leaking.
 
 ### Public names in this cookbook
 
@@ -25,7 +25,7 @@ Every block is meant to run (or to be the exact fragment you drop into a running
 - [morph_play helper](#co-morph-play)
 - [scan / validate / mount surfaces](#co-surfaces)
 - [build() composition root](#co-build)
-- [GET brand chrome (Document path)](#co-brand)
+- [GET brand bar (Document path)](#co-brand)
 - [use_host / use_channel / use_motion](#co-host)
 - [HTML / JSON / stream from render()](#co-payload)
 - [Pattern: progressive levels 0–3](#co-pattern-levels)
@@ -237,10 +237,10 @@ print(app.name, app.level, bundle)
 ```
 
 Product path is `build(..., document=document, wrap=document)`. Morph stays a fragment.
-GET brand chrome: `wrap=brand_wrap(document, brand="Acme")` from
+GET brand bar: `wrap=brand_wrap(document, brand="Acme")` from
 `ux_compose.brand` — still outside `render()`.
 
-### GET brand chrome (Document path)
+### GET brand bar (Document path)
 
 <a id="co-brand"></a>
 

@@ -2,7 +2,7 @@
 
 Host seam: render slots OR subclass.
 Accepted: ``title``, ``body``, ``action`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
-Instance attrs win over class consts. Act is public chrome unless you add a Cap in the copy.
+Instance attrs win over class consts. Act is public presence unless you add a Cap in the copy.
 Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``pressed``. Caps: none by default. A11y: article labelledby title.

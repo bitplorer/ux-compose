@@ -74,7 +74,7 @@ class Stepper(Component):
 
     STEPS = (
         ("account", "Account", "Name and email stay on this unit. Next is public."),
-        ("plan", "Plan", "Pick a desk. Caps stay off chrome until the last step."),
+        ("plan", "Plan", "Pick a desk. Caps stay off this control until the last step."),
         ("review", "Review", "Confirm the trail. Finish spends a Cap."),
     )
 

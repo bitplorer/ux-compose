@@ -29,7 +29,7 @@ from ux_compose import (
 
 
 class BottomNav(Component):
-    """Phone chrome. One named section. Caps stay off."""
+    """Phone bar. One named section. Caps stay off."""
 
     id = "bottomnav"
     _SEAMS = {'items': 'ITEMS'}

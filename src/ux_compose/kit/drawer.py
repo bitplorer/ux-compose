@@ -1,6 +1,6 @@
 """Drawer is a Sheet alias — same Host, right-edge panel.
 
-Not a second Host. ``kind=drawer`` on OverlayChrome maps to the same
+Not a second Host. ``kind=drawer`` on OverlayEdge maps to the same
 right edge as Sheet. MorphState / Caps / a11y: see ``Sheet``.
 
 Copied by ``uxcompose add drawer`` also lands ``sheet.py`` (sibling rewrite).

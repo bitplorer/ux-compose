@@ -4,7 +4,7 @@ from __future__ import annotations
 
 # Nested kit cards sit in a product column. Containment stays on the card
 # (min-w-0 + overflow-x-hidden) so Prev/Next/dots wrap instead of escaping
-# rounded chrome. max-w-* is a column concern, not a card concern.
+# rounded corners. max-w-* is a column concern, not a card concern.
 CARD = (
     "relative flex w-full min-w-0 flex-col gap-4 overflow-x-hidden "
     "rounded-3xl border border-stone-200 bg-white p-5 text-stone-900 shadow-sm"

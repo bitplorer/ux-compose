@@ -215,7 +215,7 @@ PATTERNS: list[dict[str, Any]] = [
         "Mobile tab bar. Same encoding as Tabs — one MorphState key.",
         ("Ops-as-data",),
         "A fifth item becomes overflow, not a fifth tab. Badge counts live on the "
-        "destination unit (RefState + dirty), never on the the nav.",
+        "destination unit (RefState + dirty), never on the nav.",
         BottomNav,
         file="examples/shell.py",
     ),

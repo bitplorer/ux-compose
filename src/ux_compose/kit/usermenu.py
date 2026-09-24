@@ -1,4 +1,4 @@
-"""Drop-in user menu — identity chrome, Cap on sign-out.
+"""Drop-in user menu — identity presence, Cap on sign-out.
 
 Host seam: render slots OR subclass.
 Accepted: ``name``, ``email`` (str — same as the RefState attrs), ``items``

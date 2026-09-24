@@ -56,7 +56,7 @@ class FeatureGrid(Component):
     ITEMS = (
         ("cut", "Cut", "One region morphs. The page does not remount."),
         ("make", "Make", "Actions stay on this Component."),
-        ("keep", "Keep", "Caps stay off chrome."),
+        ("keep", "Keep", "Caps stay off this control."),
     )
 
     active = MorphState("cut")

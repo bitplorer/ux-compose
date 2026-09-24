@@ -65,7 +65,7 @@ def first_id(html: str) -> str | None:
 def assert_html_is_fragment(html: str, *, target_id: str) -> None:
     """Fragment law: morph/render HTML for #target_id is not a document shell.
 
-    Outer brand chrome (stunning-root, StunningCek, kernel_ssot, <html>/<head>/<body>)
+    Outer brand bar (stunning-root, StunningCek, kernel_ssot, <html>/<head>/<body>)
     must not appear. The first id= in the payload is the morph target root.
     """
     blob = html or ""
@@ -74,16 +74,16 @@ def assert_html_is_fragment(html: str, *, target_id: str) -> None:
         f"fragment law: morph HTML must not embed outer shell #{SHELL_ROOT_ID}:\n{blob[:800]}"
     )
     assert SHELL_BRAND not in blob, (
-        f"fragment law: morph HTML must not embed brand chrome {SHELL_BRAND!r}:\n{blob[:800]}"
+        f"fragment law: morph HTML must not embed brand bar {SHELL_BRAND!r}:\n{blob[:800]}"
     )
     assert f'id="{KERNEL_SSOT_ID}"' not in blob and f"id='{KERNEL_SSOT_ID}'" not in blob, (
-        f"fragment law: morph HTML must not nest #{KERNEL_SSOT_ID} badge chrome:\n{blob[:800]}"
+        f"fragment law: morph HTML must not nest #{KERNEL_SSOT_ID} the badge:\n{blob[:800]}"
     )
     assert _DOC_CHROME.search(blob) is None, (
-        f"fragment law: morph HTML must not include document chrome:\n{blob[:800]}"
+        f"fragment law: morph HTML must not include document frame:\n{blob[:800]}"
     )
     assert "stylesheet" not in lower, (
-        f"fragment law: morph HTML must not include stylesheet chrome:\n{blob[:800]}"
+        f"fragment law: morph HTML must not include the stylesheet:\n{blob[:800]}"
     )
     rid = first_id(blob)
     assert rid == target_id, (

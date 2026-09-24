@@ -2,7 +2,7 @@
 
 > **Diátaxis:** how-to · **Layer:** ux-compose
 > Path: [PATH.md](PATH.md) · Map: [../INDEX.md](../INDEX.md)
-> Source of truth for these shapes: repo `examples/` (foundation, chrome, modal, forms, overlays, cart, motion_xor).
+> Source of truth for these shapes: repo `examples/` (foundation, presence, modal, forms, overlays, cart, motion_xor).
 
 Each widget is **one `Component`**. Copy the class into `routes/{stem}.py`
 (stem == class name) or `app.add(TheClass)`. The same class is valid at L1
@@ -104,7 +104,7 @@ from ux_compose import (
 TABS = (
     ("cut", "Cut", "Tabs morph one region. They do not remount the page."),
     ("make", "Make", "Actions stay on the same Component. Motion is a Plan."),
-    ("keep", "Keep", "Caps stay off chrome. Opening a tab is not authority."),
+    ("keep", "Keep", "Caps stay off this control. Opening a tab is not authority."),
 )
 
 
@@ -330,6 +330,6 @@ class Cart(Component):
 ## More in the repo
 
 The Atelier of Patterns (`examples/`) is the long form of this catalog:
-chrome, overlays, forms, lists, feeds, navigation, commerce, systems.
+presence, overlays, forms, lists, feeds, navigation, commerce, systems.
 See [../../examples/README.md](../../examples/README.md). Play them with
 `apps/atelier_studio`.

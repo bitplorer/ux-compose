@@ -1,4 +1,4 @@
-"""Shell chrome — app frame, breadcrumbs, bottom nav, popover, overflow.
+"""The frame — app frame, breadcrumbs, bottom nav, popover, overflow.
 
 99% of product *frames* are the same two MorphState keys:
 
@@ -7,7 +7,7 @@
 
 A shell is **not** a second Document. One HTML shell, many units. Opening a
 route is public. Spending money / deleting / changing identity is a Cap on
-the *destination* Component, never on the nav chrome.
+the *destination* Component, never on the the nav.
 
 Stable ids (``#shell-table``, ``#crumb-linen``) survive morph so Motion can
 later address the surviving region with zero rewrite.
@@ -77,7 +77,7 @@ class AppShell(Component):
                 h2("App shell", className="widget-title"),
             ),
             p(
-                "Press a region. The page does not remount. Caps stay off chrome.",
+                "Press a region. The page does not remount. Caps stay off this control.",
                 className="lede",
             ),
             div(
@@ -201,7 +201,7 @@ class BottomNav(Component):
         ("home", "Home", "The table of the week."),
         ("search", "Search", "Typeahead lives on its own unit."),
         ("bag", "Bag", "Count is a badge on the destination, not here."),
-        ("you", "You", "Account chrome. Sign-out would take a Cap."),
+        ("you", "You", "Account presence. Sign-out would take a Cap."),
     )
 
     def render(self):

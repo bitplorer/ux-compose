@@ -1,4 +1,4 @@
-"""Kit Batch A chrome P1: menubar, toolbar, toggle-group, spinbutton,
+"""Kit Batch A presence P1: menubar, toolbar, toggle-group, spinbutton,
 theme-switch, filterbar.
 
 Isolation: this file never imports ux_channel. No Cap kernel / cek-runtime / law.
@@ -319,7 +319,7 @@ def test_presence_a_caps_are_empty():
     for stem in CHROME_A:
         path = KIT_DIR / f"{stem}.py"
         for fn, caps in _action_caps(path):
-            assert caps == (), f"{stem}.{fn} spent {caps}; chrome A is public"
+            assert caps == (), f"{stem}.{fn} spent {caps}; presence A is public"
 
 
 def test_kit_cap_inventory_spend_delete_identity():
@@ -333,7 +333,7 @@ def test_kit_cap_inventory_spend_delete_identity():
                 assert any(cap.startswith(p) for p in CAP_ALLOW), (
                     f"{path.stem}.{fn} cap {cap!r} is not spend/delete/identity"
                 )
-    # chrome A never appears
+    # presence A never appears
     for stem in CHROME_A:
         assert stem not in inventory
 

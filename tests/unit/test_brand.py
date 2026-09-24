@@ -1,4 +1,4 @@
-"""Document-path GET brand chrome: brand on Clock A GET, never in morph HTML."""
+"""Document-path GET brand bar: brand on Clock A GET, never in morph HTML."""
 from __future__ import annotations
 
 import ast

@@ -30,7 +30,7 @@ from ux_compose import (
 
 
 class Navbar(Component):
-    """Site chrome. Active key is MorphState. Mobile drawer is presence."""
+    """Site bar. Active key is MorphState. Mobile drawer is presence."""
 
     id = "navbar"
     _SEAMS = {'links': 'LINKS'}

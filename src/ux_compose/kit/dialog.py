@@ -9,11 +9,11 @@ MorphState: ``open``. RefState: ``title``, ``body``, ``target``.
 Caps: ``items.delete`` on ``confirm`` only. ``ask`` / ``cancel`` are public.
 A11y (APG Dialog): ``role=dialog`` ``aria-modal`` ``aria-labelledby``
 ``aria-describedby``. Panel ``tabindex=-1`` + autofocus on Keep. Escape
-and scrim dismiss via OverlayChrome ``dismiss_on()``. Focus trap/restore
+and scrim dismiss via OverlayEdge ``dismiss_on()``. Focus trap/restore
 is Channel when live.
 
 Live: the root ``id`` is the region. Channel picks it up.
-Swipe lives on dismiss, not the root and not confirm. OverlayChrome
+Swipe lives on dismiss, not the root and not confirm. OverlayEdge
 owns scrim/panel/dismiss ids, dismiss grammar, and the open plan.
 """
 

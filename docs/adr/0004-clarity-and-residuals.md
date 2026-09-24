@@ -16,7 +16,7 @@ import-not-copy.
 0.1.0 shipped a working product path and a frozen mental model. After ship,
 three widget worlds (`kit/`, `examples/`, `apps/`), two taught HTTP doors
 (`build()` and `App.mount`), a shadow helper module (`examples/_common.py`),
-copy-pasted overlay chrome, and silent `except ImportError` made the repo
+copy-pasted overlay edge, and silent `except ImportError` made the repo
 look like it had more products than it does.
 
 Capability must not drop. Leftover aliases must not be deleted while tests
@@ -53,7 +53,7 @@ still lock them. Confusion must stop growing.
    Two Apps in one process do not leak. `use_channel` / `use_motion` fail loud
    (`ImportError`) when the hard-dep is missing. Attach notes still
    record non-import step-downs.
-6. **OverlayChrome owns edge-overlay chrome.** Dialog, Sheet, and
+6. **OverlayEdge owns edge-overlay edge.** Dialog, Sheet, and
    ActionSheet take ids, dismiss/handle grammar, and the open plan from
    the primitive. Markup and Tailwind stay on the widget. Handle grammar
    (`swipe.vertical threshold:48`) and shipped enter distances (right
@@ -82,4 +82,4 @@ still lock them. Confusion must stop growing.
 - Reopening Clock A, Isolation Law, or the `serve dev` split.
 - Mass-deleting remote `feat/*` / `kit/*` branches from a composition PR.
 - Forcing Dropdown / ContextMenu / Combobox / Select / Command through
-  OverlayChrome (wrong interaction family).
+  OverlayEdge (wrong interaction family).

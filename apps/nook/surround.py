@@ -68,7 +68,7 @@ def hero(*, kicker: str, title: str, lede: str):
 def foot():
     return footer(
         p(
-            "Nook · ux-compose kit · named keys · Caps off chrome",
+            "Nook · ux-compose kit · named keys · Caps off this control",
             className="m-0 text-xs uppercase tracking-widest text-stone-400",
         ),
         className="px-0.5 py-6",

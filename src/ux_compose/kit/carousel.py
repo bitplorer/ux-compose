@@ -115,7 +115,7 @@ class Carousel(Component):
     SLIDES = (
         ("linen", "Cloth", "Linen work shirt", "Cut to the shoulder. One region morphs."),
         ("oak", "Wood", "Oak serving board", "Wax, then rest. The key is a name."),
-        ("wool", "Cloth", "Wool throw", "Winter weight. Caps stay off chrome."),
+        ("wool", "Cloth", "Wool throw", "Winter weight. Caps stay off this control."),
         ("clay", "Earth", "Clay pourer", "Brush, never soak. Neighbor keys, not +1."),
     )
 

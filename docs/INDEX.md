@@ -112,7 +112,7 @@ Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005
 
 | Doc | Topic |
 |-----|--------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Shape: one door, attach notes, OverlayChrome |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Shape: one door, attach notes, OverlayEdge |
 | [OWNERSHIP.md](OWNERSHIP.md) | Ownership law (authoritative) |
 | [internals/OWNERSHIP.md](internals/OWNERSHIP.md) | Moved stub → OWNERSHIP.md |
 | [internals/c4.md](internals/c4.md) | C4-style context |
@@ -120,7 +120,7 @@ Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005
 | [adr/README.md](adr/README.md) | ADR slot |
 | [adr/0001-ownership.md](adr/0001-ownership.md) | Render vs product lifecycle |
 | [adr/0002-product-host.md](adr/0002-product-host.md) | Product FastAPI host (Clock A) |
-| [adr/0004-clarity-and-residuals.md](adr/0004-clarity-and-residuals.md) | One author door, attach notes, OverlayChrome |
+| [adr/0004-clarity-and-residuals.md](adr/0004-clarity-and-residuals.md) | One author door, attach notes, OverlayEdge |
 | [adr/0005-serve-dev-split.md](adr/0005-serve-dev-split.md) | serve dev isolates Channel from ui reload |
 | [adr/0006-serve-dev-shared-store.md](adr/0006-serve-dev-shared-store.md) | serve-dev shared session store (Channel-owned) |
 | [examples/README.md](examples/README.md) | Example slot |

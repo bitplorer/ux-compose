@@ -60,7 +60,7 @@ def page_slots(idx: int, n: int, window: int = 1):
     """Sliding core + optional first/last.
 
     Each item is ``("page", i, "core"|"edge")`` or ``("gap", "edge")``.
-    ``edge`` chrome is hidden below ``sm`` so a phone never stacks
+    the edge controls is hidden below ``sm`` so a phone never stacks
     page 1 on top of Prev.
     """
     if n <= 0:

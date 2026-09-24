@@ -92,7 +92,7 @@ from ux_compose.kit.actionsheet import ActionSheet
 from ux_compose.kit.contextmenu import ContextMenu
 from ux_compose.kit.typeahead import Typeahead
 from ux_compose.kit.pullrefresh import PullRefresh
-from ux_compose.kit.overlay import OverlayChrome, overlay
+from ux_compose.kit.overlay import OverlayEdge, overlay
 from ux_compose.kit.rating import Rating
 from ux_compose.kit.timeline import Timeline
 
@@ -179,6 +179,6 @@ __all__ = [
     "Attachment",
     "ScrollArea",
     "Feed",
-    "OverlayChrome",
+    "OverlayEdge",
     "overlay",
 ]

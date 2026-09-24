@@ -49,7 +49,7 @@ class Banner(Component):
     )
 
     TITLE = "Winter hours"
-    BODY = "The studio closes at dusk. The banner is chrome, not authority."
+    BODY = "The studio closes at dusk. The banner is presence, not authority."
 
     open = MorphState(True)
 

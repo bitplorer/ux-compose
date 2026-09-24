@@ -5,7 +5,7 @@ Accepted: ``actions`` (same type as ``ACTIONS``); ``shell`` (bool; ``False``
 renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 
-Swipe lives on the handle and Cancel, not the root. OverlayChrome owns
+Swipe lives on the handle and Cancel, not the root. OverlayEdge owns
 scrim/panel/dismiss ids, handle grammar, and the open plan.
 
 MorphState: ``open``, ``dirty``. RefState: ``picked``. Caps: ``orders.archive``

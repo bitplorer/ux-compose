@@ -31,7 +31,7 @@ from examples._common import act, optional_fade, optional_plan
 TABS = (
     ("cut", "Cut", "The pattern book. Tabs morph one region; they do not remount the page."),
     ("make", "Make", "Actions stay on the same Component. Motion, when attached, is a Plan."),
-    ("keep", "Keep", "Caps stay off chrome. Opening a tab is not an authority event."),
+    ("keep", "Keep", "Caps stay off this control. Opening a tab is not an authority event."),
 )
 
 

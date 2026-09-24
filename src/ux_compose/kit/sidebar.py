@@ -77,7 +77,7 @@ class Sidebar(Component):
     ITEMS = (
         ("desk", "Desk", "A quiet desk", "Today's pieces stay on this unit. The rail is MorphState."),
         ("catalog", "Catalog", "Winter list", "Linen, oak, wool, clay. Opening a section is public."),
-        ("billing", "Billing", "Nothing to pay", "Collapse is presence. Caps stay off chrome."),
+        ("billing", "Billing", "Nothing to pay", "Collapse is presence. Caps stay off this control."),
     )
 
     active = MorphState("desk")

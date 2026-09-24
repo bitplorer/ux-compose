@@ -1,4 +1,4 @@
-"""CTO: Document-path brand chrome is GET-only. Morph and render() stay fragments.
+"""CTO: Document-path brand bar is GET-only. Morph and render() stay fragments.
 
 P1-3: brand_wrap(document, brand=) returns wrap(child). GET brand=1, morph
 brand=0. Component.render() never embeds nav brand / stunning-root.

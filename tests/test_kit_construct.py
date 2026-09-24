@@ -45,7 +45,7 @@ DEMO_FRAMING: dict[str, tuple[str, ...]] = {
     "chat": ("Desk",),
     "colorpicker": ("A named swatch",),
     "combobox": ("Search the catalog",),
-    "command": ("Type to filter. Run is public chrome.",),
+    "command": ("Type to filter. Run is public presence.",),
     "contextmenu": ("Hold or click",),
     "countdown": ("Until",),
     "cta": ("Invite",),

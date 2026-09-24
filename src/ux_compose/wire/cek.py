@@ -87,7 +87,7 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
         if resolved == "require":
             raise ImportError(
                 "CEK require mode needs cek-host>=0.2.0 (cek_host.catalog). "
-                "PyPI cek-host 0.1.3 is the legal wheel and does not satisfy that floor."
+                "Wheels before 0.2.0 teach cek_host.legal and do not satisfy that floor."
             )
         return None
 

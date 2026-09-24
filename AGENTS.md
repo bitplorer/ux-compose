@@ -11,7 +11,7 @@ then [docs/INDEX.md](docs/INDEX.md). Public names: `src/ux_compose/__init__.py` 
 **Floor:** Python **≥ 3.14**. Hard-deps are the pinned specialists in
 `pyproject.toml` (`[project].dependencies`): ux-dom, ux-channel, ux-behavior,
 ux-motion, `cek-host>=0.2.0`, `cek-surface>=0.2.0` (`cek_host.catalog`;
-PyPI 0.1.3 does not install). Clone path:
+wheels before 0.2.0 do not satisfy that floor). Clone path:
 `pip install -e ".[dev]"` / `pip install -e ".[serve]"`. Create-app path:
 `pip install -r requirements.txt`. Missing specialists fail loud.
 
@@ -144,7 +144,7 @@ Channel's `FileStateStore`. Channel prefers Redis when `REDIS_URL` is set
 channel — that would drop HMR for route edits.
 
 Cap door is `Channel.boot` (not `ActionRegistry.from_config` — that name
-is not a frozen wire import). Pin: ux-channel @ `ef59543` (cek-host 0.2.0;
+is not a frozen wire import). Pin: ux-channel @ `257adac` (cek-host 0.2.0;
 Cut C floor `985e58a`). Leftover
 teaching for retired hooks lives on [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 **Agent leftovers**.

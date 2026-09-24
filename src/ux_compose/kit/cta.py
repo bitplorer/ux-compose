@@ -69,7 +69,7 @@ class Cta(Component):
             ) if not done else span("Joined", className="text-sm font-medium text-emerald-700"),
             id=self.id,
             className=self.class_card,
-            chrome=(span("Invite", className=self.class_kicker),),
+            lead=(span("Invite", className=self.class_kicker),),
             role="region",
             aria_labelledby=title_id,
             data_done="1" if done else "0",

@@ -153,7 +153,7 @@ class Calendar(Component):
             className=self.class_card,
             data_month=f"{y:04d}-{m:02d}",
             data_day=selected,
-            chrome=(
+            lead=(
                 span("Date", className=self.class_kicker),
             ),
         )

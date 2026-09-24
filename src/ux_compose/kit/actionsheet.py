@@ -159,7 +159,7 @@ class ActionSheet(Component):
             className=self.class_card,
             data_open="1" if is_open else "0",
             data_channel_id=self.id,
-            chrome=(
+            lead=(
                 span("Sheet · swipe down", className=self.class_kicker),
                 h2("Action sheet", className=self.class_title),
                 p("Opens from the bottom. Swipe the handle or Cancel to dismiss.", className=self.class_lede),

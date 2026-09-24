@@ -87,11 +87,11 @@ def test_matrix_1_dom_build_document_html(pulse):
         assert "text/html" in page.headers.get("content-type", "")
         assert "<html" in page.text.lower()
         assert f'id="{eid}"' in page.text
-        assert "data-uxcompose-get-chrome" in page.text
+        assert "data-uxcompose-brand" in page.text
 
 
 def test_matrix_1_dom_extract_by_id_fragment_path(pulse):
-    """Compose helpers prefer ux-dom extract_by_id; fragment has no GET chrome."""
+    """Compose helpers prefer ux-dom extract_by_id; fragment has no brand bar."""
     _, asgi, _ = pulse
     owner = _owner_extract_by_id()
     assert owner is not None, "ux-dom extract_by_id must be importable on this pin"
@@ -103,7 +103,7 @@ def test_matrix_1_dom_extract_by_id_fragment_path(pulse):
     assert via_owner == via_helper
     assert 'id="lab"' in via_helper
     assert "<html" not in via_helper.lower()
-    assert "data-uxcompose-get-chrome" not in via_helper
+    assert "data-uxcompose-brand" not in via_helper
     assert "<title" not in via_helper.lower()
 
 

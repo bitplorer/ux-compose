@@ -146,7 +146,7 @@ class Tabs(Component):
             id=self.id,
             className=self.class_card,
             data_tab=key,
-            chrome=(
+            lead=(
                 span("Workspace", className=self.class_kicker),
             ),
         )

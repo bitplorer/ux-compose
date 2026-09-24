@@ -224,14 +224,14 @@ def _render_chunks(src: str) -> list[str]:
 
 
 def scan_render_chrome(paths: Iterable[str | Path]) -> list[str]:
-    """Teach: GET chrome belongs on ``wrap=``, not inside ``routes/*.py`` render().
+    """Teach: the brand bar belongs on ``wrap=``, not inside ``routes/*.py`` render().
 
     Residual (not fail-closed). Flags ``stunning-root`` and ``class="nav"``
-    + brand patterns that nest chrome into morph payloads.
+    + brand patterns that nest the brand bar into morph payloads.
     """
     diagnostics: list[str] = []
     teach = (
-        "GET chrome belongs on Document / build(wrap=brand_wrap(document, brand=...)), "
+        "The brand bar belongs on Document / build(wrap=brand_wrap(document, brand=...)), "
         "not in render(). Morph payloads stay fragments."
     )
     for raw in paths:
@@ -258,7 +258,7 @@ def scan_render_chrome(paths: Iterable[str | Path]) -> list[str]:
             if not hits:
                 continue
             diagnostics.append(
-                f"residual in {p}: render() contains GET chrome ({', '.join(hits)}). {teach}"
+                f"residual in {p}: render() contains the brand bar ({', '.join(hits)}). {teach}"
             )
     return diagnostics
 

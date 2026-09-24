@@ -116,9 +116,9 @@ def test_helpers_use_specialist_facades_not_parallel_shims():
 
 
 def test_chrome_is_document_path_brand_wrap_not_string_shell():
-    """GET chrome is Document-path brand_wrap. wrap_get_chrome stays gone."""
+    """Brand bar is Document-path brand_wrap. wrap_get_chrome stays gone."""
     from ux_compose import chrome as chrome_mod
-    from ux_compose.chrome import brand_wrap
+    from ux_compose.brand import brand_wrap
 
     assert callable(brand_wrap)
     assert not hasattr(chrome_mod, "wrap_get_chrome")

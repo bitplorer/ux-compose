@@ -33,11 +33,11 @@ swallow the fragment. Product path is `build(document=, wrap=document)`.
 `Document.use(Channel.optional())` owns Channel client tags. `live="null"`
 stays a bare fragment.
 
-GET chrome belongs on the author Document, not inside `render()` (morph
+The brand bar belongs on the author Document, not inside `render()` (morph
 would nest the brand). Use `brand_wrap` so nav brand is GET-only:
 
 ```python
-from ux_compose.chrome import brand_wrap
+from ux_compose.brand import brand_wrap
 from document import document
 
 app, asgi, bundle = build(

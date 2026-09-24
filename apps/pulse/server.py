@@ -5,7 +5,7 @@
 - Additive attach: Behavior → Channel → Motion → Cap Host on a complete install
 - Isolation Law: never imports ux_channel directly
 - Style: Tailwind utility className (CDN stand-in for TailwindStyle/WebAssets)
-- GET chrome via Document wrap; HX / morph stays fragment-only
+- Brand bar via Document wrap; HX / morph stays fragment-only
 
 Serve:
   PYTHONPATH=src:. uxcompose serve apps.pulse.server:app --host 0.0.0.0 --port 8080
@@ -34,7 +34,7 @@ from ux_compose import (
     title,
 )
 from ux_compose.build import build as compose_build
-from ux_compose.chrome import GET_CHROME_ATTR
+from ux_compose.brand import GET_BRAND_ATTR
 from ux_compose.helpers import _serialize_tree
 from ux_compose.routing.core import apply_html_document
 from ux_dom import Document
@@ -140,7 +140,7 @@ def _document():
 
 
 def _pulse_wrap(document: Any):
-    """GET chrome (nav + foot) outside Component.render(). Morph stays a fragment."""
+    """Brand bar (nav + foot) outside Component.render(). Morph stays a fragment."""
     if document is None or not callable(document):
         raise TypeError(
             "Pulse wrap requires a callable Document. "
@@ -162,7 +162,7 @@ def _pulse_wrap(document: Any):
                 "border-b border-stone-200/80 bg-stone-50/90 px-4 py-4 backdrop-blur "
                 "dark:border-stone-800 dark:bg-stone-950/90"
             ),
-            **{GET_CHROME_ATTR: True},
+            **{GET_BRAND_ATTR: True},
         )
         foot = footer(
             "ux-compose · page units · additive L0–L3 attach · Isolation Law · HTMX opt-in",

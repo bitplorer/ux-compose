@@ -20,7 +20,7 @@ Python **≥ 3.14** with the pinned specialist stack (ux-dom, ux-channel, ux-beh
 - No viewport `sm:` inside cards. Containment is `min-w-0` + `overflow-x-hidden` + wrap.
 - Channel grammar already on the kit: `swipe.horizontal`, `click swipe.left/right`, `input delay:`.
 - Isolation: this package never imports `ux_channel`.
-- GET chrome lives on Document wrap (`document_wrap`); `render()` stays a fragment.
+- The brand bar lives on Document wrap (`document_wrap`); `render()` stays a fragment.
 
 ## Run
 

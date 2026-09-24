@@ -140,7 +140,7 @@ class MultiSelect(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
-            chrome=(
+            lead=(
                 span("Field", className=self.class_kicker),
                 h2("Materials", className=self.class_title),
                 p("Several names. Select-all is not a row click.", className=self.class_lede),

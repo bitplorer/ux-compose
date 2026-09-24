@@ -58,7 +58,7 @@ class Alert(Component):
         if not bool(self.open):
             return kit_shell(self,
                 button("Show alert", type="button", className=self.class_x + " border border-stone-200", **bind(self.show)),
-                chrome=(
+                lead=(
                     span("Quiet", className="text-xs font-medium uppercase tracking-widest text-stone-400"),
                     h2("No alerts", className="m-0 font-serif text-2xl font-semibold"),
                     p("Show the note again when you need it.", className="m-0 text-sm text-stone-500"),

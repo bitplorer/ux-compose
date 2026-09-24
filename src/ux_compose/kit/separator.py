@@ -55,7 +55,7 @@ class Separator(Component):
             ),
             id=self.id,
             className=self.class_card,
-            chrome=(
+            lead=(
                 span("Break", className=self.class_kicker),
                 h2("A pause", className=self.class_title),
                 p("Above the fold.", className=self.class_lede),

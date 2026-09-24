@@ -65,7 +65,7 @@ def test_create_app_rejects_reserved_dest_test(tmp_path):
 @pytest.mark.skipif(not HAS_FASTAPI, reason="FastAPI host")
 def test_create_app_docs_page_get_is_document_not_swagger(tmp_path):
     from ux_compose.build import build
-    from ux_compose.chrome import brand_wrap
+    from ux_compose.brand import brand_wrap
     from ux_compose.doctor import doctor, scan_fastapi_docs_collision
     from tests.asgi_http import asgi_get
 

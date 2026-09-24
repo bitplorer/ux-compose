@@ -80,7 +80,7 @@ class Testimonials(Component):
             role="region",
             aria_labelledby=qid,
             data_which=key,
-            chrome=(
+            lead=(
                 span("Voices", className=self.class_kicker),
                 h2("What they keep", className=self.class_title),
             ),

@@ -67,7 +67,7 @@ class Mockup(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
-            chrome=(
+            lead=(
                 span("Look", className=self.class_kicker),
                 h2("On the table", className=self.class_title),
                 p("A named frame. Choosing is public.", className=self.class_lede),

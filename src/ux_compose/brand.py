@@ -1,4 +1,4 @@
-"""Document-path GET brand chrome.
+"""Document-path brand bar.
 
 Clock A wraps ``render()`` with ``build(wrap=)``. Clock B morph payloads
 stay fragments — ``update_with`` reads ``Component.render()``, not this helper.
@@ -9,7 +9,7 @@ brand **outside** ``Component.render``. Product path is Document (Python
 
 Usage::
 
-    from ux_compose.chrome import brand_wrap
+    from ux_compose.brand import brand_wrap
     from document import document
 
     app, asgi, bundle = build(
@@ -24,11 +24,11 @@ from typing import Any
 
 from ux_compose.dom import nav, raw, span
 
-GET_CHROME_ATTR = "data-uxcompose-get-chrome"
+GET_BRAND_ATTR = "data-uxcompose-brand"
 DEFAULT_BRAND = "App"
 
 __all__ = [
-    "GET_CHROME_ATTR",
+    "GET_BRAND_ATTR",
     "DEFAULT_BRAND",
     "brand_wrap",
 ]
@@ -60,16 +60,16 @@ def brand_wrap(document: Any, *, brand: str = DEFAULT_BRAND):
     label = str(brand)
 
     def wrap(child: Any = None):
-        chrome = nav(
+        bar = nav(
             span(label, className="brand"),
             className="nav",
             aria_label="Site",
-            **{GET_CHROME_ATTR: True},
+            **{GET_BRAND_ATTR: True},
         )
         node = _as_child(child)
         if node is None:
-            return document(chrome)
-        return document(chrome, node)
+            return document(bar)
+        return document(bar, node)
 
     wrap.brand = label  # type: ignore[attr-defined]
     return wrap

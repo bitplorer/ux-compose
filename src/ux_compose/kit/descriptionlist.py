@@ -57,7 +57,7 @@ class DescriptionList(Component):
             dl(*rows, className=self.class_list),
             id=self.id,
             className=self.class_card,
-            chrome=(
+            lead=(
                 span("Facts", className=self.class_kicker),
                 h2("This piece", className=self.class_title),
                 p("A description list, not a data table.", className=self.class_lede),

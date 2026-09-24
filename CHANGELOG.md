@@ -17,6 +17,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Pin ux-channel @ `9e43bb4e1da5ea2a1aadfeee1c99b59d1ced67a9` and
+  cek-host / cek-surface @ cek-python `0626a10b36535942f9687dbe2eb298742263a780`.
+  A clean install of channel `a6ab159` plus PyPI `cek-host` 0.1.3
+  still speaks `legal` / `to_s` and does not consume a once-Cap before
+  side-effects. The pin is the catalog Host (CORE 08, 11, 14, 26).
+  Makefile / scaffold / nook / pulseboard lockstep. Cut C floor
+  ``985e58a`` stays. Cap door ``Channel.boot`` unchanged.
 - Pin ux-dom @ `cdb0dd1486e58746c51e98aa51f5fd4d26841196`
   (ux-dom [#22](https://github.com/bitplorer/ux-dom/pull/22)). A clean
   install of `2e894cd` has no `style-src-attr`. Dev CSP now emits

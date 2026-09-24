@@ -10,7 +10,7 @@ Three processes, one browser URL. Names match what each process owns:
 A sibling Tailwind ``--watch`` writes ``output.css``. That is not a
 fourth server — it is a compiler next to these three. This module
 starts that sibling (``start_tailwind_watch``) and the optional
-tunnel. ``cli.py`` is argv only — leftover ``start_css_watcher=`` is
+tunnel. ``cli/__init__.py`` is argv only — leftover ``start_css_watcher=`` is
 gone.
 
 ``pages`` is not a word in this tree (the folder is ``routes/``).
@@ -42,8 +42,8 @@ import time
 from typing import Literal
 from urllib.parse import urlsplit
 
-from ux_compose.serve_restart import clear_pid, write_pid
-from ux_compose.serve_state import (
+from ux_compose.cli.serve_restart import clear_pid, write_pid
+from ux_compose.cli.serve_state import (
     REDIS_URL_ENV,
     STATE_STORE_ENV,
     clear_shared_state,
@@ -275,13 +275,13 @@ def run(
 ) -> int:
     """Start the css watcher + both workers, then block on the origin process.
 
-    Clock body lives here. ``cli.py`` is argv only. Do not take a leftover
+    Clock body lives here. ``cli/__init__.py`` is argv only. Do not take a leftover
     ``start_css_watcher=`` hook — call ``start_tailwind_watch`` directly.
     """
     import uvicorn
 
     from ux_compose.tailwind import start_tailwind_watch
-    from ux_compose.tunnel import parse_provider, start_tunnel, wait_for_health
+    from ux_compose.cli.tunnel import parse_provider, start_tunnel, wait_for_health
 
     root = cwd or os.getcwd()
     ui_sock = listen_loopback()
@@ -428,7 +428,7 @@ def run(
             daemon=True,
         ).start()
         uvicorn.run(
-            "ux_compose.serve_dev:origin_asgi",
+            "ux_compose.cli.serve_dev:origin_asgi",
             host=host,
             port=port,
             factory=True,

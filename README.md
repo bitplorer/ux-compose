@@ -119,7 +119,7 @@ Five-minute path: [START_HERE.md](START_HERE.md). Product path: [docs/guides/PAT
 | Owns | Does **not** own |
 |------|------------------|
 | Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder + app asset layout | DOM serialize / tag trees / package static (ux-dom) |
-| `App` composition, delivery, HMR + tunnel under `serve dev` (`serve_dev.py`; `cli.py` is argv) | Channel transport (wire/ only) |
+| `App` composition, delivery, HMR + tunnel under `serve dev` (`cli/serve_dev.py`; `cli/__init__.py` is argv) | Channel transport (wire/ only) |
 | Page-unit catalog scan (`App.mount` inside `build()`) + CSS minify via `ux_compose.tailwind` | MorphState / Cap / Plan IR implementations |
 
 ## Audience

@@ -35,7 +35,7 @@ def test_uxcompose_console_script_import_resolves():
     assert target == "ux_compose.cli:main", target
     module_name, sep, attr = target.partition(":")
     assert sep and module_name == "ux_compose.cli" and attr == "main", target
-    path = SRC / "cli.py"
+    path = SRC / "cli" / "__init__.py"
     assert path.is_file()
     spec = importlib.util.spec_from_file_location("ux_compose_cli_honesty", path)
     assert spec is not None and spec.loader is not None
@@ -43,6 +43,10 @@ def test_uxcompose_console_script_import_resolves():
     spec.loader.exec_module(mod)
     fn = getattr(mod, attr)
     assert callable(fn)
-    assert not (SRC / "cli").exists()
+    main_mod = (SRC / "cli" / "__main__.py").read_text(encoding="utf-8")
+    assert "from ux_compose.cli import main" in main_mod
+    assert "raise SystemExit(main())" in main_mod
+    assert not (SRC / "cli.py").exists()
+    assert (SRC / "cli" / "__init__.py").is_file()
     assert not (SRC / "services").exists()
     assert not (SRC / "serve").exists()

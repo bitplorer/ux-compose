@@ -66,7 +66,7 @@ def test_pypi_unclaimed_in_brand_tables():
         text = rel.read_text(encoding="utf-8")
         assert "**PyPI / pip**" not in text
         assert "not on PyPI" in text
-    cli = _read("cli.py")
+    cli = _read("cli/serve.py")
     assert "pip install -e '.[serve]'" in cli
     assert "pip install 'ux-compose[serve]'" not in cli
     assert 'pip install "ux-compose[serve]"' not in cli
@@ -150,7 +150,7 @@ def test_architecture_concern_table_is_the_module_map():
         "wire/boot.py",
         "wire/caps.py",
         "wire/cek.py",
-        "cli.py",
+        "cli/__init__.py",
         "routing/host.py",
         "routing/fastapi.py",
         "routing/asgi.py",
@@ -184,9 +184,9 @@ def test_architecture_owner_column_names_delivery_files():
         assert owner in arch, owner
     assert not (DOCS / "MODULE_MAP.md").exists()
     for rel in (
-        "tunnel.py",
-        "deploy.py",
-        "serve_restart.py",
+        "cli/tunnel.py",
+        "cli/deploy.py",
+        "cli/serve_restart.py",
         "author.py",
         "progressive.py",
         "dom.py",
@@ -195,24 +195,31 @@ def test_architecture_owner_column_names_delivery_files():
         assert (SRC / rel).is_file(), rel
 
 
-def test_folder_law_keeps_kit_construct_and_cli_at_package_root():
-    """Folders are copy/isolation laws. Do not invent cli/ or kit/kit_construct."""
+def test_folder_law_keeps_kit_construct_at_package_root():
+    """kit_construct stays a library import. CLI is the cli/ package, not the root."""
     assert (SRC / "kit_construct.py").is_file()
     assert not (SRC / "kit" / "kit_construct.py").exists()
-    assert not (SRC / "cli").exists()
+    assert (SRC / "cli" / "__init__.py").is_file()
+    assert not (SRC / "cli.py").exists()
+    assert not (SRC / "cli_build.py").exists()
+    assert not (SRC / "serve_dev.py").exists()
     assert not (SRC / "serve").exists()
     assert not (SRC / "services").exists()
-    assert (SRC / "cli.py").is_file()
-    assert (SRC / "cli_build.py").is_file()
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
     assert "## Folder law" in arch
-    assert "Do **not** add `cli/`" in arch
+    assert "Library modules do not import `ux_compose.cli`" in arch
+    assert "Do **not** add `cli/`" not in arch
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     assert "Folder law" in agents
     construct = _read("kit_construct.py")
     assert "Not under ``kit/``" in construct
     copy = _read("kit/copy.py")
     assert "kit_construct lives outside kit/" in copy
+    for path in SRC.rglob("*.py"):
+        if "cli" in path.relative_to(SRC).parts:
+            continue
+        text = path.read_text(encoding="utf-8")
+        assert "ux_compose.cli" not in text, path.relative_to(SRC)
 
 
 def test_on_disk_packages_are_mapped_not_ghosts():
@@ -222,15 +229,15 @@ def test_on_disk_packages_are_mapped_not_ghosts():
         for p in SRC.iterdir()
         if p.is_dir() and (p / "__init__.py").is_file() and p.name != "__pycache__"
     )
-    assert packages == ["dx", "kit", "routing", "wire"], packages
+    assert packages == ["cli", "dx", "kit", "routing", "wire"], packages
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
     for name in packages:
         assert f"`{name}/`" in arch, name
-    assert not (SRC / "cli").exists()
+    assert not (SRC / "cli.py").exists()
     assert not (SRC / "serve").exists()
     assert not (SRC / "services").exists()
-    cli = _read("cli.py")
-    serve = _read("serve_dev.py")
+    cli = _read("cli/__init__.py")
+    serve = _read("cli/serve_dev.py")
     assert "argv only" in cli or "argv ``create``" in cli
     assert "start_tailwind_watch" in serve
     assert "start_css_watcher:" not in serve
@@ -255,7 +262,7 @@ def test_routing_adapters_path_absent_and_taught():
 
 
 def test_create_argv_dropped_create_app_stays():
-    cli = _read("cli.py")
+    cli = _read("cli/__init__.py")
     assert 'cmd in ("create-app", "create")' not in cli
     assert 'cmd == "create-app"' in cli
     assert "argv ``create`` is leftover" in cli
@@ -345,7 +352,7 @@ def test_flow_citations_point_at_ownership():
     matrix = (DOCS / "resilience" / "MATRIX.md").read_text(encoding="utf-8")
     assert "FLOW law on the compose surface" not in matrix
     assert "OWNERSHIP law on the compose surface" in matrix
-    cli_build = _read("cli_build.py")
+    cli_build = _read("cli/product_build.py")
     assert "Ownership (FLOW law):" not in cli_build
     assert "Ownership (OWNERSHIP law):" in cli_build
     stub = (DOCS / "FLOW.md").read_text(encoding="utf-8")
@@ -430,12 +437,12 @@ def test_live_client_does_not_synthesize_html_shell():
 
 
 def test_css_watch_spawn_lives_in_tailwind():
-    cli = _read("cli.py")
+    cli = _read("cli/__init__.py")
     tw = _read("tailwind.py")
     hmr = _read("hmr.py")
     assert "def start_tailwind_watch" in tw
     assert "def _start_tailwind_watch" not in cli
-    serve = _read("serve_dev.py")
+    serve = _read("cli/serve_dev.py")
     assert "start_tailwind_watch" not in cli
     assert "start_tailwind_watch" in serve
     assert "start_css_watcher:" not in cli
@@ -448,8 +455,9 @@ def test_css_watch_spawn_lives_in_tailwind():
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     assert "`tailwind.py` sibling Tailwind" in agents
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
-    assert "Tailwind `Popen` in `cli.py`" in arch
-    assert not (SRC / "cli").exists()
+    assert "Tailwind `Popen` in `cli/`" in arch
+    assert not (SRC / "cli.py").exists()
+    assert (SRC / "cli" / "__init__.py").is_file()
 
 
 def test_catalog_scan_and_http_discover_are_two_walkers():
@@ -518,8 +526,8 @@ def test_store_precedence_docs_name_redis_wins():
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     hmr = (DOCS / "internals" / "hmr.md").read_text(encoding="utf-8")
     adr = (DOCS / "adr" / "0006-serve-dev-shared-store.md").read_text(encoding="utf-8")
-    serve = _read("serve_state.py")
-    serve_dev = _read("serve_dev.py")
+    serve = _read("cli/serve_state.py")
+    serve_dev = _read("cli/serve_dev.py")
     assert "REDIS_URL" in agents
     assert "prefers Redis" in agents or "Redis wins" in agents
     assert "REDIS_URL" in hmr
@@ -555,7 +563,8 @@ def test_leftover_table_splits_doctor_tokens_from_agent_locks():
     assert "`ux_compose.routing.adapters`" in doctor_sec
     assert '`host="starlette"`' in doctor_sec
     assert "argv `create`" in agent_sec
-    assert "`src/ux_compose/cli/` package" in agent_sec
+    assert "root `cli.py`" in agent_sec
+    assert "`src/ux_compose/cli/` package" not in agent_sec
     assert "`kit/kit_construct.py`" in agent_sec
     assert "`docs/MODULE_MAP.md`" in agent_sec
     assert "argv `development`" in agent_sec
@@ -569,6 +578,7 @@ def test_leftover_table_splits_doctor_tokens_from_agent_locks():
     assert "KEEP until ux-dom owns extract" not in agent_sec
     assert "argv `create`" not in doctor_sec
     assert "`src/ux_compose/cli/` package" not in doctor_sec
+    assert "root `cli.py`" not in doctor_sec
     assert "`start_css_watcher=`" not in doctor_sec
     assert "`_fragment_for_target`" not in doctor_sec
 

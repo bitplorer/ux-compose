@@ -17,7 +17,7 @@ from ux_compose.tailwind import (
     resolve_tailwind_argv,
     standalone_asset_name,
 )
-from ux_compose.cli_build import run_product_build
+from ux_compose.cli.product_build import run_product_build
 
 
 def test_env_wins(tmp_path, monkeypatch):

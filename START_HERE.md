@@ -47,7 +47,7 @@ uxcompose serve dev
 
 Daily author path is `uxcompose serve dev` (origin + ui + channel + CSS watch).
 Ship CSS with `uxcompose build`. Check the frozen sheet with `uxcompose serve prod`.
-HMR is not a Document API. `cli.py` is argv only; `serve_dev.py` starts
+HMR is not a Document API. `cli/__init__.py` is argv only; `serve_dev.py` starts
 CSS watch and tunnel. Frozen serve verbs: `dev` / `prod` /
 `restart-channel`. argv `development` / `production` / `restart_channel`
 fail closed. Leftover `start_css_watcher=` is gone.

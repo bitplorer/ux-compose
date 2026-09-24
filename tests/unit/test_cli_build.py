@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose.cli import main
-from ux_compose.cli_build import find_product_root, run_product_build
+from ux_compose.cli.product_build import find_product_root, run_product_build
 from ux_compose.scaffold import create_app
 
 

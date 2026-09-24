@@ -96,22 +96,24 @@ def test_insert_hmr_client_skips_without_body():
 
 
 def test_cli_serve_does_not_xor():
-    src = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
-    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "ux_compose" / "cli" / "__init__.py").read_text(encoding="utf-8")
+    serve_cmd = (ROOT / "src" / "ux_compose" / "cli" / "serve.py").read_text(encoding="utf-8")
+    serve = (ROOT / "src" / "ux_compose" / "cli" / "serve_dev.py").read_text(encoding="utf-8")
     assert "needs --no-reload" not in src
     assert "hmr and not reload" not in src
-    assert "run_serve_dev" in src
+    assert "run_serve_dev" not in src
+    assert "run_serve_dev" in serve_cmd
     assert "--one-process" not in src
     assert "hmr:asgi_factory" in serve
 
 
 def test_cli_css_watch_is_sibling_not_hmr_watcher():
-    cli = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
+    cli = (ROOT / "src" / "ux_compose" / "cli" / "__init__.py").read_text(encoding="utf-8")
     tw = (ROOT / "src" / "ux_compose" / "tailwind.py").read_text(encoding="utf-8")
     hmr = (ROOT / "src" / "ux_compose" / "hmr.py").read_text(encoding="utf-8")
     assert "def start_tailwind_watch" in tw
     assert "def _start_tailwind_watch" not in cli
-    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    serve = (ROOT / "src" / "ux_compose" / "cli" / "serve_dev.py").read_text(encoding="utf-8")
     assert "start_tailwind_watch" not in cli
     assert "start_tailwind_watch" in serve
     assert "start_css_watcher:" not in cli
@@ -152,7 +154,7 @@ def test_load_asgi_requires_module_attr():
         assert "module:attr" in str(exc)
 
 
-def _run_asgi(app, *, path="/", method="GET", content_type: bytes, body: bytes, extra_headers=None):
+def _run_asgi(app, *, path="/", method="GET", content_type: bytes, body: bytes, extra_headers=None, scope_extra=None):
     captured = []
 
     async def inner(scope, receive, send):
@@ -169,7 +171,10 @@ def _run_asgi(app, *, path="/", method="GET", content_type: bytes, body: bytes, 
         return {"type": "http.request", "body": b"", "more_body": False}
 
     mw = HmrClientMiddleware(inner, client_script_tag())
-    asyncio.run(mw({"type": "http", "path": path, "method": method, "headers": []}, receive, send))
+    scope = {"type": "http", "path": path, "method": method, "headers": []}
+    if scope_extra:
+        scope.update(scope_extra)
+    asyncio.run(mw(scope, receive, send))
     return captured
 
 
@@ -204,3 +209,27 @@ def test_start_tailwind_watch_none_without_input(tmp_path):
     from ux_compose.tailwind import start_tailwind_watch
 
     assert start_tailwind_watch(cwd=str(tmp_path)) is None
+
+
+def test_stamp_script_nonce_on_hmr_tag():
+    from ux_compose.hmr import stamp_script_nonce
+
+    raw = client_script_tag().encode()
+    stamped = stamp_script_nonce(raw, "abc_DEF-123")
+    assert stamped.startswith(b'<script nonce="abc_DEF-123" data-uxcompose-hmr>')
+    assert stamp_script_nonce(stamped, "other") == stamped
+    assert stamp_script_nonce(raw, "") == raw
+    assert stamp_script_nonce(raw, 'bad"nonce') == raw
+    assert stamp_script_nonce(raw, "bad nonce") == raw
+    assert stamp_script_nonce(raw, "nönce") == raw
+
+
+def test_middleware_stamps_request_nonce():
+    captured = _run_asgi(
+        None,
+        content_type=b"text/html; charset=utf-8",
+        body=b"<html><body>hi</body></html>",
+        scope_extra={"ux_dom_csp_nonce": "reqNonce_1"},
+    )
+    body = next(m for m in captured if m["type"] == "http.response.body")
+    assert b'<script nonce="reqNonce_1" data-uxcompose-hmr>' in body["body"]

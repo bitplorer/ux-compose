@@ -52,8 +52,8 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 |---------|---------------|----------|
 | Isolation door | `wire/boot.py`, `wire/caps.py`, `wire/cek.py` | `ux_channel` import outside `wire/` |
 | Cap mint | `wire/caps.py` | empty-token dual attrs |
-| Product CLI | `cli.py` | second verb, clock flags |
-| Build / CSS | `cli_build.py`, `tailwind.py`, `assets.py` | Tailwind on ux-dom; Tailwind `Popen` in `cli.py` / `hmr.py`; leftover `start_css_watcher=` |
+| Product CLI | `cli/__init__.py` | second verb, clock flags, library import of `ux_compose.cli` |
+| Build / CSS | `cli/product_build.py`, `tailwind.py`, `assets.py` | Tailwind on ux-dom; Tailwind `Popen` in `cli/` or `hmr.py`; leftover `start_css_watcher=` |
 | Product host | `routing/host.py`, `routing/fastapi.py`, `routing/asgi.py`, `routing/core.py` | fold FastAPI into DirectoryASGI |
 | Composition | `app.py`, `component.py`, `helpers.py` | clone MorphState / Cap |
 | Surfaces / scan | `surfaces.py`, `surfaces_host.py`, `build.py` | second HTTP pipeline; fold `scan_surfaces` into `DirectoryRoutes.discover` |
@@ -62,14 +62,14 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Author helpers on copies | `kit_construct.py` (outside `kit/`) | move under `kit/` |
 | HMR | `hmr.py` | `Document.use` HMR |
 | Channel scripts | `live_client.py` | fold into `hmr.py`; synthesized HTML shell for fragments |
-| Serve-dev clocks | `serve_dev.py` (body), `cli.py` (argv) | `--one-process`; clock spawn in `cli.py` |
-| Store lifecycle | `serve_state.py` | compose `FileStateStore` class |
+| Serve-dev clocks | `cli/serve_dev.py` (body), `cli/__init__.py` (argv) | `--one-process`; clock spawn in `cli/__init__.py` |
+| Store lifecycle | `cli/serve_state.py` | compose `FileStateStore` class |
 | Probe | `dx/probe.py` | junk-drawer growth |
 | Scaffold | `scaffold.py` | product CLI on uxdom |
 | Brand bar | `brand.py` | brand bar inside `routes/*.py` `render()` |
-| Tunnel | `tunnel.py` | Document.use tunnel; start before origin health |
-| Deploy | `deploy.py` | product CLI on uxdom; upload secrets |
-| Channel restart | `serve_restart.py` | clock flag; `--one-process`; fold into `hmr.py` |
+| Tunnel | `cli/tunnel.py` | Document.use tunnel; start before origin health |
+| Deploy | `cli/deploy.py` | product CLI on uxdom; upload secrets |
+| Channel restart | `cli/serve_restart.py` | clock flag; `--one-process`; fold into `hmr.py` |
 | Author helpers | `author.py` | Caps; HTML walk; live in `helpers.py` |
 | Progressive levels | `progressive.py` | optional-package unlock ladder |
 | Tag re-exports | `dom.py` | Document serialize |
@@ -88,9 +88,11 @@ usually library ∩ CLI, or library imports that copies must keep.
 | `wire/` | only `ux_channel` / CEK import | product / kit / helpers |
 | `kit/` | ownable catalog. `uxcompose add` rewrites `from ux_compose.kit.X` → `from .X` and copies `X.py` | library helpers, CLI internals |
 | `routing/` | Clock A host pair (FastAPI ≠ DirectoryASGI) | compatibility shims |
+| `cli/` | product argv and command bodies. Library does not import it | author algebra (`doctor.py`, `build.py`, `scaffold.py`, `tailwind.py`) |
 | `dx/` | slang leftover (one probe file for doctor) | a second DX product |
 
-Do **not** add `cli/`, `helpers/`, `kit/kit_construct.py`, or `docs/MODULE_MAP.md`.
+Do **not** add `helpers/`, `kit/kit_construct.py`, or `docs/MODULE_MAP.md`.
+Library modules do not import `ux_compose.cli`.
 
 ### Why `kit_construct.py` is next to `component.py`
 
@@ -106,22 +108,23 @@ If this file moved under `kit/`, copy would rewrite the import to
 `from .kit_construct import` and drop a fork into every app. That is the
 inorganic tree. 56 lines on purpose.
 
-### Why CLI verbs are not a `cli/` package
+### Why the CLI is a package
 
-`uxcompose = ux_compose.cli:main`. `cli.py` is argv dispatch only.
-Each verb's **body** is the concern that is also a library:
+`uxcompose = ux_compose.cli:main`. `cli/__init__.py` is argv dispatch only.
+Command modules call the library. Library modules do not import `ux_compose.cli`.
 
-| Verb | Body | Also imported as |
-|------|------|------------------|
-| create-app | `scaffold.py` | `create_app()` |
-| build | `cli_build.py` | named because `build.py` is `build()` orchestra |
-| serve | `serve_dev.py` / `serve_restart.py` / `serve_state.py` | clocks, ADR 0005 (argv in `cli.py`; spawn here) |
-| deploy | `deploy.py` | checklist / images |
-| doctor | `doctor.py` | `from ux_compose import doctor` |
-| add | `kit/copy.py` | ownable copy, not CLI-only |
+| Verb | Command | Calls |
+|------|---------|--------|
+| create-app | `cli/create_app.py` | `scaffold.create_app` |
+| build | `cli/build.py` | `cli/product_build.py` (CSS wrap of `tailwind.py`, not `build()`) |
+| serve | `cli/serve.py` | `cli/serve_dev.py`, `cli/serve_restart.py`, `cli/serve_state.py`, `cli/tunnel.py` |
+| deploy | `cli/deploy.py` | prepare in that module |
+| doctor | `cli/doctor.py` | `doctor.py` (`from ux_compose import doctor`) |
+| add | `cli/add.py` | `kit/copy.py` |
 
-Folding those under `cli/` would lie: doctor and `build()` are public
-algebra. `cli_build.py` is the CSS minify CLI wrap of `tailwind.py`.
+`doctor.py`, `build.py`, `scaffold.py`, and `tailwind.py` stay at the package
+root. They are public algebra. Putting them under `cli/` would lie.
+Do not put `serve_dev.py` or `cli_build.py` back at the package root.
 
 ### Three helper modules (not one junk package)
 
@@ -194,13 +197,13 @@ names. Doctor will not print these from `scan_leftover_aliases`.
 
 | Leftover | Prefer |
 |----------|--------|
-| `src/ux_compose/cli/` package | `cli.py` dispatch + verb modules |
+| root `cli.py` / `serve_dev.py` / `cli_build.py` | `ux_compose.cli` (argv in `__init__`, bodies in the package) |
 | `kit/kit_construct.py` | `ux_compose.kit_construct` (library import) |
 | `tests/property/` | drop; no property suite in this tree |
 | argv `create` | `uxcompose create-app` |
 | argv `development` / `production` / `restart_channel` | `dev` / `prod` / `restart-channel` |
 | `start_css_watcher=` on `serve_dev.run` | `serve_dev` calls `start_tailwind_watch` |
-| `src/ux_compose/serve/` / `services/` packages | `serve_dev.py` + `cli.py` (no fashion folders) |
+| `src/ux_compose/serve/` / `services/` packages | `cli/serve_dev.py` (no fashion folders) |
 | Channel `ops/` / `enhance/` as a compose door | Isolation `wire/` only (`ops_to_wire` is wire dicts) |
 | homemade `_fragment_for_target` HTML walker in `helpers.py` | prefer `extract_by_id` (ux-dom#20); KEEP walker as escape if absent; serialize is `to_html_bytes`; no `fragment.py` |
 | `docs/MODULE_MAP.md` | this table (INDEX remains the audience map) |

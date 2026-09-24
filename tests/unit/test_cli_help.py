@@ -15,7 +15,7 @@ def test_help_exits_zero():
 
 
 def test_help_lists_serve_modes():
-    src = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "ux_compose" / "cli" / "__init__.py").read_text(encoding="utf-8")
     assert "uxcompose serve dev" in src
     assert "uxcompose serve prod" in src
     assert "uxcompose serve restart-channel" in src
@@ -24,16 +24,17 @@ def test_help_lists_serve_modes():
     assert "--no-hmr" not in src
     assert "def start_tailwind_watch" not in src
     tw = (ROOT / "src" / "ux_compose" / "tailwind.py").read_text(encoding="utf-8")
-    serve = (ROOT / "src" / "ux_compose" / "serve_dev.py").read_text(encoding="utf-8")
+    serve = (ROOT / "src" / "ux_compose" / "cli" / "serve_dev.py").read_text(encoding="utf-8")
+    command = (ROOT / "src" / "ux_compose" / "cli" / "serve.py").read_text(encoding="utf-8")
     assert "def start_tailwind_watch" in tw
     assert "start_tailwind_watch" not in src
     assert "start_tailwind_watch" in serve
     assert "start_css_watcher:" not in src
     assert "start_css_watcher:" not in serve
     assert "start_css_watcher=" in src
-    assert "run_serve_dev" in src
+    assert "run_serve_dev" in command
     assert "--one-process" not in src
-    assert "def _missing_serve_dev_extras" in src
+    assert "def _missing_serve_dev_extras" in command
 
 
 def test_serve_dev_rejects_one_process(capsys):
@@ -67,7 +68,7 @@ def test_create_argv_is_unknown(capsys):
     """Leftover alias. Frozen verb is create-app."""
     assert main(["create", "myapp"]) == 2
     text = capsys.readouterr().out + capsys.readouterr().err
-    src = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "ux_compose" / "cli" / "__init__.py").read_text(encoding="utf-8")
     assert 'cmd in ("create-app", "create")' not in src
     assert 'cmd == "create-app"' in src
 
@@ -77,7 +78,7 @@ def test_serve_mode_synonyms_fail_closed(capsys):
     assert main(["serve", "development"]) == 2
     assert main(["serve", "production"]) == 2
     assert main(["serve", "restart_channel"]) == 2
-    src = (ROOT / "src" / "ux_compose" / "cli.py").read_text(encoding="utf-8")
+    src = (ROOT / "src" / "ux_compose" / "cli" / "__init__.py").read_text(encoding="utf-8")
     assert '"development": "dev"' not in src
     assert '"production": "prod"' not in src
     assert '"restart_channel": "restart-channel"' not in src

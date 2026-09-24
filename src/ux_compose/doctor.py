@@ -380,7 +380,7 @@ def scan_cek_host(app: Any) -> list[str]:
         "Cap Host identity violation: cek=require with live Channel but "
         f"registry._caps is {name!r} (kernel_ssot={ssot!r}); "
         "expected CekHostCapService / kernel_ssot='cek-runtime'. "
-        "Install ux-channel @ ef59543 (floor 985e58a) and cek-host>=0.2.0."
+        "Install ux-channel @ 257adac (floor 985e58a) and cek-host>=0.2.0."
     ]
 
 

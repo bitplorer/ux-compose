@@ -18,9 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Depend on `cek-host>=0.2.0` and `cek-surface>=0.2.0`, and pin
-  ux-channel @ `ef59543c27be5b198a6b9cde31429c6f180541a0`.
-  0.1.3 is `cek_host.legal` and does not install. The git pin of
-  cek-python `0626a10` is gone. Makefile / scaffold / nook /
+  ux-channel @ `257adac8d961974fb056622e3c900e9846b28575`.
+  Versions before 0.2.0 teach `cek_host.legal`. Do not pin them.
+  They are not yanked on the index yet. Makefile / scaffold / nook /
   pulseboard lockstep. Cut C floor ``985e58a`` stays.
 - Pin ux-channel @ `9e43bb4e1da5ea2a1aadfeee1c99b59d1ced67a9` and
   cek-host / cek-surface @ cek-python `0626a10b36535942f9687dbe2eb298742263a780`.

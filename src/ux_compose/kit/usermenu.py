@@ -133,7 +133,7 @@ class UserMenu(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
-            chrome=(
+            lead=(
                 span("Session", className=self.class_kicker),
                 h2("You", className=self.class_title),
             ),

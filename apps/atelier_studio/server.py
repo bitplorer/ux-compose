@@ -21,7 +21,7 @@ from ux_compose import (
     title,
     div,
 )
-from ux_compose.chrome import GET_CHROME_ATTR
+from ux_compose.brand import GET_BRAND_ATTR
 
 from apps.atelier_studio.chrome import (
     catalog_page,
@@ -216,7 +216,7 @@ def _inst(cid: str):
 
 
 def _wrap_get(*main_kids: Any, flash: str = ""):
-    """Document GET chrome — nav/foot/toast live outside the stage fragment."""
+    """Document brand bar — nav/foot/toast live outside the stage fragment."""
     flash_nodes = []
     if flash:
         from ux_compose import p as p_tag
@@ -225,7 +225,7 @@ def _wrap_get(*main_kids: Any, flash: str = ""):
     return DOCUMENT(
         div(
             nav(level=int(UX.level), label=UX.level.label),
-            **{GET_CHROME_ATTR: True},
+            **{GET_BRAND_ATTR: True},
         ),
         *flash_nodes,
         *main_kids,

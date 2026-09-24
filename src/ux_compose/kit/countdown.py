@@ -78,7 +78,7 @@ class Countdown(Component):
             id=self.id,
             className=self.class_card,
             data_remain=str(n),
-            chrome=(
+            lead=(
                 span("Until", className=self.class_kicker),
             ),
         )

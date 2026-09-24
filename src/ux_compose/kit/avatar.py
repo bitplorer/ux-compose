@@ -60,7 +60,7 @@ class Avatar(Component):
             button("Rename", type="button", className=self.class_btn, **bind(self.rename)),
             id=self.id,
             className=self.class_card,
-            chrome=(
+            lead=(
                 span("You", className=self.class_kicker),
                 h2("Portrait", className=self.class_title),
             ),

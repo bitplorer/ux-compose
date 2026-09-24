@@ -151,7 +151,7 @@ class Otp(Component):
             ),
             id=self.id,
             className=self.class_card,
-            chrome=(
+            lead=(
                 span("Verify", className=self.class_kicker),
                 h2("Enter the code", className=self.class_title),
                 p("Six digits. They attach before the morph.", className=self.class_lede),

@@ -238,7 +238,7 @@ print(app.name, app.level, bundle)
 
 Product path is `build(..., document=document, wrap=document)`. Morph stays a fragment.
 GET brand chrome: `wrap=brand_wrap(document, brand="Acme")` from
-`ux_compose.chrome` — still outside `render()`.
+`ux_compose.brand` — still outside `render()`.
 
 ### GET brand chrome (Document path)
 
@@ -249,7 +249,7 @@ Nav brand belongs on Clock A wrap, never inside `Component.render()`.
 ```python
 from pathlib import Path
 from ux_compose.build import build
-from ux_compose.chrome import brand_wrap
+from ux_compose.brand import brand_wrap
 from document import document
 
 app, asgi, bundle = build(

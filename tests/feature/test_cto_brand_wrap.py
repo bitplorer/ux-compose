@@ -75,7 +75,7 @@ def test_create_app_hello_render_stays_fragment_with_brand_flag(tmp_path):
     assert BRAND not in hello
     assert "wrap_get_chrome" not in hello
     assert "wrap_get_chrome" not in app_py
-    assert "from ux_compose.chrome import brand_wrap" in app_py
+    assert "from ux_compose.brand import brand_wrap" in app_py
     assert "brand_wrap(document" in app_py
     assert BRAND in app_py
     assert "shell.py" not in app_py
@@ -92,7 +92,7 @@ def test_brand_wrap_get_brand_once_morph_brand_zero(tmp_path):
     """Clock A GET includes brand once; Clock B morph HTML has brand=0."""
     from ux_dom import Document
     from ux_compose.build import build
-    from ux_compose.chrome import GET_CHROME_ATTR, brand_wrap
+    from ux_compose.brand import GET_BRAND_ATTR, brand_wrap
     from ux_compose.helpers import update_with
     from tests.asgi_http import asgi_get
 
@@ -116,7 +116,7 @@ def test_brand_wrap_get_brand_once_morph_brand_zero(tmp_path):
     page = asgi_get(asgi, "/hello")
     assert page.status_code == 200, page.text[:400]
     assert page.text.count(BRAND) == 1
-    assert GET_CHROME_ATTR in page.text
+    assert GET_BRAND_ATTR in page.text
     assert 'id="hello"' in page.text
     assert SHELL_ROOT_ID not in page.text
 
@@ -124,7 +124,7 @@ def test_brand_wrap_get_brand_once_morph_brand_zero(tmp_path):
     morph, target = morph_html_and_target(ops)
     assert "#hello" in (target or "#hello")
     assert morph.count(BRAND) == 0
-    assert GET_CHROME_ATTR not in morph
+    assert GET_BRAND_ATTR not in morph
     assert_html_is_fragment(morph, target_id="hello")
 
     mod = _load_hello(root)

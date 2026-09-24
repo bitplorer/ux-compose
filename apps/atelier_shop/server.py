@@ -30,7 +30,7 @@ from ux_compose import (
     div,
     aside,
 )
-from ux_compose.chrome import GET_CHROME_ATTR
+from ux_compose.brand import GET_BRAND_ATTR
 from ux_compose.helpers import _serialize_tree
 from ux_dom import Document
 from ux_dom.runtime import XElement, Htmx
@@ -211,7 +211,7 @@ def _stage_trees():
 
 
 def _wrap_get(child: Any, *, flash: str = ""):
-    """Document GET chrome — header/hero/footer live outside the stage fragment."""
+    """Document brand bar — header/hero/footer live outside the stage fragment."""
     level = int(UX.level)
     label = UX.level.label
     flash_nodes = [p(flash, className="bag-notice", role="status")] if flash else []
@@ -225,7 +225,7 @@ def _wrap_get(child: Any, *, flash: str = ""):
                 className="nav-meta",
             ),
             className="top wrap",
-            **{GET_CHROME_ATTR: True},
+            **{GET_BRAND_ATTR: True},
         ),
         main(
             section(

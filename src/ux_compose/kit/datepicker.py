@@ -171,7 +171,7 @@ class DatePicker(Component):
         return kit_shell(
             self,
             *kids,
-            chrome=(
+            lead=(
                 span("When", className=self.class_kicker),
                 h2("Pick a day", className=self.class_title),
                 p("The day is a name. The calendar is presence.", className=self.class_lede),

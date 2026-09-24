@@ -21,7 +21,7 @@ HAS_FASTAPI = importlib.util.find_spec("fastapi") is not None
 
 
 def test_scaffold_document_declares_css_href_hello_does_not():
-    """GET chrome: Document links /css/output.css; hello fragment does not."""
+    """Brand bar: Document links /css/output.css; hello fragment does not."""
     assert "OUTPUT_CSS" in DOCUMENT_PY or "/css/" in DOCUMENT_PY
     assert "stylesheet" in DOCUMENT_PY.lower() or 'rel="stylesheet"' in DOCUMENT_PY
     assert "stylesheet" not in ROUTES_HELLO_PY.lower()

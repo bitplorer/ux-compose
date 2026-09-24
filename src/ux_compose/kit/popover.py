@@ -105,7 +105,7 @@ class Popover(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
-            chrome=(
+            lead=(
                 span("Hint", className=self.class_kicker),
                 h2("A quiet note", className=self.class_title),
                 p("Not a modal. Focus stays in the page.", className=self.class_lede),

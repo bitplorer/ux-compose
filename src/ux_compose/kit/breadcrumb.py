@@ -95,7 +95,7 @@ class Breadcrumb(Component):
             id=self.id,
             className=self.class_card,
             data_here=cur,
-            chrome=(
+            lead=(
                 span("Path", className=self.class_kicker),
                 p("The trail is a tuple of names. Walking back is public.", className=self.class_lede),
             ),

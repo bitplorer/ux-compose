@@ -163,7 +163,7 @@ class Select(Component):
             className=self.class_card,
             data_open="1" if is_open else "0",
             data_value=val,
-            chrome=(
+            lead=(
                 span("Field", className=self.class_kicker),
                 h2("Material", className=self.class_title),
                 p("Grouped options. The value is a name.", className=self.class_lede),

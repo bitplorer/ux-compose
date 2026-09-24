@@ -118,7 +118,7 @@ class SpinButton(Component):
             id=self.id,
             className=self.class_card,
             data_value=str(n),
-            chrome=(
+            lead=(
                 span("Count", className=self.class_kicker),
             ),
         )

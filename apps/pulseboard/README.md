@@ -71,7 +71,7 @@ Companions taught by `examples/` (no kit stem):
 
 - Isolation: this package never imports `ux_channel`.
 - Quantity stays on `RefState`. Named lanes / theme / presence are `MorphState`.
-- GET chrome lives on Document wrap. Widget morph stays a fragment.
+- The brand bar lives on Document wrap. Widget morph stays a fragment.
 - Cap door is Channel / `submit_intent` — not a second Cap Host.
 - Tailwind `className` strings. No companion CSS per card.
 

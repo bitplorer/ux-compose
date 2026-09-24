@@ -66,7 +66,7 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Store lifecycle | `serve_state.py` | compose `FileStateStore` class |
 | Probe | `dx/probe.py` | junk-drawer growth |
 | Scaffold | `scaffold.py` | product CLI on uxdom |
-| Chrome / brand | `chrome.py` | GET chrome in `routes/*.py` `render()` |
+| Brand bar | `brand.py` | brand bar inside `routes/*.py` `render()` |
 | Tunnel | `tunnel.py` | Document.use tunnel; start before origin health |
 | Deploy | `deploy.py` | product CLI on uxdom; upload secrets |
 | Channel restart | `serve_restart.py` | clock flag; `--one-process`; fold into `hmr.py` |

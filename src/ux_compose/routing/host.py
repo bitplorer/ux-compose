@@ -9,7 +9,7 @@ open() creates the process. bind() mounts Document (CSP/static) then pages.
 ``wrap=`` is the author HTML shell (None = fragment, no synthesized wrap).
 Product path is ``build(document=, wrap=document)``. Channel is attached by
 build() *before* bind(), once the ASGI object exists. Do not invent a
-Document-absent live-client or string-chrome primary.
+Document-absent live-client or string primary.
 """
 from __future__ import annotations
 

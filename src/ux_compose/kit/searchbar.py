@@ -97,7 +97,7 @@ class SearchBar(Component):
             ul(*rows, className=self.class_list, role="listbox", aria_label="Results") if rows else p("No matches.", role="status", className=self.class_lede),
             id=self.id,
             className=self.class_card,
-            chrome=(
+            lead=(
                 span("Find", className=self.class_kicker),
                 h2("Search", className=self.class_title),
             ),

@@ -138,7 +138,7 @@ class PullRefresh(Component):
             className=self.class_card,
             data_phase=phase,
             data_channel_on="swipe.vertical threshold:56",
-            chrome=(
+            lead=(
                 span("Feed", className=self.class_kicker),
                 h2("Pull to refresh", className=self.class_title),
             ),

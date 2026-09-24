@@ -110,7 +110,7 @@ class ToggleGroup(Component):
             id=self.id,
             className=self.class_card,
             data_value=key,
-            chrome=(
+            lead=(
                 span("Range", className=self.class_kicker),
             ),
         )

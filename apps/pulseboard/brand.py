@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ux_compose import a, div, footer, header, main, nav, p, span
-from ux_compose.chrome import GET_CHROME_ATTR
+from ux_compose.brand import GET_BRAND_ATTR
 from ux_compose.helpers import _serialize_tree
 
 from apps.pulseboard.registry import live, theme_key
@@ -243,7 +243,7 @@ def document_wrap(document: Any):
                 inner,
                 className=SHELL + (" dark" if night else ""),
                 data_theme=theme_key(),
-                **{GET_CHROME_ATTR: True},
+                **{GET_BRAND_ATTR: True},
             )
         )
 

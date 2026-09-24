@@ -168,7 +168,7 @@ class FilterBar(Component):
             id=self.id,
             className=self.class_card,
             data_filter=which,
-            chrome=(
+            lead=(
                 span("Filter", className=self.class_kicker),
                 h2("The winter list", id=title_id, className=self.class_title),
             ),

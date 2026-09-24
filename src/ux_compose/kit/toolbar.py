@@ -110,7 +110,7 @@ class Toolbar(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
-            chrome=(
+            lead=(
                 span("Tools", className=self.class_kicker),
                 h2("The strip", className=self.class_title),
             ),

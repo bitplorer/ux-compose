@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from ux_compose import a, div, footer, header, nav, p, span
-from ux_compose.chrome import GET_CHROME_ATTR
+from ux_compose.brand import GET_BRAND_ATTR
 
 from .theme import KICKER, LEDE, SHELL, TITLE, WRAP
 
@@ -84,7 +84,7 @@ def wrap(*kids: Any, room: str = "desk"):
 
 
 def document_wrap(document: Any):
-    """GET chrome outside ``render()`` — rooms nav + foot on the Document shell.
+    """Brand bar outside ``render()`` — rooms nav + foot on the Document shell.
 
     Morph payloads stay fragments. ``document`` must be a callable Document.
     """
@@ -102,7 +102,7 @@ def document_wrap(document: Any):
                 top_nav(room=""),
                 div(*kids, foot(), className=WRAP),
                 className=SHELL,
-                **{GET_CHROME_ATTR: True},
+                **{GET_BRAND_ATTR: True},
             )
         )
 

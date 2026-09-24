@@ -90,7 +90,7 @@ class Fieldset(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
-            chrome=(
+            lead=(
                 span("Group", className=self.class_kicker),
                 h2("Finish", className=self.class_title),
                 p("A fieldset names the group. The value is a name.", className=self.class_lede),

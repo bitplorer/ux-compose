@@ -66,7 +66,7 @@ class Hero(Component):
                 className=self.class_btn,
                 **bind(self.act),
             ),
-            chrome=(span("Studio", className=self.class_kicker),),
+            lead=(span("Studio", className=self.class_kicker),),
             id=self.id,
             className=self.class_card,
             role="region",

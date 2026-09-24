@@ -173,7 +173,7 @@ ROUTES_HELLO_PY = dedent('''\
     predicate (Intent still requires the control-minted cap under Cap Host
     require). hello.pulse is fail-closed (caps=("pulse",)). HTMX is opt-in at
     Document layer. render() stays a #hello fragment (the morph payload).
-    Host wraps Document — never chrome inside render().
+    Host wraps Document — never the brand bar inside render().
     """
     from __future__ import annotations
 
@@ -315,8 +315,8 @@ README = dedent('''\
 
     Host is set **only** in `build(host=...)` — swap without rewriting page units.
 
-    GET brand chrome (optional): `wrap=brand_wrap(document, brand="Acme")`
-    from `ux_compose.chrome`. Keep `render()` a fragment — never put nav brand
+    Brand bar (optional): `wrap=brand_wrap(document, brand="Acme")`
+    from `ux_compose.brand`. Keep `render()` a fragment — never put nav brand
     inside `routes/*.py`.
 
     ## Product path
@@ -393,7 +393,7 @@ def create_app(
     host: ``auto`` | ``fastapi`` | ``asgi`` — gateway at composition root only.
     level: ``auto`` or 0..3 attach level (complete install; hard-deps).
     brand: optional GET-only nav label via ``brand_wrap`` (Document path).
-      ``None`` keeps ``wrap=document``. Never embeds chrome in ``render()``.
+      ``None`` keeps ``wrap=document``. Never embeds the brand bar in ``render()``.
     """
     reason = reserved_dest_reason(_dest_basename(dest))
     if reason:
@@ -418,9 +418,9 @@ def create_app(
 
     brand_label = str(brand).strip() if brand else ""
     if brand_label:
-        chrome_import = "from ux_compose.chrome import brand_wrap\n"
+        chrome_import = "from ux_compose.brand import brand_wrap\n"
         wrap_expr = f"brand_wrap(document, brand={brand_label!r})"
-        readme_chrome_import = "from ux_compose.chrome import brand_wrap\n"
+        readme_chrome_import = "from ux_compose.brand import brand_wrap\n"
     else:
         chrome_import = ""
         wrap_expr = "document"

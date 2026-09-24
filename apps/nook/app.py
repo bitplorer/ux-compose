@@ -11,7 +11,7 @@ from pathlib import Path
 from ux_compose import doctor
 from ux_compose.build import build
 
-from .chrome import document_wrap
+from .brand import document_wrap
 from .document import document
 from .settings import webassets
 

@@ -246,7 +246,7 @@ class Pagination(Component):
             data_of=str(n),
             data_window=str(self._window()),
             data_channel_id=self.id,
-            chrome=(
+            lead=(
                 span("Catalog", className=self.class_kicker),
                 h2("The shelf", className=self.class_title),
             ),

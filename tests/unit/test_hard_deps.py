@@ -10,11 +10,10 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 UX_DOM_SHA = "cdb0dd1486e58746c51e98aa51f5fd4d26841196"
-UX_CHANNEL_SHA = "9e43bb4e1da5ea2a1aadfeee1c99b59d1ced67a9"
+UX_CHANNEL_SHA = "ef59543c27be5b198a6b9cde31429c6f180541a0"
 UX_BEHAVIOR_SHA = "7d46979f59f284bc2d6d961ed372ec849e851dfc"
 UX_MOTION_SHA = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
 COMPOSE_SHA = "24a182f35e3d0743a2faafddb5ba0396324b2d9a"
-CEK_SHA = "0626a10b36535942f9687dbe2eb298742263a780"
 
 
 def test_pyproject_requires_314_and_pins_specialists():
@@ -24,9 +23,10 @@ def test_pyproject_requires_314_and_pins_specialists():
     assert UX_CHANNEL_SHA in text
     assert UX_BEHAVIOR_SHA in text
     assert UX_MOTION_SHA in text
-    assert CEK_SHA in text
-    assert "subdirectory=cek-host" in text
-    assert "subdirectory=cek-surface" in text
+    assert "cek-host>=0.2.0" in text
+    assert "cek-surface>=0.2.0" in text
+    assert "0626a10" not in text
+    assert "subdirectory=cek-host" not in text
     assert "cek-host>=0.1.3" not in text
     assert "cek-surface>=0.1.3" not in text
     assert 'subdirectory=python' in text
@@ -44,10 +44,16 @@ def test_pin_ssot_lockstep_makefile_scaffold_ci():
     scaffold = (ROOT / "src" / "ux_compose" / "scaffold.py").read_text(encoding="utf-8")
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     nook = (ROOT / "apps" / "nook" / "requirements.txt").read_text(encoding="utf-8")
-    for sha in (UX_DOM_SHA, UX_CHANNEL_SHA, UX_BEHAVIOR_SHA, UX_MOTION_SHA, CEK_SHA):
+    pulseboard = (ROOT / "apps" / "pulseboard" / "requirements.txt").read_text(encoding="utf-8")
+    for sha in (UX_DOM_SHA, UX_CHANNEL_SHA, UX_BEHAVIOR_SHA, UX_MOTION_SHA):
         assert sha in makefile
         assert sha in scaffold
         assert sha in nook
+        assert sha in pulseboard
+    for leaf in (makefile, scaffold, nook, pulseboard):
+        assert "cek-host>=0.2.0" in leaf
+        assert "cek-surface>=0.2.0" in leaf
+        assert "0626a10" not in leaf
     assert "git+https://github.com/bitplorer/ux-compose.git@" in scaffold
     assert "git+https://github.com/bitplorer/ux-compose.git@" in nook
     assert COMPOSE_SHA in scaffold

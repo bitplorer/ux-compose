@@ -184,17 +184,12 @@ def test_cek_require_raises_or_attaches():
 
 
 @needs_channel
-def test_unknown_cek_mode_resolves_to_require():
+def test_unknown_cek_mode_is_refused():
     from ux_compose import App
 
     app = App.boot("T", strict_caps=False).use_channel()
-    if HAS_CEK:
+    with pytest.raises(ValueError, match="off, adapt, or require"):
         app.use_cek(mode="wat")
-        assert app._cek == "require"
-        _assert_product_cap(_registry_caps(app))
-    else:
-        with pytest.raises(ImportError):
-            app.use_cek(mode="wat")
 
 
 def test_cek_module_is_only_in_wire():

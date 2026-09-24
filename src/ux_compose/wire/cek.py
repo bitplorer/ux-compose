@@ -47,7 +47,7 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
                 already on registry._caps.
       adapt   — compare-only lab; Channel CapService remains authority
       require — product Cap Host (cek-runtime via Channel). Default.
-                Unknown values resolve to require.
+                Unknown values raise ValueError.
 
     Returns the resolved mode string, or None when the specialist is absent
     and mode is not require (progressive degrade).
@@ -58,7 +58,10 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
             raise RuntimeError(_OFF_REFUSE)
         return "off"
     if resolved not in ("adapt", "require"):
-        resolved = "require"
+        raise ValueError(
+            f"use_cek mode must be off, adapt, or require, got {mode!r}. "
+            "Unknown modes do not become require."
+        )
 
     if channel is None:
         if resolved == "require":

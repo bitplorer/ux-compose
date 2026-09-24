@@ -135,7 +135,7 @@ Do not put `serve_dev.py` or `cli_build.py` back at the package root.
 | `kit_construct.py` | `apply_slots` / `kit_shell` | catalog stems |
 
 `_fragment_for_target` prefers `ux_dom.response.serialize.extract_by_id`
-when importable (ux-dom#20 / tip `2e894cd`; compose#80 C2). The homemade
+when importable (ux-dom#20 / pin `cdb0dd1`; compose#80 C2). The homemade
 walker in `helpers.py` is escape if the owner symbol is absent. Serialize
 is already library-owned (`to_html_bytes`). `Fragment` is an invisible
 tree shell; `parse_html` / `defHTML` are ingest, not extract. String

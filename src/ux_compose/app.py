@@ -171,7 +171,7 @@ class App:
                     label off.
           adapt   — compare-only lab; Channel CapService remains authority
           require — product Cap Host (cek-runtime via Channel). Default.
-                    Unknown values resolve to require.
+                    Unknown values raise ValueError.
         """
         resolved = (mode or "require").strip().lower()
         is_off = resolved in ("off", "0", "false", "no")

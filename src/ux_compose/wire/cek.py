@@ -87,7 +87,8 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
         if resolved == "require":
             raise ImportError(
                 "CEK require mode needs cek_host. "
-                "pip install 'cek-host>=0.1.3'. Channel Caps continue to work without it."
+                "CEK require mode needs cek_host from cek-python 0626a10 "
+                "(cek_host.catalog). PyPI cek-host 0.1.3 is the legal wheel."
             )
         return None
 

@@ -78,7 +78,7 @@ Leftover `start_css_watcher=` is gone. Frozen serve verbs: `dev` / `prod` /
 fail closed. No `serve/` / `services/` ghost packages. Library modules do not
 import `ux_compose.cli`.
 Three clocks on `serve dev` only: process reload (`*.py`) · browser WS live-reload · sibling Tailwind `--watch` + client HEAD `/css/output.css`. No watcher and no `Popen` in `hmr.py`. CSS save must not kill the worker.
-Cap door is `Channel.boot` (pin ux-channel @ `a6ab159`; Cut C floor
+Cap door is `Channel.boot` (pin ux-channel @ `9e43bb4`; Cut C floor
 `985e58a`). Channel prefers Redis.
 
 ## 6. Forbidden

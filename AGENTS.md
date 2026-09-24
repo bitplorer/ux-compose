@@ -37,9 +37,10 @@ Folders are import/copy laws. Full table: [docs/ARCHITECTURE.md](docs/ARCHITECTU
 - `kit/` is the ownable catalog. `uxcompose add` rewrites `ux_compose.kit.X`.
   `kit_construct.py` stays **next to** `component.py` so copies keep the
   library import. Do not move it under `kit/`.
-- No `cli/` package. `cli.py` is argv dispatch only. Verb bodies are also
-  libraries (`doctor.py`, `build.py` / `cli_build.py`, `scaffold.py`,
-  `serve_dev.py`). `serve_dev.py` starts sibling CSS `--watch` and tunnel.
+- `cli/` is the product command layer. `cli/__init__.py` is argv dispatch only.
+  Library modules do not import `ux_compose.cli`. `doctor.py`, `build.py`,
+  `scaffold.py`, and `tailwind.py` stay at the package root (public algebra).
+  `serve_dev.py` (under `cli/`) starts sibling CSS `--watch` and tunnel.
   Leftover `start_css_watcher=` is gone.
 - Frozen serve verbs: `dev` / `prod` / `restart-channel`. argv
   `development` / `production` / `restart_channel` fail closed. No
@@ -96,7 +97,7 @@ Do not collapse these. The stale design is an in-process hub + watcher.
 
 `uxcompose serve dev` is origin + ui + channel. Always.
 `uxcompose serve prod` is one process, clocks off.
-`cli.py` parses the mode; `serve_dev.py` starts the clocks (CSS watch +
+`cli/__init__.py` parses the mode; `serve_dev.py` starts the clocks (CSS watch +
 tunnel). Missing extras fail closed — no single-uvicorn fallback.
 HTML insert is `HmrClientMiddleware`, not `Document.use`.
 `assets.py` `_StaticDirASGI` must emit `ETag` / `Last-Modified`.

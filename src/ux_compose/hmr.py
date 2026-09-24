@@ -221,6 +221,40 @@ def client_script_tag() -> str:
     return f'<script {HMR_ATTR.decode("ascii")}>\n{CLIENT_JS}\n</script>'
 
 
+def stamp_script_nonce(script: bytes, nonce: str) -> bytes:
+    """Put the request CSP nonce on the live-reload script.
+
+    ``style-src`` / ``script-src`` nonces make a bare inline script fail
+    closed. The nonce is per response, so it is stamped when the HTML is
+    written, not when the middleware is constructed.
+    """
+    if not nonce or not script.startswith(b"<script "):
+        return script
+    head, sep, rest = script.partition(b">")
+    if not sep or b"nonce=" in head:
+        return script
+    try:
+        raw = nonce.encode("ascii")
+    except UnicodeEncodeError:
+        return script
+    if any(ch in nonce for ch in "\"'<>& \t\r\n"):
+        return script
+    return b'<script nonce="' + raw + b'" ' + head[len(b"<script ") :] + sep + rest
+
+
+def _request_nonce(scope: dict) -> str:
+    try:
+        from ux_dom.plugins.csp import get_nonce
+    except ImportError:
+        get_nonce = None
+    if get_nonce is not None:
+        current = get_nonce() or ""
+        if current:
+            return current
+    raw = scope.get("ux_dom_csp_nonce") or scope.get("csp_nonce") or ""
+    return str(raw) if raw else ""
+
+
 def is_html_content_type(value: bytes) -> bool:
     return b"text/html" in value.lower()
 
@@ -338,7 +372,10 @@ class HmrClientMiddleware:
                 state["buf"].append(message.get("body", b""))
                 if message.get("more_body"):
                     return
-                body = insert_hmr_client(b"".join(state["buf"]), self.script)
+                body = insert_hmr_client(
+                    b"".join(state["buf"]),
+                    stamp_script_nonce(self.script, _request_nonce(scope)),
+                )
                 message = {**message, "body": body, "more_body": False}
             await send(message)
 

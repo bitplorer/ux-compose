@@ -43,7 +43,7 @@ Maintainer:   OWNERSHIP · resilience/MATRIX · AGENTS
 |------|------------------|
 | Product CLI (`create-app`, `build`, `serve`, `deploy`, `doctor`) + Tailwind CLI finder + app asset layout | DOM serialize / tag trees / package static (ux-dom) |
 | App composition, host strategy, delivery | Channel transport (wire/ only) |
-| HMR + tunnel under `uxcompose serve` (`serve_dev.py`; `cli.py` argv) | Pure-dom tooling (`uxdom doctor` / lint / profile / add) |
+| HMR + tunnel under `uxcompose serve` (`cli/serve_dev.py`; `cli/__init__.py` argv) | Pure-dom tooling (`uxdom doctor` / lint / profile / add) |
 | Page-unit catalog scan (`App.mount` inside `build()`) + `routes/` | Behavior units (ux-behavior) |
 
 **Author rule:** Render? → **ux-dom**. Product lifecycle? → **ux-compose** only.

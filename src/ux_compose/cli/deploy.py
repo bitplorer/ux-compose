@@ -230,3 +230,26 @@ def format_deploy_result(result: DeployResult) -> str:
         lines.append(f"  $ {i}")
     lines.append("=" * 40)
     return "\n".join(lines)
+
+
+def main(argv: list[str]) -> int:
+    import argparse
+    import sys
+
+    p = argparse.ArgumentParser(prog="uxcompose deploy")
+    p.add_argument(
+        "--provider",
+        "-p",
+        default="docker",
+        choices=("docker", "fly", "render", "railway", "vps", "checklist"),
+    )
+    p.add_argument("--force", action="store_true")
+    p.add_argument("--name", default=None)
+    args = p.parse_args(argv)
+    try:
+        result = prepare_deploy(args.provider, force=args.force, app_name=args.name)
+    except FileNotFoundError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    print(format_deploy_result(result))
+    return 0

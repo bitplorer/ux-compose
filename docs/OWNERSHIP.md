@@ -72,10 +72,11 @@ How-to: [guides/serve-hmr-tunnel.md](guides/serve-hmr-tunnel.md) · [guides/CLI.
 Architecture: [internals/hmr.md](internals/hmr.md) · decision: [adr/0005-serve-dev-split.md](adr/0005-serve-dev-split.md).
 
 `serve dev` is origin + ui + channel. `serve prod` is one process, clocks off.
-`cli.py` is argv only. `serve_dev.py` starts sibling CSS `--watch` and tunnel.
+`cli/__init__.py` is argv only. `serve_dev.py` starts sibling CSS `--watch` and tunnel.
 Leftover `start_css_watcher=` is gone. Frozen serve verbs: `dev` / `prod` /
 `restart-channel`. argv `development` / `production` / `restart_channel`
-fail closed. No `cli/` / `serve/` / `services/` ghost packages.
+fail closed. No `serve/` / `services/` ghost packages. Library modules do not
+import `ux_compose.cli`.
 Three clocks on `serve dev` only: process reload (`*.py`) · browser WS live-reload · sibling Tailwind `--watch` + client HEAD `/css/output.css`. No watcher and no `Popen` in `hmr.py`. CSS save must not kill the worker.
 Cap door is `Channel.boot` (pin ux-channel @ `a6ab159`; Cut C floor
 `985e58a`). Channel prefers Redis.

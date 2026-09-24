@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import pytest
 
-from ux_compose.tunnel import local_probe_host, parse_provider, provider_available
+from ux_compose.cli.tunnel import local_probe_host, parse_provider, provider_available
 
 
 def test_parse_provider_aliases():

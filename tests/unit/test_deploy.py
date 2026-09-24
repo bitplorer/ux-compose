@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import pytest
 
-from ux_compose.deploy import _DOCKERFILE, format_deploy_result, prepare_deploy
+from ux_compose.cli.deploy import _DOCKERFILE, format_deploy_result, prepare_deploy
 
 
 def test_checklist_needs_app_root(tmp_path, monkeypatch):

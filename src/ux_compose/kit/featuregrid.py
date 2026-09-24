@@ -87,7 +87,7 @@ class FeatureGrid(Component):
             id=self.id,
             className=self.class_card,
             data_active=cur,
-            lead=(
+            preface=(
                 span("Why", className=self.class_kicker),
                 h2("How it is made", className=self.class_title),
                 p("Pick a tile. Opening is public.", className=self.class_lede),

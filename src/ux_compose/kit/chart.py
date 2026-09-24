@@ -110,7 +110,7 @@ class Chart(Component):
             id=self.id,
             className=self.class_card,
             data_which=which,
-            lead=(
+            preface=(
                 span("Count", className=self.class_kicker),
                 h2("Winter cuts", className=self.class_title),
                 p("Named bars. Heights are RefState.", className=self.class_lede),

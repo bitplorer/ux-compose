@@ -82,7 +82,7 @@ class Slider(Component):
             id=self.id,
             className=self.class_card,
             data_value=str(n),
-            lead=(
+            preface=(
                 span("Amount", className=self.class_kicker),
             ),
         )

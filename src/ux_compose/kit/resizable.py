@@ -80,7 +80,7 @@ class Resizable(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
-            lead=(
+            preface=(
                 span("Split", className=self.class_kicker),
                 h2("Two desks", className=self.class_title),
                 p("A named split. Quantity never lives here.", className=self.class_lede),

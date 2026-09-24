@@ -151,7 +151,7 @@ class ContextMenu(Component):
             role="region",
             data_open="1" if is_open else "0",
             data_channel_id=self.id,
-            lead=(
+            preface=(
                 span("Hold or click", className=self.class_kicker),
                 h2("Context menu", className=self.class_title),
             ),

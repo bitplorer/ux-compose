@@ -125,7 +125,7 @@ class FormLayout(Component):
             ),
             id=self.id,
             className=self.class_card,
-            lead=(
+            preface=(
                 span("Form", className=self.class_kicker),
                 h2("Write it down", className=self.class_title),
                 p("Each label points at its control. Errors describe the field.", className=self.class_lede),

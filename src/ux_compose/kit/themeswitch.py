@@ -112,7 +112,7 @@ class ThemeSwitch(Component):
             className=self.class_card,
             data_theme=key,
             data_value=key,
-            lead=(
+            preface=(
                 span("Look", className=self.class_kicker),
             ),
         )

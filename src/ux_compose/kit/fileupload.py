@@ -81,7 +81,7 @@ class FileUpload(Component):
             ul(*rows, className=self.class_list) if rows else p("Nothing attached.", className=self.class_lede),
             id=self.id,
             className=self.class_card,
-            lead=(
+            preface=(
                 span("Files", className=self.class_kicker),
                 h2("Attach a note", className=self.class_title),
             ),

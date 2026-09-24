@@ -124,7 +124,7 @@ class Accordion(Component):
             *items,
             id=self.id,
             className=self.class_card,
-            lead=(
+            preface=(
                 span("Guide", className=self.class_kicker),
                 h2("How it is made", className=self.class_title),
             ),

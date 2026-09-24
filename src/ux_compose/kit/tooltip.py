@@ -81,7 +81,7 @@ class Tooltip(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
-            lead=(
+            preface=(
                 span("Hint", className=self.class_kicker),
                 h2("What this does", className=self.class_title),
                 p("The tip describes the control. It is not a dialog.", className=self.class_lede),

@@ -73,7 +73,7 @@ class Newsletter(Component):
                 id=self.id,
                 className=self.class_card,
                 data_done="1",
-                lead=(
+                preface=(
                     span("In", className=self.class_kicker),
                     h2("You're on the list", className=self.class_title),
                     p("A letter when the linen lands.", className=self.class_lede),
@@ -104,7 +104,7 @@ class Newsletter(Component):
             id=self.id,
             className=self.class_card,
             data_done="0",
-            lead=(
+            preface=(
                 span("Letter", className=self.class_kicker),
                 h2("Winter list", className=self.class_title),
                 p("No spam, ever.", className=self.class_lede),

@@ -79,7 +79,7 @@ class Progress(Component):
             id=self.id,
             className=self.class_card,
             data_value=str(n),
-            lead=(
+            preface=(
                 span("Work", className=self.class_kicker),
             ),
         )

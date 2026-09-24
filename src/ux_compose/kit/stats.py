@@ -78,7 +78,7 @@ class Stats(Component):
             button("Refresh", type="button", className=self.class_btn, **bind(self.refresh)),
             id=self.id,
             className=self.class_card,
-            lead=(
+            preface=(
                 span("Today", className=self.class_kicker),
                 h2("On the desk", className=self.class_title),
                 p("Counts live on RefState. Dirty is the morph clock.", className=self.class_lede),

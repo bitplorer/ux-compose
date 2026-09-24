@@ -74,7 +74,7 @@ class EmptyState(Component):
             h2(self.TITLE, id=title_id, className=self.class_title),
             p(self.BODY, className=self.class_lede, role="status"),
             button(self.ACTION, type="button", className=self.class_btn, **bind(self.act)),
-            lead=(span("Empty", className=self.class_kicker),),
+            preface=(span("Empty", className=self.class_kicker),),
             id=self.id,
             className=self.class_card,
             aria_labelledby=title_id,

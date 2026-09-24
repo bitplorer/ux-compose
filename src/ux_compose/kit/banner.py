@@ -58,7 +58,7 @@ class Banner(Component):
         if not bool(self.open):
             return kit_shell(self,
                 button("Show banner", type="button", className=self.class_x + " border border-stone-200 px-4", **bind(self.show)),
-                lead=(
+                preface=(
                     span("Quiet", className="text-xs font-medium uppercase tracking-widest text-stone-400"),
                     h2("Banner hidden", className="m-0 font-serif text-2xl font-semibold"),
                 ),
@@ -73,7 +73,7 @@ class Banner(Component):
                 p(self.BODY, className=self.class_lede),
             ),
             button("Dismiss", type="button", className=self.class_x, aria_label="Dismiss banner", **bind(self.dismiss)),
-            lead=(span("Notice", className=self.class_kicker),),
+            preface=(span("Notice", className=self.class_kicker),),
             id=self.id,
             className=self.class_card,
             role="region",

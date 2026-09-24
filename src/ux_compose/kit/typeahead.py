@@ -158,7 +158,7 @@ class Typeahead(Component):
             self._listing(),
             id=self.id,
             className=self.class_card,
-            lead=(
+            preface=(
                 span("Live filter", className=self.class_kicker),
                 h2("Typeahead", className=self.class_title),
             ),

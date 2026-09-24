@@ -106,7 +106,7 @@ class HoverCard(Component):
             id=self.id,
             className=self.class_card,
             data_open="1" if is_open else "0",
-            lead=(
+            preface=(
                 span("Preview", className=self.class_kicker),
                 h2("Who made this", className=self.class_title),
                 p("Richer than a tooltip. Still not a modal.", className=self.class_lede),

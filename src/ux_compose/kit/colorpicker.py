@@ -101,7 +101,7 @@ class ColorPicker(Component):
             id=self.id,
             className=self.class_card,
             data_value=val,
-            lead=(
+            preface=(
                 span("Ink", className=self.class_kicker),
                 p("A named swatch. Hex attaches.", className=self.class_lede),
             ),

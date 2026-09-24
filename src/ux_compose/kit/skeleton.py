@@ -69,7 +69,7 @@ class Skeleton(Component):
                 className=self.class_btn,
                 **bind(self.toggle),
             ),
-            lead=(
+            preface=(
                 span("Wait" if loading else "Ready", className=self.class_kicker),
                 h2("Loading the desk" if loading else "On the desk", className=self.class_title),
             ),

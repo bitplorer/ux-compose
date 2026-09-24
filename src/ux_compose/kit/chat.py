@@ -113,7 +113,7 @@ class Chat(Component):
             id=self.id,
             className=self.class_card,
             data_typing="1" if typing else "0",
-            lead=(
+            preface=(
                 span("Desk", className=self.class_kicker),
                 h2("Chat", className=self.class_title),
             ),

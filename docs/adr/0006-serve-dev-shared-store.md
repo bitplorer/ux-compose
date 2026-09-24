@@ -51,8 +51,7 @@ serve-dev accepted objects production Redis would stringify).
   #27 Cap / health honesty, Cuts 1–2 CLI/layout honesty, and Cut C
   empty Content-Type fail-closed
   (`985e58aee76ca683774c4d4d58ab30a1d3b6efee`). Current compose pin
-  `9e43bb4e1da5ea2a1aadfeee1c99b59d1ced67a9` is the catalog-law tip
-  on that floor. Cap Host packages are cek-python `0626a10`
+  `ef59543c27be5b198a6b9cde31429c6f180541a0` requires cek-host 0.2.0
   (`cek_host.catalog`). PyPI cek-host 0.1.3 is not that law.
 
 ## Rejected

@@ -86,9 +86,8 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
     except ImportError:
         if resolved == "require":
             raise ImportError(
-                "CEK require mode needs cek_host. "
-                "CEK require mode needs cek_host from cek-python 0626a10 "
-                "(cek_host.catalog). PyPI cek-host 0.1.3 is the legal wheel."
+                "CEK require mode needs cek-host>=0.2.0 (cek_host.catalog). "
+                "PyPI cek-host 0.1.3 is the legal wheel and does not satisfy that floor."
             )
         return None
 

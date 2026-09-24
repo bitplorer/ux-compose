@@ -264,7 +264,7 @@ INPUT_CSS = dedent('''\
 
 
 # Pins match Makefile / pyproject.toml (SSOT). CI installs via pip install -e ".[dev]".
-CHANNEL_VCS_PIN = "9e43bb4e1da5ea2a1aadfeee1c99b59d1ced67a9"
+CHANNEL_VCS_PIN = "ef59543c27be5b198a6b9cde31429c6f180541a0"
 BEHAVIOR_VCS_PIN = "7d46979f59f284bc2d6d961ed372ec849e851dfc"
 MOTION_VCS_PIN = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
 DOM_VCS_PIN = "cdb0dd1486e58746c51e98aa51f5fd4d26841196"
@@ -276,8 +276,8 @@ REQUIREMENTS = dedent(f'''\
     ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@{BEHAVIOR_VCS_PIN}
     ux-motion @ git+https://github.com/bitplorer/ux-motion.git@{MOTION_VCS_PIN}
     ux-channel @ git+https://github.com/bitplorer/ux-channel.git@{CHANNEL_VCS_PIN}#subdirectory=python
-    cek-host @ git+https://github.com/bitplorer/cek-python.git@0626a10b36535942f9687dbe2eb298742263a780#subdirectory=cek-host
-    cek-surface @ git+https://github.com/bitplorer/cek-python.git@0626a10b36535942f9687dbe2eb298742263a780#subdirectory=cek-surface
+    cek-host>=0.2.0
+    cek-surface>=0.2.0
     fastapi
     uvicorn[standard]
 ''')

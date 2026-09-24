@@ -7,7 +7,7 @@ VENV  ?= /tmp/ux314venv
 # SSOT pins (keep in lockstep with pyproject.toml / scaffold REQUIREMENTS).
 UX_BEHAVIOR_SHA = 7d46979f59f284bc2d6d961ed372ec849e851dfc
 UX_MOTION_SHA = bbe7d73466a6c1eccb47e711568c80ce3b4d5487
-UX_CHANNEL_SHA = 9e43bb4e1da5ea2a1aadfeee1c99b59d1ced67a9
+UX_CHANNEL_SHA = ef59543c27be5b198a6b9cde31429c6f180541a0
 UX_DOM_SHA = cdb0dd1486e58746c51e98aa51f5fd4d26841196
 
 .PHONY: test test-matrix coverage test314 venv314 specialists examples doctor shop studio pulse pulseboard nook test-cto test-cto-fragment-law cek-repro-morph-shell
@@ -23,8 +23,7 @@ specialists: venv314
 	  "ux-motion @ git+https://github.com/bitplorer/ux-motion.git@$(UX_MOTION_SHA)" \
 	  "ux-channel @ git+https://github.com/bitplorer/ux-channel.git@$(UX_CHANNEL_SHA)#subdirectory=python" \
 	  "ux-dom @ git+https://github.com/bitplorer/ux-dom.git@$(UX_DOM_SHA)" \
-	  "cek-host @ git+https://github.com/bitplorer/cek-python.git@0626a10b36535942f9687dbe2eb298742263a780#subdirectory=cek-host" \
-	  "cek-surface @ git+https://github.com/bitplorer/cek-python.git@0626a10b36535942f9687dbe2eb298742263a780#subdirectory=cek-surface" \
+	  "cek-host>=0.2.0" "cek-surface>=0.2.0" \
 	  fastapi uvicorn pytest pytest-cov httpx
 	$(PY314) -m pip install -e ".[dev]"
 

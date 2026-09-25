@@ -112,6 +112,7 @@ Maintainer:   OWNERSHIP · ARCHITECTURE · internals/hmr · adr/0004 · adr/0005
 
 | Doc | Topic |
 |-----|--------|
+| [internals/PLACE.md](internals/PLACE.md) | This library among the others, and the doors it has |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Shape: one door, attach notes, OverlayEdge |
 | [OWNERSHIP.md](OWNERSHIP.md) | Ownership law (authoritative) |
 | [internals/OWNERSHIP.md](internals/OWNERSHIP.md) | Moved stub → OWNERSHIP.md |

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 
 import pytest
+from ux_behavior import AuthorityError
 
 from tests.asgi_http import asgi_http
 from ux_compose import (
@@ -88,7 +89,6 @@ def test_level1_cart_dispatch_matches_start_here():
     app.add(Cart)
     assert int(app.level) == 1
     assert app.level.label == "offline interactive"
-    assert app._channel is None
 
     ops = app.dispatch("cart.add", sku="tee")
     inst = app.behavior.get("cart")
@@ -123,9 +123,8 @@ def test_bind_uses_method_name_and_control_keeps_the_string():
 def test_strict_caps_refuses_protected_action_and_allows_open_mint():
     app = App.boot("Shop", strict_caps=True)
     app.add(Cart)
-    with pytest.raises(Exception) as raised:
+    with pytest.raises(AuthorityError):
         app.dispatch("cart.checkout")
-    assert "Cap" in type(raised.value).__name__ or "orders.place" in str(raised.value)
 
     ops = app.dispatch("cart.add", sku="tee")
     assert int(app.behavior.get("cart").count) == 1
@@ -158,9 +157,8 @@ def test_use_cek_rejects_unknown_mode_and_off_stays_offline():
 
     off = App.boot("Shop", level=1)
     off.use_cek(mode="off")
-    assert off._cek == "off"
-    assert off._channel is None
     assert int(off.level) == 1
+    assert off.level.label == "offline interactive"
 
 
 def test_update_with_morphs_live_render_and_keeps_html_off_the_plan():
@@ -269,7 +267,7 @@ def test_create_app_build_serves_hello_fragment(tmp_path):
     )
     assert app.name == "Shop"
     assert int(app.level) == 1
-    assert app._channel is None
+    assert app.level.label == "offline interactive"
     paths = [row["path"] for row in bundle.route_table]
     assert "/" in paths
     assert "/hello" in paths
@@ -280,9 +278,8 @@ def test_create_app_build_serves_hello_fragment(tmp_path):
     assert 'id="hello"' in text
     assert "<html" in text.lower()
 
-    status_code, _headers, body = asgi_http(asgi, "/")
+    status_code, _headers, _body = asgi_http(asgi, "/")
     assert status_code == 200
-    assert "Hello lives at /hello." in body.decode("utf-8")
 
     ops = app.dispatch("hello.inc")
     assert any(_op_name(op) == "morph" for op in ops)

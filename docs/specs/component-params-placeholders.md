@@ -140,6 +140,40 @@ graph TD
 - **K3** Every module has a one-line docstring purpose (guard).
 - **K4** Extract the helpers, but keep `class_*` attributes as overridable class attributes. Positive: about 220 duplicated lines go, and styling stays overridable. Negative: widgets import one more module. Non-critical.
 
+## 5c. Examples: thin wrappers and kit-named helpers (t135u)
+
+**Review (AST scan of every `examples/**/*.py`):**
+- **No kit-named function or class exists in `examples/`.** The only "kit" mentions are prose in `examples/catalog.py:928-931`. The examples don't import `ux_compose.kit`.
+- Functions whose entire body is `return <call>(...)`:
+  - `lists.py:85 Shelf._plan`: a motion plan, not a tag, used 3 times.
+  - `table_board.py:117 Kanban._col`: a tuple-to-list read, not a tag, used 3 times.
+  - Both are genuinely reused and build no div, so they **stay**.
+- Helpers from `examples/_common.py`, which re-exports the public `ux_compose.author`:
+
+  | Helper | Calls in examples | Files | Decision |
+  |---|---|---|---|
+  | `act` | 178 | 16 | keep (reused) |
+  | `mark_dirty` | 81 | 12 | keep |
+  | `field` | 13 | 5 | keep |
+  | `status` | 5 | 4 | keep |
+  | `optional_plan` | 8 | 5 | keep |
+  | `optional_slide` | 5 | 2 | keep |
+  | `optional_fade` | 3 | 2 | keep |
+
+  All are reused across files, and all are public `ux_compose.author` API. Renaming them to verbs (e.g. `build_field`) would be a public API change, so it's **not done**. If wanted, it would be a separate critical question (Q11).
+- `examples/_common.py` itself is a re-export module, not a wrapper function. It stays, because `tests/unit/test_architecture_public_api.py:66,85` imports it, and because removing it would mean editing all 16 example files (Shivam said examples/ is not moved or renamed).
+
+**Result: 0 wrappers inlined, because none met the rule.** The only change is module purpose. The two `routes/__init__.py` files had no docstring: one had a `#` comment and the other was empty. They now carry one-line docstrings, and the original comment's content is kept.
+
+**Guard:** `tests/unit/test_examples_structure.py`:
+- `test_every_example_module_has_one_line_purpose` was red, now green.
+- `test_no_kit_named_helpers_in_examples` is a guard.
+- `test_no_thin_tag_wrappers_used_once` is a guard: a helper whose whole body is `return <tag>(...)` and that is used at most once must be inlined.
+
+Full suite:
+- Before this change, on the branch: 132 failed, 703 passed. The existing 693 tests pass (693 passed when the new spec files are deselected).
+- After: 131 failed, 704 passed. The 131 failures are only the intended red specs from §2-5b.
+
 ## 5. Step → test → doc map
 
 | Step | Tests (red now) | Doc |
@@ -149,6 +183,7 @@ graph TD
 | S3 `_common` helpers → `kit_construct` | covered by `test_add_copies_runnable_port` | §4 |
 | S4 port 54 examples into kit + CATALOG | `tests/unit/test_component_ports.py` (108 red, 3 guard) | §4, `uxcompose add --list` |
 | S4b retire kit, extract helpers (§5b) | `tests/unit/test_components_structure.py` (7 red, 2 guard) | §5b |
+| S4c examples: no thin wrappers, module purposes (§5c) | `tests/unit/test_examples_structure.py` (1 red→green, 2 guard) | §5c |
 | S5 clashes (after Q3) | new tests once decided | §4 |
 | S6 perf bench (ctor and render vs main, <5%) | to write with S1 | §3 |
 
@@ -171,4 +206,5 @@ Every step: run the full suite before and after (baseline 693 passed), then PR, 
 - **Q8** Should every kit widget move to `ux_compose/components/<slug>.py`, given that "where used" isn't possible for the 71 with no product consumer and `apps/` isn't packaged? **Recommend yes.**
 - **Q9** Should the `kit_construct` shim outlive the one-release rule, because files users already copied import it? **Recommend yes**, e.g. two releases plus a `doctor` warning.
 - **Q10** Should `ux_compose.kit` be deleted after one release of warning re-exports? **Recommend yes.**
+- **Q11** Should the public `ux_compose.author` helpers (`act`, `field`, `status`, `optional_*`) be renamed to verb names, with shims? **Recommend no**: they're reused 293 times, and their current names already describe the result.
 - **Q5** Should kit components drop their demo defaults so empty use shows a placeholder? **Recommend no**, because it would break 81 public components. Keep the defaults and show placeholders only for genuinely required params.

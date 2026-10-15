@@ -44,7 +44,30 @@ def test_fail_closed_reraises_route_import_error(tmp_path: Path):
         _purge_modules("shopfail")
 
 
+def test_fail_closed_import_error_is_raised_again_on_the_next_discover(tmp_path: Path):
+    pkg = tmp_path / "shopsticky"
+    routes = pkg / "routes"
+    routes.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (routes / "__init__.py").write_text("", encoding="utf-8")
+    (routes / "hello.py").write_text(
+        "class Hello:\n    def render(self):\n        return 'ok'\n",
+        encoding="utf-8",
+    )
+    (routes / "boom.py").write_text("raise RuntimeError('boom-import')\n", encoding="utf-8")
+    _purge_modules("shopsticky")
+    try:
+        core = DirectoryRoutes(pkg, fail_closed=True)
+        with pytest.raises(RuntimeError, match="boom-import"):
+            core.discover()
+        with pytest.raises(RuntimeError, match="boom-import"):
+            core.discover()
+    finally:
+        _purge_modules("shopsticky")
+
+
 def test_fail_open_still_skips_a_bad_route_import(tmp_path: Path):
+    """Characterization: this passed on #102 before the fail-closed fix."""
     pkg = tmp_path / "shopopen"
     routes = pkg / "routes"
     routes.mkdir(parents=True)
@@ -87,6 +110,7 @@ def test_accept_symbol_raise_propagates_when_fail_closed():
 
 
 def test_accept_symbol_raise_skips_when_not_fail_closed():
+    """Characterization: this passed on #102 before the fail-closed fix."""
     mod = types.ModuleType("demo.routes.hello2")
 
     class Hello:
@@ -128,7 +152,7 @@ def test_resolve_unit_error_is_not_replaced_with_a_new_instance():
         _live_instance(rec, resolve, {})
 
 
-def test_directory_asgi_resolve_error_is_http_500(tmp_path: Path):
+def test_directory_asgi_resolve_error_is_http_500(tmp_path: Path, caplog):
     from tests.asgi_http import asgi_http
 
     class Page:
@@ -145,12 +169,15 @@ def test_directory_asgi_resolve_error_is_http_500(tmp_path: Path):
     core.records = [
         RouteRecord(method="GET", path="/hello", name="Page", page_cls=Page, kind="page")
     ]
-    status, _headers, body = asgi_http(DirectoryASGI(core), "/hello")
+    with caplog.at_level(logging.ERROR):
+        status, _headers, body = asgi_http(DirectoryASGI(core), "/hello")
     assert status == 500
-    assert b"resolve-broke" in body
+    assert body == b"Internal Server Error"
+    assert b"resolve-broke" not in body
+    assert "resolve-broke" in caplog.text
 
 
-def test_directory_asgi_constructor_error_is_http_500(tmp_path: Path):
+def test_directory_asgi_constructor_error_is_http_500(tmp_path: Path, caplog):
     from tests.asgi_http import asgi_http
 
     class Boom:
@@ -164,12 +191,16 @@ def test_directory_asgi_constructor_error_is_http_500(tmp_path: Path):
     core.records = [
         RouteRecord(method="GET", path="/hello", name="Boom", page_cls=Boom, kind="page")
     ]
-    status, _headers, body = asgi_http(DirectoryASGI(core), "/hello")
+    with caplog.at_level(logging.ERROR):
+        status, _headers, body = asgi_http(DirectoryASGI(core), "/hello")
     assert status == 500
-    assert b"ctor-broke" in body
+    assert body == b"Internal Server Error"
+    assert b"ctor-broke" not in body
+    assert "ctor-broke" in caplog.text
 
 
 def test_resolve_none_still_constructs_the_page(tmp_path: Path):
+    """Characterization: this passed on #102 before the resolve_unit fix."""
     from tests.asgi_http import asgi_http
 
     class Page:
@@ -212,6 +243,7 @@ def test_hyphenated_param_fails_at_discover(tmp_path: Path):
 
 
 def test_identifier_param_still_matches():
+    """Characterization: this passed on #102 before the path-parameter fix."""
     rec = RouteRecord(method="GET", path="/shop/{sku}", name="Sku", page_cls=object)
     hit = match_record([rec], "GET", "/shop/oak")
     assert hit is not None

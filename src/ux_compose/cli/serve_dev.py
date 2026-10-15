@@ -42,7 +42,12 @@ import time
 from typing import Literal
 from urllib.parse import urlsplit
 
-from ux_compose.cli.serve_restart import clear_pid, write_clear_result, write_pid
+from ux_compose.cli.serve_restart import (
+    clear_pid,
+    read_restart_request,
+    write_clear_result,
+    write_pid,
+)
 from ux_compose.cli.serve_state import (
     REDIS_URL_ENV,
     STATE_STORE_ENV,
@@ -52,11 +57,38 @@ from ux_compose.cli.serve_state import (
     redis_url,
 )
 
-def note_shared_clear(cwd: str) -> bool:
-    """Clear the sqlite bag and leave a result ``restart-channel`` can read."""
+def note_shared_clear(cwd: str, token: str) -> bool:
+    """Clear the sqlite bag and leave a result for this restart token."""
     ok = clear_shared_state()
-    write_clear_result(cwd, ok)
+    write_clear_result(cwd, ok, token)
     return ok
+
+
+def claim_channel_restart(restarting: threading.Event, lock: threading.Lock) -> bool:
+    """Claim a restart. A signal that arrives during one is ignored."""
+    if not lock.acquire(blocking=False):
+        return False
+    try:
+        if restarting.is_set():
+            return False
+        restarting.set()
+        return True
+    finally:
+        lock.release()
+
+
+def release_channel_restart(restarting: threading.Event, lock: threading.Lock) -> None:
+    with lock:
+        restarting.clear()
+
+
+def restart_channel_worker(*, stop, clear_and_note, spawn) -> None:
+    """Stop the channel, publish the clear, and respawn even if the publish fails."""
+    stop()
+    try:
+        clear_and_note()
+    finally:
+        spawn()
 
 
 Worker = Literal["ui", "channel"]
@@ -347,17 +379,24 @@ def run(
     channel_holder: list = [None]
     ui_proc = None
     restarting = threading.Event()
+    restart_lock = threading.Lock()
     pid_written = False
 
     def _respawn_channel() -> None:
-        restarting.set()
-        try:
-            _stop(channel_holder[0])
-            if not note_shared_clear(root):
+        token = read_restart_request(root)
+
+        def clear_and_note() -> None:
+            if token:
+                cleared = note_shared_clear(root, token)
+            else:
+                cleared = clear_shared_state()
+            if not cleared:
                 print(
                     "serve-dev: shared sqlite bag was not cleared",
                     file=sys.stderr,
                 )
+
+        def spawn() -> None:
             channel_holder[0] = _spawn(
                 channel_cmd, cwd=root, pass_fds=(channel_sock.fileno(),)
             )
@@ -375,14 +414,35 @@ def run(
                     return
                 time.sleep(0.15)
             print("serve-dev: channel worker did not bind after restart", file=sys.stderr)
-        finally:
-            time.sleep(0.2)
-            restarting.clear()
+
+        restart_channel_worker(
+            stop=lambda: _stop(channel_holder[0]),
+            clear_and_note=clear_and_note,
+            spawn=spawn,
+        )
 
     def _on_restart_signal(signum, frame) -> None:
-        threading.Thread(
-            target=_respawn_channel, name="serve-dev-restart-channel", daemon=True
-        ).start()
+        if not claim_channel_restart(restarting, restart_lock):
+            print(
+                "serve-dev: restart already in progress; ignoring SIGUSR1",
+                file=sys.stderr,
+            )
+            return
+
+        def _run() -> None:
+            try:
+                _respawn_channel()
+            finally:
+                time.sleep(0.2)
+                release_channel_restart(restarting, restart_lock)
+
+        try:
+            threading.Thread(
+                target=_run, name="serve-dev-restart-channel", daemon=True
+            ).start()
+        except Exception:
+            release_channel_restart(restarting, restart_lock)
+            raise
 
     try:
         channel_holder[0] = _spawn(

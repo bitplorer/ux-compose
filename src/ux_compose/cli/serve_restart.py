@@ -1,23 +1,29 @@
 """One-shot Channel restart for a running ``serve dev``.
 
 Not a clock. Not a sticky flag. ``uxcompose serve restart-channel``
-reads ``.uxcompose-serve-dev.pid`` and sends SIGUSR1 to the origin.
-The origin clears the sqlite bag, writes ``.uxcompose-serve-dev.clear``,
-and respawns only the channel worker. The command waits for that result.
+reads ``.uxcompose-serve-dev.pid``, writes a one-run token, and sends
+SIGUSR1 to the origin. The origin clears the sqlite bag, echoes that
+token into ``.uxcompose-serve-dev.clear``, and respawns only the channel
+worker. The command accepts only a result carrying its own token.
 """
 from __future__ import annotations
 
 import os
+import re
+import secrets
 import signal
 import sys
 import time
+import uuid
 from pathlib import Path
 
 PID_NAME = ".uxcompose-serve-dev.pid"
 CLEAR_NAME = ".uxcompose-serve-dev.clear"
+REQUEST_NAME = ".uxcompose-serve-dev.restart"
 # clear_shared_state lets sqlite wait 8s on a lock. Stay past that so a
 # locked bag is reported as a failed clear, not a timeout.
 CLEAR_TIMEOUT_S = 10.0
+_TOKEN = re.compile(r"\A[0-9a-f]{32}\Z")
 
 
 def pid_path(cwd: str | None = None) -> Path:
@@ -28,12 +34,58 @@ def clear_result_path(cwd: str | None = None) -> Path:
     return Path(cwd or os.getcwd()) / CLEAR_NAME
 
 
-def write_clear_result(cwd: str | None, ok: bool) -> None:
-    """Atomically publish whether the sqlite bag was cleared."""
-    path = clear_result_path(cwd)
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text("ok\n" if ok else "fail\n", encoding="utf-8")
-    os.replace(tmp, path)
+def restart_request_path(cwd: str | None = None) -> Path:
+    return Path(cwd or os.getcwd()) / REQUEST_NAME
+
+
+def _require_token(token: str) -> str:
+    if not isinstance(token, str) or _TOKEN.fullmatch(token) is None:
+        raise ValueError("restart token must be 32 hex characters")
+    return token
+
+
+def _atomic_write(path: Path, text: str) -> None:
+    tmp = path.with_name(f"{path.name}.{uuid.uuid4().hex}.tmp")
+    tmp.write_text(text, encoding="utf-8")
+    try:
+        os.replace(tmp, path)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
+
+
+def write_restart_request(cwd: str | None, token: str) -> None:
+    """Publish the token for the restart the origin is about to run."""
+    _atomic_write(restart_request_path(cwd), _require_token(token) + "\n")
+
+
+def read_restart_request(cwd: str | None = None) -> str | None:
+    path = restart_request_path(cwd)
+    if not path.is_file():
+        return None
+    text = path.read_text(encoding="utf-8").strip()
+    if _TOKEN.fullmatch(text) is None:
+        return None
+    return text
+
+
+def write_clear_result(cwd: str | None, ok: bool, token: str) -> None:
+    """Atomically publish this run's sqlite-clear result."""
+    status = "ok" if ok else "fail"
+    _atomic_write(clear_result_path(cwd), f"{_require_token(token)} {status}\n")
+
+
+def matching_clear_status(cwd: str | None, token: str) -> str | None:
+    """Return ok/fail when the result file carries this run's token."""
+    text = read_clear_result(cwd)
+    if not text:
+        return None
+    parts = text.split()
+    if len(parts) != 2 or parts[0] != token:
+        return None
+    if parts[1] == "ok":
+        return "ok"
+    return "fail"
 
 
 def read_clear_result(cwd: str | None = None) -> str | None:
@@ -105,6 +157,15 @@ def restart_channel(*, cwd: str | None = None, timeout: float = CLEAR_TIMEOUT_S)
         except OSError:
             pass
         return 1
+    token = secrets.token_hex(16)
+    try:
+        write_restart_request(cwd, token)
+    except OSError:
+        print(
+            "serve restart-channel: could not write the restart request",
+            file=sys.stderr,
+        )
+        return 1
     if not _drop_clear_result(cwd):
         print(
             "serve restart-channel: could not remove the previous sqlite result",
@@ -114,11 +175,11 @@ def restart_channel(*, cwd: str | None = None, timeout: float = CLEAR_TIMEOUT_S)
     os.kill(pid, sig)
     deadline = time.monotonic() + timeout
     while True:
-        result = read_clear_result(cwd)
-        if result == "ok":
+        status = matching_clear_status(cwd, token)
+        if status == "ok":
             print(f"serve restart-channel: sqlite bag cleared (origin pid {pid})")
             return 0
-        if result is not None:
+        if status == "fail":
             print("serve restart-channel: sqlite bag was not cleared", file=sys.stderr)
             return 1
         if time.monotonic() >= deadline:

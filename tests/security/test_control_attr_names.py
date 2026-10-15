@@ -45,6 +45,7 @@ def test_control_rejects_non_identifier_names():
 
 
 def test_control_keeps_identifier_names_and_raw_values():
+    """Characterization: this passed on #102 before attribute-name rejection."""
     attrs = control("add", sku='a"b<c')
     assert attrs["data-ux-arg-sku"] == 'a"b<c'
     assert "data-ux-action" in attrs

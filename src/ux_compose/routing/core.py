@@ -309,7 +309,12 @@ def import_route_module(module: str, file: Path) -> Any:
         raise ImportError(f"Cannot load {file}")
     mod = importlib.util.module_from_spec(spec)
     sys.modules[module] = mod
-    spec.loader.exec_module(mod)
+    try:
+        spec.loader.exec_module(mod)
+    except Exception:
+        if sys.modules.get(module) is mod:
+            sys.modules.pop(module, None)
+        raise
     return mod
 
 
@@ -367,6 +372,7 @@ class DirectoryRoutes:
                 route_file = import_route_module(module, file)
             except Exception:
                 logger.exception("DirectoryRoutes failed to import %s", module)
+                sys.modules.pop(module, None)
                 if self.fail_closed:
                     raise
                 continue

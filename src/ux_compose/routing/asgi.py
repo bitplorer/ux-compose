@@ -240,8 +240,9 @@ class DirectoryASGI:
                 result = apply_html_document(self.document, result)
             body, content_type = _encode(result)
             status = 200
-        except Exception as exc:
-            body = ("Error: %s" % exc).encode("utf-8", "replace")
+        except Exception:
+            logger.exception("DirectoryASGI request failed")
+            body = b"Internal Server Error"
             content_type = b"text/plain; charset=utf-8"
             status = 500
 

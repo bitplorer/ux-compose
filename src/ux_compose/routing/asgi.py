@@ -14,17 +14,24 @@ from urllib.parse import unquote
 
 from ux_compose.routing.core import (
     DirectoryRoutes,
+    DirectoryRoutesError,
     RouteRecord,
     RouterHooks,
     apply_html_document,
     is_json_payload,
     is_stream_payload,
+    _non_identifier_param,
 )
 
 __all__ = ["DirectoryASGI", "match_record"]
 
 
 def _compile_path(path: str) -> tuple[re.Pattern[str], list[str]]:
+    bad = _non_identifier_param(path)
+    if bad is not None:
+        raise DirectoryRoutesError(
+            f"path parameter {bad!r} is not a Python identifier"
+        )
     names: list[str] = []
     parts = []
     for seg in path.strip("/").split("/"):
@@ -33,7 +40,7 @@ def _compile_path(path: str) -> tuple[re.Pattern[str], list[str]]:
         if seg.startswith("{") and seg.endswith("}"):
             name = seg[1:-1]
             names.append(name)
-            parts.append(r"(?P<%s>[^/]+)" % re.escape(name))
+            parts.append(rf"(?P<{name}>[^/]+)")
         else:
             parts.append(re.escape(seg))
     if not parts:
@@ -58,7 +65,10 @@ def match_record(
         if rec.path == path or rec.path.rstrip("/") == path.rstrip("/"):
             return rec, {}
         if "{" in rec.path:
-            rx, names = _compile_path(rec.path)
+            try:
+                rx, _names = _compile_path(rec.path)
+            except DirectoryRoutesError:
+                continue
             m = rx.match(path)
             if m:
                 return rec, {k: unquote(v) for k, v in m.groupdict().items()}
@@ -78,15 +88,9 @@ def _invoke(rec: RouteRecord, hooks: RouterHooks, path_params: dict) -> Any:
         return None
     inst = None
     if resolve is not None:
-        try:
-            inst = resolve(page_cls, rec.path, rec.name)
-        except Exception:
-            inst = None
+        inst = resolve(page_cls, rec.path, rec.name)
     if inst is None:
-        try:
-            inst = page_cls()
-        except Exception:
-            return None
+        inst = page_cls()
     render = getattr(inst, "render", None) or getattr(inst, "__render__", None)
     if callable(render):
         try:
@@ -170,6 +174,9 @@ class DirectoryASGI:
         self.hooks = core.hooks or RouterHooks()
         self.document = document
         self._records = list(core.records)
+        for rec in self._records:
+            if "{" in (rec.path or ""):
+                _compile_path(rec.path)
 
     @property
     def route_table(self) -> list:
@@ -186,6 +193,7 @@ class DirectoryASGI:
         hit = match_record(self._records, method, path)
         if hit is None:
             body = b"Not Found"
+            payload = b"" if str(method).upper() == "HEAD" else body
             await send(
                 {
                     "type": "http.response.start",
@@ -196,7 +204,9 @@ class DirectoryASGI:
                     ],
                 }
             )
-            await send({"type": "http.response.body", "body": body, "more_body": False})
+            await send(
+                {"type": "http.response.body", "body": payload, "more_body": False}
+            )
             return
 
         rec, params = hit
@@ -205,6 +215,20 @@ class DirectoryASGI:
             if inspect.isawaitable(result):
                 result = await result
             if is_stream_payload(result):
+                if str(method).upper() == "HEAD":
+                    await send(
+                        {
+                            "type": "http.response.start",
+                            "status": 200,
+                            "headers": [
+                                (b"content-type", b"text/html; charset=utf-8"),
+                            ],
+                        }
+                    )
+                    await send(
+                        {"type": "http.response.body", "body": b"", "more_body": False}
+                    )
+                    return
                 await _send_stream(
                     send, result, content_type=b"text/html; charset=utf-8"
                 )
@@ -218,6 +242,7 @@ class DirectoryASGI:
             content_type = b"text/plain; charset=utf-8"
             status = 500
 
+        outbound = b"" if str(method).upper() == "HEAD" else body
         await send(
             {
                 "type": "http.response.start",
@@ -228,4 +253,4 @@ class DirectoryASGI:
                 ],
             }
         )
-        await send({"type": "http.response.body", "body": body, "more_body": False})
+        await send({"type": "http.response.body", "body": outbound, "more_body": False})

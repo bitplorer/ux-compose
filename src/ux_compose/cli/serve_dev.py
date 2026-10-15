@@ -346,7 +346,11 @@ def run(
         restarting.set()
         try:
             _stop(channel_holder[0])
-            clear_shared_state()
+            if not clear_shared_state():
+                print(
+                    "serve-dev: shared sqlite bag was not cleared",
+                    file=sys.stderr,
+                )
             channel_holder[0] = _spawn(
                 channel_cmd, cwd=root, pass_fds=(channel_sock.fileno(),)
             )

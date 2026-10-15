@@ -49,6 +49,22 @@ def notify(message: str, **kwargs) -> Any:
     return _real_notify(message, level=level)
 
 
+# Same ASCII identifier the sample servers use for ``_IDENT``.
+# ``data-ux-arg-{name}`` is an attribute name, and HTML has no escape for it.
+_CONTROL_ARG_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\Z")
+
+
+def _require_control_arg_names(args: dict) -> None:
+    """Reject argument names that cannot safely be attribute-name suffixes."""
+    for key in args:
+        if isinstance(key, str) and _CONTROL_ARG_NAME.fullmatch(key):
+            continue
+        raise ValueError(
+            f"control argument name {key!r} is not a safe attribute name; "
+            "use an ASCII identifier (letters, digits, underscore)"
+        )
+
+
 def _live_channel() -> Any:
     """Isolation: Channel instance from App.use_channel, never ux_channel import.
 
@@ -87,6 +103,7 @@ def bind(action_obj, **kwargs):
     When Cap Host is live, mint via ``wire.caps.control_attrs``. Empty mint
     fails loud.
     """
+    _require_control_arg_names(kwargs)
     if isinstance(action_obj, str):
         return _action_attrs(action_obj, kwargs)
     attrs = _behavior_bind(action_obj, **kwargs)
@@ -110,6 +127,7 @@ def _action_attrs(verb: str, args: dict) -> dict:
     what ``ux-channel.js`` click-binds. When a live Channel is registered,
     mint ``data-channel-cap`` via wire.caps (no ``ux_channel`` import).
     """
+    _require_control_arg_names(args)
     minted = _minted_attrs(verb, args)
     if minted is not None:
         return minted

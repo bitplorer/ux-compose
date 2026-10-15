@@ -29,6 +29,25 @@ def _cap_host_is_live(channel: Any) -> bool:
     return getattr(caps, "kernel_ssot", None) == "cek-runtime"
 
 
+def resolve_cek_mode(mode: str | None) -> str:
+    """Return ``off``, ``adapt``, or ``require``. Unknown values raise ValueError.
+
+    Call this before ``App.use_channel`` so a bad mode does not boot a Channel.
+    """
+    if mode is None:
+        resolved = "require"
+    else:
+        resolved = str(mode).strip().lower()
+    if resolved in _OFF_ALIASES:
+        return "off"
+    if resolved in ("adapt", "require"):
+        return resolved
+    raise ValueError(
+        f"use_cek mode must be off, adapt, or require, got {mode!r}. "
+        "Unknown modes do not become require."
+    )
+
+
 def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
     """Attach CEK Cap Host adapter to a live Channel.
 
@@ -52,19 +71,11 @@ def attach_cek(channel: Any, *, mode: str = "require") -> Optional[str]:
     Returns the resolved mode string, or None when the specialist is absent
     and mode is not require (progressive degrade).
     """
-    if mode is None:
-        resolved = "require"
-    else:
-        resolved = str(mode).strip().lower()
-    if resolved in _OFF_ALIASES:
+    resolved = resolve_cek_mode(mode)
+    if resolved == "off":
         if _cap_host_is_live(channel):
             raise RuntimeError(_OFF_REFUSE)
         return "off"
-    if resolved not in ("adapt", "require"):
-        raise ValueError(
-            f"use_cek mode must be off, adapt, or require, got {mode!r}. "
-            "Unknown modes do not become require."
-        )
 
     if channel is None:
         if resolved == "require":

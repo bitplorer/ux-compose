@@ -17,7 +17,9 @@ from __future__ import annotations
 import importlib.util
 import inspect
 import logging
+import re
 import sys
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional, Protocol, runtime_checkable
@@ -46,8 +48,21 @@ class DirectoryRoutesError(RuntimeError):
     """Fail-closed routing errors (ambiguous page, invalid export, etc.)."""
 
 
-# Historical name from the ux-dom leftover DirectoryRouter era.
-DirectoryRouterError = DirectoryRoutesError
+def __getattr__(name: str):
+    """``DirectoryRouterError`` remains importable and warns.
+
+    The alias shipped in 0.1.0. It is the same class as
+    ``DirectoryRoutesError``. Access warns; the name is not removed.
+    """
+    if name == "DirectoryRouterError":
+        warnings.warn(
+            "DirectoryRouterError is deprecated; use DirectoryRoutesError. "
+            "The alias shipped in 0.1.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return DirectoryRoutesError
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 @runtime_checkable
@@ -106,6 +121,19 @@ def module_exports(route_file: Any) -> list:
             if getattr(obj, "__module__", None) == mod_name:
                 names.append(r)
     return names
+
+
+_PY_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\Z")
+
+
+def _non_identifier_param(path: str) -> str | None:
+    """First ``{name}`` that cannot be a ``re`` group, else None."""
+    for seg in str(path or "").strip("/").split("/"):
+        if len(seg) >= 2 and seg.startswith("{") and seg.endswith("}"):
+            name = seg[1:-1]
+            if _PY_IDENT.fullmatch(name) is None:
+                return name
+    return None
 
 
 def http_path(*segments: str) -> str:
@@ -250,6 +278,8 @@ def pick_page_type(
                 if not accept_symbol(name, obj, route_file):
                     continue
             except Exception:
+                if fail_closed:
+                    raise
                 continue
         if not is_renderable_unit(obj):
             continue
@@ -336,6 +366,8 @@ class DirectoryRoutes:
                 route_file = import_route_module(module, file)
             except Exception:
                 logger.exception("DirectoryRoutes failed to import %s", module)
+                if self.fail_closed:
+                    raise
                 continue
 
             try:
@@ -343,6 +375,16 @@ class DirectoryRoutes:
             except ValueError:
                 continue
             path = http_path(*rel.parts)
+            bad_param = _non_identifier_param(path)
+            if bad_param is not None:
+                msg = (
+                    f"DirectoryRoutes path parameter {bad_param!r} in {path} "
+                    f"is not a Python identifier ({file})"
+                )
+                if self.fail_closed:
+                    raise DirectoryRoutesError(msg)
+                logger.warning("%s", msg)
+                continue
 
             exported = module_exports(route_file)
             page_cls = pick_page_type(

@@ -123,7 +123,7 @@ doctor checks Isolation Law, CLI ownership, and specialist presence. Also: uxcom
 from ux_compose import doctor
 
 result = doctor(".")
-print(result.ok, result.issues)
+print(result.ok, result.diagnostics)
 ```
 
 ### uxcompose CLI surface

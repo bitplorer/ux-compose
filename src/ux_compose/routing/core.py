@@ -221,6 +221,7 @@ def apply_html_document(document: Any, payload: Any) -> Any:
             return document()
         return document(child)
     except Exception:
+        logger.exception("apply_html_document failed; returning the fragment")
         return payload
 
 

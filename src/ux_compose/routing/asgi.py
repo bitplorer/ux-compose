@@ -8,6 +8,7 @@ cannot attach.
 from __future__ import annotations
 
 import inspect
+import logging
 import re
 from typing import Any, Callable, Optional
 from urllib.parse import unquote
@@ -22,6 +23,8 @@ from ux_compose.routing.core import (
     is_stream_payload,
     _non_identifier_param,
 )
+
+logger = logging.getLogger("ux_compose.routing.asgi")
 
 __all__ = ["DirectoryASGI", "match_record"]
 
@@ -153,9 +156,9 @@ async def _send_stream(send: Callable, iterable: Any, *, content_type: bytes) ->
                     await send(
                         {"type": "http.response.body", "body": data, "more_body": True}
                     )
-    except Exception as exc:
-        err = ("Error: %s" % exc).encode("utf-8", "replace")
-        await send({"type": "http.response.body", "body": err, "more_body": False})
+    except Exception:
+        logger.exception("DirectoryASGI stream failed")
+        await send({"type": "http.response.body", "body": b"", "more_body": False})
         return
     await send({"type": "http.response.body", "body": b"", "more_body": False})
 

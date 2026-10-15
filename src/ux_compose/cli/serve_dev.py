@@ -42,7 +42,7 @@ import time
 from typing import Literal
 from urllib.parse import urlsplit
 
-from ux_compose.cli.serve_restart import clear_pid, write_pid
+from ux_compose.cli.serve_restart import clear_pid, write_clear_result, write_pid
 from ux_compose.cli.serve_state import (
     REDIS_URL_ENV,
     STATE_STORE_ENV,
@@ -51,6 +51,13 @@ from ux_compose.cli.serve_state import (
     prepare_shared_state,
     redis_url,
 )
+
+def note_shared_clear(cwd: str) -> bool:
+    """Clear the sqlite bag and leave a result ``restart-channel`` can read."""
+    ok = clear_shared_state()
+    write_clear_result(cwd, ok)
+    return ok
+
 
 Worker = Literal["ui", "channel"]
 
@@ -346,7 +353,7 @@ def run(
         restarting.set()
         try:
             _stop(channel_holder[0])
-            if not clear_shared_state():
+            if not note_shared_clear(root):
                 print(
                     "serve-dev: shared sqlite bag was not cleared",
                     file=sys.stderr,

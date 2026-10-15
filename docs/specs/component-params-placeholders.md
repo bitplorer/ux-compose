@@ -11,7 +11,7 @@ graph TD
   ph[ux_compose.placeholder<br/>mode: show / hide / raise]
   kit[src/ux_compose/components/ — 81 moved from kit<br/>+54 ported examples (Q3: +16 clashes)]
   cat[kit/catalog.py CATALOG]
-  add[uxcompose add <slug> → app/components/<slug>.py]
+  add[uxcompose add &lt;slug&gt; → app/components/&lt;slug&gt;.py]
   ex[examples/ — unchanged, stays as demos]
   core --> ph
   kit --> core
@@ -211,20 +211,20 @@ Every step: run the full suite before and after (baseline 693 passed), then PR, 
 
 ## 8. Decisions taken by the bot (pending Shivam's merge yes)
 
-Every entry below is **decided by bot, pending Shivam's merge yes**. Nothing on this branch is merged.
+Every Q1–Q11 entry below is **decided by bot, pending Shivam's merge yes** (not approved by Shivam), including Q2 and Q9. **Q12 is approved by Shivam** (t134u: update the 9 old layout tests to the new paths). Nothing on this branch is merged.
 
 | Q | Decision | What | Why | Positives | Negatives | Effect | Status on branch |
 |---|---|---|---|---|---|---|---|
-| Q1 | yes | `Component.__init__(*args, **kwargs)` binds to `render`'s signature; `__init_subclass__` wraps each subclass `render` so bound args replay and explicit args win | uidom pattern Shivam asked for; compose re-renders on morph | one declaration (the render signature); Python reports bad args, and the error names the class | the base constructor is new (additive); a subclass `render` is wrapped (one dict merge per call) | `Greeting(title="Hi")`, `Badge(items=..., shell=False)` | **implemented** (`component.py`) |
-| Q2 | yes | `ux_compose/placeholder.py`: show / hide (default) / raise; `serve dev` sets show via `UX_COMPOSE_PLACEHOLDERS` | visible in dev, nothing leaks in prod | a11y note role and label; keeps the morph id | a new env var | missing data becomes visible during development | **implemented** |
-| Q3 | yes | 16 clashes: keep the kit class, port the example under a descriptive name | least churn | no public rename | 16 new names to choose | — | **blocked** with the move (see 8.1) |
+| Q1 | yes | `Component.__init__(*args, **kwargs)` binds to `render`'s signature; `__init_subclass__` wraps each subclass `render` so bound args replay and explicit args win | uidom pattern Shivam asked for; compose re-renders on morph | one declaration (the render signature); Python reports bad args, and the error names the class | the base constructor is new (additive); a subclass `render` is wrapped (one dict merge per call) | `Greeting(title="Hi")`, `Badge(items=..., shell=False)` | implemented; decided by bot, pending Shivam's merge yes |
+| Q2 | yes | `ux_compose/placeholder.py`: show / hide (default) / raise; `serve dev` sets show via `UX_COMPOSE_PLACEHOLDERS` | visible in dev, nothing leaks in prod | a11y note role and label; keeps the morph id | a new env var | missing data becomes visible during development | implemented; decided by bot, pending Shivam's merge yes |
+| Q3 | yes | 16 clashes: keep the kit class, port the example under a descriptive name | least churn | no public rename | 16 new names to choose | — | ports avoid clashes (16 not ported, §9); decided by bot, pending Shivam's merge yes |
 | Q4 | yes, later PR | examples import the ports | single source | — | edits 16 example files | — | not started (by design) |
 | Q5 | no | kit keeps its demo defaults | keeps 81 public widgets stable | no breakage | an empty kit widget shows demo data, not a placeholder | — | **implemented** (no change) |
-| Q6 | yes | registry and copier move to `cli/registry.py` and `cli/copy_component.py`, with shims | the kit holds widgets only | — | — | — | **blocked** (8.1) |
+| Q6 | yes | registry and copier move to `cli/registry.py` and `cli/copy_component.py`, with shims | the kit holds widgets only | — | — | — | implemented in round 2 (§9); decided by bot, pending Shivam's merge yes |
 | Q7 | no | `helpers.py` keeps its name | 34 importers | — | name stays vague | — | done (no change) |
-| Q8 | yes | widgets move to `components/<slug>.py` | Shivam: retire kit | — | — | — | **blocked** (8.1) |
-| Q9 | yes | `kit_construct` stays as a long-lived shim | copied user files import it | — | — | — | **implemented**: `kit_construct.apply_slots is arrange.arrange_slots`, `kit_shell is arrange.wrap_in_card` |
-| Q10 | yes | delete `ux_compose.kit` after one release | rule: shim plus one release | — | — | — | **blocked** (8.1) |
+| Q8 | yes | widgets move to `components/<slug>.py` | Shivam: retire kit | — | — | — | implemented in round 2 (§9); decided by bot, pending Shivam's merge yes |
+| Q9 | yes | `kit_construct` stays as a long-lived shim | copied user files import it | — | — | — | implemented (`kit_construct.apply_slots is arrange.arrange_slots`); decided by bot, pending Shivam's merge yes. The shim emits no DeprecationWarning yet: 80 widgets still import it because of old locks (Q13) |
+| Q10 | yes | delete `ux_compose.kit` after one release | rule: shim plus one release | — | — | — | implemented in round 2 (§9); decided by bot, pending Shivam's merge yes |
 | Q11 | no | `author` helpers keep their names | reused 293 times | — | — | — | done (no change) |
 
 Also implemented: `ux_compose/arrange.py` with `arrange_slots`, `wrap_in_card` (accepts `heading=` and the legacy `preface=`), `build_heading(kicker, title, lede, owner=)`, and `HEADING_*` tokens taken from the dominant values (76, 74 and 71 of the widgets use them).
@@ -244,3 +244,72 @@ Moving `kit/*.py`, adding a `components/` package, or moving `kit/catalog.py` an
 - `tests/test_kit_remaining_c.py::test_market_c_caps_empty` and `tests/test_kit_remaining_d.py::test_a11y_and_caps_p2_d` read `kit/<stem>.py`.
 
 The rule says "all 693 old tests stay green", and an earlier standing rule says editing old tests needs Shivam's yes. **Q12 (critical):** may these 9 old tests be updated to point at the new paths (`components/`, `cli/registry.py`, the package list plus `components`, and `ARCHITECTURE.md` folder law), as part of the move? **Recommend yes.** They lock the old layout, not behaviour. Until he answers, S3, S4 and S4b stay red: 108 port tests and 6 structure tests.
+
+
+## 9. Round 2: move, ports, add, and review R1 fixes
+
+### 9.1 Q12: approved by Shivam
+I updated the 9 old layout tests with path changes only:
+
+| Test | Change |
+|---|---|
+| `test_source_locks.py::test_folder_law_keeps_kit_construct_at_package_root` | `kit/copy.py` → `cli/copy_component.py` |
+| `test_source_locks.py::test_on_disk_packages_are_mapped_not_ghosts` | adds `components` to the package list |
+| `test_source_locks.py::test_copy_keeps_kit_construct_library_import_lock` | `kit/copy.py` → `cli/copy_component.py`, `kit/{stem}` → `components/{stem}` |
+| `test_source_locks.py::test_command_does_not_import_overlay_chrome` | `kit/command.py`, `kit/overlay.py`, ``"`kit/command.py` owns local"`` → `components/...`; import path `ux_compose.kit.overlay` → `ux_compose.components.overlay` |
+| `test_cli_add.py::test_catalog_has_login` | `"ux_compose.kit.login"` → `"ux_compose.components.login"` |
+| `test_overlay_edge.py::test_command_is_not_overlay_chrome_family` | `/ "kit"` → `/ "components"`, `ux_compose.kit.overlay` → `ux_compose.components.overlay` |
+| `test_kit_remaining_c.py::test_market_c_caps_empty` | `/ "kit"` → `/ "components"` |
+| `test_kit_remaining_d.py::test_a11y_and_caps_p2_d` | `/ "kit"` → `/ "components"` |
+| `test_source_locks.py::test_leftover_table_splits_doctor_tokens_from_agent_locks` | no edit needed (passes) |
+
+`docs/ARCHITECTURE.md` folder law now lists `components/` and the deprecated `kit/` shim.
+
+### 9.2 Q13 (critical, new): 4 more old tests lock the old layout
+**Q13:** may these 4 tests get the same path-only update? **Recommend yes.** Without it they stay red:
+- `test_kit_remaining_a.py::test_presence_a_stems_resolve` asserts the registry module string `ux_compose.kit.menubar`.
+- `test_kit_remaining_a.py::test_presence_a_caps_are_empty` reads `kit/menubar.py` and related files.
+- `test_kit_remaining_b.py::test_product_b_caps` reads `kit/chat.py` and related files.
+- `test_source_locks.py::test_folder_law_keeps_kit_construct_at_package_root` has a loop asserting that no non-`cli` module mentions `ux_compose.cli`. The deprecated `kit/catalog.py` and `kit/copy.py` shims re-export `cli/`. This is a logic change, not a path change, because it would add a shim exemption.
+
+Q13 also covers the verb-helper adoption. `test_cli_add.py::test_copy_keeps_kit_construct_library_import[fab|dialog]` and the approved lock require that copied widgets contain `from ux_compose.kit_construct import`. So the 80 widgets keep `apply_slots`/`kit_shell` via the `kit_construct` shim, and my test `test_add_copies_import_verb_helpers` stays red until Q13. Once Q13 is yes, widgets switch to `arrange_slots`/`wrap_in_card`, and `kit_construct` starts emitting a DeprecationWarning (R1 P2-2).
+
+### 9.3 Decisions (decided by bot, pending Shivam's merge yes)
+- **M1 Move.** `kit/<81 widgets + overlay>.py` → `components/`, `kit/catalog.py` → `cli/registry.py`, `kit/copy.py` → `cli/copy_component.py`. `overlay.py` keeps its name, because old `add` tests assert `from .overlay import`.
+- **M2 Shims.**
+  - `ux_compose.kit` warns once (DeprecationWarning), re-exports `components.__all__`, and aliases `ux_compose.kit.<stem>` to the **same module objects**.
+  - `kit.catalog` and `kit.copy` warn, then replace themselves in `sys.modules` with the real `cli` module, so old `monkeypatch("ux_compose.kit.copy.HAS_DOM")` still works.
+  - All of these are removed after one release (Q10).
+- **M3 Ports live in a separate `PORTS` registry (`cli/_ports.py`), not `CATALOG`.**
+  - Why: old tests iterate `CATALOG` under the kit widget contract (`render(shell=False)`, `DEMO_FRAMING`), and the example classes have `render(self)`.
+  - `resolve()` and `uxcompose add` check `CATALOG` first, then `PORTS`. `add --list` shows an "example ports" section.
+  - Ports aren't re-exported from `ux_compose.components`, so the shim surface stays at 81. Import them by module path, e.g. `from ux_compose.components.wizard import Wizard`.
+  - My own new test changed from `slug in CATALOG` to `slug in PORTS`, with `resolve(slug)` pointing at `components`.
+- **M4 Port generation.** Each port module is the example's imports (with `examples._common` → `ux_compose.author`) plus its module-level constants and helpers plus the one class. `demo`/`main` are dropped. `examples/` is unchanged (Q4 later). There are 54 ports. The 16 clashing classes aren't ported (Q3).
+- **M5 `build_heading`.** 30 widget prefaces that match `span(kicker)/h2(title)/p(lede)` with `self.class_*` became `heading=build_heading(..., owner=self)`. The other 44 non-standard prefaces were renamed `preface=` → `heading=`, which `wrap_in_card` renders identically.
+
+### 9.4 Review R1 fixes
+- **P0-1:** stored args are kept as kwargs, and explicit positional or keyword args win.
+- **P0-2:** only the outermost `render` replays stored args (a per-instance re-entrancy flag). `super().render(...)` gets exactly what the subclass passes, and a bare `super().render()` raises the normal TypeError instead of leaking.
+- **P1-1:**
+  - Signature facts are computed once per class (`_RenderMeta`).
+  - The binding `__init__` is installed only on classes whose `render` takes params, so zero-param classes keep the behaviour base `__init__`.
+  - The hot path does no bind when nothing is stored.
+  - Bench, min of 7×20k, µs:
+
+    | Op | main | branch |
+    |---|---|---|
+    | construct, zero-param | 0.060 | 0.061 |
+    | construct, param class | 0.059 | 0.116 |
+    | `__render__` | 22.6–22.8 | 24.1–24.7 (noise ±8%, the zero-param path moved too) |
+    | `render(title=)` | 11.4 | 12.4 |
+
+  - Residual: param-class construction is +0.06 µs absolute, still over a relative 5% budget.
+- **P1-2:** hide mode logs on the `ux_compose.placeholder` logger once per (class, missing set) and still warns. An unknown `UX_COMPOSE_PLACEHOLDERS` value raises `ValueError`. Whitespace and case are normalised.
+- **P1-3:** `test_components_structure` uses `monkeypatch.delitem(sys.modules, ...)`, so the old overlay identity test passes in the full run.
+- **P1-4, known limit, documented:** `app.add(Class)`, `surfaces` (`s.cls()`) and the routers (`page_cls()`) construct with no args, so a class with required render params always renders the placeholder there. **Pass an instance** (`app.add(G(title=...))`), which the test `test_app_add_instance_keeps_params` covers, or give the params defaults. A params API for surfaces and routers isn't added in this PR. Whether Channel session restore rebuilds instances is unidentified.
+- **P2:** `serve dev` sets `UX_COMPOSE_PLACEHOLDERS=show` only in spawned worker envs (`_spawn`), so the parent env isn't touched. §8 labels are corrected. The `kit_construct` DeprecationWarning is deferred to Q13 (see 9.2).
+
+### 9.5 Known limits
+- A `render(*args)` with no required params never reports missing data. This is by design.
+- `_ux_in_render` is per instance, so recursive `self.render()` calls inside `render` pass through without replay.

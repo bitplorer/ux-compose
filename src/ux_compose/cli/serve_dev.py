@@ -322,6 +322,8 @@ def run(
     from ux_compose.tailwind import start_tailwind_watch
     from ux_compose.cli.tunnel import parse_provider, start_tunnel, wait_for_health
 
+    # Dev shows component placeholders (spec §3); workers inherit the env.
+    os.environ.setdefault("UX_COMPOSE_PLACEHOLDERS", "show")
     root = cwd or os.getcwd()
     ui_sock = listen_loopback()
     channel_sock = listen_loopback()

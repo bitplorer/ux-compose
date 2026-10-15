@@ -15,7 +15,9 @@ are reserved tree verbs today, and more will land. Sharing that MRO with
 """
 from __future__ import annotations
 
-from typing import AsyncIterator
+import functools
+import inspect
+from typing import Any, AsyncIterator
 
 from ux_behavior import (  # type: ignore
     Component as _BehaviorComponent,
@@ -54,8 +56,28 @@ class Component(_BehaviorComponent):
     5. Prefer update_with(self, scene(...)) for morph + motion
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Bind call-site args to ``render``'s signature (uidom pattern, spec §2).
+
+        ``Tabs(items=[...])`` stores the args; every ``render()`` (and morph
+        re-render) replays them. Explicit ``render(...)`` args win.
+        """
+        super().__init__()
+        self._ux_args: tuple = ()
+        self._ux_kwargs: dict = {}
+        if args or kwargs:
+            sig = inspect.signature(getattr(type(self).render, "__ux_render__", type(self).render))
+            try:
+                bound = sig.bind_partial(self, *args, **kwargs)
+            except TypeError as exc:
+                raise TypeError(f"{type(self).__name__}(...): {exc}") from None
+            self._ux_args = tuple(bound.args[1:])
+            self._ux_kwargs = dict(bound.kwargs)
+
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
+        if "render" in cls.__dict__ and not hasattr(cls.__dict__["render"], "__ux_render__"):
+            cls.render = _bind_render(cls.__dict__["render"])
         # Auto-id when class body omitted id= (behavior base also does this)
         if "id" not in cls.__dict__ and not getattr(cls, "id", ""):
             cls.id = cls.__name__.lower()
@@ -98,6 +120,38 @@ class Component(_BehaviorComponent):
         ``streaming_response`` the same way a ``dom_tag`` is.
         """
         yield self.__render__(pretty=pretty)
+
+
+_REQUIRED_KINDS = (inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY)
+
+
+def _bind_render(fn):
+    """Wrap a subclass ``render`` so bound params replay and gaps become placeholders."""
+    sig = inspect.signature(fn)
+    params = list(sig.parameters.values())[1:]
+    required = tuple(p.name for p in params if p.kind in _REQUIRED_KINDS and p.default is p.empty)
+    if not params:
+        fn.__ux_render__ = fn
+        return fn
+
+    @functools.wraps(fn)
+    def render(self, *args, **kwargs):
+        if not args:
+            args = getattr(self, "_ux_args", ())
+        stored = getattr(self, "_ux_kwargs", None)
+        if stored:
+            kwargs = {**stored, **kwargs}
+        if required:
+            got = sig.bind_partial(self, *args, **kwargs).arguments
+            missing = [n for n in required if n not in got]
+            if missing:
+                from ux_compose.placeholder import render_missing
+
+                return render_missing(self, missing)
+        return fn(self, *args, **kwargs)
+
+    render.__ux_render__ = fn
+    return render
 
 
 def _mro_collision_msg(cls: type, base: type) -> str:

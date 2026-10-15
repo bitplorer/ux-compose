@@ -208,3 +208,39 @@ Every step: run the full suite before and after (baseline 693 passed), then PR, 
 - **Q10** Should `ux_compose.kit` be deleted after one release of warning re-exports? **Recommend yes.**
 - **Q11** Should the public `ux_compose.author` helpers (`act`, `field`, `status`, `optional_*`) be renamed to verb names, with shims? **Recommend no**: they're reused 293 times, and their current names already describe the result.
 - **Q5** Should kit components drop their demo defaults so empty use shows a placeholder? **Recommend no**, because it would break 81 public components. Keep the defaults and show placeholders only for genuinely required params.
+
+## 8. Decisions taken by the bot (pending Shivam's merge yes)
+
+Every entry below is **decided by bot, pending Shivam's merge yes**. Nothing on this branch is merged.
+
+| Q | Decision | What | Why | Positives | Negatives | Effect | Status on branch |
+|---|---|---|---|---|---|---|---|
+| Q1 | yes | `Component.__init__(*args, **kwargs)` binds to `render`'s signature; `__init_subclass__` wraps each subclass `render` so bound args replay and explicit args win | uidom pattern Shivam asked for; compose re-renders on morph | one declaration (the render signature); Python reports bad args, and the error names the class | the base constructor is new (additive); a subclass `render` is wrapped (one dict merge per call) | `Greeting(title="Hi")`, `Badge(items=..., shell=False)` | **implemented** (`component.py`) |
+| Q2 | yes | `ux_compose/placeholder.py`: show / hide (default) / raise; `serve dev` sets show via `UX_COMPOSE_PLACEHOLDERS` | visible in dev, nothing leaks in prod | a11y note role and label; keeps the morph id | a new env var | missing data becomes visible during development | **implemented** |
+| Q3 | yes | 16 clashes: keep the kit class, port the example under a descriptive name | least churn | no public rename | 16 new names to choose | — | **blocked** with the move (see 8.1) |
+| Q4 | yes, later PR | examples import the ports | single source | — | edits 16 example files | — | not started (by design) |
+| Q5 | no | kit keeps its demo defaults | keeps 81 public widgets stable | no breakage | an empty kit widget shows demo data, not a placeholder | — | **implemented** (no change) |
+| Q6 | yes | registry and copier move to `cli/registry.py` and `cli/copy_component.py`, with shims | the kit holds widgets only | — | — | — | **blocked** (8.1) |
+| Q7 | no | `helpers.py` keeps its name | 34 importers | — | name stays vague | — | done (no change) |
+| Q8 | yes | widgets move to `components/<slug>.py` | Shivam: retire kit | — | — | — | **blocked** (8.1) |
+| Q9 | yes | `kit_construct` stays as a long-lived shim | copied user files import it | — | — | — | **implemented**: `kit_construct.apply_slots is arrange.arrange_slots`, `kit_shell is arrange.wrap_in_card` |
+| Q10 | yes | delete `ux_compose.kit` after one release | rule: shim plus one release | — | — | — | **blocked** (8.1) |
+| Q11 | no | `author` helpers keep their names | reused 293 times | — | — | — | done (no change) |
+
+Also implemented: `ux_compose/arrange.py` with `arrange_slots`, `wrap_in_card` (accepts `heading=` and the legacy `preface=`), `build_heading(kicker, title, lede, owner=)`, and `HEADING_*` tokens taken from the dominant values (76, 74 and 71 of the widgets use them).
+
+Fixed in one of my new tests (not an old test): `test_default_param_used_when_omitted` assumed compact HTML, but the serializer pretty-prints. The test now strips whitespace.
+
+### 8.1 Blocker: moving kit/ contradicts old source-lock tests
+Moving `kit/*.py`, adding a `components/` package, or moving `kit/catalog.py` and `kit/copy.py` fails **9 existing tests** that lock those exact paths or that text:
+- `tests/unit/test_source_locks.py`:
+  - `test_on_disk_packages_are_mapped_not_ghosts` asserts that the packages are exactly `["cli","dx","kit","routing","wire"]`.
+  - `test_folder_law_keeps_kit_construct_at_package_root` reads `kit/copy.py`.
+  - `test_copy_keeps_kit_construct_library_import_lock`
+  - `test_command_does_not_import_overlay_chrome`
+  - `test_leftover_table_splits_doctor_tokens_from_agent_locks`
+- `tests/unit/test_cli_add.py::test_catalog_has_login` asserts `module == "ux_compose.kit.login"`.
+- `tests/unit/test_overlay_edge.py::test_command_is_not_overlay_chrome_family` reads `kit/command.py` and `kit/overlay.py`.
+- `tests/test_kit_remaining_c.py::test_market_c_caps_empty` and `tests/test_kit_remaining_d.py::test_a11y_and_caps_p2_d` read `kit/<stem>.py`.
+
+The rule says "all 693 old tests stay green", and an earlier standing rule says editing old tests needs Shivam's yes. **Q12 (critical):** may these 9 old tests be updated to point at the new paths (`components/`, `cli/registry.py`, the package list plus `components`, and `ARCHITECTURE.md` folder law), as part of the move? **Recommend yes.** They lock the old layout, not behaviour. Until he answers, S3, S4 and S4b stay red: 108 port tests and 6 structure tests.

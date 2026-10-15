@@ -31,7 +31,7 @@ def test_ctor_kwargs_reach_render_like_function_args():
 
 
 def test_default_param_used_when_omitted():
-    out = html(Greeting(title="Hi"))
+    out = "".join(html(Greeting(title="Hi")).split())  # serializer pretty-prints
     assert "<p>0</p>" in out
 
 

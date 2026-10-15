@@ -11,9 +11,12 @@ bag on ``serve restart-channel``, and unlinks WAL sidecars on shutdown.
 """
 from __future__ import annotations
 
+import logging
 import os
 import sqlite3
 from pathlib import Path
+
+logger = logging.getLogger("ux_compose.cli.serve_state")
 
 STATE_STORE_ENV = "UXCOMPOSE_STATE_STORE"
 STATE_STORE_NAME = ".uxcompose-serve-dev.state"
@@ -47,22 +50,29 @@ def prepare_shared_state(cwd: str | Path) -> Path | None:
     return path
 
 
-def clear_shared_state() -> None:
-    """``serve restart-channel``: empty the bag; keep the same inode."""
+def clear_shared_state() -> bool:
+    """Empty the sqlite bag and keep the file. False when DELETE failed.
+
+    A missing env var or a missing file is success: there is no bag.
+    ``no such table`` and other sqlite errors are logged and return False.
+    """
     path = state_store_path()
     if path is None or not path.exists():
-        return
+        return True
     try:
         conn = sqlite3.connect(str(path), timeout=8.0)
         try:
             conn.execute("DELETE FROM kv")
             conn.commit()
-        except sqlite3.OperationalError:
-            return
+        except sqlite3.OperationalError as exc:
+            logger.error("clear_shared_state: %s (%s)", path, exc)
+            return False
         finally:
             conn.close()
-    except sqlite3.Error:
-        return
+    except sqlite3.Error as exc:
+        logger.error("clear_shared_state: %s (%s)", path, exc)
+        return False
+    return True
 
 
 def drop_shared_state(cwd: str | Path | None = None) -> None:

@@ -14,6 +14,8 @@ import json
 from contextvars import ContextVar
 from typing import Any, Mapping, Optional
 
+from ux_compose.helpers import _require_control_arg_names
+
 _PROCESS_CHANNEL: Any = None
 _LIVE: ContextVar[Any] = ContextVar("ux_compose_live_channel", default=None)
 
@@ -82,6 +84,7 @@ def control_attrs(channel: Any, action: str, **args: Any) -> dict[str, str]:
     (underscore keys become hyphen). If ``control`` is absent, duck-type
     ``channel.mint``. Never re-implements Cap crypto.
     """
+    _require_control_arg_names(args)
     if channel is None:
         raise RuntimeError(
             "control_attrs requires a live Channel. Call App.use_channel() first "

@@ -173,18 +173,16 @@ class App:
           require — product Cap Host (cek-runtime via Channel). Default.
                     Unknown values raise ValueError.
         """
-        if mode is None:
-            resolved = "require"
-        else:
-            resolved = str(mode).strip().lower()
-        is_off = resolved in ("off", "0", "false", "no")
+        from ux_compose.wire.cek import attach_cek, resolve_cek_mode
+
+        resolved = resolve_cek_mode(mode)
+        is_off = resolved == "off"
         if self._channel is None:
             if is_off:
                 self._cek = "off"
                 return self
             self.use_channel()
         try:
-            from ux_compose.wire.cek import attach_cek
             self._cek = attach_cek(self._channel, mode=mode)
         except ImportError as exc:
             if not is_off and resolved != "adapt":

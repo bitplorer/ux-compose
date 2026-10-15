@@ -57,15 +57,9 @@ def create(name: str = "App", *, openapi: bool = False) -> Any:
 def _live_instance(rec, resolve_unit: Optional[Callable], path_params: dict) -> Any:
     inst = None
     if resolve_unit is not None and rec.page_cls is not None:
-        try:
-            inst = resolve_unit(rec.page_cls, rec.path, rec.name)
-        except Exception:
-            inst = None
+        inst = resolve_unit(rec.page_cls, rec.path, rec.name)
     if inst is None and rec.page_cls is not None:
-        try:
-            inst = rec.page_cls()
-        except Exception:
-            inst = None
+        inst = rec.page_cls()
     return inst
 
 

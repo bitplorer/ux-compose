@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import re
+import warnings
 from typing import Any, List, Optional
 
 from ux_behavior import bind as _behavior_bind, notify as _real_notify, update as _real_update
@@ -47,6 +48,22 @@ def notify(message: str, **kwargs) -> Any:
     """Emit a notify / toast Op as data (ux-behavior.notify)."""
     level = kwargs.pop("level", "info")
     return _real_notify(message, level=level)
+
+
+# Same ASCII identifier the sample servers use for ``_IDENT``.
+# ``data-ux-arg-{name}`` is an attribute name, and HTML has no escape for it.
+_CONTROL_ARG_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\Z")
+
+
+def _require_control_arg_names(args: dict) -> None:
+    """Reject argument names that cannot safely be attribute-name suffixes."""
+    for key in args:
+        if isinstance(key, str) and _CONTROL_ARG_NAME.fullmatch(key):
+            continue
+        raise ValueError(
+            f"control argument name {key!r} is not a safe attribute name; "
+            "use an ASCII identifier (letters, digits, underscore)"
+        )
 
 
 def _live_channel() -> Any:
@@ -87,6 +104,7 @@ def bind(action_obj, **kwargs):
     When Cap Host is live, mint via ``wire.caps.control_attrs``. Empty mint
     fails loud.
     """
+    _require_control_arg_names(kwargs)
     if isinstance(action_obj, str):
         return _action_attrs(action_obj, kwargs)
     attrs = _behavior_bind(action_obj, **kwargs)
@@ -110,6 +128,7 @@ def _action_attrs(verb: str, args: dict) -> dict:
     what ``ux-channel.js`` click-binds. When a live Channel is registered,
     mint ``data-channel-cap`` via wire.caps (no ``ux_channel`` import).
     """
+    _require_control_arg_names(args)
     minted = _minted_attrs(verb, args)
     if minted is not None:
         return minted
@@ -431,10 +450,23 @@ def update_with(
     return ops
 
 
-def morph_play(target: str, plan: Any) -> List[Any]:
-    """Morph-then-Play: morph target, then append motion plan ops."""
+def morph_play(target: str, plan: Any, *, component: Any = None) -> List[Any]:
+    """Morph-then-Play: morph target, then append motion plan ops.
+
+    Pass ``component`` to morph that fragment. Without it the patch is empty,
+    which clears the node.
+    """
     tid = target if str(target).startswith("#") else f"#{target}"
-    ops: List[Any] = [_real_update(tid, "")]
+    if component is None:
+        warnings.warn(
+            "morph_play without component clears the node",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        html = ""
+    else:
+        html = _render_html(component, target_id=tid)
+    ops: List[Any] = [_real_update(tid, html)]
     ops.extend(_normalize_plan_ops(plan))
     return ops
 

@@ -16,9 +16,9 @@ from pathlib import Path
 
 import pytest
 
-import ux_compose.kit as kit
-from ux_compose.kit.catalog import CATALOG
-from ux_compose.kit.copy import copy_component
+import ux_compose.components as kit
+from ux_compose.cli.copy_component import copy_component
+from ux_compose.cli.registry import CATALOG, PORTS as PORT_ROWS, resolve
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -49,7 +49,7 @@ def test_inventory_is_70_examples_16_clashes():  # GUARD
 
 
 def test_kit_modules_never_import_examples():  # GUARD
-    for py in (ROOT / "src" / "ux_compose" / "kit").glob("*.py"):
+    for py in (ROOT / "src" / "ux_compose" / "components").glob("*.py"):
         assert "from examples" not in py.read_text(encoding="utf-8"), py.name
 
 
@@ -61,14 +61,15 @@ def test_catalog_names_and_stems_unique():  # GUARD
 @pytest.mark.parametrize("name", PORTS)
 def test_example_is_in_kit_catalog(name):
     slug = name.lower()
-    assert slug in CATALOG, f"{name} has no kit home"
-    assert CATALOG[slug]["module"] == f"ux_compose.components.{slug}"
+    assert slug in PORT_ROWS, f"{name} has no component home"
+    assert slug not in CATALOG  # ports are not bound by the kit widget contract (spec §4)
+    assert resolve(slug)["module"] == f"ux_compose.components.{slug}"
 
 
 @pytest.mark.parametrize("name", PORTS)
 def test_add_copies_runnable_port(name, tmp_path):
     slug = name.lower()
-    assert slug in CATALOG, f"{name} has no kit home"
+    assert slug in PORT_ROWS, f"{name} has no component home"
     root = _fake_app(tmp_path)
     written = copy_component(slug, root=root)
     text = written["py"].read_text(encoding="utf-8")
@@ -79,3 +80,11 @@ def test_add_copies_runnable_port(name, tmp_path):
     spec.loader.exec_module(mod)
     html = getattr(mod, name)().__render__()
     assert html.strip()
+
+
+def test_add_list_shows_ports(capsys):
+    from ux_compose.cli import main
+
+    main(["add", "--list"])
+    out = capsys.readouterr().out
+    assert "example ports" in out and "wizard" in out and "counter" in out

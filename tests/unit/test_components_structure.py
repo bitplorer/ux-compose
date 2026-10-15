@@ -50,12 +50,13 @@ def test_components_package_defines_every_widget():
     for slug, meta in CATALOG.items():
         mod = importlib.import_module(f"ux_compose.components.{slug}")
         cls = getattr(mod, meta["name"])
-        assert cls.__module__ == f"ux_compose.components.{slug}", slug
+        assert cls.__module__.startswith("ux_compose.components."), slug  # Drawer lives in sheet
 
 
-def test_kit_is_a_warning_reexport_shim():
+def test_kit_is_a_warning_reexport_shim(monkeypatch):
+    # monkeypatch restores sys.modules afterwards: no duplicate class identities leak (R1 P1-3)
     for m in [k for k in sys.modules if k == "ux_compose.kit" or k.startswith("ux_compose.kit.")]:
-        sys.modules.pop(m)
+        monkeypatch.delitem(sys.modules, m)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         import ux_compose.kit as kit
@@ -92,9 +93,9 @@ def test_widgets_use_build_heading_not_inline_preface():
         ("ux_compose.cli.copy_component", "ux_compose.kit.copy", ("copy_component", "KitCopyError", "find_app_root")),
     ],
 )
-def test_tooling_moved_out_with_shim(new, old, names):
+def test_tooling_moved_out_with_shim(new, old, names, monkeypatch):
     mod_new = importlib.import_module(new)
-    sys.modules.pop(old, None)
+    monkeypatch.delitem(sys.modules, old, raising=False)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         mod_old = importlib.import_module(old)
@@ -110,5 +111,16 @@ def test_add_copies_from_components_without_kit_imports(tmp_path):
     (tmp_path / "routes").mkdir()
     written = copy_component("tabs", root=tmp_path)
     text = written["py"].read_text(encoding="utf-8")
-    assert "ux_compose.kit" not in text
+    import re
+
+    assert not re.search(r"ux_compose\.kit\b(?!_)", text)  # kit_construct is the Q9 shim
+
+
+def test_add_copies_import_verb_helpers(tmp_path):
+    """Pending Q13: old locks require widgets to import kit_construct."""
+    from ux_compose.cli.copy_component import copy_component
+
+    (tmp_path / "app.py").write_text("", encoding="utf-8")
+    (tmp_path / "routes").mkdir()
+    text = copy_component("tabs", root=tmp_path)["py"].read_text(encoding="utf-8")
     assert "from ux_compose.arrange import" in text

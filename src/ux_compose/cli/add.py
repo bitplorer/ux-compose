@@ -1,4 +1,4 @@
-"""``uxcompose add`` — argv for ``ux_compose.kit.copy``."""
+"""``uxcompose add`` — argv for ``ux_compose.cli.copy_component``."""
 from __future__ import annotations
 
 import argparse
@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 def main(argv: list[str]) -> int:
-    from ux_compose.kit.catalog import list_components
-    from ux_compose.kit.copy import KitCopyError, copy_component
+    from ux_compose.cli.registry import list_components
+    from ux_compose.cli.copy_component import KitCopyError, copy_component
 
     p = argparse.ArgumentParser(prog="uxcompose add")
     p.add_argument(
@@ -41,6 +41,12 @@ def main(argv: list[str]) -> int:
                 extras.append("page")
             extra = f"  [{', '.join(extras)}]" if extras else ""
             print(f"  · {it['stem']:<12} {it['description']}{extra}")
+        from ux_compose.cli.registry import PORTS
+
+        print("")
+        print("example ports (ux_compose.components, from examples/)")
+        for it in PORTS.values():
+            print(f"  · {it['stem']:<12} {it['description']}")
         if not args.name:
             print("")
             print("  uxcompose add login")

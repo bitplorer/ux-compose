@@ -213,7 +213,7 @@ def test_folder_law_keeps_kit_construct_at_package_root():
     assert "Folder law" in agents
     construct = _read("kit_construct.py")
     assert "Not under ``kit/``" in construct
-    copy = _read("kit/copy.py")
+    copy = _read("cli/copy_component.py")
     assert "kit_construct lives outside kit/" in copy
     for path in SRC.rglob("*.py"):
         if "cli" in path.relative_to(SRC).parts:
@@ -229,7 +229,7 @@ def test_on_disk_packages_are_mapped_not_ghosts():
         for p in SRC.iterdir()
         if p.is_dir() and (p / "__init__.py").is_file() and p.name != "__pycache__"
     )
-    assert packages == ["cli", "dx", "kit", "routing", "wire"], packages
+    assert packages == ["cli", "components", "dx", "kit", "routing", "wire"], packages
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
     for name in packages:
         assert f"`{name}/`" in arch, name
@@ -337,11 +337,11 @@ def test_render_chrome_scan_has_no_first_hit_break():
 
 
 def test_copy_keeps_kit_construct_library_import_lock():
-    copy = _read("kit/copy.py")
+    copy = _read("cli/copy_component.py")
     assert "kit_construct lives outside kit/" in copy
     assert r"from ux_compose\.kit_construct" not in copy
     for stem in ("fab.py", "dialog.py"):
-        src = _read(f"kit/{stem}")
+        src = _read(f"components/{stem}")
         assert "from ux_compose.kit_construct import" in src
 
 
@@ -412,17 +412,17 @@ def test_unknown_host_fail_closed_lock():
 
 
 def test_command_does_not_import_overlay_chrome():
-    src = _read("kit/command.py")
-    assert "from ux_compose.kit.overlay" not in src
+    src = _read("components/command.py")
+    assert "from ux_compose.components.overlay" not in src
     assert "overlay_chrome" not in src
     assert "def _chrome" not in src
     assert "click keydown.escape" in src
-    overlay = _read("kit/overlay.py")
+    overlay = _read("components/overlay.py")
     doc = overlay.split('"""', 2)[1]
     assert "Command take ids" not in doc
     assert "does not import this" in doc
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
-    assert "`kit/command.py` owns local" in arch
+    assert "`components/command.py` owns local" in arch
     assert "must not import" in arch
 
 

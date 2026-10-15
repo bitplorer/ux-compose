@@ -135,7 +135,7 @@ def test_a11y_smoke_market_c():
 
 
 def test_market_c_caps_empty():
-    kit = ROOT / "src" / "ux_compose" / "kit"
+    kit = ROOT / "src" / "ux_compose" / "components"
     for stem in MARKET_C:
         src = (kit / f"{stem}.py").read_text(encoding="utf-8")
         assert "form.submit" not in src

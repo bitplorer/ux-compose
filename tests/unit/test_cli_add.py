@@ -30,7 +30,7 @@ def _fake_app(tmp_path: Path) -> Path:
 
 def test_catalog_has_login():
     assert "login" in CATALOG
-    assert CATALOG["login"]["module"] == "ux_compose.kit.login"
+    assert CATALOG["login"]["module"] == "ux_compose.components.login"
     assert CATALOG["login"]["css"] is False
     for stem, meta in CATALOG.items():
         assert meta["css"] is False, stem

@@ -218,7 +218,7 @@ def test_a11y_and_caps_p2_d():
     assert 'role="radiogroup"' in resize
     assert 'role="radio"' in resize
     assert "aria-checked" in resize
-    kit = ROOT / "src" / "ux_compose" / "kit"
+    kit = ROOT / "src" / "ux_compose" / "components"
     for stem in P2_D:
         src = (kit / f"{stem}.py").read_text(encoding="utf-8")
         assert "ux_channel" not in src

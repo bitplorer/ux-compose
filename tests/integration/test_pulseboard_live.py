@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html as _htmlmod
 import sys
 from pathlib import Path
 
@@ -43,7 +44,7 @@ def test_pulseboard_build_health_and_home():
 
     r3 = asgi_get(asgi, "/pipeline")
     assert r3.status_code == 200
-    assert "This week's paper" in r3.text or "Qualify" in r3.text
+    assert "This week's paper" in _htmlmod.unescape(r3.text) or "Qualify" in r3.text
 
 
 def test_pulseboard_kpi_action_morphs():

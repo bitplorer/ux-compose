@@ -24,7 +24,6 @@ from ux_compose import (
     update_with,
     button,
     div,
-    h2,
     input_,
     label,
     p,

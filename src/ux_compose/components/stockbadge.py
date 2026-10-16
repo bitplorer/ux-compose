@@ -79,7 +79,7 @@ class StockBadge(Component):
         )
         return div(*kids, id=self.id, className="widget", data_band=band)
 
-    @action(caps=())
+    @action(caps=("stock.adjust",))
     def sell(self):
         n = max(0, int(self.qty or 0) - 1)
         self.qty = n
@@ -87,7 +87,7 @@ class StockBadge(Component):
         mark_dirty(self)
         return update_with(self, extra_ops=[notify(str(n))])
 
-    @action(caps=())
+    @action(caps=("stock.adjust",))
     def restock(self):
         n = int(self.qty or 0) + 5
         self.qty = n

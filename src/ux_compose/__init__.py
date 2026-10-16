@@ -8,7 +8,7 @@ Public author surface is this package root. See docs/ARCHITECTURE.md.
 
 from __future__ import annotations
 
-__version__ = "0.3.0"
+__version__ = "0.2.0"
 
 from ux_compose.component import Component, MorphState, RefState, action
 from ux_compose.helpers import bind, control, notify, update_with, morph_play

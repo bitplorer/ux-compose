@@ -4,8 +4,7 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.3.x   | Yes (best-effort while pre-1.0) |
-| 0.2.x   | No (unreleased; superseded by 0.3.0) |
+| 0.2.x   | Yes (best-effort while pre-1.0) |
 | 0.1.x   | No (unreleased; superseded by 0.2.0) |
 
 ## Threat model

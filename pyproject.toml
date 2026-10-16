@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ux-compose"
-version = "0.3.0"
+version = "0.2.0"
 description = "Pure-Python composition root that harnesses pinned ux-dom + ux-behavior + ux-motion + ux-channel (hard dependencies, Python ≥3.14) into an isolation-enforced, server-driven hypermedia framework with additive levels 0–3."
 readme = "README.md"
 requires-python = ">=3.14"

@@ -27,6 +27,11 @@ dependencies = [
     "ux-motion @ git+https://github.com/bitplorer/ux-motion.git@bbe7d73466a6c1eccb47e711568c80ce3b4d5487",
     "cek-host>=0.2.0",
     "cek-surface>=0.2.0",
+    # HTTP host stack: routing/fastapi.py, routing/asgi.py and `uxcompose serve`
+    # import these directly. Declared so a plain install can serve.
+    "fastapi>=0.115",
+    "starlette>=0.40",
+    "uvicorn>=0.30",
 ]
 
 [project.optional-dependencies]

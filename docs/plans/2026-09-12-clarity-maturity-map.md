@@ -224,6 +224,7 @@ ux-compose @ fb7a125
 compose extras: [serve] uvicorn watchfiles httpx starlette websockets
                 [dev]   pytest* + fastapi + serve stack
                 [dom]/[behavior]/[motion]/[channel]/[full] = []  (no-op aliases)
+                ^ Superseded (0.2.0): these extras were removed in 0.2.0; this part of the plan no longer applies.
 ```
 
 No compose `poetry.lock` / `uv.lock` / root `requirements.txt`. That
@@ -362,6 +363,7 @@ No **new** dual door vs #84. Nothing here is a named lie (A8).
 | `COMPOSE_VCS_PIN = 24a182f` | Pin-bump cannot pin itself | `test_hard_deps.py:16` |
 | Channel leftover clones | Soft 1–4 leftover-teach | channel `tests/gate` @ `d0412c6` |
 | Empty extras `[dom]`…`[full] = []` | `pip install -e ".[full]"` must not fail closed | `pyproject.toml:36-40` |
+> **Superseded (0.2.0):** the `[dom]`/`[behavior]`/`[motion]`/`[channel]`/`[full]` extras were removed in 0.2.0, so this part of the plan no longer applies.
 
 **E13 DO (cheap leftover fail-closed on a compose HTTP door):** **none.**
 

@@ -1,4 +1,4 @@
-"""Bloat cleanup (0.3.0): dead helpers, ignored params and no-op extras stay gone.
+"""Bloat cleanup (0.2.0): dead helpers, ignored params and no-op extras stay gone.
 
 ux-compose and its ux-* specialists are not on PyPI, so these were removed
 outright with no shims.

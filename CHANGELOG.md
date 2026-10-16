@@ -7,12 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## 0.3.0 — bloat cleanup
+## 0.2.0 — remove deprecations and bloat cleanup
 
 ux-compose and its ux-* specialists are not on PyPI, so these are removed
 outright, with no shims. Call sites, docs and tests are updated.
 
-### Removed
+### Removed — bloat cleanup (no shims)
 
 - Empty extras `[dom]`, `[behavior]`, `[motion]`, `[channel]`, `[full]`.
   They installed nothing. Use `pip install -e .` (or `.[serve]` / `.[dev]`).
@@ -22,19 +22,19 @@ outright, with no shims. Call sites, docs and tests are updated.
   `requested_level=` argument of `ProbeResult.incomplete_stack_messages()`.
 - The ignored `channel_scripts=` argument of
   `ux_compose.wire.boot.attach_document_runtimes()`.
-- `SurfaceRegistry`-level `action_names()` (no callers), the ignored
+- `SurfaceBundle.action_names()` (no callers), the ignored
   `route_file_name` argument of `surfaces._file_url`, and the dead
   `cli.copy_component._wire_css_import` helper.
 - 368 unused imports / locals across `src/` (mostly the ported
   `ux_compose.components` modules, which carried the example modules'
   full import lists).
 
-### Added
+### Added — bloat cleanup
 
 - `tests/unit/test_bloat_cleanup.py` keeps the removals gone and gates
-  `src/` on ruff F401/F841.
-
-## 0.2.0 — remove deprecations
+  `src/`, `tests/`, `apps/` and `examples/` on ruff pyflakes (`--select F`).
+- `tests/unit/test_fastapi_none_tree.py`: a render returning `None` yields an
+  empty-body ux-dom `HTMLResponse`.
 
 ### Added
 

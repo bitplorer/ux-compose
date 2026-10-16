@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose import App, HAS_DOM
-from ux_compose.kit import ActionSheet, ContextMenu, PullRefresh, Typeahead
+from ux_compose.components import ActionSheet, ContextMenu, PullRefresh, Typeahead
 
 
 def _boot(*classes, **kwargs):

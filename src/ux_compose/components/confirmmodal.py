@@ -5,7 +5,6 @@ Ported from the ``modal`` example module (spec §4); that example stays as the t
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,

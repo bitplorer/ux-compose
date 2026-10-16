@@ -12,7 +12,7 @@ named. Quote is a name, not a quantity.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -64,10 +64,10 @@ class Testimonials(Component):
         return items[0]
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         key, quote, who = self._current()
         qid = f"{self.id}-q"
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(quote, id=qid, className=self.class_quote),
             p(f"— {who}", className=self.class_lede),
             div(

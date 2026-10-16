@@ -40,11 +40,11 @@ def main(argv: list[str] | None = None) -> int:
     if cmd == "build":
         from ux_compose.cli.build import main as run
 
-        return run(rest)
+        return _legacy_env_guard(run, rest)
     if cmd == "serve":
         from ux_compose.cli.serve import main as run
 
-        return run(rest)
+        return _legacy_env_guard(run, rest)
     if cmd == "deploy":
         from ux_compose.cli.deploy import main as run
 
@@ -60,6 +60,17 @@ def main(argv: list[str] | None = None) -> int:
     print(f"unknown command: {cmd}", file=sys.stderr)
     _help()
     return 2
+
+
+def _legacy_env_guard(run, rest: list[str]) -> int:
+    """Removed UXDOM_* variables: one line on stderr, exit 2, no traceback."""
+    from ux_compose.tailwind import LegacyTailwindEnvError
+
+    try:
+        return run(rest)
+    except LegacyTailwindEnvError as exc:
+        print(f"uxcompose: {' '.join(str(exc).split())}", file=sys.stderr)
+        return 2
 
 
 def _help() -> None:

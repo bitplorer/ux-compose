@@ -16,7 +16,7 @@ NavMenu (destination list).
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -70,7 +70,7 @@ class Fab(Component):
         return key
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         menu_id = f"{self.id}-menu"
         rows = [
@@ -97,7 +97,7 @@ class Fab(Component):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return kit_shell(self,
+        return wrap_in_card(self,
             scrim,
             menu,
             button(

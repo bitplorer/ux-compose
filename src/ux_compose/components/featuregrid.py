@@ -12,7 +12,7 @@ each title.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -63,7 +63,7 @@ class FeatureGrid(Component):
     active = MorphState("cut")
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         cur = str(self.active or "cut")
         tiles = []
         for key, title, body in self.ITEMS:
@@ -83,7 +83,7 @@ class FeatureGrid(Component):
                     **({"aria_current": "true"} if on else {}),
                 )
             )
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(*tiles, className=self.class_grid),
             id=self.id,
             className=self.class_card,

@@ -330,7 +330,7 @@ class StockBadge(Component):
         )
         return div(*kids, id=self.id, className="widget", data_band=band)
 
-    @action(caps=())
+    @action(caps=("stock.adjust",))
     def sell(self):
         n = max(0, int(self.qty or 0) - 1)
         self.qty = n
@@ -338,7 +338,7 @@ class StockBadge(Component):
         mark_dirty(self)
         return update_with(self, extra_ops=[notify(str(n))])
 
-    @action(caps=())
+    @action(caps=("stock.adjust",))
     def restock(self):
         n = int(self.qty or 0) + 5
         self.qty = n
@@ -410,12 +410,12 @@ class CompareTray(Component):
 
 
 def demo() -> None:
-    app = App.boot("CommerceMore", strict_caps=False)
+    app = App.boot("CommerceMore")
     app.add(Wishlist, Coupon, CheckoutFlow, StockBadge, CompareTray)
     print("wish", app.dispatch("wishlist.toggle", sku="oak"))
     print("coup", app.dispatch("coupon.check", code="HOUSE10"))
     print("who", app.dispatch("checkout.next", name="Noor"))
-    print("stock", app.dispatch("stock.sell"))
+    print("stock", app.dispatch("stock.sell", _trusted=True))
     print("cmp", app.dispatch("compare.toggle", sku="wool"))
     strict = App.boot("CommerceMore", strict_caps=True)
     strict.add(Coupon, CheckoutFlow)

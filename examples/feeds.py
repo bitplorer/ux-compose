@@ -180,7 +180,7 @@ class Comments(Component):
         self.reply_to = key
         return update_with(self)
 
-    @action(caps=())
+    @action(caps=("comments.post",))
     def post(self, text: str = ""):
         text = (text or "").strip() or "…"
         self._seq = int(self._seq or 0) + 1
@@ -421,10 +421,10 @@ class ActivityFeed(Component):
 
 
 def demo() -> None:
-    app = App.boot("Feeds", strict_caps=False)
+    app = App.boot("Feeds")
     app.add(Carousel, Comments, Timeline, EmptyRetry, ReorderList, ActivityFeed)
     print("car", app.dispatch("carousel.next"))
-    print("cmt", app.dispatch("comments.post", text="held"))
+    print("cmt", app.dispatch("comments.post", text="held", _trusted=True))
     print("tl", app.dispatch("timeline.filter", key="cut"))
     print("empty", app.dispatch("emptyretry.load"))
     print("ord", app.dispatch("reorder.up", sku="oak"))

@@ -61,7 +61,7 @@ if __name__ == "__main__":
     )
 
     app = (
-        App.boot("Shop", strict_caps=False)
+        App.boot("Shop")
         .use_dom(document)
         .use_behavior()
         .use_channel()

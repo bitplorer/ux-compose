@@ -567,7 +567,7 @@ class LimitedNote(Component):
 
 
 def demo() -> None:
-    app = App.boot("Fields", strict_caps=False)
+    app = App.boot("Fields")
     app.add(
         ChoiceGroup,
         Combobox,

@@ -20,7 +20,7 @@ from apps.pulseboard.widgets import (
 
 
 def demo() -> None:
-    app = App.boot("PulseboardDemo", strict_caps=False)
+    app = App.boot("PulseboardDemo")
     app.add(PulseKpis, PulseKanban, PulseTimeline, PulsePresence, PulseClose)
     print("kpi", app.dispatch("desk_kpis.tick_up"))
     print("move", app.dispatch("desk_kanban.move", sku="oslo", to="negotiate"))

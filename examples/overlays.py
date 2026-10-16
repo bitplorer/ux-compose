@@ -293,7 +293,7 @@ class Banner(Component):
 
 
 def demo() -> None:
-    app = App.boot("Overlays", strict_caps=False)
+    app = App.boot("Overlays")
     app.add(Toasts, Confirm, Lightbox, Palette, Banner)
     print("toast", app.dispatch("toasts.push", message="hi"))
     print("ask", app.dispatch("confirm.ask", id="oak-02"))

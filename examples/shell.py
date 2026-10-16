@@ -363,7 +363,7 @@ class OverflowMenu(Component):
 
 
 def demo() -> None:
-    app = App.boot("Shell", strict_caps=False)
+    app = App.boot("Shell")
     app.add(AppShell, Breadcrumbs, BottomNav, Popover, OverflowMenu)
     print("go", app.dispatch("appshell.go", key="bag"))
     print("crumb", app.dispatch("crumbs.go", key="linen"))

@@ -241,7 +241,7 @@ class Drawer(Component):
 
 
 def demo() -> None:
-    app = App.boot("Chrome", strict_caps=False)
+    app = App.boot("Chrome")
     app.add(Tabs, Accordion, Dropdown, Drawer)
     print("tabs", app.dispatch("tabs.select", tab="make"))
     print("acc", app.dispatch("accordion.toggle", key="law"))

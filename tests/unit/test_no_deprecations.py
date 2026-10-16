@@ -22,8 +22,31 @@ def test_shim_module_is_removed(mod):
 
 
 def test_kit_dir_and_shim_file_absent():
-    assert not (SRC / "kit").exists()
+    # *.py, not the dir: a stale __pycache__ on a dev box is not a shim.
+    assert list((SRC / "kit").rglob("*.py")) == []
     assert not (SRC / "kit_construct.py").exists()
+
+
+def test_morph_play_has_no_deprecated_default():
+    from ux_compose.helpers import morph_play
+
+    param = inspect.signature(morph_play).parameters["component"]
+    assert param.default is inspect.Parameter.empty
+    assert "DeprecationWarning" not in inspect.getsource(morph_play)
+
+
+@pytest.mark.parametrize(
+    "name", ["form_validation", "list_stagger", "page_transition", "optimistic_list"]
+)
+def test_examples_back_compat_aliases_removed(name):
+    examples = SRC.parents[1] / "examples"
+    assert not (examples / f"{name}.py").exists()
+
+
+def test_no_back_compat_paths_left_in_examples():
+    examples = SRC.parents[1] / "examples"
+    bad = [p.name for p in examples.rglob("*.py") if "Back-compat" in p.read_text(encoding="utf-8")]
+    assert bad == []
 
 
 def test_components_import_arrange_helpers_directly():

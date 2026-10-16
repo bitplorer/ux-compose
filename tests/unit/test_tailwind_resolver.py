@@ -25,7 +25,6 @@ def test_env_wins(tmp_path, monkeypatch):
     fake.write_text("#!/bin/sh\n")
     fake.chmod(0o755)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND", str(fake))
-    monkeypatch.delenv("UXDOM_TAILWIND", raising=False)
     monkeypatch.delenv("TAILWINDCSS", raising=False)
     hit = resolve_tailwind(ensure=False)
     assert hit is not None
@@ -33,16 +32,27 @@ def test_env_wins(tmp_path, monkeypatch):
     assert hit.argv == [str(fake)]
 
 
-def test_legacy_uxdom_env_alias(tmp_path, monkeypatch):
+def test_uxdom_env_alias_is_ignored(tmp_path, monkeypatch):
+    """0.2.0: the UXDOM_* aliases are gone; only UXCOMPOSE_* / TAILWINDCSS."""
+    import ux_compose.tailwind as tw
+
     fake = tmp_path / "tw"
     fake.write_text("#!/bin/sh\n")
     fake.chmod(0o755)
     monkeypatch.delenv("UXCOMPOSE_TAILWIND", raising=False)
     monkeypatch.setenv("UXDOM_TAILWIND", str(fake))
     monkeypatch.delenv("TAILWINDCSS", raising=False)
-    hit = resolve_tailwind(ensure=False)
-    assert hit is not None
-    assert hit.argv == [str(fake)]
+    assert tw._from_env() is None
+
+
+def test_no_uxdom_names_or_legacy_cache_in_tailwind_source():
+    from pathlib import Path
+
+    src = Path(__file__).resolve().parents[2] / "src" / "ux_compose"
+    for rel in ("tailwind.py", "cli/product_build.py"):
+        text = (src / rel).read_text(encoding="utf-8")
+        assert "UXDOM_" not in text, rel
+    assert "_legacy_cache_dir" not in (src / "tailwind.py").read_text(encoding="utf-8")
 
 
 def test_no_npx_without_ensure(monkeypatch):
@@ -156,7 +166,6 @@ def test_product_build_runs_fake_compiler(tmp_path, monkeypatch):
     )
     fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND", str(fake))
-    monkeypatch.delenv("UXDOM_TAILWIND", raising=False)
     monkeypatch.delenv("TAILWINDCSS", raising=False)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND_DOWNLOAD", "0")
     monkeypatch.chdir(root)

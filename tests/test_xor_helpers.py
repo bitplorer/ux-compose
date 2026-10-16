@@ -58,9 +58,14 @@ def test_normalize_plan_dict():
 
 
 def test_morph_play_ordered():
-    ops = morph_play("#x", {"v": "1"})
+    class X:
+        def render(self):
+            return "<div id='x'>1</div>"
+
+    ops = morph_play("#x", {"v": "1"}, component=X())
     assert isinstance(ops, list)
     assert len(ops) >= 1
+    assert "1" in ops[0].payload["patch"]
 
 
 def test_return_none_vs_update_with_in_action():

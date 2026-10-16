@@ -19,15 +19,10 @@ from ux_compose.routing.core import (
 )
 
 
-def test_morph_play_without_component_warns_that_it_clears_the_node():
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always", DeprecationWarning)
-        ops = morph_play("box", {"v": "1"})
-    assert ops[0].payload["patch"] == ""
-    assert any(
-        issubclass(item.category, DeprecationWarning) and "clears the node" in str(item.message)
-        for item in caught
-    )
+def test_morph_play_requires_component():
+    """0.2.0: no deprecated empty-patch path; component is required."""
+    with pytest.raises(TypeError, match="component"):
+        morph_play("box", {"v": "1"})
 
 
 def test_morph_play_component_renders_that_fragment():

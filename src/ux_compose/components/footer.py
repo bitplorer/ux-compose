@@ -20,7 +20,6 @@ from ux_compose import (
     notify,
     update_with,
     a,
-    div,
     footer,
     nav,
     p,

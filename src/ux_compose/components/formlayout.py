@@ -25,10 +25,8 @@ from ux_compose import (
     button,
     div,
     form,
-    h2,
     input_,
     label,
-    p,
     span,
 )
 

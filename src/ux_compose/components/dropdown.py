@@ -12,7 +12,7 @@ MorphState: ``open``, ``value``. Caps: none. A11y: trigger ``aria-haspopup=listb
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -94,7 +94,7 @@ class Dropdown(Component):
         return key
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._options()[0][0])
         label = self._label(val)
         is_open = bool(self.open)
@@ -130,7 +130,7 @@ class Dropdown(Component):
             if is_open
             else span("", className=self.class_sr)
         )
-        return kit_shell(self,
+        return wrap_in_card(self,
             scrim,
             div(
                 button(

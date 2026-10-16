@@ -12,7 +12,7 @@ Not Tabs (no tabpanels of unrelated content).
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -50,7 +50,7 @@ class Diff(Component):
     which = MorphState("split")
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         which = str(self.which or "split")
         chips = [
             button(
@@ -68,7 +68,7 @@ class Diff(Component):
             panes.append(p(self.BEFORE, className=self.class_pane, aria_label="Before"))
         if which in {"after", "split"}:
             panes.append(p(self.AFTER, className=self.class_pane, aria_label="After"))
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(*chips, className="flex gap-2", role="radiogroup", aria_label="View"),
             div(*panes, className="flex flex-col gap-2"),
             id=self.id,

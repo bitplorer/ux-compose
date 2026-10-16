@@ -154,7 +154,7 @@ def test_architecture_concern_table_is_the_module_map():
         "routing/host.py",
         "routing/fastapi.py",
         "routing/asgi.py",
-        "kit_construct.py",
+        "arrange.py",
         "serve_state.py",
         "dx/probe.py",
         "live_client.py",
@@ -195,10 +195,11 @@ def test_architecture_owner_column_names_delivery_files():
         assert (SRC / rel).is_file(), rel
 
 
-def test_folder_law_keeps_kit_construct_at_package_root():
-    """kit_construct stays a library import. CLI is the cli/ package, not the root."""
-    assert (SRC / "kit_construct.py").is_file()
-    assert not (SRC / "kit" / "kit_construct.py").exists()
+def test_folder_law_keeps_arrange_at_package_root():
+    """arrange stays a library import. CLI is the cli/ package, not the root."""
+    assert (SRC / "arrange.py").is_file()
+    assert not (SRC / "kit_construct.py").exists()
+    assert not (SRC / "kit").exists()
     assert (SRC / "cli" / "__init__.py").is_file()
     assert not (SRC / "cli.py").exists()
     assert not (SRC / "cli_build.py").exists()
@@ -211,10 +212,8 @@ def test_folder_law_keeps_kit_construct_at_package_root():
     assert "Do **not** add `cli/`" not in arch
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     assert "Folder law" in agents
-    construct = _read("kit_construct.py")
-    assert "Not under ``kit/``" in construct
     copy = _read("cli/copy_component.py")
-    assert "kit_construct lives outside kit/" in copy
+    assert "Widget helpers live in ``ux_compose.arrange``" in copy
     for path in SRC.rglob("*.py"):
         if "cli" in path.relative_to(SRC).parts:
             continue
@@ -229,7 +228,7 @@ def test_on_disk_packages_are_mapped_not_ghosts():
         for p in SRC.iterdir()
         if p.is_dir() and (p / "__init__.py").is_file() and p.name != "__pycache__"
     )
-    assert packages == ["cli", "components", "dx", "kit", "routing", "wire"], packages
+    assert packages == ["cli", "components", "dx", "routing", "wire"], packages
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
     for name in packages:
         assert f"`{name}/`" in arch, name
@@ -336,13 +335,13 @@ def test_render_chrome_scan_has_no_first_hit_break():
         assert len(diags) >= 2
 
 
-def test_copy_keeps_kit_construct_library_import_lock():
+def test_copy_keeps_arrange_library_import_lock():
     copy = _read("cli/copy_component.py")
-    assert "kit_construct lives outside kit/" in copy
-    assert r"from ux_compose\.kit_construct" not in copy
+    assert "Widget helpers live in ``ux_compose.arrange``" in copy
+    assert r"from ux_compose\.arrange" not in copy
     for stem in ("fab.py", "dialog.py"):
         src = _read(f"components/{stem}")
-        assert "from ux_compose.kit_construct import" in src
+        assert "from ux_compose.arrange import" in src
 
 
 def test_flow_citations_point_at_ownership():

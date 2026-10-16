@@ -5,7 +5,6 @@ import logging
 import sqlite3
 import sys
 import types
-import warnings
 from pathlib import Path
 
 import pytest
@@ -382,13 +381,7 @@ def test_doctor_snippet_names_diagnostics():
     assert "issues" not in DoctorResult.__dataclass_fields__
 
 
-def test_directory_router_error_alias_warns_and_stays_the_same_class():
+def test_directory_router_error_alias_is_gone():
     import ux_compose.routing as routing
 
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always", DeprecationWarning)
-        alias = routing.DirectoryRouterError
-    assert alias is routing.DirectoryRoutesError
-    assert issubclass(alias, Exception)
-    assert any(issubclass(item.category, DeprecationWarning) for item in caught)
-    assert any("DirectoryRoutesError" in str(item.message) for item in caught)
+    assert not hasattr(routing, "DirectoryRouterError")

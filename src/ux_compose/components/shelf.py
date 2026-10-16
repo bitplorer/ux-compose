@@ -5,7 +5,6 @@ Ported from the ``lists`` example module (spec §4); that example stays as the t
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
@@ -21,7 +20,7 @@ from ux_compose import (
     span,
 )
 
-from ux_compose.author import act, mark_dirty, optional_plan
+from ux_compose.author import act, mark_dirty
 from ux_compose import scene, rise
 
 CATALOG = (("linen", "Work shirt", 48), ("oak", "Serving board", 72), ("wool", "Throw", 96), ("clay", "Pourer", 38))

@@ -23,12 +23,9 @@ from ux_compose import (
     notify,
     update_with,
     button,
-    div,
     form,
-    h2,
     input_,
     label,
-    p,
     span,
 )
 

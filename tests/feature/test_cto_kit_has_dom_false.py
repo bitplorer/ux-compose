@@ -16,8 +16,8 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ux_compose.kit.catalog import CATALOG
-from ux_compose.kit.copy import KitCopyError, copy_component
+from ux_compose.cli.registry import CATALOG
+from ux_compose.cli.copy_component import KitCopyError, copy_component
 
 from tests.feature.morph import (
     KERNEL_SSOT_ID,
@@ -28,7 +28,7 @@ from tests.feature.morph import (
 
 
 def _load_kit(stem: str):
-    return importlib.import_module(f"ux_compose.kit.{stem}")
+    return importlib.import_module(f"ux_compose.components.{stem}")
 
 
 def _cls(mod, stem: str):
@@ -72,7 +72,7 @@ def test_kits_render_dom_trees_as_fragments():
 
 
 def test_copy_refuses_loud_when_has_dom_false(tmp_path, monkeypatch):
-    monkeypatch.setattr("ux_compose.kit.copy.HAS_DOM", False)
+    monkeypatch.setattr("ux_compose.cli.copy_component.HAS_DOM", False)
     (tmp_path / "app.py").write_text("# app\n", encoding="utf-8")
     (tmp_path / "routes").mkdir()
     for stem in ("toast", "login", "tabs"):

@@ -302,7 +302,6 @@ def mount_surfaces(
     asgi_app: Any = None,
     fail_closed: bool = True,
     bind_pages: bool = True,
-    include_directory_router: bool | None = None,
     on_surface: Optional[Callable[[Surface], None]] = None,
     package_name: Optional[str] = None,
     host: str = "auto",
@@ -311,11 +310,8 @@ def mount_surfaces(
 
     Host bind is delegated to ``surfaces_host.attach_page_router``
     (``ux_compose.routing.DirectoryRoutes`` + ``host.bind``).
-    ``host="batteries"`` fails closed. ``include_directory_router`` is a
-    deprecated alias of ``bind_pages``.
+    ``host="batteries"`` fails closed.
     """
-    if include_directory_router is not None:
-        bind_pages = include_directory_router
     surfaces = scan_surfaces(
         package_dir,
         base_directory=base_directory,

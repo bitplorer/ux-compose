@@ -136,7 +136,7 @@ class MasterDetail(Component):
 
 
 def demo() -> None:
-    app = App.boot("Nav", strict_caps=False)
+    app = App.boot("Nav")
     app.add(ShopView, MasterDetail)
     print("detail", app.dispatch("shopview.show_detail", sku="oak"))
     print("list", app.dispatch("shopview.show_list"))

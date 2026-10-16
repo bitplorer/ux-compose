@@ -1,7 +1,7 @@
 """OverlayEdge is the shared overlay primitive. Widgets adopt it."""
 from __future__ import annotations
 
-from ux_compose.kit.overlay import EDGE_SLIDE, HANDLE_SWIPE, OverlayEdge, overlay
+from ux_compose.components.overlay import EDGE_SLIDE, HANDLE_SWIPE, OverlayEdge, overlay
 
 
 def test_ids_are_stable_and_kind_sets_edge():
@@ -51,16 +51,16 @@ def test_open_plan_degrades_without_motion():
 
 def test_drawer_kind_is_sheet_edge_not_a_second_host():
     assert overlay("filters", kind="drawer").edge == "right"
-    from ux_compose.kit.drawer import Drawer
-    from ux_compose.kit.sheet import Sheet
+    from ux_compose.components.drawer import Drawer
+    from ux_compose.components.sheet import Sheet
 
     assert Drawer is Sheet
 
 
 def test_dialog_sheet_actionsheet_take_chrome_from_primitive():
-    from ux_compose.kit.actionsheet import ActionSheet
-    from ux_compose.kit.dialog import Dialog
-    from ux_compose.kit.sheet import Sheet
+    from ux_compose.components.actionsheet import ActionSheet
+    from ux_compose.components.dialog import Dialog
+    from ux_compose.components.sheet import Sheet
 
     dialog = Dialog()
     sheet = Sheet()

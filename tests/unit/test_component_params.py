@@ -69,13 +69,13 @@ def test_zero_arg_component_still_constructs():  # GUARD
 
 
 def test_kit_render_slots_backcompat():  # GUARD
-    from ux_compose.kit import Badge
+    from ux_compose.components import Badge
 
     assert "Alpha" in _serialize_tree(Badge().render(items=(("a", "Alpha"),), shell=False))
 
 
 def test_kit_ctor_kwargs_equal_render_slots():
-    from ux_compose.kit import Badge
+    from ux_compose.components import Badge
 
     via_ctor = html(Badge(items=(("a", "Alpha"),), shell=False))
     via_slot = _serialize_tree(Badge().render(items=(("a", "Alpha"),), shell=False))

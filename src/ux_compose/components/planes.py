@@ -5,13 +5,10 @@ Ported from the ``foundation`` example module (spec §4); that example stays as 
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
     action,
-    doctor,
-    notify,
     update_with,
     div,
     h2,
@@ -20,7 +17,7 @@ from ux_compose import (
     header,
 )
 
-from ux_compose.author import act, optional_plan, mark_dirty
+from ux_compose.author import act, mark_dirty
 
 class Planes(Component):
     """Side-by-side: mutating only RefState does not morph unless we mark_dirty."""

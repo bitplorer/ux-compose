@@ -21,7 +21,6 @@ from ux_compose import (
     notify,
     update_with,
     button,
-    div,
     h2,
     p,
     span,

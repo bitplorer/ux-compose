@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 0.2.0 — remove deprecations (local, unreleased)
+
+### Changed (breaking) — fail closed by default
+
+- **Pin follow-up:** ux-compose needs ux-behavior **0.4.0** (no Channel-attach
+  cap bypass, single-use continuations, per-context ``trust()``). The
+  ``pyproject.toml`` pin now points at the ux-behavior PR branch commit
+  ``9458e8b`` (bitplorer/ux-behavior#17). After #17 merges, move the pin to
+  the merge commit SHA on ux-behavior ``main``.
+
+- ``App(...)`` / ``App.boot(...)`` now default to ``strict_caps=True``
+  (best-practice default; matches ux-behavior). A capped ``@action`` dispatched
+  with no authority raises ``AuthorityError`` instead of running. ``build()``
+  boots strict too. Opt out only for an unchecked sandbox:
+  ``App.boot(name, strict_caps=False)``. Public actions (``caps=()``) are
+  unaffected; examples and docs no longer pass ``strict_caps=False``.
+- ``LiveOrder.place_minted`` now needs ``orders.place`` (same Cap as
+  ``place``); it was an ungated copy of ``place``.
+- ``Login.logout`` now needs ``auth.logout`` (same as ``UserMenu.sign_out`` /
+  ``Command.sign_out``).
+  **Breaks:** on a Level-1 page with no Channel, the Login "Log out" button is
+  now refused (``AuthorityError``). Migrate one of three ways: (a) attach the
+  Channel (``app.use_channel()`` / ``build(live="auto")``) so ``control()``
+  mints the Cap; (b) call it from trusted host code:
+  ``app.dispatch("login.logout", _trusted=True)``; (c) in your own copy
+  (``uxcompose add login``) set ``@action(caps=())`` on ``logout`` if sign-out
+  is purely local in your app.
+- Gated (server state / user content): ``StockBadge.sell`` / ``restock`` →
+  ``stock.adjust``; ``SignupForm.submit`` → ``account.create``;
+  ``Comments.post`` → ``comments.post``; ``Chat.send`` → ``chat.send``. Same
+  in the teaching copies under ``examples/``; Atelier Studio routes them via
+  its ``MINT`` set. Same migration as above.
+- ``build(..., strict_caps=True)``: new keyword, default fail-closed.
+- Scaffold ``hello.pulse`` cap renamed ``pulse`` → ``pulse.refresh``
+  (``namespace.verb``).
+- Cap-policy test: the namespace allow-list is replaced by a cap-shape check
+  plus a runtime fail-closed check; Cap names are labels, not policy.
+
+### Removed
+
+- ``ux_compose.kit`` package (re-export shim, ``kit.catalog``, ``kit.copy``)
+  and the 79 stale widget copies left under ``src/ux_compose/kit/``. Import
+  from ``ux_compose.components``, ``ux_compose.cli.registry`` and
+  ``ux_compose.cli.copy_component``.
+- ``ux_compose.kit_construct`` (``apply_slots`` / ``kit_shell``). Use
+  ``ux_compose.arrange.arrange_slots`` / ``wrap_in_card``. All components and
+  ``apps/pulseboard`` now import ``ux_compose.arrange`` directly.
+- ``ux_compose.routing.DirectoryRouterError`` alias. Use ``DirectoryRoutesError``.
+- ``include_directory_router=`` on ``App.mount`` / ``mount_surfaces``. Use ``bind_pages=``.
+- ``uxcompose add`` no longer rewrites ``ux_compose.kit`` imports.
+
+
 ### Added
 
 - L5 httpx locks on existing Pulse rooms (home / lab / shop /

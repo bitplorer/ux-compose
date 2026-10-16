@@ -5,7 +5,6 @@ Ported from the ``forms`` example module (spec §4); that example stays as the t
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
@@ -16,15 +15,12 @@ from ux_compose import (
     h2,
     p,
     header,
-    ul,
-    li,
     form,
     button,
     control,
-    span,
 )
 
-from ux_compose.author import act, field, mark_dirty
+from ux_compose.author import act, field
 
 class SignupForm(Component):
     id = "signup"

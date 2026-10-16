@@ -27,9 +27,8 @@ from ux_compose.routing.core import (
     is_json_payload,
     is_stream_payload,
 )
-from ux_compose.routing.host import ProductBatteriesRejected
 
-__all__ = ["create", "bind", "page_endpoint", "materialize", "mount"]
+__all__ = ["create", "bind", "page_endpoint"]
 
 
 def create(name: str = "App", *, openapi: bool = False) -> Any:
@@ -78,35 +77,20 @@ def _call_render(inst: Any, path_params: dict) -> Any:
 def _as_html_response(tree: Any) -> Any:
     if _is_response(tree):
         return tree
-    try:
-        from ux_dom.response.starlette import HTMLResponse
+    from ux_dom.response.starlette import HTMLResponse
 
-        return HTMLResponse(tree)
-    except ImportError:
-        from starlette.responses import HTMLResponse as StarletteHTML
-
-        if tree is None:
-            body = ""
-        elif isinstance(tree, (bytes, bytearray)):
-            return StarletteHTML(content=bytes(tree))
-        else:
-            body = tree if isinstance(tree, str) else str(tree)
-        return StarletteHTML(content=body)
+    return HTMLResponse(tree)
 
 
 def _as_stream_response(payload: Any) -> Any:
+    from starlette.responses import StreamingResponse
+    from ux_dom.response.starlette import StreamingResponse as DomStreamingResponse
+
     try:
-        from ux_dom.response.starlette import StreamingResponse
-
-        return StreamingResponse(payload)
-    except ImportError:
-        pass
+        return DomStreamingResponse(payload)
     except TypeError:
-        # ux-dom stream prepare rejects sync generators — Starlette accepts them.
-        pass
-    from starlette.responses import StreamingResponse as StarletteStream
-
-    return StarletteStream(payload, media_type="text/html; charset=utf-8")
+        # ux-dom's StreamingResponse rejects sync generators; Starlette accepts them.
+        return StreamingResponse(payload, media_type="text/html; charset=utf-8")
 
 
 def _as_http_response(payload: Any, *, document: Any = None) -> Any:
@@ -148,12 +132,9 @@ def page_endpoint(
 
     # from __future__ import annotations stringifies types. FastAPI must see
     # the Request class object or it treats `request` as a body field (422).
-    try:
-        from starlette.requests import Request
+    from starlette.requests import Request
 
-        endpoint.__annotations__["request"] = Request
-    except ImportError:
-        pass
+    endpoint.__annotations__["request"] = Request
     endpoint.__name__ = rec.name.replace(".", "_")
     endpoint.__doc__ = getattr(rec.page_cls, "__doc__", None)
     return endpoint
@@ -210,62 +191,3 @@ def bind(
         raise TypeError("asgi_app must support include_router (FastAPI/Starlette)")
     asgi.include_router(router, prefix=prefix)
     return router
-
-
-def materialize(
-    core: DirectoryRoutes,
-    *,
-    router: Any = None,
-    route_class: Any = None,
-    document: Any = None,
-    resolve_unit: Optional[Callable] = None,
-) -> Any:
-    """Compat: build an APIRouter from DirectoryRoutes (tests / leftover callers)."""
-    from fastapi import APIRouter
-
-    if router is None:
-        router = APIRouter()
-    if route_class is not None:
-        raise ProductBatteriesRejected(
-            "route_class= is leftover StreamingRoute. Streaming is a "
-            "return value from render(), not a route class. See docs/reference/host.md."
-        )
-    if not core.records:
-        core.discover()
-    hooks = core.hooks or RouterHooks()
-    resolve = resolve_unit or hooks.resolve_unit
-    for rec in core.records:
-        router.add_api_route(
-            rec.path,
-            page_endpoint(rec, document=document, resolve_unit=resolve),
-            name=rec.name,
-            methods=[rec.method.upper()],
-            description=getattr(rec.page_cls, "__doc__", None),
-        )
-    return router
-
-
-def mount(
-    core: DirectoryRoutes,
-    asgi_app: Any,
-    *,
-    prefix: str = "",
-    route_class: Any = None,
-    document: Any = None,
-    resolve_unit: Optional[Callable] = None,
-) -> Any:
-    """Compat: discover + include_router."""
-    if route_class is not None:
-        raise ProductBatteriesRejected(
-            "route_class= is leftover StreamingRoute. Streaming is a "
-            "return value from render(), not a route class. See docs/reference/host.md."
-        )
-    hooks = core.hooks or RouterHooks()
-    resolve = resolve_unit or hooks.resolve_unit
-    return bind(
-        asgi_app,
-        core,
-        document=document,
-        resolve_unit=resolve,
-        prefix=prefix,
-    )

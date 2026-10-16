@@ -62,7 +62,9 @@ def test_batteries_host_fails_closed():
 def test_fastapi_adapter_binds_stem_path(tmp_path: Path):
     pytest.importorskip("fastapi")
 
-    from ux_compose.routing.fastapi import materialize
+    from fastapi import FastAPI
+
+    from ux_compose.routing.fastapi import bind
 
     pkg = tmp_path / "shop"
     routes = pkg / "routes"
@@ -76,6 +78,6 @@ def test_fastapi_adapter_binds_stem_path(tmp_path: Path):
     )
     core = DirectoryRoutes(pkg, base_directory="routes", hooks=RouterHooks())
     core.discover()
-    router = materialize(core)
+    router = bind(FastAPI(), core)
     paths = [getattr(r, "path", None) for r in router.routes]
     assert "/hello" in paths

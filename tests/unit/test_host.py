@@ -370,17 +370,17 @@ def test_adapters_path_is_absent():
     assert not (root / "src" / "ux_compose" / "routing" / "adapters").exists()
 
 
-def test_materialize_route_class_fails_closed():
+def test_bind_rejects_non_router_host():
     pytest.importorskip("fastapi")
     from ux_compose.routing.core import DirectoryRoutes
-    from ux_compose.routing.fastapi import materialize
-    from ux_compose.routing.host import ProductBatteriesRejected
+    from ux_compose.routing.fastapi import bind
 
     core = DirectoryRoutes.__new__(DirectoryRoutes)
     core.records = []
     core.hooks = None
-    with pytest.raises(ProductBatteriesRejected):
-        materialize(core, route_class=object)
+    core.discover = lambda: []
+    with pytest.raises(TypeError, match="include_router"):
+        bind(object(), core)
 
 
 def test_apply_html_document_real_dom_keeps_markup():

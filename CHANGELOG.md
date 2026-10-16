@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 0.3.0 — bloat cleanup
+
+ux-compose and its ux-* specialists are not on PyPI, so these are removed
+outright, with no shims. Call sites, docs and tests are updated.
+
+### Removed
+
+- Empty extras `[dom]`, `[behavior]`, `[motion]`, `[channel]`, `[full]`.
+  They installed nothing. Use `pip install -e .` (or `.[serve]` / `.[dev]`).
+- `Component.dirty_fields()` / `Component.clear_dirty()`: a best-effort
+  half-feature that read an attribute nothing set. Use `ux_compose.author.mark_dirty`.
+- `ProbeResult.summary_lines()` (no callers) and the ignored
+  `requested_level=` argument of `ProbeResult.incomplete_stack_messages()`.
+- The ignored `channel_scripts=` argument of
+  `ux_compose.wire.boot.attach_document_runtimes()`.
+- `SurfaceRegistry`-level `action_names()` (no callers), the ignored
+  `route_file_name` argument of `surfaces._file_url`, and the dead
+  `cli.copy_component._wire_css_import` helper.
+- 368 unused imports / locals across `src/` (mostly the ported
+  `ux_compose.components` modules, which carried the example modules'
+  full import lists).
+
+### Added
+
+- `tests/unit/test_bloat_cleanup.py` keeps the removals gone and gates
+  `src/` on ruff F401/F841.
+
 ## 0.2.0 — remove deprecations
 
 ### Added

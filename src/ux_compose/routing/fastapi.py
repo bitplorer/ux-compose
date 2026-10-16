@@ -22,7 +22,6 @@ from typing import Any, Callable, Optional
 
 from ux_compose.routing.core import (
     DirectoryRoutes,
-    RouterHooks,
     apply_html_document,
     is_json_payload,
     is_stream_payload,

@@ -12,7 +12,7 @@ each plan ``role=radio`` ``aria-checked``; selected ``tabindex=0`` others ``-1``
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -92,7 +92,7 @@ class Plans(Component):
         return tuple(self.PLANS)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._plans()[0][0])
         cards = []
         for key, name, price, lede, feats in self._plans():
@@ -117,7 +117,7 @@ class Plans(Component):
                 )
             )
         chosen = next((row[1] for row in self._plans() if row[0] == val), val)
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(f"Selected · {chosen}. Picking is public.", className=self.class_lede),
             div(*cards, className=self.class_grid, role="radiogroup", aria_label="Plans"),
             id=self.id,

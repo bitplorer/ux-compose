@@ -35,7 +35,7 @@ from ux_compose import (
     control,
 )
 
-from examples._common import act, field, mark_dirty, optional_plan, optional_slide, status
+from examples._common import act, field, mark_dirty, optional_slide, status
 
 
 class Carousel(Component):

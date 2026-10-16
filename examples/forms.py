@@ -27,7 +27,6 @@ from ux_compose import (
     form,
     button,
     control,
-    span,
 )
 
 from examples._common import act, field, mark_dirty

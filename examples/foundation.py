@@ -112,7 +112,6 @@ class Toggle(Component):
 
     def render(self):
         on = bool(self.on)
-        label = "On" if on else "Off"
         kids = (
             header(
                 p("Boolean MorphState", className="kicker"),

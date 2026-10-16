@@ -7,15 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## 0.2.0 — remove deprecations (local, unreleased)
+## 0.2.0 — remove deprecations
 
 ### Added
 
-- ``tests/unit/test_version_gate.py``: fixed list of version surfaces
-  (``pyproject.toml`` via ``tomllib``, ``__version__``, README row, top
-  CHANGELOG entry) must all read ``0.2.0``.
+- ``tests/unit/test_version_gate.py`` (ux-dom pattern): the version is read
+  from ``pyproject.toml``. A fixed list of files must state only that version
+  (with required forms for the README row, ``__version__``, the
+  ``SECURITY.md`` supported row and this heading). A repo-wide scan fails on
+  any "ux-compose X.Y" brand line naming another version.
+  ``CHANGELOG.md``, ``CRITIC.md`` (the 0.1.0 critic pass), ``docs/plans`` and
+  ``docs/adr`` are history. ``SECURITY.md`` now lists 0.2.x as supported.
 
 ### Changed (breaking) — fail closed by default
+
+- ``morph_play(target, plan, *, component)``: ``component`` is required. The
+  deprecated no-component path (an empty patch that cleared the node, with a
+  DeprecationWarning) is removed.
+- ``examples/form_validation.py``, ``list_stagger.py``, ``page_transition.py``
+  and ``optimistic_list.py`` (back-compat aliases) are removed. Use
+  ``examples/forms.py``, ``lists.py`` and ``navigation.py``.
+- Tailwind: the ``UXDOM_TAILWIND`` / ``UXDOM_TAILWIND_DOWNLOAD`` /
+  ``UXDOM_TAILWIND_VERSION`` / ``UXDOM_CACHE`` aliases and the leftover
+  ``$XDG_CACHE_HOME/ux-dom/`` binary lookup are removed (use ``UXCOMPOSE_*``).
+  The ``UXDOM_TAILWIND_OWNED`` env write is dropped too: no ux-dom,
+  ux-behavior, ux-channel or ux-motion code reads it.
 
 - **Pins:** ux-compose needs ux-behavior **0.4.0** (no Channel-attach
   cap bypass, single-use continuations, per-context ``trust()``), pinned at

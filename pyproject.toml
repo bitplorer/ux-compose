@@ -21,12 +21,17 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
 dependencies = [
-    "ux-dom @ git+https://github.com/bitplorer/ux-dom.git@cdb0dd1486e58746c51e98aa51f5fd4d26841196",
+    "ux-dom @ git+https://github.com/bitplorer/ux-dom.git@0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4",
     "ux-channel @ git+https://github.com/bitplorer/ux-channel.git@f1a93fcf298c97a59fa6538697731e19aac8586d#subdirectory=python",
-    "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@9458e8bc9f6780bfef70e6a15a0ddd94471e479e",
+    "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@2ae5c3de6c60756cfccfa0174355037436bb3f14",
     "ux-motion @ git+https://github.com/bitplorer/ux-motion.git@bbe7d73466a6c1eccb47e711568c80ce3b4d5487",
     "cek-host>=0.2.0",
     "cek-surface>=0.2.0",
+    # HTTP host stack: routing/fastapi.py, routing/asgi.py and `uxcompose serve`
+    # import these directly. Declared so a plain install can serve.
+    "fastapi>=0.115",
+    "starlette>=0.40",
+    "uvicorn>=0.30",
 ]
 
 [project.optional-dependencies]

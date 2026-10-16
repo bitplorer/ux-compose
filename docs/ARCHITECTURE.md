@@ -135,7 +135,7 @@ Do not put `serve_dev.py` or `cli_build.py` back at the package root.
 | `arrange.py` | `arrange_slots` / `wrap_in_card` / `build_heading` | catalog stems |
 
 `_fragment_for_target` prefers `ux_dom.response.serialize.extract_by_id`
-when importable (ux-dom#20 / pin `cdb0dd1`; compose#80 C2). The homemade
+when importable (ux-dom#20, current pin `0440ccb`; compose#80 C2). The homemade
 walker in `helpers.py` is escape if the owner symbol is absent. Serialize
 is already library-owned (`to_html_bytes`). `Fragment` is an invisible
 tree shell; `parse_html` / `defHTML` are ingest, not extract. String
@@ -187,7 +187,7 @@ flag these in app trees. Teaching, not kill.
 | `ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `routing.fastapi` |
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` / `use_host("batteries")` | `host="auto"` |
-| `serve="webassets"` | package-static `serve="dual_copy"` |
+| `serve="webassets"` (removed; ux-dom 0.2 raises) | package-static `serve="dual_copy"` |
 | `stunning-root` / nav brand in `render()` | `brand_wrap(document, brand=…)` / `build(wrap=document)` |
 
 ### Agent leftovers (do not recreate)

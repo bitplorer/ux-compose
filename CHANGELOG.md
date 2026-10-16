@@ -9,13 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 0.2.0 — remove deprecations (local, unreleased)
 
+### Added
+
+- ``tests/unit/test_version_gate.py``: fixed list of version surfaces
+  (``pyproject.toml`` via ``tomllib``, ``__version__``, README row, top
+  CHANGELOG entry) must all read ``0.2.0``.
+
 ### Changed (breaking) — fail closed by default
 
-- **Pin follow-up:** ux-compose needs ux-behavior **0.4.0** (no Channel-attach
-  cap bypass, single-use continuations, per-context ``trust()``). The
-  ``pyproject.toml`` pin now points at the ux-behavior PR branch commit
-  ``9458e8b`` (bitplorer/ux-behavior#17). After #17 merges, move the pin to
-  the merge commit SHA on ux-behavior ``main``.
+- **Pins:** ux-compose needs ux-behavior **0.4.0** (no Channel-attach
+  cap bypass, single-use continuations, per-context ``trust()``), pinned at
+  the bitplorer/ux-behavior#17 merge commit ``2ae5c3d`` on ``main``; and
+  ux-dom **0.2.0**, pinned at ``0440ccb`` on ``main`` (escapes ``'`` as
+  ``&#39;`` in text and attributes; asserts compare ``html.unescape``d
+  output). Pins move in lockstep across ``pyproject.toml``, ``Makefile``,
+  ``scaffold.py`` and ``apps/*/requirements.txt``.
 
 - ``App(...)`` / ``App.boot(...)`` now default to ``strict_caps=True``
   (best-practice default; matches ux-behavior). A capped ``@action`` dispatched
@@ -497,7 +505,7 @@ and not a 0.2 line.
 - `create-app` teaching surface: `settings.py`, `document.py`, `assets/css/input.css`, `requirements.txt`.
 - Tailwind CLI finder / download / ensure moved here (`ux_compose.tailwind`). ux-dom does not compile CSS (`TailwindCommand` fail-closed).
 - Product path fail-closed: `build()` honors `level` / `live=null`; `WebAssets.mount_css` wraps DirectoryASGI (no silent `/css` 404); discover CSS is pure (no leftover `app/tailwindcss.py` branch); `uxcompose doctor` prints the teaching report; browser HMR is opt-in (`--hmr`); product root is `app.py` only.
-- `serve="dual_copy"` is the package-static escape hatch name (`serve="webassets"` remains a leftover alias). Not `WebAssets`.
+- `serve="dual_copy"` is the package-static escape hatch name (the `serve="webassets"` alias was removed in ux-dom 0.2.0 and now raises; doctor still flags it). Not `WebAssets`.
 
 ### Changed
 

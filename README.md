@@ -22,7 +22,7 @@ Compose is allowed to look like “the product” to authors. It must **import**
 | **Install** | git clone + `pip install -e ".[serve]"` (not on PyPI) |
 | **Import** | `ux_compose` |
 | **CLI** | **`uxcompose`** (sole product lifecycle) |
-| **Version** | `0.1.0` |
+| **Version** | `0.2.0` |
 | **Python** | ≥ 3.14 (hard-depends on the four specialists) |
 | **License** | [MIT](LICENSE) |
 

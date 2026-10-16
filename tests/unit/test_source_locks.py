@@ -732,16 +732,20 @@ def test_cli_import_detector_catches_every_form(source, rel_parts, caught):
 _RUNTIME_GUARD = r"""
 import importlib, importlib.abc, json, pathlib, sys
 
+ATTEMPTS = []  # recorded before raising, so a swallowed ImportError still counts
+
 class _BlockCli(importlib.abc.MetaPathFinder):
     def find_spec(self, name, path=None, target=None):
         if name == "ux_compose.cli" or name.startswith("ux_compose.cli."):
+            ATTEMPTS.append(name)
             raise ImportError(f"library module pulled in {name}")
         return None
 
 sys.meta_path.insert(0, _BlockCli())
 src = pathlib.Path(sys.argv[1])
 allowed = set(json.loads(sys.argv[2]))
-bad = {}
+optional = set(json.loads(sys.argv[3]))
+bad, errors = {}, {}
 for path in sorted((src / "ux_compose").rglob("*.py")):
     rel = path.relative_to(src / "ux_compose")
     if rel.parts[0] == "cli" or rel.as_posix() in allowed or rel.name == "__main__.py":
@@ -749,36 +753,82 @@ for path in sorted((src / "ux_compose").rglob("*.py")):
     parts = ["ux_compose", *rel.with_suffix("").parts]
     if parts[-1] == "__init__":
         parts.pop()
+    before = len(ATTEMPTS)
     try:
         importlib.import_module(".".join(parts))
     except ImportError as exc:
-        if "library module pulled in" in str(exc):
-            bad[rel.as_posix()] = str(exc)
+        if "library module pulled in" not in str(exc) and rel.as_posix() not in optional:
+            errors[rel.as_posix()] = repr(exc)
+    if len(ATTEMPTS) > before:
+        bad[rel.as_posix()] = sorted(set(ATTEMPTS[before:]))
 leaked = sorted(m for m in sys.modules if m == "ux_compose.cli" or m.startswith("ux_compose.cli."))
-print(json.dumps({"bad": bad, "leaked": leaked}))
+print(json.dumps({"attempted": sorted(set(ATTEMPTS)), "bad": bad, "errors": errors, "leaked": leaked}))
 """
+
+# Modules allowed to fail import for a missing optional dependency (none today).
+RUNTIME_OPTIONAL: set[str] = set()
+
+
+def _run_guard(src_parent, allowed=(), optional=()):
+    import json
+    import os
+    import subprocess
+    import sys
+
+    out = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            _RUNTIME_GUARD,
+            str(src_parent),
+            json.dumps(sorted(allowed)),
+            json.dumps(sorted(optional)),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env={**os.environ, "PYTHONPATH": str(src_parent)},
+    )
+    assert out.returncode == 0, out.stderr
+    return json.loads(out.stdout.strip().splitlines()[-1])
 
 
 def test_runtime_no_library_module_imports_cli():
     """Layer 2 of the folder law (layer 1 is the static ``_cli_imports`` scan).
 
     A fresh interpreter with a ``sys.meta_path`` finder that refuses
-    ``ux_compose.cli*`` imports every library module. That catches the dynamic
-    import-time forms the AST scan cannot decide (string concatenation,
-    f-strings, aliased ``import_module``, ``exec``, ``runpy``, ...). Imports
-    inside function bodies stay with the static check.
+    ``ux_compose.cli*`` imports every library module. The finder records each
+    attempt before raising, so an ``except ImportError: pass`` downstream does
+    not hide it. That catches the dynamic import-time forms the AST scan cannot
+    decide (string concatenation, f-strings, aliased ``import_module``,
+    ``exec``, ``runpy``, ...). Any other ImportError fails too, because an
+    unimportable module would go unchecked; list real optional-dependency
+    modules in RUNTIME_OPTIONAL. Imports inside function bodies stay with the
+    static check.
     """
-    import json
-    import subprocess
-    import sys
+    result = _run_guard(SRC.parent, RUNTIME_ALLOWED, RUNTIME_OPTIONAL)
+    assert result == {"attempted": [], "bad": {}, "errors": {}, "leaked": []}, result
 
-    out = subprocess.run(
-        [sys.executable, "-c", _RUNTIME_GUARD, str(SRC.parent), json.dumps(sorted(RUNTIME_ALLOWED))],
-        capture_output=True,
-        text=True,
-        timeout=120,
-        env={**__import__("os").environ, "PYTHONPATH": str(SRC.parent)},
-    )
-    assert out.returncode == 0, out.stderr
-    result = json.loads(out.stdout.strip().splitlines()[-1])
-    assert result == {"bad": {}, "leaked": []}, result
+
+@pytest.mark.parametrize(
+    "body, key",
+    [
+        # swallowed: the module imports fine, but the attempt is recorded
+        ('try:\n    exec("import ux_compose.cli")\nexcept ImportError:\n    pass\n', "bad"),
+        ('try:\n    import ux_compose.cli\nexcept Exception:\n    pass\n', "bad"),
+        ('import importlib\nimportlib.import_module("ux_compose." + "cli")\n', "bad"),
+        # an unrelated ImportError is reported, not skipped
+        ("import ux_compose_no_such_dependency\n", "errors"),
+    ],
+)
+def test_runtime_guard_probe(tmp_path, body, key):
+    pkg = tmp_path / "ux_compose"
+    (pkg / "cli").mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "cli" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "sneaky.py").write_text(body, encoding="utf-8")
+    result = _run_guard(tmp_path)
+    assert "sneaky.py" in result[key], result
+    assert result["leaked"] == []
+    if key == "bad":
+        assert result["attempted"] == ["ux_compose.cli"]

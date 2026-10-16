@@ -116,9 +116,14 @@ def test_add_copies_from_components_without_kit_imports(tmp_path):
     assert not re.search(r"ux_compose\.kit\b(?!_)", text)  # kit_construct is the Q9 shim
 
 
-def test_add_copies_import_verb_helpers(tmp_path):
+def test_add_copy_imports_match_canonical_component(tmp_path):
     """components/ is canonical (Q13): the copy imports exactly what the
-    canonical component imports, and never the removed kit/ package."""
+    canonical component imports, and never the removed kit/ package.
+
+    TODO(chore/remove-deprecations): components still import the
+    kit_construct shim here; that branch moves them to ux_compose.arrange and
+    restores the verb-helper assertion (``from ux_compose.arrange import``).
+    """
     import re
 
     from ux_compose.cli.copy_component import copy_component

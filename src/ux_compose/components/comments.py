@@ -5,7 +5,6 @@ Ported from the ``feeds`` example module (spec §4); that example stays as the t
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
@@ -24,7 +23,7 @@ from ux_compose import (
     control,
 )
 
-from ux_compose.author import act, field, mark_dirty, optional_plan, optional_slide, status
+from ux_compose.author import act, field, mark_dirty
 
 class Comments(Component):
     """Thread. Lines in RefState. Reply-to is a named MorphState.

@@ -5,6 +5,8 @@ import ast
 import re
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / "src" / "ux_compose"
 DOCS = ROOT / "docs"
@@ -196,6 +198,62 @@ def test_architecture_owner_column_names_delivery_files():
         assert (SRC / rel).is_file(), rel
 
 
+_CLI = "ux_compose.cli"
+
+
+def _is_cli(name: str) -> bool:
+    return name == _CLI or name.startswith(_CLI + ".")
+
+
+def _cli_imports(source: str, rel_parts: tuple[str, ...]) -> list[str]:
+    """Every way ``source`` (at ``SRC/<rel_parts>``) pulls in ``ux_compose.cli``.
+
+    Covers absolute and relative imports (``node.level`` resolved against the
+    file's package), ``from ux_compose import cli``, and
+    ``importlib.import_module`` / ``__import__`` calls with a constant string.
+    Docstrings and comments are prose, not imports, and are ignored.
+    """
+    package = ["ux_compose", *rel_parts[:-1]]
+    hits: list[str] = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            hits += [a.name for a in node.names if _is_cli(a.name)]
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                keep = len(package) - (node.level - 1)
+                base = package[:keep] if keep > 0 else []
+                parts = base + (node.module.split(".") if node.module else [])
+            else:
+                parts = node.module.split(".")
+            mod = ".".join(parts)
+            if _is_cli(mod):
+                hits.append(mod)
+                continue
+            hits += [f"{mod}.{a.name}" for a in node.names if _is_cli(f"{mod}.{a.name}")]
+        elif isinstance(node, ast.Call) and node.args:
+            func = node.func
+            fname = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", None)
+            arg = node.args[0]
+            if (
+                fname in {"import_module", "__import__"}
+                and isinstance(arg, ast.Constant)
+                and isinstance(arg.value, str)
+            ):
+                target = arg.value
+                if target.startswith(".") and fname == "import_module":
+                    pkg = next(
+                        (k.value.value for k in node.keywords if k.arg == "package"
+                         and isinstance(k.value, ast.Constant)),
+                        ".".join(package),
+                    )
+                    dots = len(target) - len(target.lstrip("."))
+                    base = pkg.split(".")[: len(pkg.split(".")) - (dots - 1)]
+                    target = ".".join(base + [target.lstrip(".")])
+                if _is_cli(target):
+                    hits.append(target)
+    return hits
+
+
 def test_folder_law_components_canonical_no_cli_imports():
     """components/ is canonical (Q13); arrange is a library import; kit/ and
     kit_construct are gone. CLI is the cli/ package, not the root."""
@@ -217,22 +275,16 @@ def test_folder_law_components_canonical_no_cli_imports():
     assert "Folder law" in agents
     copy = _read("cli/copy_component.py")
     assert "Widget helpers live in ``ux_compose.arrange``" in copy
+    # No allow-list: kit/ and its cli re-export shims are gone (0.2.0).
+    offenders = {}
     for path in SRC.rglob("*.py"):
-        if "cli" in path.relative_to(SRC).parts:
+        rel = path.relative_to(SRC)
+        if rel.parts[0] == "cli":
             continue
-        # Imports, not prose: docstrings may point readers at the CLI.
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            names = []
-            if isinstance(node, ast.ImportFrom) and node.module:
-                names = [node.module]
-            elif isinstance(node, ast.Import):
-                names = [a.name for a in node.names]
-            for name in names:
-                assert not (name == "ux_compose.cli" or name.startswith("ux_compose.cli.")), (
-                    path.relative_to(SRC),
-                    name,
-                )
+        hits = _cli_imports(path.read_text(encoding="utf-8"), rel.parts)
+        if hits:
+            offenders[rel.as_posix()] = hits
+    assert offenders == {}, offenders
 
 
 def test_on_disk_packages_are_mapped_not_ghosts():
@@ -628,3 +680,28 @@ def test_encyclopedia_teaches_cut3_leftovers():
     assert "985e58a" in host
     assert "uxcompose serve apps.pulse" not in contrib
     assert "serve dev apps.pulse.server:app" in contrib
+
+
+@pytest.mark.parametrize(
+    "source, rel_parts, caught",
+    [
+        ("from ux_compose.cli import x", ("app.py",), True),
+        ("import ux_compose.cli.serve", ("app.py",), True),
+        ("def f():\n    from ux_compose.cli import x", ("app.py",), True),
+        ("from ux_compose import cli", ("app.py",), True),
+        ("from ..cli import serve", ("routing", "core.py"), True),
+        ("from . import cli", ("app.py",), True),
+        ("from .cli.serve import x", ("app.py",), True),
+        ("import importlib\nimportlib.import_module('ux_compose.cli')", ("app.py",), True),
+        ("from importlib import import_module\nimport_module('ux_compose.cli.registry')", ("app.py",), True),
+        ("__import__('ux_compose.cli')", ("app.py",), True),
+        ("import importlib\nimportlib.import_module('.cli', package='ux_compose')", ("app.py",), True),
+        ('"""See ux_compose.cli for the CLI."""', ("app.py",), False),
+        ("from ux_compose import components", ("app.py",), False),
+        ("from . import arrange", ("app.py",), False),
+        ("from ..routing import core", ("components", "tabs.py"), False),
+        ("import ux_compose.client", ("app.py",), False),
+    ],
+)
+def test_cli_import_detector_catches_every_form(source, rel_parts, caught):
+    assert bool(_cli_imports(source, rel_parts)) is caught

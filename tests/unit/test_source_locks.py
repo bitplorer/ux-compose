@@ -764,7 +764,13 @@ for path in sorted((src / "ux_compose").rglob("*.py")):
     if len(ATTEMPTS) > before:
         bad[rel.as_posix()] = sorted(set(ATTEMPTS[before:]))
 leaked = sorted(m for m in sys.modules if m == "ux_compose.cli" or m.startswith("ux_compose.cli."))
-print(json.dumps({"attempted": sorted(set(ATTEMPTS)), "bad": bad, "errors": errors, "leaked": leaked}))
+cli_dir = (src / "ux_compose" / "cli").resolve()
+cli_files = {}
+for name, mod in list(sys.modules.items()):
+    f = getattr(mod, "__file__", None)
+    if f and pathlib.Path(f).resolve().is_relative_to(cli_dir):
+        cli_files[name] = pathlib.Path(f).resolve().relative_to(cli_dir.parent).as_posix()
+print(json.dumps({"attempted": sorted(set(ATTEMPTS)), "bad": bad, "errors": errors, "leaked": leaked, "cli_files": cli_files}))
 """
 
 # Modules allowed to fail import for a missing optional dependency (none today).
@@ -809,7 +815,7 @@ def test_runtime_no_library_module_imports_cli():
     static check.
     """
     result = _run_guard(SRC.parent, RUNTIME_ALLOWED, RUNTIME_OPTIONAL)
-    assert result == {"attempted": [], "bad": {}, "errors": {}, "leaked": []}, result
+    assert result == {"attempted": [], "bad": {}, "errors": {}, "leaked": [], "cli_files": {}}, result
 
 
 @pytest.mark.parametrize(
@@ -821,6 +827,16 @@ def test_runtime_no_library_module_imports_cli():
         ('import importlib\nimportlib.import_module("ux_compose." + "cli")\n', "bad"),
         # an unrelated ImportError is reported, not skipped
         ("import ux_compose_no_such_dependency\n", "errors"),
+        # cli/ code loaded by file path under another name bypasses the finder
+        (
+            "import importlib.util, pathlib\n"
+            "_p = pathlib.Path(__file__).parent / 'cli' / 'tool.py'\n"
+            "_s = importlib.util.spec_from_file_location('not_cli_tool', _p)\n"
+            "_m = importlib.util.module_from_spec(_s)\n"
+            "_s.loader.exec_module(_m)\n"
+            "import sys; sys.modules['not_cli_tool'] = _m\n",
+            "cli_files",
+        ),
     ],
 )
 def test_runtime_guard_probe(tmp_path, body, key):
@@ -828,9 +844,13 @@ def test_runtime_guard_probe(tmp_path, body, key):
     (pkg / "cli").mkdir(parents=True)
     (pkg / "__init__.py").write_text("", encoding="utf-8")
     (pkg / "cli" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "cli" / "tool.py").write_text("X = 1\n", encoding="utf-8")
     (pkg / "sneaky.py").write_text(body, encoding="utf-8")
     result = _run_guard(tmp_path)
-    assert "sneaky.py" in result[key], result
     assert result["leaked"] == []
+    if key == "cli_files":
+        assert result["cli_files"] == {"not_cli_tool": "cli/tool.py"}, result
+        return
+    assert "sneaky.py" in result[key], result
     if key == "bad":
         assert result["attempted"] == ["ux_compose.cli"]

@@ -64,7 +64,7 @@ class SignupForm(Component):
         )
         return div(*kids, id=self.id, className="widget")
 
-    @action(caps=())
+    @action(caps=("account.create",))
     def submit(self, email: str = ""):
         self.attempts = int(self.attempts or 0) + 1
         self.email = (email or self.email or "").strip()

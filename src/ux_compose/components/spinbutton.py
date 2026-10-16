@@ -15,7 +15,7 @@ lives on MorphState. Not Slider (range) and not Stepper (named wizard).
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     RefState,
@@ -74,12 +74,12 @@ class SpinButton(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         n = self._n()
         fid = f"{self.id}-value"
         lab_id = f"{self.id}-label"
         lo, hi = int(self.MIN), int(self.MAX)
-        return kit_shell(self,
+        return wrap_in_card(self,
             h2("On the board", id=lab_id, className=self.class_title),
             p(f"{n} of {hi}. Magnitude is RefState.", className=self.class_lede),
             label("Quantity", className=self.class_label, html_for=fid),

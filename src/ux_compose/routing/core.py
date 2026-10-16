@@ -19,7 +19,6 @@ import inspect
 import logging
 import re
 import sys
-import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional, Protocol, runtime_checkable
@@ -28,7 +27,6 @@ logger = logging.getLogger("ux_compose.routing.core")
 
 __all__ = [
     "DirectoryRoutesError",
-    "DirectoryRouterError",
     "RouterHooks",
     "ResolveUnit",
     "AcceptSymbol",
@@ -47,22 +45,6 @@ __all__ = [
 class DirectoryRoutesError(RuntimeError):
     """Fail-closed routing errors (ambiguous page, invalid export, etc.)."""
 
-
-def __getattr__(name: str):
-    """``DirectoryRouterError`` remains importable and warns.
-
-    The alias shipped in 0.1.0. It is the same class as
-    ``DirectoryRoutesError``. Access warns; the name is not removed.
-    """
-    if name == "DirectoryRouterError":
-        warnings.warn(
-            "DirectoryRouterError is deprecated; use DirectoryRoutesError. "
-            "The alias shipped in 0.1.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return DirectoryRoutesError
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 @runtime_checkable

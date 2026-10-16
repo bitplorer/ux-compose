@@ -127,6 +127,7 @@ def build(
     wrap: Any = _UNSET,
     cek: str = "require",
     openapi: Any = _UNSET,
+    strict_caps: bool = True,
 ) -> BuildResult:
     """Boot specialists + mount page units. Host and live set only here.
 
@@ -184,7 +185,7 @@ def build(
         name=name, host=host_l, asgi_app=asgi_app, openapi=openapi_flag
     )
 
-    app = App.boot(name, strict_caps=False, level=boot_level)
+    app = App.boot(name, strict_caps=strict_caps, level=boot_level)
     author_document = document
     author_wrap = author_document if wrap is _UNSET else wrap
     document = _attach_document(app, author_document, use_htmx=use_htmx)

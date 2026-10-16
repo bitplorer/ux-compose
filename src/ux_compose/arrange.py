@@ -1,7 +1,6 @@
 """Arrange a widget's data and chrome: fill slots, build its heading, wrap it in a card.
 
-Verb-named helpers shared by every ownable widget (spec §5b). ``kit_construct``
-re-exports the old names (``apply_slots``, ``kit_shell``) as shims.
+Verb-named helpers shared by every ownable widget (spec §5b).
 Isolation Law: this module never pulls the wire.
 """
 

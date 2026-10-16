@@ -16,7 +16,7 @@ from ux_compose.progressive import Level
 class App:
     """Progressive composition root."""
 
-    def __init__(self, name: str = "App", *, strict_caps: bool = False):
+    def __init__(self, name: str = "App", *, strict_caps: bool = True):
         self.name = name
         self.strict_caps = strict_caps
         self._components: Dict[str, Type[Component]] = {}
@@ -43,7 +43,7 @@ class App:
         return self._notes.snapshot()
 
     @classmethod
-    def boot(cls, name: str = "App", *, strict_caps: bool = False, level: int | str = "auto") -> "App":
+    def boot(cls, name: str = "App", *, strict_caps: bool = True, level: int | str = "auto") -> "App":
         app = cls(name, strict_caps=strict_caps)
         auto = isinstance(level, str) and str(level).lower() == "auto"
         if auto:
@@ -233,9 +233,7 @@ class App:
                 self._note("add.bridge_actions", "caps", exc)
         return self
 
-    def mount(self, package_dir, *, asgi_app=None, base: str = "routes", base_directory: str | None = None, fail_closed: bool = True, bind_pages: bool = True, include_directory_router: bool | None = None, on_surface=None, package_name=None, host: str | None = None):
-        if include_directory_router is not None:
-            bind_pages = include_directory_router
+    def mount(self, package_dir, *, asgi_app=None, base: str = "routes", base_directory: str | None = None, fail_closed: bool = True, bind_pages: bool = True, on_surface=None, package_name=None, host: str | None = None):
         from ux_compose.surfaces import mount_surfaces
         self.use_behavior()
         return mount_surfaces(package_dir=package_dir, base_directory=base_directory or base, compose_app=self, asgi_app=asgi_app, fail_closed=fail_closed, bind_pages=bind_pages, on_surface=on_surface, package_name=package_name, host=host or getattr(self, "_host", "auto"))

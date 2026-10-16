@@ -20,13 +20,13 @@ class KitCopyError(RuntimeError):
     pass
 
 
-# ``ux_compose.components.X`` (and the deprecated ``ux_compose.kit.X``) become siblings.
-_KIT_MODULE_IMPORT = re.compile(r"from ux_compose\.(?:components|kit)\.([a-zA-Z0-9_]+) import")
+# ``ux_compose.components.X`` imports become siblings.
+_KIT_MODULE_IMPORT = re.compile(r"from ux_compose\.components\.([a-zA-Z0-9_]+) import")
 _IMPORT_REWRITES = [
     (_KIT_MODULE_IMPORT, r"from .\1 import"),
-    (re.compile(r"from ux_compose\.(?:components|kit) import"), "from . import"),
+    (re.compile(r"from ux_compose\.components import"), "from . import"),
 ]
-# kit_construct lives outside kit/ (now ``ux_compose.arrange``). Copies keep the library import.
+# Widget helpers live in ``ux_compose.arrange``. Copies keep that library import.
 # Registry/copier live in cli/, so no tooling stems sit beside the widgets.
 _TOOLING_STEMS: frozenset[str] = frozenset()
 

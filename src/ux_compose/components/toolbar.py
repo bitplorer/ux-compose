@@ -16,7 +16,7 @@ not Tabs (panels).
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -76,7 +76,7 @@ class Toolbar(Component):
         return {item[0] for _g, _l, items in self._groups() for item in items}
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or "")
         nodes = []
         groups = self._groups()
@@ -104,7 +104,7 @@ class Toolbar(Component):
                     )
                 )
         shown = val or "none yet"
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(f"Last run · {shown}. Commands are public.", className=self.class_lede),
             div(*nodes, className=self.class_bar, role="toolbar", aria_label="Desk tools"),
             id=self.id,

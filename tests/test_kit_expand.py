@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose import App, HAS_DOM
-from ux_compose.kit.catalog import CATALOG, resolve
-from ux_compose.kit.copy import copy_component
+from ux_compose.cli.registry import CATALOG, resolve
+from ux_compose.cli.copy_component import copy_component
 
 
 KIT_DIR = ROOT / "src" / "ux_compose" / "kit"
@@ -347,4 +347,4 @@ def test_copy_new_kit_and_drawer_sibling(tmp_path: Path):
     assert (tmp_path / "components" / "sheet.py").is_file()
     text = drawer["py"].read_text(encoding="utf-8")
     assert "from .sheet import" in text
-    assert "from ux_compose.kit.sheet import" not in text
+    assert "from ux_compose.components.sheet import" not in text

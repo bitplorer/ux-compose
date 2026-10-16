@@ -91,11 +91,11 @@ def test_doctor_teaches_directory_routes_not_router():
         assert "DirectoryRoutes" in joined or "page-unit" in joined.lower()
 
 
-def test_bind_pages_alias_still_accepted():
+def test_bind_pages_only_no_alias():
     assert "bind_pages" in inspect.signature(App.mount).parameters
-    assert "include_directory_router" in inspect.signature(App.mount).parameters
+    assert "include_directory_router" not in inspect.signature(App.mount).parameters
     assert "bind_pages" in inspect.signature(mount_surfaces).parameters
-    assert "include_directory_router" in inspect.signature(mount_surfaces).parameters
+    assert "include_directory_router" not in inspect.signature(mount_surfaces).parameters
 
 
 def test_directory_routes_lives_on_compose():

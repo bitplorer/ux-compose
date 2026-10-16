@@ -16,14 +16,14 @@ sys.path.insert(0, str(ROOT / "src"))
 from ux_compose import App, HAS_DOM
 from ux_compose.component import Component
 from ux_compose.helpers import _serialize_tree
-from ux_compose.kit.catalog import CATALOG
-from ux_compose.kit.copy import copy_component
-from ux_compose.kit.dialog import Dialog
-from ux_compose.kit.fab import Fab
-from ux_compose.kit.hovercard import HoverCard
-from ux_compose.kit.popover import Popover
-from ux_compose.kit.toast import Toast
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.cli.registry import CATALOG
+from ux_compose.cli.copy_component import copy_component
+from ux_compose.components.dialog import Dialog
+from ux_compose.components.fab import Fab
+from ux_compose.components.hovercard import HoverCard
+from ux_compose.components.popover import Popover
+from ux_compose.components.toast import Toast
+from ux_compose.arrange import arrange_slots, wrap_in_card
 
 # Atelier framing that must vanish at shell=False. Empty = no demo card copy
 # on the default render (runtime-only / brand-is-unit kits).
@@ -119,12 +119,12 @@ def _html(inst) -> str:
 
 
 def test_kit_base_class_gone():
-    import ux_compose.kit_construct as kc
+    import ux_compose.arrange as arrange
 
-    assert not hasattr(kc, "Kit")
-    assert not hasattr(kc, "apply_kit_construct")
-    assert callable(apply_slots)
-    assert callable(kit_shell)
+    assert not hasattr(arrange, "Kit")
+    assert not hasattr(arrange, "apply_kit_construct")
+    assert callable(arrange_slots)
+    assert callable(wrap_in_card)
     assert issubclass(Fab, Component)
     assert not any(c.__name__ == "Kit" for c in Fab.__mro__)
 
@@ -210,10 +210,10 @@ def test_apply_slots_unknown_fails_closed():
         ACTIONS = (("a", "A"),)
 
         def render(self, *, shell=None, **slots):
-            apply_slots(self, seams=self._SEAMS, shell=shell, **slots)
+            arrange_slots(self, seams=self._SEAMS, shell=shell, **slots)
             return ""
 
-    apply_slots(Probe(), seams={"actions": "ACTIONS"})
+    arrange_slots(Probe(), seams={"actions": "ACTIONS"})
     with pytest.raises(TypeError, match="unexpected slots"):
         Probe().render(ghost=True)
 
@@ -241,7 +241,7 @@ def test_add_fab_unchanged(tmp_path: Path):
     ast.parse(text)
     assert written["css"] is None
     assert written["base"] is None
-    assert "from ux_compose.kit import" not in text
+    assert "from ux_compose.components import" not in text
     assert "ux_channel" not in text
     assert not (tmp_path / "components" / "base.py").exists()
 
@@ -267,7 +267,7 @@ def test_shell_false_omits_demo_framing(stem: str):
 
 @pytest.mark.skipif(not HAS_DOM, reason="ux-dom")
 def test_alert_closed_shell_false_omits_no_alerts():
-    from ux_compose.kit.alert import Alert
+    from ux_compose.components.alert import Alert
 
     inst = Alert()
     inst.render(shell=False)
@@ -309,8 +309,8 @@ def test_hovercard_popover_render_copy():
         Popover().render(ghost=True)
 
 
-def test_kit_construct_never_imports_ux_channel():
-    path = ROOT / "src" / "ux_compose" / "kit_construct.py"
+def test_arrange_never_imports_ux_channel():
+    path = ROOT / "src" / "ux_compose" / "arrange.py"
     tree = ast.parse(path.read_text(encoding="utf-8"))
     forbidden = ("ux_channel", "cek_runtime", "cek_host")
     for node in ast.walk(tree):
@@ -323,8 +323,8 @@ def test_kit_construct_never_imports_ux_channel():
 
 def test_kit_modules_never_import_ux_channel():
     forbidden = ("ux_channel", "cek_runtime", "cek_host")
-    kit_dir = ROOT / "src" / "ux_compose" / "kit"
-    for path in [ROOT / "src" / "ux_compose" / "kit_construct.py", *sorted(kit_dir.glob("*.py"))]:
+    kit_dir = ROOT / "src" / "ux_compose" / "components"
+    for path in [ROOT / "src" / "ux_compose" / "arrange.py", *sorted(kit_dir.glob("*.py"))]:
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):

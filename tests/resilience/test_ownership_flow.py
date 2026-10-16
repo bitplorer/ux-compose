@@ -23,12 +23,12 @@ def test_hard_cut_regression_module_present():
     assert "DirectoryRoutes" in body or "directory_routes" in body
 
 
-def test_app_mount_keeps_bind_pages_alias():
+def test_app_mount_has_bind_pages_without_alias():
     from ux_compose.app import App
     from ux_compose.surfaces import mount_surfaces
 
     assert "bind_pages" in inspect.signature(App.mount).parameters
-    assert "include_directory_router" in inspect.signature(App.mount).parameters
+    assert "include_directory_router" not in inspect.signature(App.mount).parameters
     assert "bind_pages" in inspect.signature(mount_surfaces).parameters
 
 

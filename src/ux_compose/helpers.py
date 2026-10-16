@@ -452,6 +452,8 @@ def update_with(
 def morph_play(target: str, plan: Any, *, component: Any) -> List[Any]:
     """Morph-then-Play: morph ``component``'s fragment into target, then
     append motion plan ops. ``component`` is required (0.2.0)."""
+    if component is None:
+        raise TypeError("morph_play requires a component (None would clear the node)")
     tid = target if str(target).startswith("#") else f"#{target}"
     html = _render_html(component, target_id=tid)
     ops: List[Any] = [_real_update(tid, html)]

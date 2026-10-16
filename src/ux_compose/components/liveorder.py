@@ -69,7 +69,7 @@ class LiveOrder(Component):
         Same Cap as ``place``: offline it fails closed like ``place`` does.
         """
         self.status = "placed"
-        self.note = "Host-mint path (studio). Offline this is an open-mint stand-in."
+        self.note = "Host-mint path (studio): Cap minted for orders.place."
         return update_with(self, extra_ops=[notify("minted-path")])
 
     @action(caps=())

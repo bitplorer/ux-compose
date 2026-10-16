@@ -1,6 +1,7 @@
 """Drop-in login card: attach-on-morph, Caps, isolation."""
 from __future__ import annotations
 
+import html as _htmlmod
 import ast
 import sys
 from pathlib import Path
@@ -110,7 +111,7 @@ def test_submit_accepts_and_clears_secret():
     assert bool(inst.authed)
     assert str(inst.password or "") == ""
     html = _html(app)
-    assert "You're in" in html or "Signed in" in html
+    assert "You're in" in _htmlmod.unescape(html) or "Signed in" in html  # ux-dom 0.2: &#39;
 
 
 def test_subclass_authenticate_seam():

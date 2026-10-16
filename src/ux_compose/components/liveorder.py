@@ -62,11 +62,11 @@ class LiveOrder(Component):
         mark_dirty(self)
         return update_with(self, extra_ops=[notify("placed")])
 
-    @action(caps=())
+    @action(caps=("orders.place",))
     def place_minted(self):
         """Studio host intercepts this name and calls submit_intent(mint=True).
 
-        Offline this is an open-mint stand-in so the file still runs at L1.
+        Same Cap as ``place``: offline it fails closed like ``place`` does.
         """
         self.status = "placed"
         self.note = "Host-mint path (studio). Offline this is an open-mint stand-in."

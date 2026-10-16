@@ -92,15 +92,6 @@ def test_probe_exposes_incomplete_stack_messages():
     assert not hasattr(ProbeResult, "unlock_messages")
 
 
-def test_specialist_extras_are_empty_aliases():
-    import tomllib
-
-    data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    extras = data["project"]["optional-dependencies"]
-    for name in ("dom", "behavior", "motion", "channel", "full"):
-        assert extras[name] == []
-
-
 def test_has_dom_is_constant_true():
     from ux_compose import HAS_DOM
     from ux_compose.dom import require_dom

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ux-compose"
-version = "0.2.0"
+version = "0.3.0"
 description = "Pure-Python composition root that harnesses pinned ux-dom + ux-behavior + ux-motion + ux-channel (hard dependencies, Python ≥3.14) into an isolation-enforced, server-driven hypermedia framework with additive levels 0–3."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -35,21 +35,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# Specialists are hard dependencies (see [project].dependencies). These extras
-# remain as no-op aliases so existing `pip install -e ".[full]"` commands
-# do not fail closed on a missing extra name.
-dom = []
-behavior = []
-motion = []
-channel = []
-full = []
 # serve extra is only for `uxcompose serve dev`:
 #   httpx      public process re-issues HTTP to workers
 #   starlette  public ASGI app
 #   websockets public process forwards HMR + Channel sockets
 #   watchfiles uvicorn reloader that honors --reload-exclude *.css
 serve = ["uvicorn", "watchfiles", "httpx", "starlette", "websockets"]
-dev = ["pytest", "pytest-asyncio", "pytest-cov", "httpx", "fastapi", "uvicorn", "watchfiles", "starlette", "websockets"]
+dev = ["pytest", "ruff", "pytest-asyncio", "pytest-cov", "httpx", "fastapi", "uvicorn", "watchfiles", "starlette", "websockets"]
 
 [project.scripts]
 uxcompose = "ux_compose.cli:main"

@@ -21,12 +21,8 @@ from ux_compose import (
     notify,
     update_with,
     button,
-    div,
     fieldset,
-    h2,
     legend,
-    p,
-    span,
 )
 
 

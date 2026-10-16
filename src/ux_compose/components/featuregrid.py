@@ -23,10 +23,8 @@ from ux_compose import (
     article,
     button,
     div,
-    h2,
     h3,
     p,
-    span,
 )
 
 

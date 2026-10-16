@@ -5,7 +5,6 @@ Ported from the ``fields`` example module (spec §4); that example stays as the 
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
@@ -19,12 +18,9 @@ from ux_compose import (
     ul,
     li,
     span,
-    form,
-    button,
-    control,
 )
 
-from ux_compose.author import act, field, mark_dirty, status
+from ux_compose.author import act, mark_dirty
 
 class FileDrop(Component):
     """Filenames in RefState. Count is derived. Upload-commit would take a Cap.

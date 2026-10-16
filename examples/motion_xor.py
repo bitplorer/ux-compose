@@ -35,7 +35,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, mark_dirty, optional_plan, scene, rise, fade
+from examples._common import act, optional_plan, scene, rise, fade
 
 
 class MotionBox(Component):

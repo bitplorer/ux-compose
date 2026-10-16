@@ -32,8 +32,6 @@ from ux_compose import (
     nav,
     section,
     span,
-    ul,
-    li,
 )
 
 from examples._common import act, mark_dirty

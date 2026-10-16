@@ -24,7 +24,6 @@ from ux_compose import (
     header,
     ul,
     li,
-    span,
 )
 
 from examples._common import act, mark_dirty, optional_plan, optional_slide, optional_fade

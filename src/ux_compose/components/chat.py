@@ -14,7 +14,7 @@ Typing is qualitative MorphState. Lines are a list on RefState.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     RefState,
@@ -72,7 +72,7 @@ class Chat(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         lines = tuple(self.lines or ())
         draft = str(self.draft or "")
         typing = bool(self.typing)
@@ -84,7 +84,7 @@ class Chat(Component):
             if typing
             else p(f"{len(lines)} line" + ("" if len(lines) == 1 else "s") + ".", className=self.class_lede)
         )
-        return kit_shell(self,
+        return wrap_in_card(self,
             status,
             ul(
                 *rows,
@@ -126,7 +126,7 @@ class Chat(Component):
         self._mark()
         return update_with(self)
 
-    @action(caps=())
+    @action(caps=("chat.send",))
     def send(self, text: str = ""):
         line = (text or str(self.draft or "")).strip() or "…"
         self.lines = tuple(self.lines or ()) + (f"You: {line}",)

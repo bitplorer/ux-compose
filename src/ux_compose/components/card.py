@@ -11,7 +11,7 @@ MorphState: ``pressed``. Caps: none by default. A11y: article labelledby title.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots
+from ux_compose.arrange import arrange_slots
 from ux_compose import (
     MorphState,
     action,
@@ -54,7 +54,7 @@ class Card(Component):
         return "Pinned"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         title_id = f"{self.id}-title"
         on = bool(self.pressed)
         kids = []

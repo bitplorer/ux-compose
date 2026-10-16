@@ -19,7 +19,7 @@ active pip coalesces into the next, it does not jump.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -148,7 +148,7 @@ class Carousel(Component):
         )
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         idx, cur, rows, keys = self._current()
         _key, kicker, title, body = rows[idx]
         n = len(keys)
@@ -165,7 +165,7 @@ class Carousel(Component):
             )
             for k, _lab, ttl, _b in rows
         ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(
                 span(
                     f"{idx + 1:02d}",

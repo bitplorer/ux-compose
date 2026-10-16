@@ -166,7 +166,7 @@ follow spec §10 (predicate + both hosts + `tests/unit/test_host.py` + the spec
 page in the same change). `build()` wraps GET only with the author Document
 (`wrap=`). `attach_motion()` returns instances, not classes.
 `App.mount` / `attach_page_router` pass the same `wrap=` as `build()`.
-`materialize(route_class=)` fails closed. Scaffold does not emit `page()`.
+Page routes attach through one verb (`routing.host.bind`); `materialize`/`mount` are gone. Scaffold does not emit `page()`.
 Examples (`examples/live_asgi.py`) use `build()` for Clock A GET — not a
 handmade `@app.get` + `HTMLResponse`. `App.mount` is the catalog scan
 (`scan_surfaces`). HTTP path law is `DirectoryRoutes.discover`. Two

@@ -13,7 +13,7 @@ plus a visible label when provided.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     div,
     h2,
@@ -43,8 +43,8 @@ class Separator(Component):
     LABEL = "Or continue"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
-        return kit_shell(self,
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        return wrap_in_card(self,
             div(
                 hr(className=self.class_line, role="separator", aria_orientation="horizontal"),
                 span(self.LABEL, className=self.class_label),

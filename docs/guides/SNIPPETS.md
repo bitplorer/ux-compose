@@ -78,7 +78,7 @@ class Cart(Component):
         self.count = int(self.count) + 1
         return update_with(self, extra_ops=[notify(f"Added {sku}")])
 
-app = App.boot("Shop", strict_caps=False, level=1)
+app = App.boot("Shop", level=1)
 app.add(Cart)
 print(app.dispatch("cart.add", sku="tee"))
 print(int(app.level), app.level.label)

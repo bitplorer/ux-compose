@@ -24,17 +24,17 @@ from ux_compose import (
     ul,
     update_with,
 )
-from ux_compose.kit.avatar import Avatar
-from ux_compose.kit.badge import Badge
-from ux_compose.kit.emptystate import EmptyState
-from ux_compose.kit.feed import Feed
-from ux_compose.kit.progress import Progress
-from ux_compose.kit.rating import Rating
-from ux_compose.kit.skeleton import Skeleton
-from ux_compose.kit.slider import Slider
-from ux_compose.kit.stats import Stats
-from ux_compose.kit.themeswitch import ThemeSwitch
-from ux_compose.kit.timeline import Timeline
+from ux_compose.components.avatar import Avatar
+from ux_compose.components.badge import Badge
+from ux_compose.components.emptystate import EmptyState
+from ux_compose.components.feed import Feed
+from ux_compose.components.progress import Progress
+from ux_compose.components.rating import Rating
+from ux_compose.components.skeleton import Skeleton
+from ux_compose.components.slider import Slider
+from ux_compose.components.stats import Stats
+from ux_compose.components.themeswitch import ThemeSwitch
+from ux_compose.components.timeline import Timeline
 
 from apps.pulseboard import data
 from apps.pulseboard.theme import (
@@ -66,9 +66,9 @@ class PulseKpis(Stats):
     class_unit = "flex w-full min-w-0 flex-col gap-4"
 
     def render(self, *, shell=None, **slots):
-        from ux_compose.kit_construct import apply_slots
+        from ux_compose.arrange import arrange_slots
 
-        apply_slots(self, seams=getattr(self, "_SEAMS", {}), shell=False, **slots)
+        arrange_slots(self, seams=getattr(self, "_SEAMS", {}), shell=False, **slots)
         tiles = []
         for key, lab, val in self._items():
             delta = data.KPI_DELTAS.get(key, "")

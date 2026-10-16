@@ -107,7 +107,7 @@ uxcompose build
 - `render()` returns a **ux-dom tag tree** with Tailwind `className`.
 - `@action(caps=())` is open mint / no Cap predicate (Intent still requires the control-minted cap under Cap Host require). Non-empty caps add a Cap predicate (or fail closed).
 - `control("hello.inc")` stamps `data-ux-action` and `data-channel-action` (+ args) on the button.
-- `control("hello.pulse")` is the gated twin: `@action(caps=("pulse",))` fail-closes without a minted Cap.
+- `control("hello.pulse")` is the gated twin: `@action(caps=("pulse.refresh",))` fail-closes without a minted Cap.
 - `update_with(self, extra_ops=[notify(...)])` morphs live `render()` HTML (XOR-safe).
 
 ```python
@@ -146,7 +146,7 @@ class Hello(Component):
         self.n = int(self.n or 0) + 1
         return update_with(self, extra_ops=[notify("incremented")])
 
-    @action(caps=("pulse",))
+    @action(caps=("pulse.refresh",))
     def pulse(self):
         self.pulses = int(self.pulses or 0) + 1
         return update_with(self, extra_ops=[notify("pulsed")])

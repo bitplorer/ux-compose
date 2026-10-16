@@ -62,7 +62,7 @@ def test_scaffold_hello_source_teaches_gated_pulse_without_shell_chrome():
     """Official hello: MorphState pulses + @action(caps=('pulse',)) + control mint."""
     src = ROUTES_HELLO_PY
     assert "pulses = MorphState" in src
-    assert '@action(caps=("pulse",))' in src
+    assert '@action(caps=("pulse.refresh",))' in src
     assert "def pulse" in src
     assert 'control("hello.pulse")' in src
     assert "import ux_channel" not in src

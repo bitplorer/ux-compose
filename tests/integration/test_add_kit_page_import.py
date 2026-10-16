@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose.cli import main
-from ux_compose.kit.catalog import CATALOG
+from ux_compose.cli.registry import CATALOG
 from ux_compose.scaffold import create_app
 
 _APP_MODS = ("routes", "components", "app", "document", "settings")

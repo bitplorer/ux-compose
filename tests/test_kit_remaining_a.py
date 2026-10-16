@@ -6,6 +6,7 @@ Isolation: this file never imports ux_channel. No Cap kernel / cek-runtime / law
 from __future__ import annotations
 
 import ast
+import re
 import sys
 from pathlib import Path
 
@@ -15,11 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose import App, HAS_DOM
-from ux_compose.kit.catalog import CATALOG, resolve
-from ux_compose.kit.copy import copy_component
+from ux_compose.cli.registry import CATALOG, resolve
+from ux_compose.cli.copy_component import copy_component
 
 
-KIT_DIR = ROOT / "src" / "ux_compose" / "kit"
+KIT_DIR = ROOT / "src" / "ux_compose" / "components"
 
 CHROME_A = (
     "menubar",
@@ -30,15 +31,11 @@ CHROME_A = (
     "filterbar",
 )
 
-# Caps allowed on kit: identity / delete / spend. Chrome A spends none.
-CAP_ALLOW = (
-    "auth.",
-    "items.",
-    "orders.",
-    "list.",
-    "form.",
-    "stepper.",
-)
+# Cap names are labels: the runtime gates on "caps non-empty", never on the
+# name (ux_behavior/root.py:_require_caps; ux-channel binds tokens to the
+# action name). So the policy checks shape + fail-closed behaviour, not a
+# hard-coded list of namespaces.
+CAP_SHAPE = re.compile(r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
 
 
 def _boot(*classes, **kwargs):
@@ -101,7 +98,7 @@ def test_presence_a_stems_resolve():
         assert meta["stem"] == stem
         assert meta["css"] is False
         assert meta["page"] is True
-        assert meta["module"] == f"ux_compose.kit.{stem}"
+        assert meta["module"] == f"ux_compose.components.{stem}"
     assert resolve("toggle-group")["stem"] == "togglegroup"
     assert resolve("theme-switch")["stem"] == "themeswitch"
     assert resolve("spin-button")["stem"] == "spinbutton"
@@ -322,20 +319,48 @@ def test_presence_a_caps_are_empty():
             assert caps == (), f"{stem}.{fn} spent {caps}; presence A is public"
 
 
-def test_kit_cap_inventory_spend_delete_identity():
-    inventory: dict[str, list[tuple[str, str]]] = {}
+def _runtime_actions():
+    """(stem, cls, method_name, caps) from @action runtime metadata, every component."""
+    import importlib
+    import inspect
+
+    from ux_compose import Component
+
     for path in sorted(KIT_DIR.glob("*.py")):
-        if path.stem in {"catalog", "copy", "overlay", "__init__"}:
+        if path.stem == "__init__":
             continue
-        for fn, caps in _action_caps(path):
-            for cap in caps:
-                inventory.setdefault(path.stem, []).append((fn, cap))
-                assert any(cap.startswith(p) for p in CAP_ALLOW), (
-                    f"{path.stem}.{fn} cap {cap!r} is not spend/delete/identity"
-                )
-    # presence A never appears
+        mod = importlib.import_module(f"ux_compose.components.{path.stem}")
+        for _, cls in inspect.getmembers(mod, inspect.isclass):
+            if cls.__module__ != mod.__name__ or not issubclass(cls, Component):
+                continue
+            for name, fn in vars(cls).items():
+                if getattr(fn, "_ux_behavior_action", False):
+                    caps = tuple(getattr(fn, "_ux_behavior_caps", ()) or ())
+                    yield path.stem, cls, name, caps
+
+
+def test_kit_caps_are_well_formed():
+    """Every declared cap (runtime metadata) is a lowercase ``namespace.verb`` label."""
+    rows = list(_runtime_actions())
+    assert rows, "no @action metadata found"
+    bad = [f"{s}.{n} cap {c!r}" for s, _, n, caps in rows for c in caps if not CAP_SHAPE.match(c)]
+    assert not bad, bad
+    capped = {s for s, _, _, caps in rows if caps}
     for stem in CHROME_A:
-        assert stem not in inventory
+        assert stem not in capped
+
+
+def test_kit_capped_actions_fail_closed_at_runtime():
+    """Live: with the default App.boot(), every capped action refuses an untrusted call."""
+    from ux_behavior import AuthorityError
+
+    capped = [(s, c, n) for s, c, n, caps in _runtime_actions() if caps]
+    assert capped, "no capped actions found"
+    for stem, cls, fn in capped:
+        app = App.boot(f"Cap_{stem}")
+        app.add(cls)
+        with pytest.raises(AuthorityError):
+            app.dispatch(f"{cls.id}.{fn}")
 
 
 def test_kit_modules_never_import_ux_channel():
@@ -359,5 +384,5 @@ def test_copy_presence_a_stems(tmp_path: Path):
         written = copy_component(stem, root=tmp_path)
         assert written["py"].is_file(), stem
         ast.parse(written["py"].read_text(encoding="utf-8"))
-        assert "from ux_compose.kit import" not in written["py"].read_text(encoding="utf-8")
+        assert "from ux_compose.components import" not in written["py"].read_text(encoding="utf-8")
         assert "ux_channel" not in written["py"].read_text(encoding="utf-8")

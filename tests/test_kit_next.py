@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose import App, HAS_DOM
-from ux_compose.kit import (
+from ux_compose.components import (
     Breadcrumb,
     Calendar,
     Carousel,

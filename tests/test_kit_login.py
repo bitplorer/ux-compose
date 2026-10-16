@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose import App, HAS_DOM
-from ux_compose.kit import Login
+from ux_compose.components import Login
 
 
 def _boot(**kwargs):

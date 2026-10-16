@@ -13,7 +13,7 @@ Not FileUpload (one demo name); this is a stack of chips.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -64,7 +64,7 @@ class Attachment(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         files = tuple(self.files or ())
         fid = f"{self.id}-file"
         chips = [
@@ -75,7 +75,7 @@ class Attachment(Component):
             )
             for name in files
         ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(*chips, className="flex flex-wrap gap-2") if chips else p("Nothing attached.", className=self.class_lede),
             label("Attach a file", className=self.class_label, html_for=fid),
             input_(type="text", name="file", id=fid, className=self.class_sr, tabindex="-1"),

@@ -11,7 +11,7 @@ MorphState: none. RefState: ``name``. A11y: ``role=img`` ``aria-label``.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     RefState,
     action,
@@ -50,11 +50,11 @@ class Avatar(Component):
     name = RefState("Ada Lovelace")
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         who = str(self.name or "You")
         bits = [p for p in who.split() if p]
         initials = "".join(b[0] for b in bits[:2]).upper() or "Y"
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(who, className=self.class_lede),
             span(initials, className=self.class_mark, role="img", aria_label=who),
             button("Rename", type="button", className=self.class_btn, **bind(self.rename)),

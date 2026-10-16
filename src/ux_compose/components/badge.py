@@ -12,7 +12,7 @@ MorphState: ``value``. Caps: none. A11y: list of status text; selected
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -56,7 +56,7 @@ class Badge(Component):
     value = MorphState("cut")
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or "cut")
         chips = [
             button(
@@ -68,7 +68,7 @@ class Badge(Component):
             )
             for key, lab in self.ITEMS
         ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(*chips, className=self.class_row),
             id=self.id,
             className=self.class_card,

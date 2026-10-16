@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ux-compose"
-version = "0.1.0"
+version = "0.2.0"
 description = "Pure-Python composition root that harnesses pinned ux-dom + ux-behavior + ux-motion + ux-channel (hard dependencies, Python ≥3.14) into an isolation-enforced, server-driven hypermedia framework with additive levels 0–3."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -23,7 +23,7 @@ classifiers = [
 dependencies = [
     "ux-dom @ git+https://github.com/bitplorer/ux-dom.git@cdb0dd1486e58746c51e98aa51f5fd4d26841196",
     "ux-channel @ git+https://github.com/bitplorer/ux-channel.git@f1a93fcf298c97a59fa6538697731e19aac8586d#subdirectory=python",
-    "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@7d46979f59f284bc2d6d961ed372ec849e851dfc",
+    "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@9458e8bc9f6780bfef70e6a15a0ddd94471e479e",
     "ux-motion @ git+https://github.com/bitplorer/ux-motion.git@bbe7d73466a6c1eccb47e711568c80ce3b4d5487",
     "cek-host>=0.2.0",
     "cek-surface>=0.2.0",

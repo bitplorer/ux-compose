@@ -64,7 +64,7 @@ class Chat(Component):
         )
         return div(*kids, id=self.id, className="widget")
 
-    @action(caps=())
+    @action(caps=("chat.send",))
     def send(self, text: str = ""):
         text = (text or "").strip() or "…"
         self.lines = tuple(self.lines or ()) + (f"You: {text}",)
@@ -439,11 +439,11 @@ class InlineEdit(Component):
 
 
 def demo() -> None:
-    app = App.boot("Systems", strict_caps=False)
+    app = App.boot("Systems")
     app.add(
         Chat, NotifyCenter, Tree, Skeleton, Consent, Theme, Stepper, Rating, Chips, InlineEdit
     )
-    print("chat", app.dispatch("chat.send", text="held"))
+    print("chat", app.dispatch("chat.send", text="held", _trusted=True))
     print("tree", app.dispatch("tree.select", id="oak"))
     print("step", app.dispatch("stepper.inc"))
     print("rate", app.dispatch("rating.set", value="five"))

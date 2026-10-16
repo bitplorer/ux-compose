@@ -268,7 +268,11 @@ def _cli_imports(source: str, rel_parts: tuple[str, ...]) -> list[str]:
     return hits
 
 
-RUNTIME_ALLOWED: set[str] = set()  # no shims left in 0.2.0
+# The base allow-listed kit/catalog.py and kit/copy.py (cli re-export shims).
+# This branch deleted kit/ and kit_construct.py; helpers live in arrange.py.
+# An allow-list entry for a missing file would hide a reintroduction, so the
+# set stays empty and those paths are locked absent below.
+RUNTIME_ALLOWED: set[str] = set()
 
 
 def test_folder_law_components_canonical_no_cli_imports():
@@ -278,6 +282,8 @@ def test_folder_law_components_canonical_no_cli_imports():
     assert (SRC / "arrange.py").is_file()
     assert not (SRC / "kit_construct.py").exists()
     assert list((SRC / "kit").rglob("*.py")) == []  # *.py: a stale empty dir is not kit
+    for rel in ("kit/catalog.py", "kit/copy.py"):
+        assert not (SRC / rel).exists(), rel
     assert (SRC / "cli" / "__init__.py").is_file()
     assert not (SRC / "cli.py").exists()
     assert not (SRC / "cli_build.py").exists()
@@ -292,11 +298,12 @@ def test_folder_law_components_canonical_no_cli_imports():
     assert "Folder law" in agents
     copy = _read("cli/copy_component.py")
     assert "Widget helpers live in ``ux_compose.arrange``" in copy
-    # No allow-list: kit/ and its cli re-export shims are gone (0.2.0).
+    for rel in RUNTIME_ALLOWED:
+        assert (SRC / rel).is_file(), f"stale allow-list entry {rel}"
     offenders = {}
     for path in SRC.rglob("*.py"):
         rel = path.relative_to(SRC)
-        if rel.parts[0] == "cli":
+        if rel.parts[0] == "cli" or rel.as_posix() in RUNTIME_ALLOWED:
             continue
         hits = _cli_imports(path.read_text(encoding="utf-8"), rel.parts)
         if hits:

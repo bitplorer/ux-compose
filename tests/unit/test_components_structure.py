@@ -107,10 +107,16 @@ def test_add_copies_from_components_without_kit_imports(tmp_path):
     assert not re.search(r"ux_compose\.kit", text)
 
 
-def test_add_copies_import_verb_helpers(tmp_path):
+def test_add_copy_imports_match_canonical_component(tmp_path):
     """components/ is canonical (Q13): the copy imports exactly what the
     canonical component imports (verb helpers from ux_compose.arrange), and
-    never the removed kit/ package or kit_construct."""
+    never the removed kit/ package or kit_construct.
+
+    The base deferred ``from ux_compose.arrange import`` while components
+    still imported the kit_construct shim. This branch deleted kit/ and
+    kit_construct.py, so the copy must import arrange and must not mention
+    kit_construct.
+    """
     import re
 
     from ux_compose.cli.copy_component import copy_component

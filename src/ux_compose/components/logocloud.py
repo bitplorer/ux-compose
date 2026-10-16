@@ -12,7 +12,7 @@ MorphState: ``value``. Caps: none. A11y: list of buttons; each ``img`` has
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -69,7 +69,7 @@ class LogoCloud(Component):
         return tuple(self.LOGOS)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._logos()[0][0])
         keys = {row[0] for row in self._logos()}
         if val not in keys:
@@ -88,7 +88,7 @@ class LogoCloud(Component):
                     **bind(self.choose, key=key),
                 )
             )
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(*marks, className=self.class_row, role="list", aria_label="Houses"),
             id=self.id,
             className=self.class_card,

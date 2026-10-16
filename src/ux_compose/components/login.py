@@ -23,7 +23,7 @@ from __future__ import annotations
 from typing import NamedTuple
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     RefState,
@@ -181,14 +181,14 @@ class Login(Component):
         return self.Accept("Account created" if signup else "Signed in")
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         if bool(self.authed):
             return self._render_success()
         return self._render_card()
 
     def _render_success(self):
         email = str(self.email or "")
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(
                 span("In", className=self.class_mark),
                 h1("You're in", className=self.class_title + " mt-4"),
@@ -496,7 +496,7 @@ class Login(Component):
         msg = decision.message or ("Account created" if is_signup else "Signed in")
         return update_with(self, extra_ops=[notify(msg)])
 
-    @action(caps=())
+    @action(caps=("auth.logout",))
     def logout(self):
         self.authed = False
         self.password = ""

@@ -12,7 +12,7 @@ Not Hero (landing CTA).
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -48,7 +48,7 @@ class Mockup(Component):
     value = MorphState("desk")
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or "desk")
         width = {"desk": "w-full", "phone": "w-40", "tile": "w-52"}.get(val, "w-full")
         chips = [
@@ -62,7 +62,7 @@ class Mockup(Component):
             )
             for key, lab in self.DEVICES
         ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(*chips, className="flex gap-2", role="radiogroup", aria_label="Device"),
             div(self.PREVIEW, className=f"{self.class_frame} {width}", aria_label=f"{val} preview"),
             id=self.id,

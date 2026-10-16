@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from ``pyproject.toml``. A fixed list of files must state only that version
   (with required forms for the README row, ``__version__``, the
   ``SECURITY.md`` supported row and this heading). A repo-wide scan fails on
-  any "ux-compose X.Y" brand line naming another version.
+  any "ux-compose X.Y" brand line naming another version. ``pyproject.toml``
+  is the source of the version and is not in the file list, because its
+  ``cek-host`` / ``cek-surface`` ``>=0.2.0`` floors would break the next bump.
   ``CHANGELOG.md``, ``CRITIC.md`` (the 0.1.0 critic pass), ``docs/plans`` and
   ``docs/adr`` are history. ``SECURITY.md`` now lists 0.2.x as supported.
 
@@ -23,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - ``morph_play(target, plan, *, component)``: ``component`` is required. The
   deprecated no-component path (an empty patch that cleared the node, with a
-  DeprecationWarning) is removed.
+  DeprecationWarning) is removed. An explicit ``component=None`` raises
+  ``TypeError`` too.
 - ``examples/form_validation.py``, ``list_stagger.py``, ``page_transition.py``
   and ``optimistic_list.py`` (back-compat aliases) are removed. Use
   ``examples/forms.py``, ``lists.py`` and ``navigation.py``.
@@ -32,6 +35,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ``$XDG_CACHE_HOME/ux-dom/`` binary lookup are removed (use ``UXCOMPOSE_*``).
   The ``UXDOM_TAILWIND_OWNED`` env write is dropped too: no ux-dom,
   ux-behavior, ux-channel or ux-motion code reads it.
+  **Fail closed:** if any removed variable is still set, ``resolve_tailwind``
+  and ``cache_dir`` raise ``LegacyTailwindEnvError`` and name the
+  ``UXCOMPOSE_*`` replacement. Silently ignoring it would fail open: for
+  example, ``UXDOM_TAILWIND_DOWNLOAD=0`` forbade network downloads, and
+  dropping it would let the tool download and execute a binary.
+- ``examples/live_caps.py`` ``place_minted`` is gated with ``orders.place``,
+  the same as ``place`` and the component copy.
 
 - **Pins:** ux-compose needs ux-behavior **0.4.0** (no Channel-attach
   cap bypass, single-use continuations, per-context ``trust()``), pinned at

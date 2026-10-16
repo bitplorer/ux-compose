@@ -63,7 +63,7 @@ if __name__ == "__main__":
         Csp.auto(),
     )
 
-    app = App.boot("Shop", strict_caps=False)
+    app = App.boot("Shop")
     app.use_dom(document)
     app.use_behavior().use_channel().use_motion()
     app.add(Cart)

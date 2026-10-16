@@ -1,5 +1,7 @@
 # Spec: component parameters, placeholders, and readymade components in the kit
 
+> **Superseded in 0.2.0** (chore/remove-deprecations): `ux_compose.kit`, `kit.catalog`, `kit.copy` and `kit_construct` were removed. Paths and shim plans below are historical. See the Addendum at the end.
+
 Status: **RED, tests only.** This PR adds failing tests and this spec. It contains no fix code, moves no modules and changes no public API.
 Base: `main` @ `97078e9`. Full-suite baseline on main: **693 passed** (py3.14, `pytest tests/ -q`).
 
@@ -313,3 +315,11 @@ Q13 also covers the verb-helper adoption. `test_cli_add.py::test_copy_keeps_kit_
 ### 9.5 Known limits
 - A `render(*args)` with no required params never reports missing data. This is by design.
 - `_ux_in_render` is per instance, so recursive `self.render()` calls inside `render` pass through without replay.
+
+
+## Addendum (0.2.0, chore/remove-deprecations)
+
+The shims this spec describes (``ux_compose.kit``, ``kit.catalog``, ``kit.copy``,
+``kit_construct``) were removed in 0.2.0, because ux-compose was never published
+to PyPI. Q9/Q10 "one release of warnings" no longer applies. Paths in the sections
+above are historical. This removal overlaps the open Q13 and waits on Shivam.

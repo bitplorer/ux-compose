@@ -140,25 +140,6 @@ def _ensure_pkg(path: Path) -> None:
         )
 
 
-def _wire_css_import(input_css: Path, stem: str) -> bool:
-    """Ensure ``@import "./{stem}.css";`` is in input.css. Returns True if wrote."""
-    if not input_css.is_file():
-        return False
-    needle = f'@import "./{stem}.css"'
-    text = input_css.read_text(encoding="utf-8")
-    if needle in text:
-        return False
-    # After the tailwind import if present, else at the top.
-    lines = text.splitlines(keepends=True)
-    insert_at = 0
-    for i, line in enumerate(lines):
-        if line.startswith("@import ") or line.startswith("@source "):
-            insert_at = i + 1
-    lines.insert(insert_at, f'{needle};\n')
-    input_css.write_text("".join(lines), encoding="utf-8")
-    return True
-
-
 def _page_unit_source(stem: str, cls: str) -> str:
     """Ownable routes/{stem}.py wrapping the copied card."""
     extra = ""

@@ -81,8 +81,6 @@ class SurfaceBundle:
     sealed: bool = False
     unit_registry: dict[str, Any] = field(default_factory=dict)
 
-    def action_names(self) -> list[str]:
-        return [a["name"] for a in self.action_table]
 
 
 def _is_action(obj: Any) -> bool:
@@ -159,7 +157,7 @@ def _folder_url_prefix(rel_dir: str, base_directory: str) -> str:
     return ("/" + "/".join(cleaned)) if cleaned else ""
 
 
-def _file_url(prefix: str, stem: str, route_file_name: str = "route") -> str:
+def _file_url(prefix: str, stem: str) -> str:
     from ux_compose.routing.core import http_path
 
     segs = [p for p in (prefix or "").strip("/").split("/") if p] + [stem]

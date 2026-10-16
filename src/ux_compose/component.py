@@ -81,14 +81,6 @@ class Component(_BehaviorComponent):
         from ux_compose.helpers import control as _control
         return _control(action_name, **args)
 
-    def dirty_fields(self) -> set:
-        # Real MorphState dirty tracking is internal; expose a best-effort set
-        return set(getattr(self, "_dirty", set()))
-
-    def clear_dirty(self) -> None:
-        if hasattr(self, "_dirty"):
-            self._dirty.clear()
-
     def __render__(self, pretty: bool = False, **_kw) -> str:
         """Serialize live render() output. Always current MorphState, never a construct-time snapshot."""
         from ux_compose.helpers import _serialize_tree

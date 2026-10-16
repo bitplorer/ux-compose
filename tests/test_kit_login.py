@@ -111,7 +111,7 @@ def test_submit_accepts_and_clears_secret():
     assert bool(inst.authed)
     assert str(inst.password or "") == ""
     html = _html(app)
-    assert "You're in" in _htmlmod.unescape(html) or "Signed in" in html  # ux-dom 0.2: &#39;
+    assert "You're in" in _htmlmod.unescape(html)  # ux-dom 0.2: &#39;
 
 
 def test_subclass_authenticate_seam():

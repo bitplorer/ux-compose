@@ -241,17 +241,34 @@ def _cli_imports(source: str, rel_parts: tuple[str, ...]) -> list[str]:
             ):
                 target = arg.value
                 if target.startswith(".") and fname == "import_module":
-                    pkg = next(
-                        (k.value.value for k in node.keywords if k.arg == "package"
-                         and isinstance(k.value, ast.Constant)),
-                        ".".join(package),
+                    pkg_node = node.args[1] if len(node.args) > 1 else next(
+                        (k.value for k in node.keywords if k.arg == "package"), None
+                    )
+                    pkg = (
+                        pkg_node.value
+                        if isinstance(pkg_node, ast.Constant) and isinstance(pkg_node.value, str)
+                        else ".".join(package)
                     )
                     dots = len(target) - len(target.lstrip("."))
                     base = pkg.split(".")[: len(pkg.split(".")) - (dots - 1)]
                     target = ".".join(base + [target.lstrip(".")])
                 if _is_cli(target):
                     hits.append(target)
+                elif fname == "__import__":
+                    # __import__("ux_compose", fromlist=["cli"]) == from ux_compose import cli
+                    fl = node.args[3] if len(node.args) > 3 else next(
+                        (k.value for k in node.keywords if k.arg == "fromlist"), None
+                    )
+                    if isinstance(fl, (ast.List, ast.Tuple)):
+                        for elt in fl.elts:
+                            if isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                                full = f"{target}.{elt.value}"
+                                if _is_cli(full):
+                                    hits.append(full)
     return hits
+
+
+RUNTIME_ALLOWED: set[str] = set()  # no shims left in 0.2.0
 
 
 def test_folder_law_components_canonical_no_cli_imports():
@@ -260,7 +277,7 @@ def test_folder_law_components_canonical_no_cli_imports():
     assert (SRC / "components" / "__init__.py").is_file()
     assert (SRC / "arrange.py").is_file()
     assert not (SRC / "kit_construct.py").exists()
-    assert not (SRC / "kit").exists()
+    assert list((SRC / "kit").rglob("*.py")) == []  # *.py: a stale empty dir is not kit
     assert (SRC / "cli" / "__init__.py").is_file()
     assert not (SRC / "cli.py").exists()
     assert not (SRC / "cli_build.py").exists()
@@ -696,6 +713,13 @@ def test_encyclopedia_teaches_cut3_leftovers():
         ("from importlib import import_module\nimport_module('ux_compose.cli.registry')", ("app.py",), True),
         ("__import__('ux_compose.cli')", ("app.py",), True),
         ("import importlib\nimportlib.import_module('.cli', package='ux_compose')", ("app.py",), True),
+        ("import importlib\nimportlib.import_module('.cli', 'ux_compose')", ("routing", "x.py"), True),
+        ("import importlib\nimportlib.import_module('.serve', 'ux_compose.cli')", ("routing", "x.py"), True),
+        ("__import__('ux_compose', fromlist=['cli'])", ("app.py",), True),
+        ("__import__('ux_compose', None, None, ('cli',))", ("app.py",), True),
+        ("__import__('ux_compose.cli', fromlist=['serve'])", ("app.py",), True),
+        ("__import__('ux_compose', fromlist=['components'])", ("app.py",), False),
+        ("import importlib\nimportlib.import_module('.routing', 'ux_compose')", ("app.py",), False),
         ('"""See ux_compose.cli for the CLI."""', ("app.py",), False),
         ("from ux_compose import components", ("app.py",), False),
         ("from . import arrange", ("app.py",), False),
@@ -705,3 +729,58 @@ def test_encyclopedia_teaches_cut3_leftovers():
 )
 def test_cli_import_detector_catches_every_form(source, rel_parts, caught):
     assert bool(_cli_imports(source, rel_parts)) is caught
+
+
+_RUNTIME_GUARD = r"""
+import importlib, importlib.abc, json, pathlib, sys
+
+class _BlockCli(importlib.abc.MetaPathFinder):
+    def find_spec(self, name, path=None, target=None):
+        if name == "ux_compose.cli" or name.startswith("ux_compose.cli."):
+            raise ImportError(f"library module pulled in {name}")
+        return None
+
+sys.meta_path.insert(0, _BlockCli())
+src = pathlib.Path(sys.argv[1])
+allowed = set(json.loads(sys.argv[2]))
+bad = {}
+for path in sorted((src / "ux_compose").rglob("*.py")):
+    rel = path.relative_to(src / "ux_compose")
+    if rel.parts[0] == "cli" or rel.as_posix() in allowed or rel.name == "__main__.py":
+        continue
+    parts = ["ux_compose", *rel.with_suffix("").parts]
+    if parts[-1] == "__init__":
+        parts.pop()
+    try:
+        importlib.import_module(".".join(parts))
+    except ImportError as exc:
+        if "library module pulled in" in str(exc):
+            bad[rel.as_posix()] = str(exc)
+leaked = sorted(m for m in sys.modules if m == "ux_compose.cli" or m.startswith("ux_compose.cli."))
+print(json.dumps({"bad": bad, "leaked": leaked}))
+"""
+
+
+def test_runtime_no_library_module_imports_cli():
+    """Layer 2 of the folder law (layer 1 is the static ``_cli_imports`` scan).
+
+    A fresh interpreter with a ``sys.meta_path`` finder that refuses
+    ``ux_compose.cli*`` imports every library module. That catches the dynamic
+    import-time forms the AST scan cannot decide (string concatenation,
+    f-strings, aliased ``import_module``, ``exec``, ``runpy``, ...). Imports
+    inside function bodies stay with the static check.
+    """
+    import json
+    import subprocess
+    import sys
+
+    out = subprocess.run(
+        [sys.executable, "-c", _RUNTIME_GUARD, str(SRC.parent), json.dumps(sorted(RUNTIME_ALLOWED))],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        env={**__import__("os").environ, "PYTHONPATH": str(SRC.parent)},
+    )
+    assert out.returncode == 0, out.stderr
+    result = json.loads(out.stdout.strip().splitlines()[-1])
+    assert result == {"bad": {}, "leaked": []}, result

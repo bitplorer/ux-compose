@@ -17,8 +17,14 @@ SRC = Path(__file__).resolve().parents[2] / "src" / "ux_compose"
     "mod", ["ux_compose.kit", "ux_compose.kit.catalog", "ux_compose.kit.copy", "ux_compose.kit_construct"]
 )
 def test_shim_module_is_removed(mod):
-    with pytest.raises(ModuleNotFoundError):
-        importlib.import_module(mod)
+    # A stale empty src/ux_compose/kit/ dir (git does not track dirs) makes
+    # ``ux_compose.kit`` import as a code-less namespace package; that is not
+    # a shim. Anything with a real origin is.
+    try:
+        m = importlib.import_module(mod)
+    except ModuleNotFoundError:
+        return
+    assert getattr(m.__spec__, "origin", None) is None, f"{mod} still importable: {m.__spec__}"
 
 
 def test_kit_dir_and_shim_file_absent():

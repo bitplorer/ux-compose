@@ -49,11 +49,15 @@ def test_components_package_defines_every_widget():
 
 
 def test_kit_package_is_gone():
-    with pytest.raises(ModuleNotFoundError):
-        importlib.import_module("ux_compose.kit")
+    try:
+        kit = importlib.import_module("ux_compose.kit")
+    except ModuleNotFoundError:
+        pass
+    else:  # stale empty dir => namespace package with no code
+        assert kit.__spec__.origin is None
     for name, cls in _kit_public_classes().items():
         assert cls.__module__.startswith("ux_compose.components."), name
-    assert not (SRC / "kit").exists()
+    assert list((SRC / "kit").rglob("*.py")) == []
 
 
 def test_verb_named_helpers_exist_without_kit_construct():

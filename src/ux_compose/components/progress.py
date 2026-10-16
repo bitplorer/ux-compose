@@ -13,7 +13,7 @@ A11y (APG Meter/Progress): ``role=progressbar`` ``aria-valuemin/max/now``
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     RefState,
@@ -59,10 +59,10 @@ class Progress(Component):
         return max(0, min(100, n))
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         n = self._pct()
         title_id = f"{self.id}-title"
-        return kit_shell(self,
+        return wrap_in_card(self,
             h2("On the board", id=title_id, className=self.class_title),
             p(f"{n} of 100", className=self.class_lede),
             progress(

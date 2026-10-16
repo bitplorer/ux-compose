@@ -13,7 +13,7 @@ Not Plans (no radiogroup of whole cards).
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -79,7 +79,7 @@ class PricingSection(Component):
         return tuple(self.TIERS)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._tiers()[0][0])
         keys = {row[0] for row in self._tiers()}
         if val not in keys:
@@ -110,7 +110,7 @@ class PricingSection(Component):
         ]
         body.append(tr(th("Join", scope="row", className=self.class_td), *chooses))
         chosen = next((n for k, n, _p in self._tiers() if k == val), val)
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(f"Selected · {chosen}. Picking is public.", className=self.class_lede),
             table(
                 thead(tr(*heads)),

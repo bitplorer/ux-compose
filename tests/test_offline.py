@@ -8,8 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose import (
-    App, Component, MorphState, RefState, action, control,
-    update_with, notify, doctor, Level,
+    App, Component, MorphState, RefState, action, update_with, notify, doctor, Level,
 )
 
 

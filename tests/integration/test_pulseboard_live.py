@@ -17,7 +17,7 @@ pytest.importorskip("fastapi")
 
 def test_pulseboard_build_health_and_home():
     from apps.pulseboard.app import main
-    from tests.asgi_http import asgi_get, asgi_http
+    from tests.asgi_http import asgi_get
 
     ux, asgi, bundle = main()
     from apps.pulseboard.server import attach_doors

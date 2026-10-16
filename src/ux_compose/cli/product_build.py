@@ -189,7 +189,6 @@ def run_product_build(
                 env["PYTHONPATH"] = os.pathsep.join(
                     [str(root), env.get("PYTHONPATH", "")]
                 )
-                env["UXDOM_TAILWIND_OWNED"] = "1"
                 if watch and not use_minify:
                     print(
                         f"tailwind --watch  ({hit.source})\n"

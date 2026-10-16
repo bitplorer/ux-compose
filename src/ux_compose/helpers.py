@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import json
 import re
-import warnings
 from typing import Any, List, Optional
 
 from ux_behavior import bind as _behavior_bind, notify as _real_notify, update as _real_update
@@ -450,22 +449,11 @@ def update_with(
     return ops
 
 
-def morph_play(target: str, plan: Any, *, component: Any = None) -> List[Any]:
-    """Morph-then-Play: morph target, then append motion plan ops.
-
-    Pass ``component`` to morph that fragment. Without it the patch is empty,
-    which clears the node.
-    """
+def morph_play(target: str, plan: Any, *, component: Any) -> List[Any]:
+    """Morph-then-Play: morph ``component``'s fragment into target, then
+    append motion plan ops. ``component`` is required (0.2.0)."""
     tid = target if str(target).startswith("#") else f"#{target}"
-    if component is None:
-        warnings.warn(
-            "morph_play without component clears the node",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        html = ""
-    else:
-        html = _render_html(component, target_id=tid)
+    html = _render_html(component, target_id=tid)
     ops: List[Any] = [_real_update(tid, html)]
     ops.extend(_normalize_plan_ops(plan))
     return ops

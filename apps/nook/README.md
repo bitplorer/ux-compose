@@ -52,4 +52,4 @@ uxcompose add table
 # …
 ```
 
-Nook subclasses `ux_compose.kit` so the library stays the source of truth while the house owns copy, keys, and card containment.
+Nook subclasses `ux_compose.components` so the library stays the source of truth while the house owns copy, keys, and card containment.

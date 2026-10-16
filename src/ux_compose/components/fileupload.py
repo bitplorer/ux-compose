@@ -13,7 +13,7 @@ names ``sketch.png`` — Host wires a real upload.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     RefState,
@@ -62,7 +62,7 @@ class FileUpload(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         fid = f"{self.id}-file"
         names = tuple(self.files or ())
         rows = [
@@ -73,7 +73,7 @@ class FileUpload(Component):
             )
             for name in names
         ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(f"{len(names)} file" + ("" if len(names) == 1 else "s") + " on the table.", className=self.class_lede),
             p("Demo names sketch.png. Host wires a real upload.", className=self.class_lede),
             label("Choose a file", className=self.class_label, html_for=fid),

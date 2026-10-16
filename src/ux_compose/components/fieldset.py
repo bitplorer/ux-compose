@@ -12,7 +12,7 @@ radiogroup ``role`` with ``aria-labelledby``. Each radio labelled.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -66,7 +66,7 @@ class Fieldset(Component):
         return tuple(self.OPTIONS)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or self._options()[0][0])
         legend_id = f"{self.id}-legend"
         opts = [
@@ -80,7 +80,7 @@ class Fieldset(Component):
             )
             for key, lab in self._options()
         ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             fieldset(
                 legend("Material", id=legend_id, className=self.class_legend),
                 *opts,

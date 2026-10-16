@@ -13,7 +13,7 @@ Caps: none. A11y: swatches ``role=radiogroup`` / ``radio``; label ``for``
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     RefState,
@@ -66,7 +66,7 @@ class ColorPicker(Component):
         return tuple(self.SWATCHES)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         val = str(self.value or "linen")
         hexv = str(self.hex or "#e7e5e4")
         fid = f"{self.id}-hex"
@@ -86,7 +86,7 @@ class ColorPicker(Component):
                     **bind(self.choose, key=key),
                 )
             )
-        return kit_shell(self,
+        return wrap_in_card(self,
             h2("Color", id=title_id, className=self.class_title),
             div(*chips, className=self.class_row, role="radiogroup", aria_labelledby=title_id),
             label("Hex", className=self.class_label, html_for=fid),

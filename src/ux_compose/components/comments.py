@@ -87,7 +87,7 @@ class Comments(Component):
         self.reply_to = key
         return update_with(self)
 
-    @action(caps=())
+    @action(caps=("comments.post",))
     def post(self, text: str = ""):
         text = (text or "").strip() or "…"
         self._seq = int(self._seq or 0) + 1

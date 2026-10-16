@@ -22,7 +22,7 @@ Compose is allowed to look like “the product” to authors. It must **import**
 | **Install** | git clone + `pip install -e ".[serve]"` (not on PyPI) |
 | **Import** | `ux_compose` |
 | **CLI** | **`uxcompose`** (sole product lifecycle) |
-| **Version** | `0.2.0` |
+| **Version** | `0.3.0` |
 | **Python** | ≥ 3.14 (hard-depends on the four specialists) |
 | **License** | [MIT](LICENSE) |
 
@@ -52,8 +52,7 @@ python3.14 -m venv .venv && source .venv/bin/activate
 pip install -e ".[serve]"    # from this repo
 ```
 
-`[dom]` / `[behavior]` / `[motion]` / `[channel]` / `[full]` extras are
-empty aliases. Specialists are hard dependencies.
+Specialists are hard dependencies; there are no per-specialist extras.
 
 Product path:
 

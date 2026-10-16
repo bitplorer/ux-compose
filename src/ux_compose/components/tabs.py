@@ -23,7 +23,6 @@ from ux_compose import (
     bind,
     notify,
     update_with,
-    div,
     h2,
     p,
     button,

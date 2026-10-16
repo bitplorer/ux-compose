@@ -5,12 +5,10 @@ Ported from the ``foundation`` example module (spec §4); that example stays as 
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
     action,
-    doctor,
     notify,
     update_with,
     div,

@@ -5,14 +5,12 @@ Ported from the ``live_caps`` example module (spec §4); that example stays as t
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
     action,
     notify,
     update_with,
-    doctor,
     div,
     h2,
     p,

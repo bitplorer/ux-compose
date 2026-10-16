@@ -13,7 +13,7 @@ A11y (APG Listbox multi): trigger ``aria-haspopup=listbox``; options
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -80,7 +80,7 @@ class MultiSelect(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         sel = set(self.selected or ())
         is_open = bool(self.open)
         shown = ", ".join(lab for k, lab in self._options() if k in sel) or "Choose materials"
@@ -122,7 +122,7 @@ class MultiSelect(Component):
             )
             if is_open else span("", className=self.class_sr)
         )
-        return kit_shell(self,
+        return wrap_in_card(self,
             scrim,
             div(
                 button(

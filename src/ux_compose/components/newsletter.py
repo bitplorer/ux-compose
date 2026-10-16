@@ -13,7 +13,7 @@ Caps: ``list.subscribe``. A11y: label ``for`` ↔ input id; ``aria-invalid``
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -68,9 +68,9 @@ class Newsletter(Component):
         return f"Joined as {email}"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         if bool(self.done):
-            return kit_shell(self,
+            return wrap_in_card(self,
                 id=self.id,
                 className=self.class_card,
                 data_done="1",
@@ -79,7 +79,7 @@ class Newsletter(Component):
         fid = f"{self.id}-email"
         err = str(self.error or "")
         err_id = f"{fid}-err"
-        return kit_shell(self,
+        return wrap_in_card(self,
             form(
                 label("Email", className=self.class_label, html_for=fid),
                 input_(

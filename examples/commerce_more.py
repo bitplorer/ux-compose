@@ -318,7 +318,7 @@ class StockBadge(Component):
             ),
             p(
                 span(str(n), className="num"),
-                span(band, className=f"chip is-on" if band != "ok" else "chip"),
+                span(band, className="chip is-on" if band != "ok" else "chip"),
                 className="counter-face",
             ),
             p(copy, className="lede"),

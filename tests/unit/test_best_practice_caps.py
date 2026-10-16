@@ -57,6 +57,17 @@ def test_liveorder_place_minted_shares_place_cap():
     assert _caps("liveorder", "place_minted") == _caps("liveorder", "place") == ("orders.place",)
 
 
+def test_example_live_caps_place_minted_is_gated_like_the_component():
+    from examples.live_caps import LiveOrder
+
+    app = App.boot("ExampleCaps")
+    app.add(LiveOrder)
+    with pytest.raises(AuthorityError):
+        app.dispatch("liveorder.place_minted")
+    caps = tuple(getattr(LiveOrder.place_minted, "_ux_behavior_caps", ()) or ())
+    assert caps == ("orders.place",)
+
+
 def test_login_logout_is_capped_like_other_sign_outs():
     assert _caps("login", "logout") == _caps("usermenu", "sign_out") == ("auth.logout",)
 

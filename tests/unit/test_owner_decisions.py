@@ -25,6 +25,12 @@ def test_morph_play_requires_component():
         morph_play("box", {"v": "1"})
 
 
+def test_morph_play_explicit_none_component_raises():
+    """component=None would morph an empty patch and clear the node."""
+    with pytest.raises(TypeError, match="requires a component"):
+        morph_play("box", {"v": "1"}, component=None)
+
+
 def test_morph_play_component_renders_that_fragment():
     class Box:
         def render(self):

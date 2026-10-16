@@ -21,8 +21,9 @@ MAJOR_MINOR = ".".join(V.split(".")[:2])
 SEMVER = re.compile(r"(?<![\w.])v?(\d+\.\d+\.\d+)(?!\w|\.\d)")
 
 # file -> X.Y.Z strings in it that are not the ux-compose version
+# pyproject.toml is the source of V (not listed: its cek-host/cek-surface
+# ">=0.2.0" floors match V only by coincidence).
 VERSION_FILES: dict[str, frozenset[str]] = {
-    "pyproject.toml": frozenset(),
     "src/ux_compose/__init__.py": frozenset(),
     "README.md": frozenset(),
 }

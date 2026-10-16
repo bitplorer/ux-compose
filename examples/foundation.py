@@ -196,7 +196,7 @@ class Planes(Component):
 
 
 def demo() -> None:
-    app = App.boot("Foundation", strict_caps=False)
+    app = App.boot("Foundation")
     app.add(Counter, Toggle, Planes)
     print("Level:", int(app.level), app.level.label)
     print("inc", app.dispatch("counter.inc", sku="tick"))

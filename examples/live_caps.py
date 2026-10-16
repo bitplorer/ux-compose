@@ -96,7 +96,7 @@ class LiveOrder(Component):
 
 
 def demo() -> None:
-    app = App.boot("Caps", strict_caps=False)
+    app = App.boot("Caps")
     app.add(LiveOrder)
     print("prepare", app.dispatch("liveorder.prepare"))
     print("open-mint path", app.dispatch("liveorder.place_minted"))

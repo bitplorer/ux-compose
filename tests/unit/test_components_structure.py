@@ -121,7 +121,7 @@ def test_add_copies_import_verb_helpers(tmp_path):
     canonical = (SRC / "components" / "tabs.py").read_text(encoding="utf-8")
 
     def imports(src):
-        return [l for l in src.splitlines() if re.match(r"(from|import) ux_compose\b", l)]
+        return [line for line in src.splitlines() if re.match(r"(from|import) ux_compose\b", line)]
 
     assert imports(text) == imports(canonical)
     assert "from ux_compose.arrange import" in text

@@ -67,7 +67,6 @@ def test_unknown_command():
 def test_create_argv_is_unknown(capsys):
     """Leftover alias. Frozen verb is create-app."""
     assert main(["create", "myapp"]) == 2
-    text = capsys.readouterr().out + capsys.readouterr().err
     src = (ROOT / "src" / "ux_compose" / "cli" / "__init__.py").read_text(encoding="utf-8")
     assert 'cmd in ("create-app", "create")' not in src
     assert 'cmd == "create-app"' in src

@@ -20,7 +20,6 @@ from ux_compose import (
     bind,
     update_with,
     button,
-    div,
     h2,
     p,
     section,

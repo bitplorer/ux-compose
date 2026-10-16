@@ -1,6 +1,7 @@
 """Source-level locks. Do not import ux_compose (sandbox 3.10 / no specialists)."""
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 
@@ -195,8 +196,10 @@ def test_architecture_owner_column_names_delivery_files():
         assert (SRC / rel).is_file(), rel
 
 
-def test_folder_law_keeps_arrange_at_package_root():
-    """arrange stays a library import. CLI is the cli/ package, not the root."""
+def test_folder_law_components_canonical_no_cli_imports():
+    """components/ is canonical (Q13); arrange is a library import; kit/ and
+    kit_construct are gone. CLI is the cli/ package, not the root."""
+    assert (SRC / "components" / "__init__.py").is_file()
     assert (SRC / "arrange.py").is_file()
     assert not (SRC / "kit_construct.py").exists()
     assert not (SRC / "kit").exists()
@@ -217,8 +220,19 @@ def test_folder_law_keeps_arrange_at_package_root():
     for path in SRC.rglob("*.py"):
         if "cli" in path.relative_to(SRC).parts:
             continue
-        text = path.read_text(encoding="utf-8")
-        assert "ux_compose.cli" not in text, path.relative_to(SRC)
+        # Imports, not prose: docstrings may point readers at the CLI.
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            names = []
+            if isinstance(node, ast.ImportFrom) and node.module:
+                names = [node.module]
+            elif isinstance(node, ast.Import):
+                names = [a.name for a in node.names]
+            for name in names:
+                assert not (name == "ux_compose.cli" or name.startswith("ux_compose.cli.")), (
+                    path.relative_to(SRC),
+                    name,
+                )
 
 
 def test_on_disk_packages_are_mapped_not_ghosts():

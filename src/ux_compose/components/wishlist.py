@@ -5,7 +5,6 @@ Ported from the ``commerce_more`` example module (spec §4); that example stays 
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
@@ -19,12 +18,9 @@ from ux_compose import (
     ul,
     li,
     span,
-    form,
-    button,
-    control,
 )
 
-from ux_compose.author import act, field, mark_dirty, status
+from ux_compose.author import act, mark_dirty
 
 CATALOG = {
     "linen": ("Work shirt", 48),

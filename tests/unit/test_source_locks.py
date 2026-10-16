@@ -1,6 +1,7 @@
 """Source-level locks. Do not import ux_compose (sandbox 3.10 / no specialists)."""
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 
@@ -195,10 +196,9 @@ def test_architecture_owner_column_names_delivery_files():
         assert (SRC / rel).is_file(), rel
 
 
-def test_folder_law_keeps_kit_construct_at_package_root():
-    """kit_construct stays a library import. CLI is the cli/ package, not the root."""
-    assert (SRC / "kit_construct.py").is_file()
-    assert not (SRC / "kit" / "kit_construct.py").exists()
+def test_folder_law_components_canonical_no_cli_imports():
+    """components/ is canonical (Q13). CLI is the cli/ package, not the root."""
+    assert (SRC / "components" / "__init__.py").is_file()
     assert (SRC / "cli" / "__init__.py").is_file()
     assert not (SRC / "cli.py").exists()
     assert not (SRC / "cli_build.py").exists()
@@ -211,15 +211,25 @@ def test_folder_law_keeps_kit_construct_at_package_root():
     assert "Do **not** add `cli/`" not in arch
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     assert "Folder law" in agents
-    construct = _read("kit_construct.py")
-    assert "Not under ``kit/``" in construct
-    copy = _read("cli/copy_component.py")
-    assert "kit_construct lives outside kit/" in copy
     for path in SRC.rglob("*.py"):
-        if "cli" in path.relative_to(SRC).parts:
+        parts = path.relative_to(SRC).parts
+        # kit/ holds only the deprecated re-export shims (deleted by
+        # chore/remove-deprecations); every other library module is scanned.
+        if "cli" in parts or parts[0] == "kit":
             continue
-        text = path.read_text(encoding="utf-8")
-        assert "ux_compose.cli" not in text, path.relative_to(SRC)
+        # Imports, not prose: docstrings may point readers at the CLI.
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            names = []
+            if isinstance(node, ast.ImportFrom) and node.module:
+                names = [node.module]
+            elif isinstance(node, ast.Import):
+                names = [a.name for a in node.names]
+            for name in names:
+                assert not (name == "ux_compose.cli" or name.startswith("ux_compose.cli.")), (
+                    path.relative_to(SRC),
+                    name,
+                )
 
 
 def test_on_disk_packages_are_mapped_not_ghosts():

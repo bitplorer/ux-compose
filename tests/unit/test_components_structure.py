@@ -117,10 +117,19 @@ def test_add_copies_from_components_without_kit_imports(tmp_path):
 
 
 def test_add_copies_import_verb_helpers(tmp_path):
-    """Pending Q13: old locks require widgets to import kit_construct."""
+    """components/ is canonical (Q13): the copy imports exactly what the
+    canonical component imports, and never the removed kit/ package."""
+    import re
+
     from ux_compose.cli.copy_component import copy_component
 
     (tmp_path / "app.py").write_text("", encoding="utf-8")
     (tmp_path / "routes").mkdir()
     text = copy_component("tabs", root=tmp_path)["py"].read_text(encoding="utf-8")
-    assert "from ux_compose.arrange import" in text
+    canonical = (SRC / "components" / "tabs.py").read_text(encoding="utf-8")
+
+    def imports(src):
+        return [l for l in src.splitlines() if re.match(r"(from|import) ux_compose\b", l)]
+
+    assert imports(text) == imports(canonical)
+    assert not re.search(r"\bux_compose\.kit\b(?!_)", text)

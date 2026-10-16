@@ -101,7 +101,7 @@ def test_presence_a_stems_resolve():
         assert meta["stem"] == stem
         assert meta["css"] is False
         assert meta["page"] is True
-        assert meta["module"] == f"ux_compose.kit.{stem}"
+        assert meta["module"] == f"ux_compose.components.{stem}"
     assert resolve("toggle-group")["stem"] == "togglegroup"
     assert resolve("theme-switch")["stem"] == "themeswitch"
     assert resolve("spin-button")["stem"] == "spinbutton"

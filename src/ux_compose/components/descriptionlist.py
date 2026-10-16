@@ -15,12 +15,8 @@ from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     dd,
-    div,
     dl,
     dt,
-    h2,
-    p,
-    span,
 )
 
 

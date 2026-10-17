@@ -1,6 +1,6 @@
 """EmptyRetry — Empty / loading / error / ready are first-class phases — named MorphState.
 
-Ported from the ``feeds`` example module (spec §4); that example stays as the teaching copy.
+Ported from the ``feeds`` example module (spec §4); this module is canonical and the example imports it.
 """
 from __future__ import annotations
 

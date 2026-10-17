@@ -15,7 +15,7 @@ role.
 
 from __future__ import annotations
 
-from ux_compose.kit.overlay import overlay as overlay_chrome
+from ux_compose.components.overlay import overlay as overlay_chrome
 
 from ux_compose.component import Component
 from ux_compose.kit_construct import apply_slots, kit_shell

@@ -235,6 +235,8 @@ def _spawn(
     pass_fds: tuple[int, ...] = (),
 ) -> subprocess.Popen:
     env = os.environ.copy()
+    # Dev workers show component placeholders (spec §3); the parent env is untouched.
+    env.setdefault("UX_COMPOSE_PLACEHOLDERS", "show")
     if extra_env:
         env.update(extra_env)
     print("serve-dev:", " ".join(cmd), flush=True)

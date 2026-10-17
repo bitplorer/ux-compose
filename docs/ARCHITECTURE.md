@@ -86,7 +86,8 @@ usually library ∩ CLI, or library imports that copies must keep.
 | Folder | Law | Must not live here |
 |--------|-----|--------------------|
 | `wire/` | only `ux_channel` / CEK import | product / kit / helpers |
-| `kit/` | ownable catalog. `uxcompose add` rewrites `from ux_compose.kit.X` → `from .X` and copies `X.py` | library helpers, CLI internals |
+| `components/` | ownable components, one per module. `uxcompose add` rewrites `from ux_compose.components.X` → `from .X` and copies `X.py`. Helpers in `arrange.py`; registry/copier in `cli/` | library helpers, CLI internals |
+| `kit/` | **deprecated shim** re-exporting `components/` (and `cli/registry`, `cli/copy_component` as `kit.catalog`/`kit.copy`); removed after one release | new code |
 | `routing/` | Clock A host pair (FastAPI ≠ DirectoryASGI) | compatibility shims |
 | `cli/` | product argv and command bodies. Library does not import it | author algebra (`doctor.py`, `build.py`, `scaffold.py`, `tailwind.py`) |
 | `dx/` | slang leftover (one probe file for doctor) | a second DX product |
@@ -154,7 +155,7 @@ plan from `kit/overlay.py`. Markup and Tailwind stay on the widget.
 Swipe lives on dismiss / handle, never the root.
 
 Anchored popovers and Command are a different family. They do not copy
-these ids. `kit/command.py` owns local `{id}-scrim` / `{id}-panel` /
+these ids. `components/command.py` owns local `{id}-scrim` / `{id}-panel` /
 `{id}-dismiss` plus `click keydown.escape`. It must not import
 `kit/overlay.py`.
 

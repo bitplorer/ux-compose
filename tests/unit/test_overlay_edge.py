@@ -83,17 +83,17 @@ def test_command_is_not_overlay_chrome_family():
         Path(__file__).resolve().parents[2]
         / "src"
         / "ux_compose"
-        / "kit"
+        / "components"
         / "command.py"
     ).read_text(encoding="utf-8")
-    assert "from ux_compose.kit.overlay" not in src
+    assert "from ux_compose.components.overlay" not in src
     assert "overlay_chrome" not in src
     assert "def _chrome" not in src
     overlay = (
         Path(__file__).resolve().parents[2]
         / "src"
         / "ux_compose"
-        / "kit"
+        / "components"
         / "overlay.py"
     ).read_text(encoding="utf-8")
     doc = overlay.split('"""', 2)[1]

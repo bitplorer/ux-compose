@@ -1,0 +1,62 @@
+"""Drop-in description list — named facts as ``dl`` / ``dt`` / ``dd``.
+
+Host seam: render slots OR subclass.
+Accepted: ``items`` (same type as the matching class const / attr); ``shell`` (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
+Instance attrs win over class consts.
+Style: edit the ``class_*`` Tailwind strings. No companion CSS.
+
+MorphState: none. A11y: native description list. Not a table.
+"""
+
+from __future__ import annotations
+
+from ux_compose.component import Component
+from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import build_heading
+from ux_compose import (
+    dd,
+    div,
+    dl,
+    dt,
+    h2,
+    p,
+    span,
+)
+
+
+class DescriptionList(Component):
+    """Facts about a piece. Terms and details, not columns."""
+
+    id = "descriptionlist"
+    _SEAMS = {'items': 'ITEMS'}
+
+    class_card = (
+        "[grid-area:card] self-start relative mx-auto flex w-full max-w-xl flex-col gap-4 "
+        "rounded-3xl border border-stone-200 bg-white p-6 text-stone-900 shadow-sm"
+    )
+    class_kicker = "text-xs font-medium uppercase tracking-widest text-stone-400"
+    class_title = "m-0 font-serif text-2xl font-semibold tracking-tight"
+    class_lede = "m-0 text-sm leading-relaxed text-stone-500"
+    class_list = "m-0 grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2"
+    class_dt = "m-0 text-xs font-medium uppercase tracking-widest text-stone-400"
+    class_dd = "m-0 text-sm"
+
+    ITEMS = (
+        ("Maker", "Ada"),
+        ("Finish", "Oak, waxed"),
+        ("Stage", "Keep"),
+        ("Price", "$72"),
+    )
+
+    def render(self, *, shell=None, **slots):
+        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        rows = []
+        for term, detail in self.ITEMS:
+            rows.append(dt(term, className=self.class_dt))
+            rows.append(dd(detail, className=self.class_dd))
+        return kit_shell(self,
+            dl(*rows, className=self.class_list),
+            id=self.id,
+            className=self.class_card,
+            heading=build_heading("Facts", "This piece", "A description list, not a data table.", owner=self),
+        )

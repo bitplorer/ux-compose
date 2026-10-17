@@ -1,6 +1,6 @@
 """SliderField — Magnitude in RefState. Named band is derived, never stored as an int MorphState.
 
-Ported from the ``fields`` example module (spec §4); that example stays as the teaching copy.
+Ported from the ``fields`` example module (spec §4); this module is canonical and the example imports it.
 """
 from __future__ import annotations
 

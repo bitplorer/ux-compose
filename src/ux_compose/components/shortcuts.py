@@ -1,6 +1,6 @@
 """Shortcuts — Keyboard overlay. Same encoding as the command palette — query MorphState.
 
-Ported from the ``ops`` example module (spec §4); that example stays as the teaching copy.
+Ported from the ``ops`` example module (spec §4); this module is canonical and the example imports it.
 """
 from __future__ import annotations
 

@@ -61,16 +61,22 @@ flowchart LR
   M -->|raise| X[MissingParams]
 ```
 
-## 4. Readymade components in the kit (examples/ untouched)
+## 4. Readymade components in the kit (components/ is canonical)
 
 `uxcompose add` copies from `src/ux_compose/kit/<stem>.py`, registered in `kit/catalog.py:CATALOG`, into `app/components/` (`cli/add.py:10-11`, `kit/copy.py:191`). This was verified live: all 81 CATALOG entries add into a fresh `create-app` tree, and the 85 copied files import with 0 failures. **`add` is not broken today.**
 
 **Would it break with ports?** Yes, for 3 reasons, and each one now has a red test:
 1. The example classes import `examples._common`. `copy.py` only rewrites `ux_compose.kit` imports, so a copied file would fail with ImportError in a user app. Fix: ports import `ux_compose.author`, which is the public home of the same 7 helpers. `examples/_common.py` already re-exports exactly those objects, and the guard test proves it.
 2. They have no CATALOG entry, so `add counter` reports an unknown component. Fix: add CATALOG rows.
-3. There are 16 name clashes (Accordion, Banner, BottomNav, Calendar, Carousel, Chat, Combobox, Drawer, Dropdown, Popover, Rating, Skeleton, Stepper, Tabs, Timeline, Tree), so the same slug would point at two classes. This is held for Q3.
+3. There are 16 name clashes (Accordion, Banner, BottomNav, Calendar, Carousel, Chat, Combobox, Drawer, Dropdown, Popover, Rating, Skeleton, Stepper, Tabs, Timeline, Tree), so the same slug would point at two classes. This is held for Q3. (Resolved in 0.2.0: the kit class wins; see the update below.)
 
 Ports: 54 non-clashing classes become `kit/<name.lower()>.py`. `examples/*.py` stay byte-identical, so no rename and no move.
+
+**Update (0.2.0, examples dedupe): `src/ux_compose/components/` is the single source.** Every component class lives in `components/`. `examples/*.py` are thin usage demos that import each class from `ux_compose.components.<module>` and never define a class with a component's name. `tests/unit/test_examples_import_components.py` fails if an example redefines one.
+
+- The 54 ports were byte-identical to their example copies, so the example copy is deleted and the example imports the port.
+- The 16 clashes (plus the example `Drawer`, which clashed with the kit `Drawer` alias of `Sheet`) resolve to the kit class. Each example copy was diffed against `components/` first. None carried a fix for the kit class: each was an older, smaller design (for example, the example `Stepper` was a quantity stepper and the example `Calendar` booked days under a Cap). Those demo behaviours are removed with the copies. The demos, `examples/catalog.py` text and tests now use the kit verbs (`stepper.next`, `calendar.pick(day=...)`, `timeline.choose`, `popover.toggle`, `sheet.open_sheet`, `rating.choose`).
+- The Cap demo that used `calendar.book` now uses `stepper.finish` (`tests/test_examples_smoke.py`, the Atelier Studio REFUSE list).
 
 
 ## 5b. Kit: what it is, current structure, proposed structure

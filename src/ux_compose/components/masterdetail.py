@@ -1,6 +1,6 @@
 """MasterDetail — Split: list selection MorphState, body from RefState catalog.
 
-Ported from the ``navigation`` example module (spec §4); that example stays as the teaching copy.
+Ported from the ``navigation`` example module (spec §4); this module is canonical and the example imports it.
 """
 from __future__ import annotations
 

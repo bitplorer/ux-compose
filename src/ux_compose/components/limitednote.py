@@ -1,6 +1,6 @@
 """LimitedNote — Remaining characters are *derived*. Store the text, not the count, as MorphState.
 
-Ported from the ``fields`` example module (spec §4); that example stays as the teaching copy.
+Ported from the ``fields`` example module (spec §4); this module is canonical and the example imports it.
 """
 from __future__ import annotations
 

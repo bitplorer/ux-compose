@@ -1,6 +1,6 @@
 """Presence — Self status is a name. Peer list is RefState. Typing would be a bool on chat.
 
-Ported from the ``ops`` example module (spec §4); that example stays as the teaching copy.
+Ported from the ``ops`` example module (spec §4); this module is canonical and the example imports it.
 """
 from __future__ import annotations
 

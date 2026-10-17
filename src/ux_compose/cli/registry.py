@@ -758,7 +758,8 @@ ALIASES = {
 
 
 # Example ports (spec §4): addable, not bound by the kit widget contract
-# (render(shell=, **slots), DEMO_FRAMING). Generated from examples/.
+# (render(shell=, **slots), DEMO_FRAMING). These modules are canonical;
+# examples/ imports them (spec §4).
 from ux_compose.cli._ports import PORTS  # noqa: E402
 
 

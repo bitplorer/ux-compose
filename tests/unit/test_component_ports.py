@@ -1,11 +1,10 @@
 """RED spec — readymade example components live in the kit (spec §4).
 
 Every catalogued example class whose name does not clash with an existing kit
-class gets a module ``ux_compose/components/<name.lower()>.py`` and a CATALOG
+class has a module ``ux_compose/components/<name.lower()>.py`` and a PORTS
 entry, so ``uxcompose add <slug>`` drops an ownable copy that runs anywhere —
-no ``examples`` import. The 16 name clashes wait on Shivam (spec Q3) and are
-not asserted here. ``examples/`` itself is not moved or renamed.
-GUARD tests already pass on main.
+no ``examples`` import. The 16 name clashes resolved to the kit class (spec Q3):
+components/ is canonical and examples/ import every class from it.
 """
 from __future__ import annotations
 
@@ -24,8 +23,10 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from examples.catalog import all_components  # noqa: E402
 
+# Catalogued demo classes (product apps own theirs). Since spec Q3 every one
+# is imported from ux_compose.components, so select by catalog, not __module__.
 EXAMPLE_CLASSES = sorted(
-    {c.__name__ for c in all_components() if c.__module__.startswith("examples.")}
+    {c.__name__ for c in all_components() if not c.__module__.startswith("apps.")}
 )
 KIT_NAMES = {n for n in kit.__all__ if isinstance(getattr(kit, n), type)}
 CLASHES = sorted(set(EXAMPLE_CLASSES) & KIT_NAMES)
@@ -44,6 +45,7 @@ def _fake_app(tmp_path: Path) -> Path:
 
 def test_inventory_is_70_examples_16_clashes():  # GUARD
     assert len(EXAMPLE_CLASSES) == 70
+    assert not [c for c in all_components() if c.__module__.startswith("examples.")]
     assert len(CLASHES) == 16
     assert len(PORTS) == 54
 

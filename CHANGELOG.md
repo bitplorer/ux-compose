@@ -29,12 +29,30 @@ outright, with no shims. Call sites, docs and tests are updated.
   `ux_compose.components` modules, which carried the example modules'
   full import lists).
 
+### Changed — examples dedupe (components/ is canonical)
+
+- `src/ux_compose/components/` is the single source of every component class.
+  `examples/*.py` are thin usage demos that import from `ux_compose.components`.
+  70 duplicated classes were removed from `examples/` (54 byte-identical ports,
+  16 older clashing designs and the example `Drawer`).
+- The 16 clashes resolve to the kit class. No example copy carried a fix for the
+  kit class, so nothing was merged back. Demo behaviours that only the old copies
+  had are gone: the quantity `Stepper` (`stepper.inc`/`dec`), the booking
+  `Calendar` (`calendar.book`, Cap `bookings.create`), the counting `Badge`
+  (`badge.inc`), `Popover.pin_to`, `Timeline.filter`, `Rating.set`,
+  `Combobox.type`, `Carousel.go` and the example `Drawer.open_drawer`.
+  Use the kit verbs.
+- Atelier Studio refuses `stepper.finish` without a Cap (was `calendar.book`).
+
 ### Added — bloat cleanup
 
 - `tests/unit/test_bloat_cleanup.py` keeps the removals gone and gates
   `src/`, `tests/`, `apps/` and `examples/` on ruff pyflakes (`--select F`).
 - `tests/unit/test_fastapi_none_tree.py`: a render returning `None` yields an
   empty-body ux-dom `HTMLResponse`.
+- `tests/unit/test_examples_import_components.py`: fails if `examples/`
+  redefines a component class, or if a catalogued demo class does not come
+  from `ux_compose.components`.
 
 ### Added
 

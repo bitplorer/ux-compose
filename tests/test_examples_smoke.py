@@ -61,14 +61,14 @@ def test_each_pattern_renders_and_public_dispatch():
         ("tabs.select", {"tab": "make"}),
         ("shelf.set_query", {"q": "oak"}),
         ("search.type", {"q": "wool"}),
-        ("stepper.inc", {}),
+        ("stepper.next", {}),
         ("motionbox.hop", {}),
         ("appshell.go", {"key": "bag"}),
         ("choices.set_finish", {"key": "wax"}),
         ("carousel.next", {}),
         ("wishlist.toggle", {"sku": "oak"}),
         ("progress.bump", {}),
-        ("calendar.pick", {"n": "21"}),
+        ("calendar.pick", {"day": "2026-08-21"}),
     ):
         ops = app.dispatch(action, **kwargs)
         assert isinstance(ops, list)
@@ -135,12 +135,17 @@ def test_protected_actions_fail_closed_offline():
 
     from examples.fields import OtpGate
     from examples.commerce_more import Coupon
-    from examples.ops import Calendar
+    from examples.systems import Stepper
 
-    app.add(OtpGate, Coupon, Calendar)
+    app.add(OtpGate, Coupon, Stepper)
     with pytest.raises(Exception):
         app.dispatch("otpgate.verify")
     with pytest.raises(Exception):
         app.dispatch("coupon.redeem")
+    # Stepper is the canonical components/ wizard; finish spends a Cap.
     with pytest.raises(Exception):
-        app.dispatch("calendar.book")
+        app.dispatch("stepper.finish")
+    # The verb exists: with caps off it dispatches, so the raise above is the Cap.
+    loose = App.boot("Ex", strict_caps=False)
+    loose.add(Stepper)
+    assert isinstance(loose.dispatch("stepper.finish"), list)

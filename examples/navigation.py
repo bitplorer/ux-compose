@@ -10,129 +10,16 @@ from __future__ import annotations
 
 from ux_compose import (
     App,
-    Component,
-    MorphState,
-    RefState,
-    action,
-    notify,
-    update_with,
-    div,
-    h2,
-    p,
-    header,
-    ul,
-    li,
-    span,
-    section,
 )
 
-from examples._common import act, scene, fade, rise
+from ux_compose.components.masterdetail import MasterDetail
+from ux_compose.components.shopview import ShopView
 
 PIECES = {
     "linen": ("Work shirt", "Washed flax, open collar."),
     "oak": ("Serving board", "Quarter-sawn oak, oil finish."),
     "wool": ("Throw", "Undyed merino, blanket stitch."),
 }
-
-
-class ShopView(Component):
-    id = "shopview"
-    mode = MorphState("list")
-    selected = RefState("")
-
-    def render(self):
-        if self.mode == "detail":
-            name, line = PIECES.get(self.selected, ("Piece", ""))
-            kids = (
-                header(
-                    p("Detail region", className="kicker"),
-                    h2(name, className="widget-title"),
-                ),
-                p(line, className="lede"),
-                act("shopview.show_list", "Back to the table", kind="ghost"),
-            )
-            return section(*kids, id=self.id, className="widget detail")
-        rows = [
-            li(
-                span(name, className="bag-line-name"),
-                act("shopview.show_detail", "Open", kind="text", sku=sku),
-                id=f"nav-{sku}",
-                className="bag-line",
-            )
-            for sku, (name, _) in PIECES.items()
-        ]
-        kids = (
-            header(
-                p("List region", className="kicker"),
-                h2("Table", className="widget-title"),
-            ),
-            ul(*rows, className="bag-lines"),
-        )
-        return section(*kids, id=self.id, className="widget list")
-
-    def _plan(self, kind: str):
-        if kind == "to_detail":
-            return (
-                scene("to-detail")
-                .exit(f"#{self.id}", fade.exit(ms=120))
-                .enter(f"#{self.id}", rise.enter(ms=160))
-            )
-        if kind == "to_list":
-            return scene("to-list").enter(f"#{self.id}", fade.enter(ms=140))
-        return None
-
-    @action(caps=())
-    def show_detail(self, sku: str = ""):
-        self.mode = "detail"
-        self.selected = sku
-        return update_with(
-            self, self._plan("to_detail"), extra_ops=[notify(f"detail {sku}")]
-        )
-
-    @action(caps=())
-    def show_list(self):
-        self.mode = "list"
-        self.selected = ""
-        return update_with(self, self._plan("to_list"), extra_ops=[notify("list")])
-
-
-class MasterDetail(Component):
-    """Split: list selection MorphState, body from RefState catalog."""
-
-    id = "split"
-    selected = MorphState("linen")
-
-    def render(self):
-        sel = str(self.selected or "linen")
-        name, line = PIECES.get(sel, ("", ""))
-        nav = [
-            act(
-                "split.select",
-                n,
-                kind="primary" if s == sel else "ghost",
-                sku=s,
-            )
-            for s, (n, _) in PIECES.items()
-        ]
-        kids = (
-            header(
-                p("Master / detail", className="kicker"),
-                h2("Split", className="widget-title"),
-            ),
-            div(*nav, className="seg"),
-            section(
-                h2(name),
-                p(line, className="lede"),
-                id=f"split-{sel}",
-                className="tab-panel",
-            ),
-        )
-        return div(*kids, id=self.id, className="widget")
-
-    @action(caps=())
-    def select(self, sku: str = "linen"):
-        self.selected = sku
-        return update_with(self)
 
 
 def demo() -> None:

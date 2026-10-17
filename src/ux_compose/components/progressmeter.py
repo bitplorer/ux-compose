@@ -1,6 +1,6 @@
 """ProgressMeter — Percent is RefState. Phase is a name (idle / run / done).
 
-Ported from the ``ops`` example module (spec §4); that example stays as the teaching copy.
+Ported from the ``ops`` example module (spec §4); this module is canonical and the example imports it.
 """
 from __future__ import annotations
 

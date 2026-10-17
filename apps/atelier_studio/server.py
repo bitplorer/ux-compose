@@ -68,7 +68,7 @@ REFUSE = {
     "otpgate.verify",
     "coupon.redeem",
     "comments.moderate",
-    "calendar.book",
+    "stepper.finish",
     "settings.wipe",
     "desk_close.wipe",
 }

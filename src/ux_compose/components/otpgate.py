@@ -1,6 +1,6 @@
 """OtpGate — Identity check. Digits are RefState. Verify is Cap-protected.
 
-Ported from the ``fields`` example module (spec §4); that example stays as the teaching copy.
+Ported from the ``fields`` example module (spec §4); this module is canonical and the example imports it.
 """
 from __future__ import annotations
 

@@ -7,6 +7,12 @@ return type, not the class.
 The same class is valid at L1 (offline `dispatch`) and L3 (`use_channel` +
 `use_motion`). Zero rewrite.
 
+**Components come from `ux_compose.components`.** `src/ux_compose/components/`
+is the single source of every component class. These files are thin usage
+demos: they import the classes and show how to boot, add and dispatch them.
+Do not copy a component class into `examples/`; a test fails if you do. To own
+and edit a component, run `uxcompose add <slug>`.
+
 Play them: the Atelier of Patterns host (`apps/atelier_studio`) serves every
 card. Product shop lives at `/shop`.
 
@@ -33,8 +39,8 @@ The live-safe form is what the studio uses.
 | Forms | `forms.py` `fields.py` | Validation, wizard, typeahead, radio/checkbox, combobox, date, files, slider, OTP (Cap), password, autosave, limited note |
 | Collections | `lists.py` `table_board.py` `feeds.py` | Filter+sort+stagger, optimistic, pagination, undo, table bulk, kanban, carousel, comments (Cap moderate), timeline, empty/error/retry, reorder, activity |
 | Navigation | `navigation.py` | Region swap, master/detail |
-| Commerce | `cart.py` `systems.py` `commerce_more.py` | Cart, quantity stepper, rating, wishlist, coupon (Cap), checkout (Cap), stock band, compare |
+| Commerce | `cart.py` `systems.py` `commerce_more.py` | Cart, stepper (finish Cap), rating, wishlist, coupon (Cap), checkout (Cap), stock band, compare |
 | Live Caps | `live_caps.py` | Fail-closed offline, mint vs refuse live |
 | Motion | `motion_xor.py` | XOR, Morph-then-Play, `scene.share` |
-| Systems | `systems.py` `ops.py` `pulseboard.py` | Chat, inbox, tree, skeleton, consent, locale, chips, inline edit, calendar (Cap), progress, copy, settings (Cap), offline, presence, KPI, shortcuts, Pulseboard desk |
+| Systems | `systems.py` `ops.py` `pulseboard.py` | Chat, inbox, tree, skeleton, consent, locale, chips, inline edit, calendar, progress, copy, settings (Cap), offline, presence, KPI, shortcuts, Pulseboard desk |
 | Host | `document_boot.py` `live_asgi.py` `cart_document.py` `page_unit_mount.py` | Document SSoT, `build()` Clock A GET, Isolation door; `App.mount` is catalog scan |

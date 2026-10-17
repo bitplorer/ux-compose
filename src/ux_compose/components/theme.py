@@ -1,6 +1,6 @@
 """Theme — Paper house is light-only. This still shows a locale/theme MorphState.
 
-Ported from the ``systems`` example module (spec §4); that example stays as the teaching copy.
+Ported from the ``systems`` example module (spec §4); this module is canonical and the example imports it.
 """
 from __future__ import annotations
 

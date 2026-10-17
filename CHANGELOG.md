@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- ux-dom pin `0440ccb` → `2e67101` (ux-dom **0.3.0**): plain strings render
+  as escaped text, `defHTML` is an allow-list sanitizer, Markdown escapes raw
+  HTML, htmx request URLs are same-origin unless `cross_origin()`, pinned CDN
+  scripts carry SRI, and the leftover DirectoryRouter is gone from ux-dom.
+  ux-compose needs no code changes; the full suite passes against it.
+
 ## 0.2.0 — remove deprecations and bloat cleanup
 
 ux-compose and its ux-* specialists are not on PyPI, so these are removed

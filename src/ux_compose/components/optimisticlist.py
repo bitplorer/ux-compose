@@ -1,6 +1,6 @@
 """OptimisticList — Paint first, confirm or roll back. Token is RefState (stale guard).
 
-Ported from the ``lists`` example module (spec §4); that example stays as the teaching copy.
+Ported from the ``lists`` example module (spec §4); this module is canonical and the example imports it.
 """
 from __future__ import annotations
 

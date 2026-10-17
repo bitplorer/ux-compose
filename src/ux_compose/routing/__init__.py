@@ -5,9 +5,8 @@ Owned here because this is Next-style file routing, not render.
     from ux_compose.routing import DirectoryRoutes, RouterHooks, DirectoryASGI
     from ux_compose.routing.host import open, bind
 
-Leftover standalone FastAPI trees that cannot import compose still use
-``ux_dom.routing.fastapi.DirectoryRouter`` (labeled leftover). Product
-apps use ``ux_compose.build`` / ``App.mount``.
+Product apps use ``ux_compose.build`` / ``App.mount``; page routes attach
+through one verb, ``ux_compose.routing.host.bind``.
 """
 from __future__ import annotations
 
@@ -47,8 +46,6 @@ __all__ = [
     "is_json_payload",
     "is_stream_payload",
     "apply_html_document",
-    "materialize",
-    "mount",
 ]
 
 
@@ -62,15 +59,3 @@ def __getattr__(name: str):
         )
         return DirectoryRoutesError
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
-def materialize(*args, **kwargs):
-    from ux_compose.routing.fastapi import materialize as _m
-
-    return _m(*args, **kwargs)
-
-
-def mount(*args, **kwargs):
-    from ux_compose.routing.fastapi import mount as _m
-
-    return _m(*args, **kwargs)

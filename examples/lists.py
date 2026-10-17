@@ -31,7 +31,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, mark_dirty, optional_plan, scene, rise
+from examples._common import act, mark_dirty, scene, rise
 
 CATALOG = (("linen", "Work shirt", 48), ("oak", "Serving board", 72), ("wool", "Throw", 96), ("clay", "Pourer", 38))
 
@@ -274,7 +274,7 @@ class UndoSnack(Component):
 
 
 def demo() -> None:
-    app = App.boot("Lists", strict_caps=False)
+    app = App.boot("Lists")
     app.add(Shelf, OptimisticList, Pages, UndoSnack)
     print("filter", app.dispatch("shelf.set_query", q="oak"))
     print("opt", app.dispatch("optcart.add_optimistic", sku="tee"))

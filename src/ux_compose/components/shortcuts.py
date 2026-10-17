@@ -5,12 +5,9 @@ Ported from the ``ops`` example module (spec §4); that example stays as the tea
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
-    RefState,
     action,
-    notify,
     update_with,
     div,
     h2,
@@ -19,10 +16,9 @@ from ux_compose import (
     ul,
     li,
     span,
-    section,
 )
 
-from ux_compose.author import act, mark_dirty, status
+from ux_compose.author import act
 
 class Shortcuts(Component):
     """Keyboard overlay. Same encoding as the command palette — query MorphState."""

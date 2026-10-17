@@ -16,7 +16,7 @@ is the include_router soft-fail. This module never does that.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 
 def _is_asgi_app(obj: Any) -> bool:
@@ -180,7 +180,6 @@ def attach_document_runtimes(
     document: Any,
     *,
     motion: bool = False,
-    channel_scripts: bool = False,
     htmx: bool = False,
 ) -> Any:
     """

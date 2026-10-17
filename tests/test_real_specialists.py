@@ -68,7 +68,7 @@ def test_real_behavior_cap_law():
 @pytest.mark.skipif(not HAS_MOTION, reason="ux-motion not installed")
 def test_motion_scene_plan_and_update_with():
     from ux_compose import update_with, notify
-    from ux_motion import scene, fade, rise
+    from ux_motion import scene, rise
 
     plan_builder = scene("pop").enter("#cart", rise.enter(ms=120))
     ops = update_with("cart", plan_builder, extra_ops=[notify("x")])
@@ -83,6 +83,7 @@ def test_motion_reexport_from_compose():
     from ux_compose import scene, fade, rise
     assert scene is not None
     assert fade is not None
+    assert rise is not None
     plan = scene("t").enter("#a", fade.enter()).plan()
     assert isinstance(plan, dict)
     assert "id" in plan or "v" in plan or "root" in plan

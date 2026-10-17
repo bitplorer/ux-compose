@@ -76,7 +76,7 @@ class ProbeResult:
     def has_motion(self) -> bool:
         return bool(self.specialists.get("ux_motion"))
 
-    def incomplete_stack_messages(self, *, requested_level: int = 3) -> list[str]:
+    def incomplete_stack_messages(self) -> list[str]:
         """Fail-loud diagnostics when the pinned stack is incomplete.
 
         Levels are additive attach APIs after a complete install — not
@@ -107,20 +107,6 @@ class ProbeResult:
                 "Level-1 code stays correct at higher levels."
             )
         return lines
-
-    def summary_lines(self) -> list[str]:
-        """Human-readable capability matrix for doctor / CLI output."""
-        out = []
-        for import_name, cli_name, label in _SPECIALISTS:
-            present = self.specialists.get(import_name, False)
-            mark = "✓" if present else "·"
-            extra = ""
-            if cli_name:
-                path = self.clis.get(cli_name)
-                extra = f"  cli={path}" if path else "  cli=—"
-            out.append(f"  {mark} {label}{extra}")
-        out.append(f"  Progressive level available: L{self.level_available}")
-        return out
 
 
 def probe() -> ProbeResult:

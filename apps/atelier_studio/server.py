@@ -52,7 +52,11 @@ _STATIC = Path(__file__).resolve().parent / "static"
 _IDIOMORPH = _STATIC / "idiomorph.min.js"
 
 # Live Cap: these names go through submit_intent, not Host-internal dispatch.
-MINT = {"liveorder.place_minted", "cart.checkout", "checkout.place", "desk_close.close_quarter"}
+MINT = {
+    "liveorder.place_minted", "cart.checkout", "checkout.place", "desk_close.close_quarter",
+    # Gated in 0.2.0 (server state / user content): host mints the Cap.
+    "stock.sell", "stock.restock", "signup.submit", "comments.post", "chat.send",
+}
 REFUSE = {
     "liveorder.place",
     "confirm.confirm",
@@ -354,6 +358,24 @@ def _fragment(slug: Optional[str]) -> str:
     return ""
 
 
+def _is_public_action(ux, name: str) -> bool:
+    """Allow-list for the /act fall-through: only @action(caps=()) dispatches.
+
+    Capped names must go through the Channel (MINT / REFUSE). Anything else,
+    including unknown names, is refused, so a missed name cannot become an
+    anonymous HTTP bypass.
+    """
+    try:
+        cid, meth = str(name).rsplit(".", 1)
+        inst = ux.behavior.get(cid)
+    except (ValueError, KeyError):
+        return False
+    fn = getattr(inst, meth, None)
+    if not callable(fn) or not getattr(fn, "_ux_behavior_action", False):
+        return False
+    return not tuple(getattr(fn, "_ux_behavior_caps", ()) or ())
+
+
 def build_asgi():
     if not HAS_FASTAPI:
         return None
@@ -505,8 +527,11 @@ def build_asgi():
                     _collect_ops(last_ops, UX.dispatch("liveorder.mark_refused", reason="no Cap"))
                 if not ok and name == "desk_close.wipe":
                     _collect_ops(last_ops, UX.dispatch("desk_close.mark_refused", reason="no Cap"))
-            else:
+            elif _is_public_action(UX, name):
                 _collect_ops(last_ops, UX.dispatch(name, **args))
+            else:
+                flash = "Refused — not a public action."
+
         except Exception as exc:
             flash = str(exc)
         if _wants_ops(request):

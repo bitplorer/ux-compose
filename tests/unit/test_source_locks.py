@@ -157,7 +157,7 @@ def test_architecture_concern_table_is_the_module_map():
         "routing/host.py",
         "routing/fastapi.py",
         "routing/asgi.py",
-        "kit_construct.py",
+        "arrange.py",
         "serve_state.py",
         "dx/probe.py",
         "live_client.py",
@@ -268,12 +268,22 @@ def _cli_imports(source: str, rel_parts: tuple[str, ...]) -> list[str]:
     return hits
 
 
-RUNTIME_ALLOWED = {"kit/catalog.py", "kit/copy.py"}  # deprecation shims; deleted on the branch
+# The base allow-listed kit/catalog.py and kit/copy.py (cli re-export shims).
+# This branch deleted kit/ and kit_construct.py; helpers live in arrange.py.
+# An allow-list entry for a missing file would hide a reintroduction, so the
+# set stays empty and those paths are locked absent below.
+RUNTIME_ALLOWED: set[str] = set()
 
 
 def test_folder_law_components_canonical_no_cli_imports():
-    """components/ is canonical (Q13). CLI is the cli/ package, not the root."""
+    """components/ is canonical (Q13); arrange is a library import; kit/ and
+    kit_construct are gone. CLI is the cli/ package, not the root."""
     assert (SRC / "components" / "__init__.py").is_file()
+    assert (SRC / "arrange.py").is_file()
+    assert not (SRC / "kit_construct.py").exists()
+    assert list((SRC / "kit").rglob("*.py")) == []  # *.py: a stale empty dir is not kit
+    for rel in ("kit/catalog.py", "kit/copy.py"):
+        assert not (SRC / rel).exists(), rel
     assert (SRC / "cli" / "__init__.py").is_file()
     assert not (SRC / "cli.py").exists()
     assert not (SRC / "cli_build.py").exists()
@@ -286,15 +296,14 @@ def test_folder_law_components_canonical_no_cli_imports():
     assert "Do **not** add `cli/`" not in arch
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
     assert "Folder law" in agents
-    # Deprecation shims that re-export cli; both are deleted together with
-    # every other kit/ file on chore/remove-deprecations (#104 ships with it).
-    allowed = {"kit/catalog.py", "kit/copy.py"}
-    for rel in allowed:
+    copy = _read("cli/copy_component.py")
+    assert "Widget helpers live in ``ux_compose.arrange``" in copy
+    for rel in RUNTIME_ALLOWED:
         assert (SRC / rel).is_file(), f"stale allow-list entry {rel}"
     offenders = {}
     for path in SRC.rglob("*.py"):
         rel = path.relative_to(SRC)
-        if rel.parts[0] == "cli" or rel.as_posix() in allowed:
+        if rel.parts[0] == "cli" or rel.as_posix() in RUNTIME_ALLOWED:
             continue
         hits = _cli_imports(path.read_text(encoding="utf-8"), rel.parts)
         if hits:
@@ -309,7 +318,7 @@ def test_on_disk_packages_are_mapped_not_ghosts():
         for p in SRC.iterdir()
         if p.is_dir() and (p / "__init__.py").is_file() and p.name != "__pycache__"
     )
-    assert packages == ["cli", "components", "dx", "kit", "routing", "wire"], packages
+    assert packages == ["cli", "components", "dx", "routing", "wire"], packages
     arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
     for name in packages:
         assert f"`{name}/`" in arch, name
@@ -416,13 +425,13 @@ def test_render_chrome_scan_has_no_first_hit_break():
         assert len(diags) >= 2
 
 
-def test_copy_keeps_kit_construct_library_import_lock():
+def test_copy_keeps_arrange_library_import_lock():
     copy = _read("cli/copy_component.py")
-    assert "kit_construct lives outside kit/" in copy
-    assert r"from ux_compose\.kit_construct" not in copy
+    assert "Widget helpers live in ``ux_compose.arrange``" in copy
+    assert r"from ux_compose\.arrange" not in copy
     for stem in ("fab.py", "dialog.py"):
         src = _read(f"components/{stem}")
-        assert "from ux_compose.kit_construct import" in src
+        assert "from ux_compose.arrange import" in src
 
 
 def test_flow_citations_point_at_ownership():
@@ -762,7 +771,13 @@ for path in sorted((src / "ux_compose").rglob("*.py")):
     if len(ATTEMPTS) > before:
         bad[rel.as_posix()] = sorted(set(ATTEMPTS[before:]))
 leaked = sorted(m for m in sys.modules if m == "ux_compose.cli" or m.startswith("ux_compose.cli."))
-print(json.dumps({"attempted": sorted(set(ATTEMPTS)), "bad": bad, "errors": errors, "leaked": leaked}))
+cli_dir = (src / "ux_compose" / "cli").resolve()
+cli_files = {}
+for name, mod in list(sys.modules.items()):
+    f = getattr(mod, "__file__", None)
+    if f and pathlib.Path(f).resolve().is_relative_to(cli_dir):
+        cli_files[name] = pathlib.Path(f).resolve().relative_to(cli_dir.parent).as_posix()
+print(json.dumps({"attempted": sorted(set(ATTEMPTS)), "bad": bad, "errors": errors, "leaked": leaked, "cli_files": cli_files}))
 """
 
 # Modules allowed to fail import for a missing optional dependency (none today).
@@ -807,7 +822,7 @@ def test_runtime_no_library_module_imports_cli():
     static check.
     """
     result = _run_guard(SRC.parent, RUNTIME_ALLOWED, RUNTIME_OPTIONAL)
-    assert result == {"attempted": [], "bad": {}, "errors": {}, "leaked": []}, result
+    assert result == {"attempted": [], "bad": {}, "errors": {}, "leaked": [], "cli_files": {}}, result
 
 
 @pytest.mark.parametrize(
@@ -819,6 +834,16 @@ def test_runtime_no_library_module_imports_cli():
         ('import importlib\nimportlib.import_module("ux_compose." + "cli")\n', "bad"),
         # an unrelated ImportError is reported, not skipped
         ("import ux_compose_no_such_dependency\n", "errors"),
+        # cli/ code loaded by file path under another name bypasses the finder
+        (
+            "import importlib.util, pathlib\n"
+            "_p = pathlib.Path(__file__).parent / 'cli' / 'tool.py'\n"
+            "_s = importlib.util.spec_from_file_location('not_cli_tool', _p)\n"
+            "_m = importlib.util.module_from_spec(_s)\n"
+            "_s.loader.exec_module(_m)\n"
+            "import sys; sys.modules['not_cli_tool'] = _m\n",
+            "cli_files",
+        ),
     ],
 )
 def test_runtime_guard_probe(tmp_path, body, key):
@@ -826,9 +851,13 @@ def test_runtime_guard_probe(tmp_path, body, key):
     (pkg / "cli").mkdir(parents=True)
     (pkg / "__init__.py").write_text("", encoding="utf-8")
     (pkg / "cli" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "cli" / "tool.py").write_text("X = 1\n", encoding="utf-8")
     (pkg / "sneaky.py").write_text(body, encoding="utf-8")
     result = _run_guard(tmp_path)
-    assert "sneaky.py" in result[key], result
     assert result["leaked"] == []
+    if key == "cli_files":
+        assert result["cli_files"] == {"not_cli_tool": "cli/tool.py"}, result
+        return
+    assert "sneaky.py" in result[key], result
     if key == "bad":
         assert result["attempted"] == ["ux_compose.cli"]

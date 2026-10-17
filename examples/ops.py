@@ -448,7 +448,7 @@ class Shortcuts(Component):
 
 
 def demo() -> None:
-    app = App.boot("Ops", strict_caps=False)
+    app = App.boot("Ops")
     app.add(
         Calendar,
         ProgressMeter,

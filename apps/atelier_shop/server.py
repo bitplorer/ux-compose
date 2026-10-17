@@ -312,12 +312,12 @@ def build_asgi():
     @asgi.get("/og.jpg")
     def og_card():
         from pathlib import Path
-        for p in (
+        for candidate in (
             Path("/workspace/public/og.jpg"),
             Path(__file__).resolve().parents[3] / "public" / "og.jpg",
         ):
-            if p.is_file():
-                return Response(p.read_bytes(), media_type="image/jpeg")
+            if candidate.is_file():
+                return Response(candidate.read_bytes(), media_type="image/jpeg")
         return Response(status_code=404)
 
 

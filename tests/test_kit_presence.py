@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose import App, HAS_DOM
-from ux_compose.kit import (
+from ux_compose.components import (
     Accordion,
     ActionSheet,
     Combobox,
@@ -309,7 +309,7 @@ def test_pagination_named_pages():
 
 
 def test_pagination_window_slots():
-    from ux_compose.kit.pagination import page_slots
+    from ux_compose.components.pagination import page_slots
 
     assert page_slots(0, 12, 1) == (
         ("page", 0, "core"),

@@ -11,7 +11,7 @@ is no optional-package unlock ladder.
 ```bash
 python3.14 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-# `[full]` is an empty alias; specialists are hard dependencies.
+# Specialists are hard dependencies (no per-specialist extras).
 ```
 
 ## Quality gate

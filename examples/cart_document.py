@@ -21,13 +21,12 @@ from ux_compose import (
     action,
     notify,
     update_with,
-    control,
     doctor,
     scene,
     rise,
 )
 from ux_dom import Document
-from ux_dom.dom import div, h1, span, p
+from ux_dom.dom import div, h1, p
 from ux_dom.runtime import XElement, Htmx, Csp
 
 
@@ -63,7 +62,7 @@ if __name__ == "__main__":
         Csp.auto(),
     )
 
-    app = App.boot("Shop", strict_caps=False)
+    app = App.boot("Shop")
     app.use_dom(document)
     app.use_behavior().use_channel().use_motion()
     app.add(Cart)

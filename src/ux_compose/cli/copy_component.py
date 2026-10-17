@@ -20,13 +20,13 @@ class KitCopyError(RuntimeError):
     pass
 
 
-# ``ux_compose.components.X`` (and the deprecated ``ux_compose.kit.X``) become siblings.
-_KIT_MODULE_IMPORT = re.compile(r"from ux_compose\.(?:components|kit)\.([a-zA-Z0-9_]+) import")
+# ``ux_compose.components.X`` imports become siblings.
+_KIT_MODULE_IMPORT = re.compile(r"from ux_compose\.components\.([a-zA-Z0-9_]+) import")
 _IMPORT_REWRITES = [
     (_KIT_MODULE_IMPORT, r"from .\1 import"),
-    (re.compile(r"from ux_compose\.(?:components|kit) import"), "from . import"),
+    (re.compile(r"from ux_compose\.components import"), "from . import"),
 ]
-# kit_construct lives outside kit/ (now ``ux_compose.arrange``). Copies keep the library import.
+# Widget helpers live in ``ux_compose.arrange``. Copies keep that library import.
 # Registry/copier live in cli/, so no tooling stems sit beside the widgets.
 _TOOLING_STEMS: frozenset[str] = frozenset()
 
@@ -138,25 +138,6 @@ def _ensure_pkg(path: Path) -> None:
             '"""App-local components (copied from ux_compose.components — edit freely)."""\n',
             encoding="utf-8",
         )
-
-
-def _wire_css_import(input_css: Path, stem: str) -> bool:
-    """Ensure ``@import "./{stem}.css";`` is in input.css. Returns True if wrote."""
-    if not input_css.is_file():
-        return False
-    needle = f'@import "./{stem}.css"'
-    text = input_css.read_text(encoding="utf-8")
-    if needle in text:
-        return False
-    # After the tailwind import if present, else at the top.
-    lines = text.splitlines(keepends=True)
-    insert_at = 0
-    for i, line in enumerate(lines):
-        if line.startswith("@import ") or line.startswith("@source "):
-            insert_at = i + 1
-    lines.insert(insert_at, f'{needle};\n')
-    input_css.write_text("".join(lines), encoding="utf-8")
-    return True
 
 
 def _page_unit_source(stem: str, cls: str) -> str:

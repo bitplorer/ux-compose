@@ -95,7 +95,7 @@ class ConfirmModal(Component):
 
 
 if __name__ == "__main__":
-    app = App.boot("Shop", strict_caps=False)
+    app = App.boot("Shop")
     app.add(ConfirmModal)
 
     ops = app.dispatch(

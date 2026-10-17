@@ -9,9 +9,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-UX_DOM_SHA = "cdb0dd1486e58746c51e98aa51f5fd4d26841196"
+UX_DOM_SHA = "0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4"
 UX_CHANNEL_SHA = "f1a93fcf298c97a59fa6538697731e19aac8586d"
-UX_BEHAVIOR_SHA = "7d46979f59f284bc2d6d961ed372ec849e851dfc"
+UX_BEHAVIOR_SHA = "2ae5c3de6c60756cfccfa0174355037436bb3f14"
 UX_MOTION_SHA = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
 COMPOSE_SHA = "24a182f35e3d0743a2faafddb5ba0396324b2d9a"
 
@@ -90,15 +90,6 @@ def test_probe_exposes_incomplete_stack_messages():
 
     assert hasattr(ProbeResult, "incomplete_stack_messages")
     assert not hasattr(ProbeResult, "unlock_messages")
-
-
-def test_specialist_extras_are_empty_aliases():
-    import tomllib
-
-    data = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
-    extras = data["project"]["optional-dependencies"]
-    for name in ("dom", "behavior", "motion", "channel", "full"):
-        assert extras[name] == []
 
 
 def test_has_dom_is_constant_true():

@@ -13,7 +13,7 @@ MorphState: ``open``. Caps: none. A11y (APG Tooltip): trigger
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -22,8 +22,6 @@ from ux_compose import (
     update_with,
     button,
     div,
-    h2,
-    p,
     span,
 )
 
@@ -58,14 +56,14 @@ class Tooltip(Component):
     open = MorphState(False)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         tip_id = f"{self.id}-tip"
         tip = (
             span(self.TIP, id=tip_id, className=self.class_tip, role="tooltip")
             if is_open else span("", id=tip_id, className=self.class_sr, role="tooltip")
         )
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(
                 button(
                     self.TRIGGER,

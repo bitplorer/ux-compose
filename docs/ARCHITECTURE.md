@@ -21,7 +21,7 @@ Author  →  ux_compose (this package root)
               ├─ product host     create-app → serve dev → build → serve prod
               ├─ catalog scan     App.mount  (scan_surfaces / Behavior)
               ├─ HTTP path law    DirectoryRoutes.discover  (called by build())
-              ├─ catalog          ux_compose.kit  +  uxcompose add
+              ├─ catalog          ux_compose.components  +  uxcompose add
               └─ wire/            only importer of channel / CEK
 ```
 
@@ -58,8 +58,8 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Composition | `app.py`, `component.py`, `helpers.py` | clone MorphState / Cap |
 | Surfaces / scan | `surfaces.py`, `surfaces_host.py`, `build.py` | second HTTP pipeline; fold `scan_surfaces` into `DirectoryRoutes.discover` |
 | Doctor | `doctor.py` | leftover scan as kill |
-| Kit catalog / copy | `kit/catalog.py`, `kit/copy.py` | overlay in CATALOG |
-| Author helpers on copies | `kit_construct.py` (outside `kit/`) | move under `kit/` |
+| Component catalog / copy | `cli/registry.py`, `cli/copy_component.py` | overlay in CATALOG |
+| Author helpers on copies | `arrange.py` (outside `components/`) | move under `components/` |
 | HMR | `hmr.py` | `Document.use` HMR |
 | Channel scripts | `live_client.py` | fold into `hmr.py`; synthesized HTML shell for fragments |
 | Serve-dev clocks | `cli/serve_dev.py` (body), `cli/__init__.py` (argv) | `--one-process`; clock spawn in `cli/__init__.py` |
@@ -87,27 +87,26 @@ usually library ∩ CLI, or library imports that copies must keep.
 |--------|-----|--------------------|
 | `wire/` | only `ux_channel` / CEK import | product / kit / helpers |
 | `components/` | ownable components, one per module. `uxcompose add` rewrites `from ux_compose.components.X` → `from .X` and copies `X.py`. Helpers in `arrange.py`; registry/copier in `cli/` | library helpers, CLI internals |
-| `kit/` | **deprecated shim** re-exporting `components/` (and `cli/registry`, `cli/copy_component` as `kit.catalog`/`kit.copy`); removed after one release | new code |
 | `routing/` | Clock A host pair (FastAPI ≠ DirectoryASGI) | compatibility shims |
 | `cli/` | product argv and command bodies. Library does not import it | author algebra (`doctor.py`, `build.py`, `scaffold.py`, `tailwind.py`) |
 | `dx/` | slang leftover (one probe file for doctor) | a second DX product |
 
-Do **not** add `helpers/`, `kit/kit_construct.py`, or `docs/MODULE_MAP.md`.
+Do **not** add `helpers/`, `kit/`, `kit_construct.py`, or `docs/MODULE_MAP.md`.
 Library modules do not import `ux_compose.cli`.
 
-### Why `kit_construct.py` is next to `component.py`
+### Why `arrange.py` is next to `component.py`
 
-`apply_slots` / `kit_shell` are the host seam (`render(*, shell=, **slots)`).
+`arrange_slots` / `wrap_in_card` are the host seam (`render(*, shell=, **slots)`).
 They are not a widget and not a `Kit` base (`Kit` is dead). Copies must keep:
 
 ```python
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 ```
 
 the same way they keep `from ux_compose.component import Component`.
-If this file moved under `kit/`, copy would rewrite the import to
-`from .kit_construct import` and drop a fork into every app. That is the
-inorganic tree. 56 lines on purpose.
+If this file moved under `components/`, copy would rewrite the import to
+`from .arrange import` and drop a fork into every app. That is the
+inorganic tree.
 
 ### Why the CLI is a package
 
@@ -121,7 +120,7 @@ Command modules call the library. Library modules do not import `ux_compose.cli`
 | serve | `cli/serve.py` | `cli/serve_dev.py`, `cli/serve_restart.py`, `cli/serve_state.py`, `cli/tunnel.py` |
 | deploy | `cli/deploy.py` | prepare in that module |
 | doctor | `cli/doctor.py` | `doctor.py` (`from ux_compose import doctor`) |
-| add | `cli/add.py` | `kit/copy.py` |
+| add | `cli/add.py` | `cli/copy_component.py` |
 
 `doctor.py`, `build.py`, `scaffold.py`, and `tailwind.py` stay at the package
 root. They are public algebra. Putting them under `cli/` would lie.
@@ -133,10 +132,10 @@ Do not put `serve_dev.py` or `cli_build.py` back at the package root.
 |--------|------|-----|
 | `helpers.py` | Ops algebra (`bind` / `control` / `update_with`) + fragment walker residual | kit seams, author `act` |
 | `author.py` | public `act` / `mark_dirty` / `optional_*` (ADR 0004) | Caps, HTML walk |
-| `kit_construct.py` | `apply_slots` / `kit_shell` | catalog stems |
+| `arrange.py` | `arrange_slots` / `wrap_in_card` / `build_heading` | catalog stems |
 
 `_fragment_for_target` prefers `ux_dom.response.serialize.extract_by_id`
-when importable (ux-dom#20 / pin `cdb0dd1`; compose#80 C2). The homemade
+when importable (ux-dom#20, current pin `0440ccb`; compose#80 C2). The homemade
 walker in `helpers.py` is escape if the owner symbol is absent. Serialize
 is already library-owned (`to_html_bytes`). `Fragment` is an invisible
 tree shell; `parse_html` / `defHTML` are ingest, not extract. String
@@ -151,13 +150,13 @@ ux-dom. Do not merge stale encyclopedia plans #73/#76/#77/#80.
 ## OverlayEdge — edge overlays
 
 Dialog, Sheet, and ActionSheet take ids, dismiss grammar, and the open
-plan from `kit/overlay.py`. Markup and Tailwind stay on the widget.
+plan from `components/overlay.py`. Markup and Tailwind stay on the widget.
 Swipe lives on dismiss / handle, never the root.
 
 Anchored popovers and Command are a different family. They do not copy
 these ids. `components/command.py` owns local `{id}-scrim` / `{id}-panel` /
 `{id}-dismiss` plus `click keydown.escape`. It must not import
-`kit/overlay.py`.
+`components/overlay.py`.
 
 ---
 
@@ -188,7 +187,7 @@ flag these in app trees. Teaching, not kill.
 | `ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `routing.fastapi` |
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` / `use_host("batteries")` | `host="auto"` |
-| `serve="webassets"` | package-static `serve="dual_copy"` |
+| `serve="webassets"` (removed; ux-dom 0.2 raises) | package-static `serve="dual_copy"` |
 | `stunning-root` / nav brand in `render()` | `brand_wrap(document, brand=…)` / `build(wrap=document)` |
 
 ### Agent leftovers (do not recreate)
@@ -199,7 +198,7 @@ names. Doctor will not print these from `scan_leftover_aliases`.
 | Leftover | Prefer |
 |----------|--------|
 | root `cli.py` / `serve_dev.py` / `cli_build.py` | `ux_compose.cli` (argv in `__init__`, bodies in the package) |
-| `kit/kit_construct.py` | `ux_compose.kit_construct` (library import) |
+| `kit/kit_construct.py` / `kit_construct.py` / `kit/` | `ux_compose.arrange` / `ux_compose.components` (removed in 0.2.0) |
 | `tests/property/` | drop; no property suite in this tree |
 | argv `create` | `uxcompose create-app` |
 | argv `development` / `production` / `restart_channel` | `dev` / `prod` / `restart-channel` |

@@ -5,14 +5,12 @@ Ported from the ``live_caps`` example module (spec §4); that example stays as t
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
     action,
     notify,
     update_with,
-    doctor,
     div,
     h2,
     p,
@@ -62,14 +60,14 @@ class LiveOrder(Component):
         mark_dirty(self)
         return update_with(self, extra_ops=[notify("placed")])
 
-    @action(caps=())
+    @action(caps=("orders.place",))
     def place_minted(self):
         """Studio host intercepts this name and calls submit_intent(mint=True).
 
-        Offline this is an open-mint stand-in so the file still runs at L1.
+        Same Cap as ``place``: offline it fails closed like ``place`` does.
         """
         self.status = "placed"
-        self.note = "Host-mint path (studio). Offline this is an open-mint stand-in."
+        self.note = "Host-mint path (studio): Cap minted for orders.place."
         return update_with(self, extra_ops=[notify("minted-path")])
 
     @action(caps=())

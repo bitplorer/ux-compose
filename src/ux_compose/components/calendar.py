@@ -17,7 +17,7 @@ import calendar as _cal
 from datetime import datetime
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -103,7 +103,7 @@ class Calendar(Component):
         return datetime(y, m, 1).strftime("%B %Y")
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         month = str(self.month or "2026-08")
         y, m = _parse_month(month)
         selected = str(self.day or "")
@@ -135,7 +135,7 @@ class Calendar(Component):
                 )
             rows.append(div(*cells, className=self.class_row, role="row"))
         picked = selected or "Nothing chosen"
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(
                 button("Prev", type="button", className=self.class_btn_ghost, **bind(self.prev)),
                 h2(self._month_label(), className=self.class_title),

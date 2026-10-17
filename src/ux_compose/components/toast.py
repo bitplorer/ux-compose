@@ -24,7 +24,7 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -35,7 +35,6 @@ from ux_compose import (
     update_with,
     button,
     div,
-    h2,
     li,
     p,
     span,
@@ -92,7 +91,7 @@ class Toast(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         rows = list(self.items or ())[-4:]
         n = len(rows)
         lis = [
@@ -116,7 +115,7 @@ class Toast(Component):
             if n
             else p("No notices yet.", className=self.class_lede)
         )
-        return kit_shell(self,
+        return wrap_in_card(self,
             status,
             div(
                 button(

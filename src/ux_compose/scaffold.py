@@ -171,7 +171,7 @@ ROUTES_HELLO_PY = dedent('''\
     control() emits data-ux-action + data-channel-action (live click bind)
     and mints a Cap when Cap Host is live. hello.inc is open mint / no Cap
     predicate (Intent still requires the control-minted cap under Cap Host
-    require). hello.pulse is fail-closed (caps=("pulse",)). HTMX is opt-in at
+    require). hello.pulse is fail-closed (caps=("pulse.refresh",)). HTMX is opt-in at
     Document layer. render() stays a #hello fragment (the morph payload).
     Host wraps Document — never the brand bar inside render().
     """
@@ -209,7 +209,7 @@ ROUTES_HELLO_PY = dedent('''\
             self.n = int(self.n or 0) + 1
             return update_with(self, extra_ops=[notify("incremented")])
 
-        @action(caps=("pulse",))
+        @action(caps=("pulse.refresh",))
         def pulse(self):
             self.pulses = int(self.pulses or 0) + 1
             return update_with(self, extra_ops=[notify("pulsed")])
@@ -265,9 +265,9 @@ INPUT_CSS = dedent('''\
 
 # Pins match Makefile / pyproject.toml (SSOT). CI installs via pip install -e ".[dev]".
 CHANNEL_VCS_PIN = "f1a93fcf298c97a59fa6538697731e19aac8586d"
-BEHAVIOR_VCS_PIN = "7d46979f59f284bc2d6d961ed372ec849e851dfc"
+BEHAVIOR_VCS_PIN = "2ae5c3de6c60756cfccfa0174355037436bb3f14"
 MOTION_VCS_PIN = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
-DOM_VCS_PIN = "cdb0dd1486e58746c51e98aa51f5fd4d26841196"
+DOM_VCS_PIN = "0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4"
 COMPOSE_VCS_PIN = "24a182f35e3d0743a2faafddb5ba0396324b2d9a"
 
 REQUIREMENTS = dedent(f'''\
@@ -341,7 +341,7 @@ README = dedent('''\
     ## Laws
 
     - Isolation: product modules never import `ux_channel` or CEK
-    - Cap Law: protected actions fail closed under `strict_caps=True`
+    - Cap Law: protected actions fail closed (`strict_caps=True` is the default)
     - HTMX is opt-in (`use_htmx=True` in main)
     - Progressive Superpower: complete install first; this Level 1 page unit
       stays correct at L2/L3 (levels are additive)

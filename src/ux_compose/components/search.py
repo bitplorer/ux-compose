@@ -5,12 +5,10 @@ Ported from the ``forms`` example module (spec §4); that example stays as the t
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
     action,
-    notify,
     update_with,
     div,
     h2,
@@ -21,7 +19,6 @@ from ux_compose import (
     form,
     button,
     control,
-    span,
 )
 
 from ux_compose.author import act, field, mark_dirty

@@ -24,7 +24,6 @@ from ux_compose import (
     header,
     ul,
     li,
-    span,
 )
 
 from examples._common import act, mark_dirty, optional_plan, optional_slide, optional_fade
@@ -293,7 +292,7 @@ class Banner(Component):
 
 
 def demo() -> None:
-    app = App.boot("Overlays", strict_caps=False)
+    app = App.boot("Overlays")
     app.add(Toasts, Confirm, Lightbox, Palette, Banner)
     print("toast", app.dispatch("toasts.push", message="hi"))
     print("ask", app.dispatch("confirm.ask", id="oak-02"))

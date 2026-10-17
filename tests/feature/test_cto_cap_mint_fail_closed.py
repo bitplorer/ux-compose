@@ -225,7 +225,7 @@ def test_scaffold_hello_source_has_pulse_cap_control():
     src = ROUTES_HELLO_PY
     blob = " ".join(src.split())
     assert "pulses = MorphState" in src
-    assert '@action(caps=("pulse",))' in src
+    assert '@action(caps=("pulse.refresh",))' in src
     assert 'control("hello.pulse")' in src
     assert "import ux_channel" not in src
     assert "from ux_channel" not in src

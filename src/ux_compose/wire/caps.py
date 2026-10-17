@@ -272,7 +272,7 @@ def bridge_actions(behavior: Any, channel: Any) -> list[str]:
     """Register product @action names on Channel so Caps mint against author names.
 
     Channel verifies Caps at the edge; the handler then Host-dispatches with
-    _trusted=True (Behavior._require_caps skips when _wire is set).
+    _trusted=True (the Channel has already verified the Cap; ux-behavior >=0.4.0 no longer skips the check just because _wire is set).
     """
     registered: list[str] = []
     if behavior is None or channel is None:

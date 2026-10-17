@@ -5,12 +5,9 @@ Ported from the ``overlays`` example module (spec §4); that example stays as th
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
-    RefState,
     action,
-    notify,
     update_with,
     div,
     h2,
@@ -18,10 +15,9 @@ from ux_compose import (
     header,
     ul,
     li,
-    span,
 )
 
-from ux_compose.author import act, mark_dirty, optional_plan, optional_slide, optional_fade
+from ux_compose.author import act
 
 class Palette(Component):
     """Command palette. Query is MorphState (must repaint matches)."""

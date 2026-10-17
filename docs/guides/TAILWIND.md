@@ -169,12 +169,11 @@ python -m pytailwindcss \
 
 `ux_compose.tailwind.resolve_tailwind` (first hit wins):
 
-1. `UXCOMPOSE_TAILWIND` (alias `UXDOM_TAILWIND`) or `TAILWINDCSS`
+1. `UXCOMPOSE_TAILWIND` or `TAILWINDCSS`
 2. `tailwindcss` on PATH
 3. `pytailwindcss` (`pip install pytailwindcss`)
 4. local `node_modules/.bin` / `@tailwindcss/cli` (never implicit npx here)
 5. cached official standalone under `$XDG_CACHE_HOME/ux-compose/` (v4.1.12)
-   (also reads leftover `$XDG_CACHE_HOME/ux-dom/` binaries)
 6. download that standalone (`ensure=True`; `UXCOMPOSE_TAILWIND_DOWNLOAD=0` disables)
 7. last resort: `npx --yes @tailwindcss/cli`
 

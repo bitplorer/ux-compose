@@ -160,7 +160,7 @@ class Kanban(Component):
 
 
 def demo() -> None:
-    app = App.boot("Board", strict_caps=False)
+    app = App.boot("Board")
     app.add(DataTable, Kanban)
     print("sort", app.dispatch("table.sort_by", key="price"))
     print("sel", app.dispatch("table.toggle_row", sku="oak-02"))

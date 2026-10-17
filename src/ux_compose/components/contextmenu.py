@@ -15,7 +15,7 @@ inherit it. The menu is a floating panel (list-none), not a native tab/list.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     RefState,
@@ -95,7 +95,7 @@ class ContextMenu(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         ran = str(self.ran or "")
         menu_id = f"{self.id}-menu"
@@ -125,7 +125,7 @@ class ContextMenu(Component):
                 ),
                 ul(*rows, id=menu_id, className=self.class_menu, role="menu"),
             ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(
                 "The trigger accepts both pointers. Items stay on click only.",
                 className=self.class_lede,

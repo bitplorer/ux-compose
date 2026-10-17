@@ -78,7 +78,7 @@ class Cart(Component):
         self.count = int(self.count) + 1
         return update_with(self, extra_ops=[notify(f"Added {sku}")])
 
-app = App.boot("Shop", strict_caps=False, level=1)
+app = App.boot("Shop", level=1)
 app.add(Cart)
 print(app.dispatch("cart.add", sku="tee"))
 print(int(app.level), app.level.label)
@@ -177,7 +177,7 @@ def add(self, sku: str = ""):
 
 <a id="co-morph-play"></a>
 
-morph_play emits a morph of the target, then the plan ops. Still obey XOR: do not also pass html= on the same target.
+morph_play emits a morph of `component` into the target, then the plan ops. `component` is required. Still obey XOR: do not also pass html= on the same target.
 
 ```python
 from ux_compose import morph_play, scene, rise
@@ -186,7 +186,7 @@ from ux_compose import morph_play, scene, rise
 def add(self, sku: str = ""):
     self.count = int(self.count) + 1
     plan = scene("cart-pop").enter(f"#{self.id}", rise.enter(ms=160))
-    return morph_play(self.id, plan)
+    return morph_play(self.id, plan, component=self)
 ```
 
 ### scan / validate / mount surfaces

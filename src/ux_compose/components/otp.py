@@ -9,7 +9,7 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -99,9 +99,9 @@ class Otp(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         if bool(self.ok):
-            return kit_shell(self,
+            return wrap_in_card(self,
                 div(
                     span("Ok", className=self.class_mark),
                     h2("Code accepted", className=self.class_title),
@@ -120,7 +120,7 @@ class Otp(Component):
             )
         code = str(self.code or "")
         err = str(self.err or "")
-        return kit_shell(self,
+        return wrap_in_card(self,
             form(
                 label("One-time code", className=self.class_label, html_for="otp-code"),
                 input_(

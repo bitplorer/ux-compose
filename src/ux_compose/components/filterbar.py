@@ -15,7 +15,7 @@ selected ``tabindex=0`` others ``-1``. Hits are a list. Not SearchBar
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     RefState,
@@ -108,7 +108,7 @@ class FilterBar(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         which = str(self.which or "all")
         keys = {row[0] for row in self._filters()}
         if which not in keys:
@@ -138,7 +138,7 @@ class FilterBar(Component):
             if rows
             else p("No matches.", role="status", className=self.class_lede)
         )
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(
                 f"{len(hits)} match" + ("" if len(hits) == 1 else "es") + ".",
                 className=self.class_lede,

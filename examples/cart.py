@@ -64,7 +64,7 @@ class Cart(Component):
 
 if __name__ == "__main__":
     # Level 1 — offline interactive (Channel is an additive attach)
-    app = App.boot("Shop", strict_caps=False)
+    app = App.boot("Shop")
     app.add(Cart)
 
     ops = app.dispatch("cart.add", sku="tee")

@@ -9,7 +9,7 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -17,7 +17,6 @@ from ux_compose import (
     notify,
     update_with,
     button,
-    div,
     h2,
     nav,
     p,
@@ -70,7 +69,7 @@ class Breadcrumb(Component):
         return rows[: idx + 1], cur
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         shown, cur = self._shown()
         label = shown[-1][1]
         crumbs = []
@@ -89,7 +88,7 @@ class Breadcrumb(Component):
                         **bind(self.goto, key=key),
                     )
                 )
-        return kit_shell(self,
+        return wrap_in_card(self,
             nav(*crumbs, className=self.class_trail, aria_label="Breadcrumb"),
             h2(label, className=self.class_title),
             id=self.id,

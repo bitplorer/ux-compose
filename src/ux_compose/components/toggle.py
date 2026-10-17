@@ -5,22 +5,18 @@ Ported from the ``foundation`` example module (spec §4); that example stays as 
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
-    RefState,
     action,
-    doctor,
     notify,
     update_with,
     div,
     h2,
     p,
-    span,
     header,
 )
 
-from ux_compose.author import act, optional_plan, mark_dirty
+from ux_compose.author import act
 
 class Toggle(Component):
     """Boolean MorphState is qualitative — legal on the session plane."""
@@ -30,7 +26,6 @@ class Toggle(Component):
 
     def render(self):
         on = bool(self.on)
-        label = "On" if on else "Off"
         kids = (
             header(
                 p("Boolean MorphState", className="kicker"),

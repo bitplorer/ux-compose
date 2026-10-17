@@ -94,7 +94,7 @@ pr = probe()
 pr.specialists          # {"ux_dom": bool, ...}
 pr.level_available      # 0–3
 pr.has_dom_cli          # uxdom binary present (pure-dom tooling)
-pr.incomplete_stack_messages(requested_level=3)  # fail-loud diagnostics
+pr.incomplete_stack_messages()  # fail-loud diagnostics
 ```
 
 ## What compose deliberately does not own

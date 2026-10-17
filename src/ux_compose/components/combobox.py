@@ -14,7 +14,7 @@ A11y (APG Combobox): input ``role=combobox`` ``aria-expanded`` ``aria-controls``
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     RefState,
@@ -119,7 +119,7 @@ class Combobox(Component):
             self.query = str(kwargs["q"])
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         q = str(self.query or "")
         val = str(self.value or "")
         is_open = bool(self.open)
@@ -153,7 +153,7 @@ class Combobox(Component):
             )
         chosen = f"Chosen · {val}" if val else "Nothing chosen yet."
         field_id = f"{self.id}-q"
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(chosen, className=self.class_lede),
             div(
                 form(

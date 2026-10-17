@@ -1,8 +1,8 @@
 """Ownable components: one per module; ``uxcompose add <slug>`` copies one into your app.
 
-Replaces ``ux_compose.kit`` (now a deprecation shim, removed after one release).
+Replaces the removed ``ux_compose.kit`` package.
 Shared helpers live in ``ux_compose.arrange`` (``arrange_slots``, ``wrap_in_card``,
-``build_heading``). Registry and copier live in ``ux_compose.cli``.
+``build_heading``). Registry and copier live in the CLI package.
 """
 
 from ux_compose.components.accordion import Accordion

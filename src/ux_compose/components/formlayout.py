@@ -13,7 +13,7 @@ A11y: label ``html_for`` ↔ control ``id``; ``aria-invalid`` +
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -25,10 +25,8 @@ from ux_compose import (
     button,
     div,
     form,
-    h2,
     input_,
     label,
-    p,
     span,
 )
 
@@ -92,7 +90,7 @@ class FormLayout(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         vals = self._map(self.values)
         errs = self._map(self.errors)
         fields = []
@@ -118,7 +116,7 @@ class FormLayout(Component):
                     className=self.class_field,
                 )
             )
-        return kit_shell(self,
+        return wrap_in_card(self,
             form(
                 *fields,
                 button("Save", type="button", className=self.class_submit, **bind(self.submit)),

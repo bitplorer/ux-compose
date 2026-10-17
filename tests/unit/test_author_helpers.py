@@ -33,7 +33,7 @@ def test_field_and_status_offline_strings():
 
 
 def test_stepper_finish_cap_is_stepper_finish():
-    from ux_compose.kit.stepper import Stepper
+    from ux_compose.components.stepper import Stepper
 
     caps = tuple(getattr(Stepper.finish, "_ux_behavior_caps", ()) or getattr(Stepper.finish, "_ux_caps", ()) or ())
     assert caps == ("stepper.finish",)

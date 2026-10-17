@@ -1,6 +1,8 @@
 """Unit: product Tailwind compiler resolution lives on ux-compose."""
 from __future__ import annotations
 
+import pytest
+
 import stat
 import sys
 from pathlib import Path
@@ -25,7 +27,6 @@ def test_env_wins(tmp_path, monkeypatch):
     fake.write_text("#!/bin/sh\n")
     fake.chmod(0o755)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND", str(fake))
-    monkeypatch.delenv("UXDOM_TAILWIND", raising=False)
     monkeypatch.delenv("TAILWINDCSS", raising=False)
     hit = resolve_tailwind(ensure=False)
     assert hit is not None
@@ -33,16 +34,51 @@ def test_env_wins(tmp_path, monkeypatch):
     assert hit.argv == [str(fake)]
 
 
-def test_legacy_uxdom_env_alias(tmp_path, monkeypatch):
-    fake = tmp_path / "tw"
-    fake.write_text("#!/bin/sh\n")
-    fake.chmod(0o755)
-    monkeypatch.delenv("UXCOMPOSE_TAILWIND", raising=False)
-    monkeypatch.setenv("UXDOM_TAILWIND", str(fake))
-    monkeypatch.delenv("TAILWINDCSS", raising=False)
-    hit = resolve_tailwind(ensure=False)
-    assert hit is not None
-    assert hit.argv == [str(fake)]
+LEGACY_ENV = {
+    "UXDOM_TAILWIND": "UXCOMPOSE_TAILWIND",
+    "UXDOM_TAILWIND_DOWNLOAD": "UXCOMPOSE_TAILWIND_DOWNLOAD",
+    "UXDOM_TAILWIND_VERSION": "UXCOMPOSE_TAILWIND_VERSION",
+    "UXDOM_CACHE": "UXCOMPOSE_CACHE",
+}
+
+
+@pytest.mark.parametrize("legacy, replacement", sorted(LEGACY_ENV.items()))
+def test_legacy_uxdom_env_fails_loudly(legacy, replacement, monkeypatch):
+    """0.2.0: a removed UXDOM_* knob must not be silently ignored (fail-open).
+
+    E.g. UXDOM_TAILWIND_DOWNLOAD=0 forbade network downloads; ignoring it would
+    download and execute a binary. Resolution refuses and names the new knob.
+    """
+    import ux_compose.tailwind as tw
+
+    for name in LEGACY_ENV:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv(legacy, "0")
+    with pytest.raises(tw.LegacyTailwindEnvError) as exc:
+        resolve_tailwind(ensure=True)
+    assert legacy in str(exc.value) and replacement in str(exc.value)
+    with pytest.raises(tw.LegacyTailwindEnvError):
+        tw.cache_dir()
+
+
+def test_uxdom_tailwind_owned_is_not_a_knob(monkeypatch):
+    """The old UXDOM_TAILWIND_OWNED marker was an output, not a setting."""
+    import ux_compose.tailwind as tw
+
+    for name in LEGACY_ENV:
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("UXDOM_TAILWIND_OWNED", "1")
+    tw.cache_dir()
+
+
+def test_no_uxdom_reads_or_legacy_cache_in_tailwind_source():
+    from pathlib import Path
+
+    src = Path(__file__).resolve().parents[2] / "src" / "ux_compose"
+    tw = (src / "tailwind.py").read_text(encoding="utf-8")
+    assert 'environ.get("UXDOM_' not in tw
+    assert "_legacy_cache_dir" not in tw
+    assert "UXDOM_" not in (src / "cli/product_build.py").read_text(encoding="utf-8")
 
 
 def test_no_npx_without_ensure(monkeypatch):
@@ -156,7 +192,6 @@ def test_product_build_runs_fake_compiler(tmp_path, monkeypatch):
     )
     fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND", str(fake))
-    monkeypatch.delenv("UXDOM_TAILWIND", raising=False)
     monkeypatch.delenv("TAILWINDCSS", raising=False)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND_DOWNLOAD", "0")
     monkeypatch.chdir(root)

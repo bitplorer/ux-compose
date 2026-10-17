@@ -18,7 +18,7 @@ from __future__ import annotations
 from ux_compose.components.overlay import overlay as overlay_chrome
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     RefState,
@@ -72,7 +72,7 @@ class Sheet(Component):
         return overlay_chrome(self.id, kind="sheet")
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         ch = self._chrome()
         layer = []
@@ -124,7 +124,7 @@ class Sheet(Component):
                     **ch.focus_attrs(),
                 ),
             ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(
                 "A sheet is a dialog that arrives from the side. Swipe right on Close to dismiss.",
                 className=self.class_lede,

@@ -16,14 +16,13 @@ panel ``aria-labelledby`` the tab. Inactive panels stay in the tree with
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
     bind,
     notify,
     update_with,
-    div,
     h2,
     p,
     button,
@@ -102,7 +101,7 @@ class Tabs(Component):
         return items[0]
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         key, _label, _title, _body = self._current()
         segs = []
         panels = []
@@ -140,7 +139,7 @@ class Tabs(Component):
                     **panel_attrs,
                 )
             )
-        return kit_shell(self,
+        return wrap_in_card(self,
             nav(*segs, className=self.class_tablist, role="tablist", aria_label="Tabs"),
             *panels,
             id=self.id,

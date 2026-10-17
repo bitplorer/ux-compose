@@ -36,7 +36,7 @@ matching the Rust peer. Compose does not re-implement that body. Product
 
 ```text
 host.open(name, host)          # FastAPI() or DirectoryASGI
-App.boot(..., level=1)         # Behavior only
+App.boot(..., level=1)         # Behavior only (strict_caps=True by default)
 _attach_document(...)          # author's Document SSoT
 App.use_channel(asgi_app=)     # after the process exists
 DirectoryRoutes.discover()     # one path law
@@ -319,3 +319,10 @@ quietly add a second pipeline.
 | [guides/PATH.md](../guides/PATH.md) | Product path tutorial |
 | ux-dom `response/starlette.py` | `HTMLResponse` / `StreamingResponse` adapters |
 | ux-dom `response/serialize.py` | `prepare_html_body` / `prepare_html_stream` / CSP stamp |
+
+
+## Cap default (0.2.0)
+
+`App` and `build()` fail closed: `strict_caps=True` is the default. A capped
+`@action` with no Channel Cap, `app.trust()` or `_trusted=True` raises
+`AuthorityError`. Pass `strict_caps=False` only for an unchecked local sandbox.

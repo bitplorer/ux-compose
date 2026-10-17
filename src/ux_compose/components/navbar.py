@@ -14,7 +14,7 @@ menu are two trees — never reuse one VDOM list.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -85,7 +85,7 @@ class Navbar(Component):
         return nodes
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         cur = str(self.active or self._links()[0][0])
         is_open = bool(self.open)
         panel_id = f"{self.id}-menu"
@@ -94,7 +94,7 @@ class Navbar(Component):
             if is_open
             else span("", id=panel_id, className=self.class_sr)
         )
-        return kit_shell(self,
+        return wrap_in_card(self,
             nav(
                 span("Lumen", className=self.class_brand),
                 div(*self._link_nodes(cur), className=self.class_links),

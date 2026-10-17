@@ -11,14 +11,13 @@ MorphState: ``open``. Caps: none. A11y: ``role=alert`` for assertive copy.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
     bind,
     update_with,
     button,
-    div,
     h2,
     p,
     span,
@@ -54,9 +53,9 @@ class Alert(Component):
     open = MorphState(True)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         if not bool(self.open):
-            return kit_shell(self,
+            return wrap_in_card(self,
                 button("Show alert", type="button", className=self.class_x + " border border-stone-200", **bind(self.show)),
                 heading=(
                     span("Quiet", className="text-xs font-medium uppercase tracking-widest text-stone-400"),
@@ -68,7 +67,7 @@ class Alert(Component):
                 data_open="0",
             )
         title_id = f"{self.id}-title"
-        return kit_shell(self,
+        return wrap_in_card(self,
             span(self.KIND, className=self.class_kicker),
             h2(self.TITLE, id=title_id, className=self.class_title),
             p(self.BODY, className=self.class_lede),

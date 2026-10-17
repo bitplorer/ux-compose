@@ -5,7 +5,6 @@ Ported from the ``ops`` example module (spec §4); that example stays as the tea
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
@@ -16,10 +15,6 @@ from ux_compose import (
     h2,
     p,
     header,
-    ul,
-    li,
-    span,
-    section,
 )
 
 from ux_compose.author import act, mark_dirty, status

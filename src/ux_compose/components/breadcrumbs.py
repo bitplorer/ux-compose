@@ -5,10 +5,8 @@ Ported from the ``shell`` example module (spec §4); that example stays as the t
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
-    RefState,
     action,
     notify,
     update_with,
@@ -17,13 +15,10 @@ from ux_compose import (
     p,
     header,
     nav,
-    section,
     span,
-    ul,
-    li,
 )
 
-from ux_compose.author import act, mark_dirty
+from ux_compose.author import act
 
 ROUTES = (
     ("table", "Table", "The working surface. Lists morph in place."),

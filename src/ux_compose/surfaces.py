@@ -81,8 +81,6 @@ class SurfaceBundle:
     sealed: bool = False
     unit_registry: dict[str, Any] = field(default_factory=dict)
 
-    def action_names(self) -> list[str]:
-        return [a["name"] for a in self.action_table]
 
 
 def _is_action(obj: Any) -> bool:
@@ -159,7 +157,7 @@ def _folder_url_prefix(rel_dir: str, base_directory: str) -> str:
     return ("/" + "/".join(cleaned)) if cleaned else ""
 
 
-def _file_url(prefix: str, stem: str, route_file_name: str = "route") -> str:
+def _file_url(prefix: str, stem: str) -> str:
     from ux_compose.routing.core import http_path
 
     segs = [p for p in (prefix or "").strip("/").split("/") if p] + [stem]
@@ -302,7 +300,6 @@ def mount_surfaces(
     asgi_app: Any = None,
     fail_closed: bool = True,
     bind_pages: bool = True,
-    include_directory_router: bool | None = None,
     on_surface: Optional[Callable[[Surface], None]] = None,
     package_name: Optional[str] = None,
     host: str = "auto",
@@ -311,11 +308,8 @@ def mount_surfaces(
 
     Host bind is delegated to ``surfaces_host.attach_page_router``
     (``ux_compose.routing.DirectoryRoutes`` + ``host.bind``).
-    ``host="batteries"`` fails closed. ``include_directory_router`` is a
-    deprecated alias of ``bind_pages``.
+    ``host="batteries"`` fails closed.
     """
-    if include_directory_router is not None:
-        bind_pages = include_directory_router
     surfaces = scan_surfaces(
         package_dir,
         base_directory=base_directory,

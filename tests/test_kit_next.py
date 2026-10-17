@@ -1,6 +1,7 @@
 """Next-round kit: sidebar, breadcrumb, stepper, carousel, calendar, select, otp, plans."""
 from __future__ import annotations
 
+import html as _htmlmod
 import sys
 from pathlib import Path
 
@@ -10,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose import App, HAS_DOM
-from ux_compose.kit import (
+from ux_compose.components import (
     Breadcrumb,
     Calendar,
     Carousel,
@@ -78,7 +79,7 @@ def test_stepper_next_finish_cap():
     assert "Finish" in html
     app.dispatch("stepper.finish")
     html = _html(app, "stepper")
-    assert "You're through" in html
+    assert "You're through" in _htmlmod.unescape(html)  # ux-dom 0.2 escapes ' as &#39;
     assert 'data-done="1"' in html
 
     strict = _boot(Stepper, strict_caps=True)

@@ -84,6 +84,6 @@ an optional unlock. Zero rewrite.
 
 ## See also
 
-- `examples/list_stagger.py`
-- `examples/page_transition.py`
+- `examples/lists.py` (stagger + optimistic list)
+- `examples/navigation.py` (region swap)
 - `apps/atelier_shop` — product cart uses the same `update_with` seat

@@ -123,6 +123,24 @@ def _render_unit(sid: str):
         return inst.render()
 
 
+def _is_public_action(ux, name: str) -> bool:
+    """Allow-list for the /act fall-through: only @action(caps=()) dispatches.
+
+    Capped names must go through the Channel (MINT / REFUSE). Anything else,
+    including unknown names, is refused, so a missed name cannot become an
+    anonymous HTTP bypass.
+    """
+    try:
+        cid, meth = str(name).rsplit(".", 1)
+        inst = ux.behavior.get(cid)
+    except (ValueError, KeyError):
+        return False
+    fn = getattr(inst, meth, None)
+    if not callable(fn) or not getattr(fn, "_ux_behavior_action", False):
+        return False
+    return not tuple(getattr(fn, "_ux_behavior_caps", ()) or ())
+
+
 def attach_doors(asgi, ux=UX):
     if asgi is None or not hasattr(asgi, "get"):
         return asgi
@@ -161,18 +179,21 @@ def attach_doors(asgi, ux=UX):
         cap = sealed.pop("cap", None)
         flash = ""
         try:
-            if action_name in MINT or action_name.endswith("close_quarter"):
+            if action_name in MINT:  # exact names only; never a suffix match
                 if not cap:
                     cap = ux.mint_cap(action_name, sealed, once=True)
                 await ux.submit_intent_async(action_name, cap=cap, args=sealed)
-            elif action_name in REFUSE or action_name.endswith(".wipe"):
+            elif action_name in REFUSE:
                 result = await ux.submit_intent_async(action_name, mint=False, args=sealed)
                 ok = bool(getattr(result, "ok", False))
                 if not ok:
                     flash = "Refused — no Cap."
                     ux.dispatch("desk_close.mark_refused", reason="no Cap")
-            else:
+            elif _is_public_action(ux, action_name):
                 ux.dispatch(action_name, **sealed)
+            else:
+                flash = "Refused — not a public action."
+
         except Exception as exc:
             flash = str(exc)
 

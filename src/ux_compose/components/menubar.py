@@ -16,7 +16,7 @@ Escape on scrim. Not Navbar (landmark links) and not NavMenu (one disclosure).
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -93,7 +93,7 @@ class Menubar(Component):
         return tuple(self.MENUS)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         opened = str(self.open or "")
         val = str(self.value or "")
         tops = []
@@ -146,7 +146,7 @@ class Menubar(Component):
             else span("", className=self.class_sr)
         )
         chosen = val or "none yet"
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(f"Last command · {chosen}. Opening a menu is public.", className=self.class_lede),
             scrim,
             div(

@@ -27,7 +27,6 @@ from ux_compose import (
     form,
     button,
     control,
-    span,
 )
 
 from examples._common import act, field, mark_dirty
@@ -71,7 +70,7 @@ class SignupForm(Component):
         )
         return div(*kids, id=self.id, className="widget")
 
-    @action(caps=())
+    @action(caps=("account.create",))
     def submit(self, email: str = ""):
         self.attempts = int(self.attempts or 0) + 1
         self.email = (email or self.email or "").strip()
@@ -239,10 +238,10 @@ class Search(Component):
 
 
 def demo() -> None:
-    app = App.boot("Forms", strict_caps=False)
+    app = App.boot("Forms")
     app.add(SignupForm, Wizard, Search)
-    print("bad", app.dispatch("signup.submit", email="nope"))
-    print("ok", app.dispatch("signup.submit", email="you@atelier.test"))
+    print("bad", app.dispatch("signup.submit", email="nope", _trusted=True))
+    print("ok", app.dispatch("signup.submit", email="you@atelier.test", _trusted=True))
     print("wiz", app.dispatch("wizard.next", name="Noor"))
     print("search", app.dispatch("search.type", q="oak"))
     strict = App.boot("Forms", strict_caps=True)

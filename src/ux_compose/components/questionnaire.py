@@ -16,7 +16,7 @@ the group via legend id. Not FormLayout (free text) and not Fieldset
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -103,11 +103,11 @@ class Questionnaire(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         answers = self._map()
         if bool(self.done):
             bits = ", ".join(f"{k}={v}" for k, v in answers.items()) or "empty"
-            return kit_shell(self,
+            return wrap_in_card(self,
                 p(bits, className=self.class_lede),
                 id=self.id,
                 className=self.class_card,
@@ -152,7 +152,7 @@ class Questionnaire(Component):
         }
         for qkey, _prompt, _opts in self._questions():
             card_attrs[f"data_{qkey}"] = answers.get(qkey, "")
-        return kit_shell(self,
+        return wrap_in_card(self,
             *blocks,
             button("Send answers", type="button", className=self.class_btn, **bind(self.submit)),
             **card_attrs,

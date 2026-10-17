@@ -42,7 +42,7 @@ Atelier of Patterns also hosts the same desk at `/pulseboard` (`make studio`).
 
 ## Kit used
 
-Subclasses of `ux_compose.kit` (library stays the source of truth):
+Subclasses of `ux_compose.components` (library stays the source of truth):
 
 | Kit | Pulseboard id | Role |
 |-----|---------------|------|

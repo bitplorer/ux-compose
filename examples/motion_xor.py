@@ -35,7 +35,7 @@ from ux_compose import (
     span,
 )
 
-from examples._common import act, mark_dirty, optional_plan, scene, rise, fade
+from examples._common import act, optional_plan, scene, rise, fade
 
 
 class MotionBox(Component):
@@ -128,7 +128,7 @@ class ShareSeat(Component):
 
 
 def demo() -> None:
-    app = App.boot("Motion", strict_caps=False)
+    app = App.boot("Motion")
     app.add(MotionBox, ShareSeat)
     print("hop", app.dispatch("motionbox.hop"))
     print("share", app.dispatch("share.fly"))

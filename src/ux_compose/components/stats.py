@@ -12,7 +12,7 @@ MorphState: ``dirty``. RefState: ``items``. Caps: none. A11y: list of
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -22,7 +22,6 @@ from ux_compose import (
     update_with,
     button,
     div,
-    h2,
     p,
     span,
 )
@@ -63,7 +62,7 @@ class Stats(Component):
         return live if live else tuple(self.ITEMS)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         tiles = [
             div(
                 span(lab, className=self.class_kicker),
@@ -74,7 +73,7 @@ class Stats(Component):
             )
             for key, lab, val in self._items()
         ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(*tiles, className=self.class_grid),
             button("Refresh", type="button", className=self.class_btn, **bind(self.refresh)),
             id=self.id,

@@ -12,7 +12,7 @@ A11y: label ``for`` ↔ input id; chips are buttons with ``aria-label`` remove.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -24,7 +24,6 @@ from ux_compose import (
     button,
     div,
     form,
-    h2,
     input_,
     label,
     p,
@@ -67,7 +66,7 @@ class TagsInput(Component):
         self.dirty = "b" if self.dirty == "a" else "a"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         tags = tuple(self.tags or ())
         draft = str(self.draft or "")
         fid = f"{self.id}-draft"
@@ -79,7 +78,7 @@ class TagsInput(Component):
             )
             for t in tags
         ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(*chips, className=self.class_row) if chips else p("No tags yet.", className=self.class_lede),
             form(
                 label("Add a tag", className=self.class_label, html_for=fid),

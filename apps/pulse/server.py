@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import parse_qs
 
 from ux_compose import (
@@ -65,6 +65,10 @@ NAV = (
     ("/settings", "Settings"),
 )
 
+
+# Host-minted Cap actions. Exact names: a suffix match would auto-mint for
+# any capped action whose name happens to end the same way.
+MINT = {"shop.checkout"}
 
 def _clean_args(args: dict[str, Any]) -> dict[str, Any]:
     clean: dict[str, Any] = {}
@@ -227,6 +231,24 @@ def _page_for_path(path: str) -> str:
     return "home"
 
 
+def _is_public_action(ux, name: str) -> bool:
+    """Allow-list for the /act fall-through: only @action(caps=()) dispatches.
+
+    Capped names must go through the Channel (MINT / REFUSE). Anything else,
+    including unknown names, is refused, so a missed name cannot become an
+    anonymous HTTP bypass.
+    """
+    try:
+        cid, meth = str(name).rsplit(".", 1)
+        inst = ux.behavior.get(cid)
+    except (ValueError, KeyError):
+        return False
+    fn = getattr(inst, meth, None)
+    if not callable(fn) or not getattr(fn, "_ux_behavior_action", False):
+        return False
+    return not tuple(getattr(fn, "_ux_behavior_caps", ()) or ())
+
+
 def build():
     document = _document()
     wrap = _pulse_wrap(document)
@@ -273,13 +295,19 @@ def build():
         sealed = dict(args)
         cap = sealed.pop("cap", None)
         try:
-            if action_name.endswith("checkout"):
+            if action_name in MINT:  # exact names only; never a suffix match
                 if not cap:
                     cap = app.mint_cap(action_name, sealed, once=True)
                 await app.submit_intent_async(action_name, cap=cap, args=sealed)
                 # Cap refuse must not fall through to dispatch.
-            else:
+            elif _is_public_action(app, action_name):
                 app.dispatch(action_name, **sealed)
+            else:
+                return _html_response(
+                    p("Refused — not a public action.", className="text-stone-500"),
+                    status_code=403,
+                )
+
         except Exception as exc:
             return _html_response(
                 p(f"Action error: {exc}", className="text-stone-500"),

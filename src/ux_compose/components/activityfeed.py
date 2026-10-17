@@ -5,7 +5,6 @@ Ported from the ``feeds`` example module (spec §4); that example stays as the t
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
@@ -18,13 +17,9 @@ from ux_compose import (
     header,
     ul,
     li,
-    span,
-    form,
-    button,
-    control,
 )
 
-from ux_compose.author import act, field, mark_dirty, optional_plan, optional_slide, status
+from ux_compose.author import act, mark_dirty
 
 class ActivityFeed(Component):
     """Infinite-ish feed. Cursor is an opaque string MorphState. Items RefState."""

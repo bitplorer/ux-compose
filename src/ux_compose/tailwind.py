@@ -9,12 +9,11 @@ Sibling ``--watch`` spawn for ``serve dev`` lives here
 
 Order (first hit wins):
 
-1. ``UXCOMPOSE_TAILWIND`` (alias: ``UXDOM_TAILWIND``) or ``TAILWINDCSS``
+1. ``UXCOMPOSE_TAILWIND`` or ``TAILWINDCSS``
 2. ``tailwindcss`` on PATH
 3. ``pytailwindcss`` bundled standalone (``pip install pytailwindcss``)
 4. local ``node_modules/.bin`` / ``@tailwindcss/cli`` (no implicit npx)
 5. cached official standalone under ``$XDG_CACHE_HOME/ux-compose/``
-   (also reads leftover ``$XDG_CACHE_HOME/ux-dom/`` binaries)
 6. (only if ``ensure=True``) download the official standalone CLI
 7. (only if ``ensure=True`` and download failed) ``npx --yes @tailwindcss/cli``
 
@@ -57,20 +56,39 @@ class TailwindResolution:
     source: str  # env | path | pytailwindcss | node | cache | download | npx
 
 
+# Removed in 0.2.0. Fail loudly instead of silently ignoring them: e.g.
+# UXDOM_TAILWIND_DOWNLOAD=0 forbade network downloads, and dropping it would
+# fail open (download + execute a binary).
+LEGACY_ENV = {
+    "UXDOM_TAILWIND": "UXCOMPOSE_TAILWIND",
+    "UXDOM_TAILWIND_DOWNLOAD": "UXCOMPOSE_TAILWIND_DOWNLOAD",
+    "UXDOM_TAILWIND_VERSION": "UXCOMPOSE_TAILWIND_VERSION",
+    "UXDOM_CACHE": "UXCOMPOSE_CACHE",
+}
+
+
+class LegacyTailwindEnvError(RuntimeError):
+    """A removed ``UXDOM_*`` Tailwind variable is set."""
+
+
+def _reject_legacy_env() -> None:
+    found = [name for name in LEGACY_ENV if name in os.environ]
+    if found:
+        hints = ", ".join(f"{name} -> {LEGACY_ENV[name]}" for name in found)
+        raise LegacyTailwindEnvError(
+            f"no longer read (removed in 0.2.0): {hints}. "
+            "Rename the variable(s) (or unset them) and run again."
+        )
+
+
 def cache_dir() -> Path:
+    _reject_legacy_env()
     root = (
         os.environ.get("XDG_CACHE_HOME")
         or os.environ.get("UXCOMPOSE_CACHE")
-        or os.environ.get("UXDOM_CACHE")
     )
     base = Path(root) if root else Path.home() / ".cache"
     return base / "ux-compose"
-
-
-def _legacy_cache_dir() -> Path:
-    root = os.environ.get("XDG_CACHE_HOME") or os.environ.get("UXDOM_CACHE")
-    base = Path(root) if root else Path.home() / ".cache"
-    return base / "ux-dom"
 
 
 def standalone_asset_name() -> str:
@@ -93,7 +111,6 @@ def _split_cmd(value: str) -> list[str]:
 def _from_env() -> Optional[TailwindResolution]:
     raw = (
         os.environ.get("UXCOMPOSE_TAILWIND")
-        or os.environ.get("UXDOM_TAILWIND")
         or os.environ.get("TAILWINDCSS")
     )
     if not raw:
@@ -161,16 +178,14 @@ def _from_node_modules(start: Optional[Path] = None) -> Optional[TailwindResolut
 
 def _cached_binary() -> Optional[Path]:
     name = standalone_asset_name()
-    for dest in (cache_dir() / name, _legacy_cache_dir() / name):
-        if dest.is_file() and os.access(dest, os.X_OK):
-            return dest
+    dest = cache_dir() / name
+    if dest.is_file() and os.access(dest, os.X_OK):
+        return dest
     return None
 
 
 def _download_allowed() -> bool:
-    raw = os.environ.get("UXCOMPOSE_TAILWIND_DOWNLOAD") or os.environ.get(
-        "UXDOM_TAILWIND_DOWNLOAD", "1"
-    )
+    raw = os.environ.get("UXCOMPOSE_TAILWIND_DOWNLOAD", "1")
     return raw not in {"0", "false", "False"}
 
 
@@ -182,7 +197,6 @@ def _download_standalone(*, timeout: float = 60.0) -> Optional[Path]:
     dest.parent.mkdir(parents=True, exist_ok=True)
     version = (
         os.environ.get("UXCOMPOSE_TAILWIND_VERSION")
-        or os.environ.get("UXDOM_TAILWIND_VERSION")
         or TAILWIND_STANDALONE_VERSION
     )
     if version in {"latest", ""}:
@@ -221,7 +235,11 @@ def resolve_tailwind(
     cwd: Optional[Path] = None,
     ensure: bool = False,
 ) -> Optional[TailwindResolution]:
-    """Return the first available Tailwind CLI, or None if unavailable."""
+    """Return the first available Tailwind CLI, or None if unavailable.
+
+    Raises ``LegacyTailwindEnvError`` if a removed ``UXDOM_*`` variable is set.
+    """
+    _reject_legacy_env()
     cwd = Path(cwd).resolve() if cwd is not None else None
     for finder in (_from_env, _from_path, _from_pytailwindcss):
         hit = finder()
@@ -338,7 +356,6 @@ def start_tailwind_watch(*, cwd: str | None = None):
     cmd = [("--watch=always" if part == "--watch" else part) for part in cmd]
     env = os.environ.copy()
     env["PYTHONPATH"] = os.pathsep.join([str(root), env.get("PYTHONPATH", "")])
-    env["UXDOM_TAILWIND_OWNED"] = "1"
     try:
         proc = subprocess.Popen(
             cmd, cwd=str(root), env=env, stdin=subprocess.DEVNULL

@@ -5,26 +5,21 @@ Ported from the ``fields`` example module (spec §4); that example stays as the 
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
     action,
-    notify,
     update_with,
     div,
     h2,
     p,
     header,
-    ul,
-    li,
-    span,
     form,
     button,
     control,
 )
 
-from ux_compose.author import act, field, mark_dirty, status
+from ux_compose.author import act, field, mark_dirty
 
 class LimitedNote(Component):
     """Remaining characters are *derived*. Store the text, not the count, as MorphState."""

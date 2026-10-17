@@ -7,6 +7,119 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 0.2.0 — remove deprecations and bloat cleanup
+
+ux-compose and its ux-* specialists are not on PyPI, so these are removed
+outright, with no shims. Call sites, docs and tests are updated.
+
+### Removed — bloat cleanup (no shims)
+
+- Empty extras `[dom]`, `[behavior]`, `[motion]`, `[channel]`, `[full]`.
+  They installed nothing. Use `pip install -e .` (or `.[serve]` / `.[dev]`).
+- `Component.dirty_fields()` / `Component.clear_dirty()`: a best-effort
+  half-feature that read an attribute nothing set. Use `ux_compose.author.mark_dirty`.
+- `ProbeResult.summary_lines()` (no callers) and the ignored
+  `requested_level=` argument of `ProbeResult.incomplete_stack_messages()`.
+- The ignored `channel_scripts=` argument of
+  `ux_compose.wire.boot.attach_document_runtimes()`.
+- `SurfaceBundle.action_names()` (no callers), the ignored
+  `route_file_name` argument of `surfaces._file_url`, and the dead
+  `cli.copy_component._wire_css_import` helper.
+- 368 unused imports / locals across `src/` (mostly the ported
+  `ux_compose.components` modules, which carried the example modules'
+  full import lists).
+
+### Added — bloat cleanup
+
+- `tests/unit/test_bloat_cleanup.py` keeps the removals gone and gates
+  `src/`, `tests/`, `apps/` and `examples/` on ruff pyflakes (`--select F`).
+- `tests/unit/test_fastapi_none_tree.py`: a render returning `None` yields an
+  empty-body ux-dom `HTMLResponse`.
+
+### Added
+
+- ``tests/unit/test_version_gate.py`` (ux-dom pattern): the version is read
+  from ``pyproject.toml``. A fixed list of files must state only that version
+  (with required forms for the README row, ``__version__``, the
+  ``SECURITY.md`` supported row and this heading). A repo-wide scan fails on
+  any "ux-compose X.Y" brand line naming another version. ``pyproject.toml``
+  is the source of the version and is not in the file list, because its
+  ``cek-host`` / ``cek-surface`` ``>=0.2.0`` floors would break the next bump.
+  ``CHANGELOG.md``, ``CRITIC.md`` (the 0.1.0 critic pass), ``docs/plans`` and
+  ``docs/adr`` are history. ``SECURITY.md`` now lists 0.2.x as supported.
+
+### Changed (breaking) — fail closed by default
+
+- ``morph_play(target, plan, *, component)``: ``component`` is required. The
+  deprecated no-component path (an empty patch that cleared the node, with a
+  DeprecationWarning) is removed. An explicit ``component=None`` raises
+  ``TypeError`` too.
+- ``examples/form_validation.py``, ``list_stagger.py``, ``page_transition.py``
+  and ``optimistic_list.py`` (back-compat aliases) are removed. Use
+  ``examples/forms.py``, ``lists.py`` and ``navigation.py``.
+- Tailwind: the ``UXDOM_TAILWIND`` / ``UXDOM_TAILWIND_DOWNLOAD`` /
+  ``UXDOM_TAILWIND_VERSION`` / ``UXDOM_CACHE`` aliases and the leftover
+  ``$XDG_CACHE_HOME/ux-dom/`` binary lookup are removed (use ``UXCOMPOSE_*``).
+  The ``UXDOM_TAILWIND_OWNED`` env write is dropped too: no ux-dom,
+  ux-behavior, ux-channel or ux-motion code reads it.
+  **Fail closed:** if any removed variable is still set, ``resolve_tailwind``
+  and ``cache_dir`` raise ``LegacyTailwindEnvError`` and name the
+  ``UXCOMPOSE_*`` replacement. Silently ignoring it would fail open: for
+  example, ``UXDOM_TAILWIND_DOWNLOAD=0`` forbade network downloads, and
+  dropping it would let the tool download and execute a binary.
+- ``examples/live_caps.py`` ``place_minted`` is gated with ``orders.place``,
+  the same as ``place`` and the component copy.
+
+- **Pins:** ux-compose needs ux-behavior **0.4.0** (no Channel-attach
+  cap bypass, single-use continuations, per-context ``trust()``), pinned at
+  the bitplorer/ux-behavior#17 merge commit ``2ae5c3d`` on ``main``; and
+  ux-dom **0.2.0**, pinned at ``0440ccb`` on ``main`` (escapes ``'`` as
+  ``&#39;`` in text and attributes; asserts compare ``html.unescape``d
+  output). Pins move in lockstep across ``pyproject.toml``, ``Makefile``,
+  ``scaffold.py`` and ``apps/*/requirements.txt``.
+
+- ``App(...)`` / ``App.boot(...)`` now default to ``strict_caps=True``
+  (best-practice default; matches ux-behavior). A capped ``@action`` dispatched
+  with no authority raises ``AuthorityError`` instead of running. ``build()``
+  boots strict too. Opt out only for an unchecked sandbox:
+  ``App.boot(name, strict_caps=False)``. Public actions (``caps=()``) are
+  unaffected; examples and docs no longer pass ``strict_caps=False``.
+- ``LiveOrder.place_minted`` now needs ``orders.place`` (same Cap as
+  ``place``); it was an ungated copy of ``place``.
+- ``Login.logout`` now needs ``auth.logout`` (same as ``UserMenu.sign_out`` /
+  ``Command.sign_out``).
+  **Breaks:** on a Level-1 page with no Channel, the Login "Log out" button is
+  now refused (``AuthorityError``). Migrate one of three ways: (a) attach the
+  Channel (``app.use_channel()`` / ``build(live="auto")``) so ``control()``
+  mints the Cap; (b) call it from trusted host code:
+  ``app.dispatch("login.logout", _trusted=True)``; (c) in your own copy
+  (``uxcompose add login``) set ``@action(caps=())`` on ``logout`` if sign-out
+  is purely local in your app.
+- Gated (server state / user content): ``StockBadge.sell`` / ``restock`` →
+  ``stock.adjust``; ``SignupForm.submit`` → ``account.create``;
+  ``Comments.post`` → ``comments.post``; ``Chat.send`` → ``chat.send``. Same
+  in the teaching copies under ``examples/``; Atelier Studio routes them via
+  its ``MINT`` set. Same migration as above.
+- ``build(..., strict_caps=True)``: new keyword, default fail-closed.
+- Scaffold ``hello.pulse`` cap renamed ``pulse`` → ``pulse.refresh``
+  (``namespace.verb``).
+- Cap-policy test: the namespace allow-list is replaced by a cap-shape check
+  plus a runtime fail-closed check; Cap names are labels, not policy.
+
+### Removed
+
+- ``ux_compose.kit`` package (re-export shim, ``kit.catalog``, ``kit.copy``)
+  and the 79 stale widget copies left under ``src/ux_compose/kit/``. Import
+  from ``ux_compose.components``, ``ux_compose.cli.registry`` and
+  ``ux_compose.cli.copy_component``.
+- ``ux_compose.kit_construct`` (``apply_slots`` / ``kit_shell``). Use
+  ``ux_compose.arrange.arrange_slots`` / ``wrap_in_card``. All components and
+  ``apps/pulseboard`` now import ``ux_compose.arrange`` directly.
+- ``ux_compose.routing.DirectoryRouterError`` alias. Use ``DirectoryRoutesError``.
+- ``include_directory_router=`` on ``App.mount`` / ``mount_surfaces``. Use ``bind_pages=``.
+- ``uxcompose add`` no longer rewrites ``ux_compose.kit`` imports.
+
+
 ### Added
 
 - L5 httpx locks on existing Pulse rooms (home / lab / shop /
@@ -445,7 +558,7 @@ and not a 0.2 line.
 - `create-app` teaching surface: `settings.py`, `document.py`, `assets/css/input.css`, `requirements.txt`.
 - Tailwind CLI finder / download / ensure moved here (`ux_compose.tailwind`). ux-dom does not compile CSS (`TailwindCommand` fail-closed).
 - Product path fail-closed: `build()` honors `level` / `live=null`; `WebAssets.mount_css` wraps DirectoryASGI (no silent `/css` 404); discover CSS is pure (no leftover `app/tailwindcss.py` branch); `uxcompose doctor` prints the teaching report; browser HMR is opt-in (`--hmr`); product root is `app.py` only.
-- `serve="dual_copy"` is the package-static escape hatch name (`serve="webassets"` remains a leftover alias). Not `WebAssets`.
+- `serve="dual_copy"` is the package-static escape hatch name (the `serve="webassets"` alias was removed in ux-dom 0.2.0 and now raises; doctor still flags it). Not `WebAssets`.
 
 ### Changed
 

@@ -12,7 +12,7 @@ A11y: ``svg`` ``role=img`` labelled. Magnitudes live on RefState.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -23,10 +23,7 @@ from ux_compose import (
     update_with,
     button,
     div,
-    h2,
-    p,
     rect,
-    span,
     svg,
 )
 
@@ -64,7 +61,7 @@ class Chart(Component):
         return tuple(out)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         which = str(self.which or self._series()[0][0])
         vals = self._vals()
         n = max(len(self._series()), 1)
@@ -86,7 +83,7 @@ class Chart(Component):
                 )
             )
         width = 12 + n * (bw + gap)
-        return kit_shell(self,
+        return wrap_in_card(self,
             svg(
                 *bars,
                 width=str(width),

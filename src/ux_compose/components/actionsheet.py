@@ -18,7 +18,7 @@ from __future__ import annotations
 from ux_compose.components.overlay import overlay as overlay_chrome
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -94,7 +94,7 @@ class ActionSheet(Component):
         return overlay_chrome(self.id, kind="actionsheet")
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         is_open = bool(self.open)
         picked = str(self.picked or "")
         ch = self._chrome()
@@ -152,7 +152,7 @@ class ActionSheet(Component):
                     **ch.focus_attrs(),
                 ),
             ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(f"Last pick · {picked}" if picked else "Nothing picked yet.", className=self.class_choice),
             button("Open actions", type="button", className=self.class_btn_primary, **bind(self.open_sheet)),
             *layer,

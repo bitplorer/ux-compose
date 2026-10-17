@@ -5,25 +5,18 @@ Ported from the ``navigation`` example module (spec §4); that example stays as 
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
-    RefState,
     action,
-    notify,
     update_with,
     div,
     h2,
     p,
     header,
-    ul,
-    li,
-    span,
     section,
 )
 
 from ux_compose.author import act
-from ux_compose import scene, fade, rise
 
 PIECES = {
     "linen": ("Work shirt", "Washed flax, open collar."),

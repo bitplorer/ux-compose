@@ -11,7 +11,7 @@ MorphState: ``done``. Caps: none. A11y: region labelledby title.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -19,7 +19,6 @@ from ux_compose import (
     notify,
     update_with,
     button,
-    div,
     h2,
     p,
     span,
@@ -54,10 +53,10 @@ class Hero(Component):
         return "Opened"
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         title_id = f"{self.id}-title"
         done = bool(self.done)
-        return kit_shell(self,
+        return wrap_in_card(self,
             h2(self.TITLE, id=title_id, className=self.class_title),
             p(self.BODY, className=self.class_lede),
             button(

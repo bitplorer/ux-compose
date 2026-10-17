@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose import App, HAS_DOM
-from ux_compose.kit.catalog import CATALOG, resolve
-from ux_compose.kit.copy import copy_component
+from ux_compose.cli.registry import CATALOG, resolve
+from ux_compose.cli.copy_component import copy_component
 
 
 PRODUCT_B = ("chat", "questionnaire")
@@ -64,14 +64,14 @@ def test_product_b_render_document_trees():
 
 def test_chat_log_and_send():
     Chat = _cls("chat")
-    app = _boot(Chat, strict_caps=False)
+    app = _boot(Chat)
     html = _html(app, "chat")
     assert 'role="log"' in html
     assert "aria-live" in html
     assert 'for="chat-draft"' in html or 'id="chat-draft"' in html
     assert "the table is set" in html
 
-    app.dispatch("chat.send", text="held until dusk")
+    app.dispatch("chat.send", text="held until dusk", _trusted=True)
     inst = app.behavior.get("chat")
     lines = tuple(inst.lines or ())
     assert any("held until dusk" in str(x) for x in lines)
@@ -124,10 +124,11 @@ def test_a11y_smoke_product_b():
 
 
 def test_product_b_caps():
-    kit = ROOT / "src" / "ux_compose" / "kit"
+    kit = ROOT / "src" / "ux_compose" / "components"
     chat_src = (kit / "chat.py").read_text(encoding="utf-8")
-    assert '@action(caps=())' in chat_src
-    assert "caps=(" not in chat_src.replace('@action(caps=())', "")
+    # 0.2.0: send posts user content -> gated; every other chat action stays public.
+    assert '@action(caps=("chat.send",))' in chat_src
+    assert "caps=(" not in chat_src.replace('@action(caps=())', "").replace('@action(caps=("chat.send",))', "")
     quiz_src = (kit / "questionnaire.py").read_text(encoding="utf-8")
     assert "form.submit" in quiz_src
 

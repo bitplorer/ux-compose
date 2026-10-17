@@ -78,14 +78,14 @@ class LiveOrder(Component):
         mark_dirty(self)
         return update_with(self, extra_ops=[notify("placed")])
 
-    @action(caps=())
+    @action(caps=("orders.place",))
     def place_minted(self):
         """Studio host intercepts this name and calls submit_intent(mint=True).
 
-        Offline this is an open-mint stand-in so the file still runs at L1.
+        Same Cap as ``place``: offline it fails closed like ``place`` does.
         """
         self.status = "placed"
-        self.note = "Host-mint path (studio). Offline this is an open-mint stand-in."
+        self.note = "Host-mint path (studio): Cap minted for orders.place."
         return update_with(self, extra_ops=[notify("minted-path")])
 
     @action(caps=())
@@ -96,10 +96,14 @@ class LiveOrder(Component):
 
 
 def demo() -> None:
-    app = App.boot("Caps", strict_caps=False)
+    app = App.boot("Caps")
     app.add(LiveOrder)
     print("prepare", app.dispatch("liveorder.prepare"))
-    print("open-mint path", app.dispatch("liveorder.place_minted"))
+    try:
+        app.dispatch("liveorder.place_minted")
+        print("UNEXPECTED place_minted")
+    except Exception as exc:
+        print("Cap Law:", type(exc).__name__, "— place_minted needs the same Cap as place")
 
     strict = App.boot("Caps", strict_caps=True)
     strict.add(LiveOrder)

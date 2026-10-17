@@ -5,7 +5,6 @@ Ported from the ``shell`` example module (spec §4); that example stays as the t
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
@@ -16,11 +15,7 @@ from ux_compose import (
     h2,
     p,
     header,
-    nav,
-    section,
     span,
-    ul,
-    li,
 )
 
 from ux_compose.author import act, mark_dirty

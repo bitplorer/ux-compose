@@ -13,7 +13,7 @@ Not a raw overflow atom — this is a composite card.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -23,9 +23,7 @@ from ux_compose import (
     update_with,
     button,
     div,
-    h2,
     p,
-    span,
 )
 
 
@@ -53,7 +51,7 @@ class ScrollArea(Component):
     which = MorphState("top")
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         which = str(self.which or "top")
         chips = [
             button(
@@ -66,7 +64,7 @@ class ScrollArea(Component):
             )
             for key, lab in self.MARKS
         ]
-        return kit_shell(self,
+        return wrap_in_card(self,
             div(*chips, className="flex gap-2", role="radiogroup", aria_label="Jump"),
             div(
                 p(self.BODY, id=f"{self.id}-p-{which}"),

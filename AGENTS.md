@@ -35,9 +35,10 @@ Do not invent a sixth product. `ux-app` is retired.
 
 Folders are import/copy laws. Full table: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) **Folder law**.
 
-- `kit/` is the ownable catalog. `uxcompose add` rewrites `ux_compose.kit.X`.
-  `kit_construct.py` stays **next to** `component.py` so copies keep the
-  library import. Do not move it under `kit/`.
+- `components/` is the ownable catalog. `uxcompose add` rewrites `ux_compose.components.X`.
+  `arrange.py` stays **next to** `component.py` so copies keep the
+  library import. Do not move it under `components/`. `kit/` and
+  `kit_construct.py` were removed in 0.2.0; do not recreate them.
 - `cli/` is the product command layer. `cli/__init__.py` is argv dispatch only.
   Library modules do not import `ux_compose.cli`. `doctor.py`, `build.py`,
   `scaffold.py`, and `tailwind.py` stay at the package root (public algebra).
@@ -62,7 +63,7 @@ Host / surface / motion also on `__all__`: `build`, `WebAssets`,
 `validate_surfaces`, `DoctorResult`, `scene`, `fade`, `rise`, `slide`,
 `HAS_DOM`, and DOM tags (`div`, `h1`, `button`, …).
 
-Kit is not a public import path for product apps. Own a copy with
+Components are not a public import path for product apps. Own a copy with
 `uxcompose add`. `from ux_compose.kit import X` is leftover.
 
 There is **no** public `ux.div` / `when` / `forall` / `Page` on this package.

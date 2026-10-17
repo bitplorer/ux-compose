@@ -5,7 +5,6 @@ Ported from the ``motion_xor`` example module (spec §4); that example stays as 
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
     RefState,
@@ -19,8 +18,8 @@ from ux_compose import (
     span,
 )
 
-from ux_compose.author import act, mark_dirty, optional_plan
-from ux_compose import scene, rise, fade
+from ux_compose.author import act, optional_plan
+from ux_compose import scene, fade
 
 class MotionBox(Component):
     id = "motionbox"

@@ -14,8 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose import App, HAS_DOM
-from ux_compose.kit.catalog import CATALOG, resolve
-from ux_compose.kit.copy import copy_component
+from ux_compose.cli.registry import CATALOG, resolve
+from ux_compose.cli.copy_component import copy_component
 
 
 P2_D = (

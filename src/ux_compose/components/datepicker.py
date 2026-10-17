@@ -17,7 +17,7 @@ import calendar as _cal
 from datetime import datetime
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     MorphState,
@@ -27,9 +27,7 @@ from ux_compose import (
     update_with,
     button,
     div,
-    h2,
     label,
-    p,
     span,
 )
 
@@ -99,7 +97,7 @@ class DatePicker(Component):
         return day
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         month = str(self.month or "2026-08")
         day = str(self.day or "")
         is_open = bool(self.open)
@@ -169,7 +167,7 @@ class DatePicker(Component):
                     aria_label="Choose a date",
                 ),
             ])
-        return kit_shell(
+        return wrap_in_card(
             self,
             *kids,
             heading=build_heading("When", "Pick a day", "The day is a name. The calendar is presence.", owner=self),

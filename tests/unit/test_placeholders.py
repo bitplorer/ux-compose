@@ -79,7 +79,7 @@ def test_default_mode_is_hide_outside_dev():
 
 
 def test_kit_uses_same_placeholder_helper():
-    from ux_compose.kit import Badge
+    from ux_compose.components import Badge
     from ux_compose.placeholder import placeholder_for
 
     out = str(placeholder_for(Badge(), missing=("items",)))

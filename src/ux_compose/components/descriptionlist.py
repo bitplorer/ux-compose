@@ -11,16 +11,12 @@ MorphState: none. A11y: native description list. Not a table.
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose.arrange import build_heading
 from ux_compose import (
     dd,
-    div,
     dl,
     dt,
-    h2,
-    p,
-    span,
 )
 
 
@@ -49,12 +45,12 @@ class DescriptionList(Component):
     )
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         rows = []
         for term, detail in self.ITEMS:
             rows.append(dt(term, className=self.class_dt))
             rows.append(dd(detail, className=self.class_dd))
-        return kit_shell(self,
+        return wrap_in_card(self,
             dl(*rows, className=self.class_list),
             id=self.id,
             className=self.class_card,

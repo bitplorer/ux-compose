@@ -14,7 +14,7 @@ MorphState: ``value``. Caps: none. A11y (APG Radio Group):
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -80,7 +80,7 @@ class ThemeSwitch(Component):
         return rows[0]
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         key, label, lede = self._current()
         title_id = f"{self.id}-label"
         cards = []
@@ -99,7 +99,7 @@ class ThemeSwitch(Component):
                     **bind(self.choose, key=k),
                 )
             )
-        return kit_shell(self,
+        return wrap_in_card(self,
             h2("Theme", id=title_id, className=self.class_title),
             p(f"{label} · {lede}. Choosing is public.", className=self.class_lede),
             div(

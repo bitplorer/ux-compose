@@ -11,8 +11,8 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from ux_compose.cli import main
-from ux_compose.kit.catalog import CATALOG
-from ux_compose.kit.copy import KitCopyError, copy_component, find_app_root
+from ux_compose.cli.registry import CATALOG
+from ux_compose.cli.copy_component import KitCopyError, copy_component, find_app_root
 
 
 def _fake_app(tmp_path: Path) -> Path:
@@ -53,7 +53,7 @@ def test_copy_tabs_into_app(tmp_path: Path):
 
 
 def test_copy_refuses_without_dom(tmp_path: Path, monkeypatch):
-    monkeypatch.setattr("ux_compose.kit.copy.HAS_DOM", False)
+    monkeypatch.setattr("ux_compose.cli.copy_component.HAS_DOM", False)
     root = _fake_app(tmp_path)
     with pytest.raises(KitCopyError, match=r"requires ux-dom"):
         copy_component("toast", root=root)
@@ -69,7 +69,7 @@ def test_copy_login_into_app(tmp_path: Path):
     text = py.read_text(encoding="utf-8")
     assert "class Login" in text
     assert "def authenticate" in text
-    assert "from ux_compose.kit import" not in text
+    assert "from ux_compose.components import" not in text
     assert "from ux_compose import" in text
     assert "Ownable copy" in text
     ast.parse(text)
@@ -108,7 +108,7 @@ def test_copy_overlay_widgets_copy_kit_sibling(tmp_path: Path, stem: str):
     root = _fake_app(tmp_path)
     written = copy_component(stem, root=root)
     py = written["py"].read_text(encoding="utf-8")
-    assert "from ux_compose.kit.overlay import" not in py
+    assert "from ux_compose.components.overlay import" not in py
     assert "from .overlay import" in py
     overlay = root / "components" / "overlay.py"
     assert overlay.is_file()
@@ -129,7 +129,7 @@ def test_copy_command_does_not_invent_overlay(tmp_path: Path):
     root = _fake_app(tmp_path)
     written = copy_component("command", root=root)
     py = written["py"].read_text(encoding="utf-8")
-    assert "from ux_compose.kit.overlay import" not in py
+    assert "from ux_compose.components.overlay import" not in py
     assert "from .overlay import" not in py
     assert "overlay_chrome" not in py
     assert not (root / "components" / "overlay.py").exists()
@@ -138,13 +138,14 @@ def test_copy_command_does_not_invent_overlay(tmp_path: Path):
 
 
 @pytest.mark.parametrize("stem", ("fab", "dialog"))
-def test_copy_keeps_kit_construct_library_import(tmp_path: Path, stem: str):
-    """kit_construct stays a library import after ownable copy."""
+def test_copy_keeps_arrange_library_import(tmp_path: Path, stem: str):
+    """ux_compose.arrange stays a library import after ownable copy."""
     root = _fake_app(tmp_path)
     written = copy_component(stem, root=root)
     text = written["py"].read_text(encoding="utf-8")
-    assert "from ux_compose.kit_construct import" in text
-    assert "from .kit_construct import" not in text
+    assert "from ux_compose.arrange import" in text
+    assert "from .arrange import" not in text
+    assert "kit_construct" not in text
     ast.parse(text)
 
 
@@ -190,7 +191,7 @@ def test_copy_toast_page_teaches_sealed_args(tmp_path: Path):
     py = written["py"].read_text(encoding="utf-8")
     assert "sealed-args" in py or "sealed args" in py
     assert "Push is public" not in py
-    from ux_compose.kit.catalog import CATALOG
+    from ux_compose.cli.registry import CATALOG
 
     blurb = CATALOG["toast"]["description"]
     assert "sealed-args" in blurb

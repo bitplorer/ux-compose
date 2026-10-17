@@ -13,7 +13,7 @@ A11y (APG Tree View): ``role=tree`` / ``treeitem`` ``aria-expanded``
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots, kit_shell
+from ux_compose.arrange import arrange_slots, wrap_in_card
 from ux_compose import (
     MorphState,
     action,
@@ -21,7 +21,6 @@ from ux_compose import (
     notify,
     update_with,
     button,
-    div,
     h2,
     li,
     p,
@@ -64,7 +63,7 @@ class Tree(Component):
         return tuple(self.NODES)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         opened = set(self.expanded or ())
         sel = str(self.selected or "")
         items = []
@@ -100,7 +99,7 @@ class Tree(Component):
                     className=self.class_item + (" pl-6" if parent else ""),
                 )
             )
-        return kit_shell(self,
+        return wrap_in_card(self,
             p(f"Selected · {sel}. Opening is public.", className=self.class_lede),
             ul(*items, className=self.class_list, role="tree", aria_label="House"),
             id=self.id,

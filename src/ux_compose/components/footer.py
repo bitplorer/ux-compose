@@ -12,7 +12,7 @@ MorphState: ``here``. Caps: none. A11y: ``footer`` / ``nav`` ``aria-label``,
 from __future__ import annotations
 
 from ux_compose.component import Component
-from ux_compose.kit_construct import apply_slots
+from ux_compose.arrange import arrange_slots
 from ux_compose import (
     MorphState,
     action,
@@ -20,7 +20,6 @@ from ux_compose import (
     notify,
     update_with,
     a,
-    div,
     footer,
     nav,
     p,
@@ -62,7 +61,7 @@ class Footer(Component):
         return tuple(self.LINKS)
 
     def render(self, *, shell=None, **slots):
-        apply_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
+        arrange_slots(self, seams=getattr(self, '_SEAMS', {}), shell=shell, **slots)
         cur = str(self.here or self._links()[0][0])
         items = []
         for key, lab, href in self._links():

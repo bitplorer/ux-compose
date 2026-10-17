@@ -10,8 +10,6 @@ through one verb, ``ux_compose.routing.host.bind``.
 """
 from __future__ import annotations
 
-import warnings
-
 from ux_compose.routing.core import (
     AcceptSymbol,
     DirectoryRoutes,
@@ -32,7 +30,6 @@ from ux_compose.routing.asgi import DirectoryASGI, match_record
 __all__ = [
     "DirectoryRoutes",
     "DirectoryRoutesError",
-    "DirectoryRouterError",
     "RouterHooks",
     "RouteRecord",
     "ResolveUnit",
@@ -47,15 +44,3 @@ __all__ = [
     "is_stream_payload",
     "apply_html_document",
 ]
-
-
-def __getattr__(name: str):
-    if name == "DirectoryRouterError":
-        warnings.warn(
-            "DirectoryRouterError is deprecated; use DirectoryRoutesError. "
-            "The alias shipped in 0.1.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return DirectoryRoutesError
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

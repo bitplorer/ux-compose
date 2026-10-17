@@ -5,26 +5,17 @@ Ported from the ``systems`` example module (spec §4); that example stays as the
 from __future__ import annotations
 
 from ux_compose import (
-    App,
     Component,
     MorphState,
-    RefState,
     action,
-    notify,
     update_with,
     div,
     h2,
     p,
     header,
-    ul,
-    li,
-    span,
-    form,
-    button,
-    control,
 )
 
-from ux_compose.author import act, field, mark_dirty
+from ux_compose.author import act
 
 class Theme(Component):
     """Paper house is light-only. This still shows a locale/theme MorphState."""

@@ -1,4 +1,4 @@
-"""``uxcompose build`` — argv for the CSS minify wrap.
+"""``uxcompose minifycss`` (``build`` alias) — argv for the CSS minify wrap.
 
 This is not ``ux_compose.build`` (the composition orchestra). The wrap is
 ``product_build.py``, which calls ``ux_compose.tailwind``.

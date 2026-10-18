@@ -13,7 +13,7 @@ Product path::
     uxcompose create-app myapp
     cd myapp
     uxcompose serve dev      # clocks on; sibling Tailwind --watch
-    uxcompose build          # minify → assets/static/file/css/output.css
+    uxcompose minifycss          # minify → assets/static/file/css/output.css
     uxcompose serve prod     # clocks off; disk CSS
     uxcompose deploy --provider docker
 """
@@ -281,7 +281,7 @@ def run_product_build(
 
 
 def format_product_build_report(report: ProductBuildReport) -> str:
-    lines = ["uxcompose build", f"root: {report.root}", "=" * 48]
+    lines = ["uxcompose minifycss", f"root: {report.root}", "=" * 48]
     for s in report.steps:
         mark = "OK" if s.ok else "FAIL"
         lines.append(f"  [{mark:4}] {s.name}: {s.detail}")

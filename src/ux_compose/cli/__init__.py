@@ -1,7 +1,7 @@
 """uxcompose CLI — argv dispatch only.
 
 Hard ownership (SoC + locality):
-  create-app · build · serve · deploy · doctor · add  →  command modules here
+  create-app · minifycss · serve · deploy · doctor · add  →  command modules here
   argv ``create`` is leftover — use ``create-app``.
   argv ``development`` / ``production`` / ``restart_channel`` are leftover —
   use ``dev`` / ``prod`` / ``restart-channel``.
@@ -37,9 +37,15 @@ def main(argv: list[str] | None = None) -> int:
         from ux_compose.cli.create_app import main as run
 
         return run(rest)
-    if cmd == "build":
+    if cmd in ("minifycss", "build"):
         from ux_compose.cli.build import main as run
 
+        if cmd == "build":
+            print(
+                "uxcompose: 'build' is now 'minifycss' (CSS minify); "
+                "alias kept for one release",
+                file=sys.stderr,
+            )
         return _legacy_env_guard(run, rest)
     if cmd == "serve":
         from ux_compose.cli.serve import main as run
@@ -81,19 +87,20 @@ def _help() -> None:
     print("                      [--reload-dir PATH ...] [--tunnel none|ngrok|cloudflare]")
     print("  uxcompose serve prod [app:asgi] [--host 0.0.0.0] [--port 8080]")
     print("  uxcompose serve restart-channel   # one-shot Channel RAM drop (running serve dev)")
-    print("  uxcompose build [--no-minify] [--skip-tailwind] [--skip-import] [--app app:asgi]")
+    print("  uxcompose minifycss [--no-minify] [--skip-tailwind] [--skip-import] [--app app:asgi]")
+    print("  uxcompose build …              # alias of minifycss (deprecated name)")
     print("  uxcompose deploy [--provider docker|fly|render|railway|vps|checklist] [--force] [--name NAME]")
     print("  uxcompose doctor [paths...] [--no-fail]")
     print("  uxcompose add [name] [--force] [--page]   # ownable kit copy (shadcn-style)")
     print("  uxcompose add --list")
     print("")
-    print("Product path: create-app → serve dev → build → deploy")
+    print("Product path: create-app → serve dev → minifycss → deploy")
     print("  serve dev  = origin + ui reload + channel + CSS watch")
     print("  serve prod = clocks hard off (does not replace deploy)")
     print("  restart-channel = drop Channel RAM once; next *.py save still leaves Channel up")
     print("Kit copy: uxcompose add login  (drops components/login.py — you own it)")
     print("HMR / tunnel are delivery features of serve dev (not Document.use).")
-    print("CSS minify: uxcompose build (ux_compose.tailwind). App folders: ux_compose.assets.")
+    print("CSS minify: uxcompose minifycss (ux_compose.tailwind). App folders: ux_compose.assets.")
     print("Markup kit: uxdom add ui Button. Product Components: uxcompose add login")
 
 

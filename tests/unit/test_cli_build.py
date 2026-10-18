@@ -15,9 +15,9 @@ from ux_compose.scaffold import create_app
 def test_help_lists_build(capsys):
     assert main(["--help"]) == 0
     out = capsys.readouterr().out
-    assert "uxcompose build" in out
-    assert "create-app → serve dev → build → deploy" in out
-    assert "CSS minify: uxcompose build" in out
+    assert "uxcompose minifycss" in out
+    assert "create-app → serve dev → minifycss → deploy" in out
+    assert "CSS minify: uxcompose minifycss" in out
     assert "ux_dom.cli.tailwind" not in out
 
 

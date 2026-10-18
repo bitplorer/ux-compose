@@ -1,13 +1,13 @@
 """Document SSoT — one HTML shell for every GET.
 
 Document.use(XElement(), Csp.auto(), Channel.optional()) is the full
-shell. Channel is the ux_dom.runtime alias — never ux_channel.Channel.
+shell. Channel is the ux_dom Document-plugin alias — never ux_channel.Channel.
 """
 from __future__ import annotations
 
 from ux_dom import Document
 from ux_dom.dom import link, meta, script, title
-from ux_dom.runtime import Channel, Csp, XElement
+from ux_dom import Channel, Csp, XElement
 
 from .settings import OUTPUT_CSS
 

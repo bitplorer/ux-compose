@@ -27,7 +27,7 @@ from ux_compose import (
 )
 from ux_dom import Document
 from ux_dom.dom import div, h1, p
-from ux_dom.runtime import XElement, Htmx, Csp
+from ux_dom import XElement, Htmx, Csp
 
 
 class Cart(Component):

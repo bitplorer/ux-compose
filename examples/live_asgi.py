@@ -22,7 +22,7 @@ from ux_compose.build import build
 PACKAGE = Path(__file__).resolve().parent / "live_asgi_app"
 
 from ux_dom import Document
-from ux_dom.runtime import XElement, Htmx, Csp
+from ux_dom import XElement, Htmx, Csp
 
 
 def build_app():

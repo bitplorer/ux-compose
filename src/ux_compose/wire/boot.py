@@ -180,7 +180,7 @@ def attach_document_runtimes(
     via ``htmx=True`` — never a hard dependency of compose.
     """
     try:
-        from ux_dom.runtime import XElement, Csp  # type: ignore
+        from ux_dom import XElement, Csp  # type: ignore
     except ImportError as exc:
         raise ImportError(
             "ux-dom is required (Python ≥3.14). "
@@ -189,7 +189,7 @@ def attach_document_runtimes(
 
     runtimes: list[Any] = [XElement(), Csp.auto()]
     if htmx:
-        from ux_dom.runtime import Htmx  # type: ignore
+        from ux_dom import Htmx  # type: ignore
 
         runtimes.insert(1, Htmx())
     if motion:

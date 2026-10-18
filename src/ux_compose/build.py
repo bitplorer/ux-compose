@@ -143,17 +143,17 @@ def _attach_document(app: Any, document: Any, *, use_htmx: bool) -> Any:
     try:
         if document is not None:
             if use_htmx:
-                from ux_dom.runtime import Htmx
+                from ux_dom import Htmx
 
                 document.use(Htmx())
             app.use_dom(document)
             return document
         from ux_dom import Document
-        from ux_dom.runtime import XElement, Csp
+        from ux_dom import XElement, Csp
 
         runtimes: list[Any] = [XElement(), Csp.auto()]
         if use_htmx:
-            from ux_dom.runtime import Htmx
+            from ux_dom import Htmx
 
             runtimes.insert(1, Htmx())
         document = Document(head=[], body=[], ensure_csrf_token=False).use(*runtimes)

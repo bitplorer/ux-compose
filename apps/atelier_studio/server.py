@@ -36,7 +36,7 @@ from apps.atelier_shop.shop import catalog_grid
 from apps.pulseboard.app import register_board
 from apps.pulseboard.surround import compose as pulseboard_compose
 from ux_dom import Document
-from ux_dom.runtime import XElement, Htmx
+from ux_dom import XElement, Htmx
 
 try:
     from fastapi import FastAPI, Request

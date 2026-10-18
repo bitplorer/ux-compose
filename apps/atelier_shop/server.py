@@ -33,7 +33,7 @@ from ux_compose import (
 from ux_compose.brand import GET_BRAND_ATTR
 from ux_compose.helpers import _serialize_tree
 from ux_dom import Document
-from ux_dom.runtime import XElement, Htmx
+from ux_dom import XElement, Htmx
 
 from apps.atelier_shop.shop import Cart, ConfirmModal, catalog_grid
 

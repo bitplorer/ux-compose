@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- **Deps:** bump ``ux-dom`` pin ``0440ccb`` → ``19af869`` (main).
+
 ## 0.2.0 — remove deprecations and bloat cleanup
 
 ux-compose and its ux-* specialists are not on PyPI, so these are removed

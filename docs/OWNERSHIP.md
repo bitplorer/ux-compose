@@ -58,7 +58,7 @@ Product path::
 Allowed: control, runtime, CSP, style. **Not:** HMR process, product App, host strategy.
 
 create-app emits `document.py` (one Document; `.use(XElement(), Csp.auto(),
-Channel.optional())` via the `ux_dom.runtime` Channel alias — not
+Channel.optional())` via the `ux_dom.Channel` Document-plugin alias — not
 `ux_channel.Channel`; host wraps GET) and `settings.py` (`ux_compose.WebAssets`).
 `build(document=)` attaches that Document. Dual-Document in product files is a
 doctor fail. `Document.use(+Channel.optional)` is the full shell. There is no

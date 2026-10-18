@@ -81,7 +81,7 @@ def test_create_app_docs_page_get_is_document_not_swagger(tmp_path):
 
     pytest.importorskip("ux_dom")
     from ux_dom import Document
-    from ux_dom.runtime import Csp
+    from ux_dom import Csp
     from ux_dom.dom import title
 
     document = Document(

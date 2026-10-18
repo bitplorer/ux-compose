@@ -22,7 +22,7 @@ def test_cli_has_product_commands_only_in_help(capsys):
     assert "serve" in out
     assert "deploy" in out
     assert "doctor" in out
-    assert "build" in out
+    assert "minifycss" in out
     assert "os.execvp" not in out
     assert "uxdom serve" not in out
     assert "uxdom build" not in out
@@ -42,7 +42,7 @@ def test_dx_doc_is_sole_product_cli():
     assert "prefer specialist ceremony" not in text
     assert "uxcompose create-app" in text
     assert "DirectoryRoutes" in text
-    assert "uxcompose build" in text
+    assert "uxcompose minifycss" in text or "minifycss" in text
     assert "ux_compose.tailwind" in text or "compiler" in text.lower()
 
 

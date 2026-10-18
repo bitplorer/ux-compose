@@ -32,7 +32,7 @@ door is `ux_compose.wire/` via `App.use_channel` / `App.use_motion`.
 
 **Ownership:** `uxdom` is pure Document tooling (`doctor`, `lint`, `profile`,
 `add`). className, Document `<link>`, and package static live there.
-App folders are `ux_compose.WebAssets`. Product CSS compile is `uxcompose build`.
+App folders are `ux_compose.WebAssets`. Product CSS compile is `uxcompose minifycss`.
 
 ## Commands
 
@@ -42,7 +42,7 @@ uxcompose create-app <dir> [--name NAME] [--level auto|0-3] [--host auto|fastapi
 uxcompose serve dev  [app:asgi] [--host 0.0.0.0] [--port 8080] [--reload-dir PATH ...] [--tunnel ngrok|cloudflare]
 uxcompose serve prod [app:asgi] [--host 0.0.0.0] [--port 8080]
 uxcompose serve restart-channel
-uxcompose build [--no-minify]
+uxcompose minifycss [--no-minify]
 uxcompose deploy [--provider docker|fly|render|railway|vps|checklist]
 ```
 
@@ -114,6 +114,6 @@ cd myapp
 pip install -r requirements.txt
 uxcompose serve dev
 uxcompose doctor . --no-fail
-uxcompose build
+uxcompose minifycss
 uxcompose deploy --provider docker
 ```

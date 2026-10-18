@@ -166,7 +166,8 @@ def test_middleware_injects_html_and_skips_css():
 
 
 def test_scaffold_document_uses_dom_channel_optional():
-    assert "from ux_dom.runtime import" in DOCUMENT_PY
+    assert "from ux_dom import XElement, Csp, Channel" in DOCUMENT_PY
+    assert "ux_dom.runtime" not in DOCUMENT_PY
     assert "Channel.optional()" in DOCUMENT_PY
     assert "XElement()" in DOCUMENT_PY
     assert "Csp.auto()" in DOCUMENT_PY

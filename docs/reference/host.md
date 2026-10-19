@@ -348,9 +348,10 @@ on a request a client sent.
 
 Outside dev, `Behavior.attach` requires `UX_CHANNEL_SECRET` (or
 `UX_BEHAVIOR_SECRET`). A secret shorter than 16 characters, and any other
-error `Channel.boot` raises, is an attach failure too. Compose boots that
-path with `strict_attach=True` (`wire/boot.py` and `build()`), so the
-error propagates. Compose does not invent a secret and does not continue
-without Caps. `examples/live_asgi.py`, `apps/atelier_shop`, and
+error `Channel.boot` raises, is an attach failure too. `wire/boot.py`
+sets `strict_attach=True` before `attach`, so the error propagates.
+`use_channel` raises when that call returns no channel. A `TypeError`
+from `attach` stops the boot; compose does not retry without `secret=`.
+Compose does not invent a secret and does not continue without Caps. `examples/live_asgi.py`, `apps/atelier_shop`, and
 `apps/atelier_studio` fail the process. Dev is `DEBUG` in `1` / `true` /
 `yes` / `on`.

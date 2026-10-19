@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - Trust now comes from `dispatch_verified(name, payload)` (one wire call after Channel accepts a Cap) or `app.trust()`, and the `_trusted` keyword is gone. `async_dispatch_verified` is the async twin. Developer-authored server code uses `app.trust()`. A bool no longer grants trust (ux-behavior #20, pin `e975275`).
-- Outside dev, a live FastAPI attach failure fails the boot. `wire/boot.py` and `build()` set `strict_attach=True`, so a missing secret, a 13-character secret, a `REDIS_URL` that `Channel.boot` refuses, or anything else `attach` raises stops the process instead of continuing without Caps. Atelier shop and studio fail at boot the same way.
+- Outside dev, a live FastAPI attach failure fails the boot. `wire/boot.py` sets `strict_attach=True`. `use_channel` raises when attach returns no channel, and a `TypeError` from attach is not retried. A missing secret, a 13-character secret, a `REDIS_URL` that `Channel.boot` refuses, or anything else `attach` raises stops the process instead of continuing without Caps. Atelier shop and studio fail at boot the same way.
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

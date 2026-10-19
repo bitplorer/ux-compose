@@ -191,10 +191,7 @@ def build(
     document = _attach_document(app, author_document, use_htmx=use_htmx)
 
     if want_channel and kind == KIND_FASTAPI and asgi is not None:
-        # strict_attach: a short secret, a refused REDIS_URL, or any
-        # other attach failure raises. Do not boot without Caps.
-        if app._behavior is not None:
-            app._behavior.strict_attach = True
+        # strict_attach lives on the wire attach. A failure raises there.
         app.use_channel(asgi_app=asgi)
     elif want_channel:
         try:

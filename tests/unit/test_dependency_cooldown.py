@@ -310,6 +310,65 @@ def test_main_names_young_fastapi_on_stderr(monkeypatch, capsys):
     assert captured.out == ""
 
 
+def _pin_fastapi(monkeypatch, version="0.142.2"):
+    monkeypatch.setattr(cooldown, "utc_now", lambda: RUN)
+    monkeypatch.setattr(
+        cooldown,
+        "iter_installed",
+        lambda: [cooldown.Installed("fastapi", version)],
+    )
+
+
+def test_naive_upload_time_fails_closed(monkeypatch, capsys):
+    """A timestamp with no offset must not be assumed UTC."""
+    naive = "2026-09-01T00:00:00"
+    _pin_fastapi(monkeypatch)
+    monkeypatch.setattr(
+        cooldown,
+        "fetch_pypi_json",
+        lambda name, version: _payload(naive),
+    )
+    expected = (
+        "dependency cooldown check failed closed: "
+        "fastapi 0.142.2 has upload_time_iso_8601 '2026-09-01T00:00:00' "
+        "with no timezone offset"
+    )
+    with pytest.raises(cooldown.CooldownCheckError) as caught:
+        cooldown.check_installed(
+            [cooldown.Installed("fastapi", "0.142.2")],
+            now=RUN,
+            fetch=_fetch_returning(_payload(naive)),
+        )
+    assert str(caught.value) == expected
+    assert cooldown.main([]) == 1
+    assert expected in capsys.readouterr().err
+
+
+def test_offset_without_minutes_fails_closed(monkeypatch, capsys):
+    """fromisoformat accepts '+00'. That offset is not a complete zone."""
+    raw = "2026-09-01T00:00:00+00"
+    _pin_fastapi(monkeypatch)
+    monkeypatch.setattr(
+        cooldown,
+        "fetch_pypi_json",
+        lambda name, version: _payload(raw),
+    )
+    expected = (
+        "dependency cooldown check failed closed: "
+        "fastapi 0.142.2 has upload_time_iso_8601 '2026-09-01T00:00:00+00' "
+        "whose timezone offset must include minutes"
+    )
+    with pytest.raises(cooldown.CooldownCheckError) as caught:
+        cooldown.check_installed(
+            [cooldown.Installed("fastapi", "0.142.2")],
+            now=RUN,
+            fetch=_fetch_returning(_payload(raw)),
+        )
+    assert str(caught.value) == expected
+    assert cooldown.main([]) == 1
+    assert expected in capsys.readouterr().err
+
+
 def test_main_fails_closed_when_no_pypi_distribution_was_checked(monkeypatch, capsys):
     monkeypatch.setattr(cooldown, "utc_now", lambda: RUN)
     monkeypatch.setattr(

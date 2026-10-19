@@ -279,7 +279,7 @@ def test_str_subclass_that_lies_about_being_empty_flushes(
 
 
 class _LenRaises(str):
-    """__len__ raises. The stream aborts, as it did before the base-length check."""
+    """__len__ raises. The plain str.__str__ copy still renders."""
 
     def __len__(self) -> int:
         raise RuntimeError("len")
@@ -287,39 +287,36 @@ class _LenRaises(str):
 
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])
 @pytest.mark.parametrize("mode", ["sync", "async"])
-def test_str_subclass_whose_len_raises_aborts_the_stream(
-    tmp_path: Path, host: str, mode: str, caplog
+def test_str_subclass_whose_len_raises_still_renders(
+    tmp_path: Path, host: str, mode: str
 ):
-    """A raising __len__ is not swallowed. ASGI logs it and ends the body."""
-    if host == "asgi":
-        with caplog.at_level(logging.ERROR, logger="ux_compose.routing.asgi"):
-            body = _stream_body(tmp_path, host, mode, (_LenRaises("x"),))
-        assert body == b""
-        assert any(
-            record.exc_info is not None
-            and isinstance(record.exc_info[1], RuntimeError)
-            and "len" in str(record.exc_info[1])
-            for record in caplog.records
-        )
-        return
-    with pytest.raises(RuntimeError, match="len"):
-        _stream_body(tmp_path, host, mode, (_LenRaises("x"),))
+    """A raising __len__ on a str renders the plain copy."""
+    assert _stream_body(tmp_path, host, mode, (_LenRaises("x"),)) == b"x\n"
 
 
 class _LiesLenBytes(bytes):
     def __len__(self) -> int:
-        return 0
+        raise RuntimeError("len")
 
-    def __bool__(self) -> bool:
-        return False
+    def __bytes__(self) -> bytes:
+        return b"SWAPPED"
+
+    def __buffer__(self, flags: int):
+        raise RuntimeError("buffer")
 
 
 class _LiesLenBytearray(bytearray):
     def __len__(self) -> int:
-        return 0
+        raise RuntimeError("len")
 
-    def __bool__(self) -> bool:
-        return False
+    def __bytes__(self) -> bytes:
+        return b"SWAPPED"
+
+    def __buffer__(self, flags: int):
+        return memoryview(b"SWAPPED")
+
+    def copy(self) -> bytearray:
+        return bytearray(b"SWAPPED")
 
 
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])
@@ -327,7 +324,7 @@ class _LiesLenBytearray(bytearray):
 def test_bytes_subclass_that_lies_about_length_is_sanitized(
     tmp_path: Path, host: str, mode: str
 ):
-    """bytes.__len__ / bytes.__bytes__, not the subclass length, keeps <b>X</b>."""
+    """bytes.__bytes__ keeps <b>X</b>. A raising __len__ and a lying __bytes__ do not."""
     body = _stream_body(tmp_path, host, mode, (_LiesLenBytes(b"<b>X</b>"),))
     assert body == b"<b>\n  X\n</b>"
 
@@ -337,9 +334,40 @@ def test_bytes_subclass_that_lies_about_length_is_sanitized(
 def test_bytearray_subclass_that_lies_about_length_is_sanitized(
     tmp_path: Path, host: str, mode: str
 ):
-    """The bytearray buffer is copied. A lying __len__ does not drop <b>Y</b>."""
+    """bytearray.copy keeps <b>Y</b>. __buffer__, __bytes__, and __len__ do not."""
     body = _stream_body(tmp_path, host, mode, (_LiesLenBytearray(b"<b>Y</b>"),))
     assert body == b"<b>\n  Y\n</b>"
+
+
+class _LiesMarkup(Markup):
+    def __len__(self) -> int:
+        raise RuntimeError("len")
+
+    def __str__(self) -> str:
+        return "SWAPPED"
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_markup_subclass_keeps_base_text(tmp_path: Path, host: str, mode: str):
+    """Markup is copied with str.__str__ and stays verbatim."""
+    assert _stream_body(tmp_path, host, mode, (_LiesMarkup("<b>ok</b>"),)) == b"<b>ok</b>"
+
+
+class _TextLenRaises(str):
+    def __len__(self) -> int:
+        raise RuntimeError("len")
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_exact_dom_text_whose_text_len_raises_still_renders(
+    tmp_path: Path, host: str, mode: str
+):
+    """Exact dom_text copies .text with str.__str__ and does not call __len__."""
+    node = dom_text("IGNORED", escape=False)
+    node.text = _TextLenRaises("<b>Z</b>")
+    assert _stream_body(tmp_path, host, mode, (node,)) == b"<b>Z</b>"
 
 
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])

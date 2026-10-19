@@ -157,3 +157,19 @@ def test_passwordfield_revealed_secret_is_not_painted():
         assert inputs
         assert all(node.get("type") == "text" for node in inputs)
         assert all(node.get("value", "") == "" for node in inputs)
+
+
+def test_password_mask_does_not_vary_with_secret_length():
+    """Two secrets of different lengths must render the same HTML.
+
+    A bullet per character tells the next visitor the length. ``empty``
+    stays the face when there is no secret.
+    """
+    for shown in (False, True):
+        pages = []
+        for secret in ("ab", "abcdefghijkl"):
+            inst = PasswordField()
+            inst.secret = secret
+            inst.shown = shown
+            pages.append(str(inst.render()))
+        assert pages[0] == pages[1]

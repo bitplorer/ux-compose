@@ -155,9 +155,8 @@ class Otp(Component):
         )
 
     @action(caps=())
-    def set_field(self, field: str = "", value: str = "", code: str = ""):
-        posted = {"code": code}
-        raw = value if value != "" else posted.get(field, code)
+    def set_field(self, field: str = "", value: str = "", **kwargs):
+        raw = value if value != "" else kwargs.get(field, kwargs.get("code", ""))
         if field in ("code", ""):
             self._take(code=str(raw or ""))
             self.err = ""

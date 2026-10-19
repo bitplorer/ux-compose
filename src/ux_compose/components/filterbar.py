@@ -175,18 +175,18 @@ class FilterBar(Component):
         )
 
     @action(caps=())
-    def set_field(self, field: str = "", value: str = "", q: str = ""):
-        posted = {"q": q}
-        raw = value if value != "" else posted.get(field, q)
+    def set_field(self, field: str = "", value: str = "", **kwargs):
+        raw = value if value != "" else kwargs.get(field, kwargs.get("q", ""))
         self.query = "" if raw is None else str(raw)
         self._mark()
         return update_with(self)
 
     @action(caps=())
     def choose(self, key: str = "", q: str = ""):
-        # The chips sit in the same form as the query input, so a click posts q.
-        if q != "":
-            self.query = str(q)
+        # q is named so a chip inside the query form is not a validation
+        # error. It is ignored. Storing it would paint one visitor's query
+        # on the next visitor's page.
+        del q
         keys = {row[0] for row in self._filters()}
         self.which = key if key in keys else self._filters()[0][0]
         self._mark()

@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Outside dev, a live FastAPI attach failure fails the boot. `wire/boot.py` sets `strict_attach=True`. `use_channel` raises when attach returns no channel, and a `TypeError` from attach is not retried. A missing secret, a 13-character secret, a `REDIS_URL` that `Channel.boot` refuses, or anything else `attach` raises stops the process instead of continuing without Caps. Atelier shop and studio fail at boot the same way.
 - `App.dispatch` takes the action name positionally (`dispatch(self, action, /, **kwargs)`). A payload key named `action` passes through as a normal keyword.
 - A posted key a named signature does not declare is a validation error (ux-behavior pin `ad86d4c`), including a payload key named `self` and a host field such as `csrf`. The action does not run. The result is the ordinary validation result, never a 500. The component instance stays the component. A `**kwargs` signature does not receive that key either.
-- Static kit `set_field` actions name the control they post (`email`, `password`, `name`, `code`, `q`, `query`, `text`, `tag`, `hex`). An extra posted key on those signatures is a validation error. FormLayout's field list stays form-defined. Its `**kwargs` actions are the ones that wait on `@action(fields=...)`.
-- `FilterBar.choose` names `q`. The chips sit in the form that posts the query, so a chip click applies and the posted query stays.
+- Kit `set_field` stays on `**kwargs`, matching main. The posted control name is not stored. Restoring those fields waits on a per-visitor state decision.
+- `FilterBar.choose` names `q` and does not store it, so a chip inside the query form still applies.
 - `Otp.verify` clears the posted code after a successful check. The page says the secret is cleared. A posted password and a posted OTP code are not painted back into the page.
 - `App.control` and `App.mint_cap` take the action name positionally. A payload key named `action` passes through, as it does for `App.dispatch`.
 

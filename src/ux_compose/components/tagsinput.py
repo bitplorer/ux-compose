@@ -100,9 +100,8 @@ class TagsInput(Component):
         )
 
     @action(caps=())
-    def set_field(self, field: str = "", value: str = "", tag: str = ""):
-        posted = {"tag": tag}
-        raw = value if value != "" else posted.get(field, tag)
+    def set_field(self, field: str = "", value: str = "", **kwargs):
+        raw = value if value != "" else kwargs.get(field, kwargs.get("tag", ""))
         self.draft = "" if raw is None else str(raw)
         self._mark()
         return update_with(self)

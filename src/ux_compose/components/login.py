@@ -432,16 +432,8 @@ class Login(Component):
         return update_with(self)
 
     @action(caps=())
-    def set_field(
-        self,
-        field: str = "",
-        value: str = "",
-        email: str = "",
-        password: str = "",
-        name: str = "",
-    ):
-        posted = {"email": email, "password": password, "name": name}
-        raw = value if value != "" else posted.get(field, "")
+    def set_field(self, field: str = "", value: str = "", **kwargs):
+        raw = value if value != "" else kwargs.get(field, "")
         raw = "" if raw is None else str(raw)
         if field == "email":
             self.email, self.err_email = raw, ""

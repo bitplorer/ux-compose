@@ -119,9 +119,8 @@ class Chat(Component):
         )
 
     @action(caps=())
-    def set_field(self, field: str = "", value: str = "", text: str = ""):
-        posted = {"text": text}
-        raw = value if value != "" else posted.get(field, text)
+    def set_field(self, field: str = "", value: str = "", **kwargs):
+        raw = value if value != "" else kwargs.get(field, kwargs.get("text", ""))
         self.draft = "" if raw is None else str(raw)
         self._mark()
         return update_with(self)

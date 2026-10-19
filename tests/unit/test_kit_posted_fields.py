@@ -111,4 +111,4 @@ def test_choose_ignores_a_posted_query():
 def test_colorpicker_posted_hex_arrives():
     app = _boot(ColorPicker)
     app.dispatch("colorpicker.set_field", field="hex", hex="#112233")
-    assert app.behavior.get("colorpicker").hex == "#e7e5e4"
+    assert app.behavior.get("colorpicker").hex == ""

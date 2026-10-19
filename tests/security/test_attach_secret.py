@@ -21,7 +21,9 @@ def _env_without_secret() -> dict[str, str]:
     env = os.environ.copy()
     for key in ("UX_CHANNEL_SECRET", "UX_BEHAVIOR_SECRET", "DEBUG"):
         env.pop(key, None)
-    env["PYTHONPATH"] = f"{ROOT / 'src'}{os.pathsep}{ROOT}"
+    prefix = os.pathsep.join((str(ROOT / "src"), str(ROOT)))
+    prior = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = prefix if not prior else prefix + os.pathsep + prior
     return env
 
 

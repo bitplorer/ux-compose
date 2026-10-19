@@ -137,11 +137,13 @@ def test_short_whitespace_password_gets_the_length_error():
 def test_blank_passwords_reach_authenticate_byte_for_byte():
     """Eight of each blank character is the password ``authenticate`` receives.
 
-    Spaces, tabs, NBSP, ZWSP, and U+FEFF are not trimmed.
+    Spaces, tabs, newlines, NBSP, ZWSP, and U+FEFF are not trimmed.
     """
     blanks = (
         " " * 8,
         "\t" * 8,
+        "\n" * 8,
+        "\r\n" * 4,
         "\u00a0" * 8,
         "\u200b" * 8,
         "\ufeff" * 8,
@@ -151,8 +153,8 @@ def test_blank_passwords_reach_authenticate_byte_for_byte():
 
 
 def test_password_with_edge_spaces_is_not_trimmed():
-    """Leading and trailing spaces stay on the password ``authenticate`` receives."""
-    for secret in (" password12", "password12 ", "  password12  "):
+    """Leading and trailing spaces, and a trailing newline, stay on the password."""
+    for secret in (" password12", "password12 ", "  password12  ", "password12\n", "password12\r\n"):
         assert _authenticate_saw(secret) == [secret]
 
 

@@ -194,11 +194,14 @@ class App:
             self._cek = None
         return self
 
-    def mint_cap(self, action: str, args: Optional[dict] = None, **kwargs) -> str:
+    def mint_cap(self, action: str, /, args: Optional[dict] = None, **kwargs) -> str:
         if self._channel is None:
             self.use_channel()
         from ux_compose.wire.caps import mint_cap
-        return mint_cap(self._channel, action, args, **kwargs)
+        payload = dict(args or {})
+        if "action" in kwargs:
+            payload["action"] = kwargs.pop("action")
+        return mint_cap(self._channel, action, payload, **kwargs)
 
     def submit_intent(self, action: str, *, cap: Optional[str] = None, mint: bool = False, args: Optional[dict] = None, **kwargs):
         if self._channel is None:
@@ -262,17 +265,22 @@ class App:
         kwargs = _unpack_action_kwargs(kwargs)
         return self._behavior.dispatch(action, **kwargs) or []
 
-    def control(self, action: str, **args) -> dict:
+    def control(self, action: str, /, **args) -> dict:
         self.use_behavior()
         if self._channel is not None:
             from ux_compose.wire.caps import control_attrs
 
             # Product verb (hello.inc), not Behavior.control's ux_behavior.dispatch remap.
             return control_attrs(self._channel, action, **args)
-        if self._behavior is not None and hasattr(self._behavior, "control"):
+        # Behavior.control names its action parameter. A payload key of the
+        # same name is caller data and is rendered through the offline attrs.
+        if "action" not in args and self._behavior is not None and hasattr(self._behavior, "control"):
             return self._behavior.control(action, **args)
-        from ux_compose.helpers import control
-        return control(action, **args)
+        if "action" not in args:
+            from ux_compose.helpers import control
+            return control(action, **args)
+        from ux_compose.helpers import _action_attrs
+        return _action_attrs(action, args)
 
     @property
     def level(self) -> Level:

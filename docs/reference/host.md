@@ -345,6 +345,9 @@ is how the handler records the acceptance, for one call.
 on a request a client sent.
 
 A payload key named `action` arrives when the action names that parameter.
+`App.control` and `App.mint_cap` take the action name positionally, so
+`control('box.open', action='x')` and `mint_cap('box.save', action='x')`
+pass that key through as caller data.
 The component instance is bound positionally. A posted key named `self` is
 not that instance and is not passed into the action, including through
 `**kwargs`. When the signature does not accept the key at all, it comes

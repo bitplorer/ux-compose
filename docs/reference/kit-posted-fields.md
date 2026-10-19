@@ -8,7 +8,7 @@ A rendered control posts every named field of its enclosing form (`args` from `d
 
 `ux-channel.js` `fireControl` sends `data-channel-args` plus the named control (and, for a submit control, the rest of the form). Compose `App.dispatch` receives that payload. ux-behavior `ad86d4c` and compose main's pin `2ae5c3d` both drop a posted key the action signature does not name. A key that is a named parameter arrives. `**kwargs` does not receive the dropped keys. Undeclared keys such as `is_admin` and `role` stay out of the action.
 
-Measured with `App.dispatch` on compose main `c22e419` (ux-behavior `2ae5c3de6c60756cfccfa0174355037436bb3f14`) and on this branch (ux-behavior `ad86d4cc7cf2390f8d1200cdb7d2cc68f6508b82`). The kit source is the same on both. "Arrives" means the component state holds the posted value after that dispatch. Login's successful submit clears the stored password; an empty password error plus `authed` shows the password was accepted. OTP's successful verify clears the stored code; `ok` shows the six digits were accepted.
+Measured with `App.dispatch` on compose main `c22e419` (ux-behavior `2ae5c3de6c60756cfccfa0174355037436bb3f14`) and on this branch (ux-behavior `ad86d4cc7cf2390f8d1200cdb7d2cc68f6508b82`). The kit source is the same on both. "Arrives" means the component state holds the posted value after that dispatch. Login's successful submit clears the stored password; an empty password error plus `authed` shows the password was accepted. OTP's successful verify keeps the posted code, and `ok` shows the six digits were accepted.
 
 **Static** means the posted names are written in the action. **Dynamic** means the names come from the form (`FormLayout._fields()`), so they are not known as parameters when the action is written.
 

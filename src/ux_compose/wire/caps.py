@@ -77,7 +77,7 @@ def _call_control(control_fn: Any, action: str, args: Mapping[str, Any]) -> Any:
         return control_fn(action)
 
 
-def control_attrs(channel: Any, action: str, **args: Any) -> dict[str, str]:
+def control_attrs(channel: Any, action: str, /, **args: Any) -> dict[str, str]:
     """Mint Channel control attrs for *action*; merge progressive data-ux-*.
 
     Isolation door: duck-type ``channel.control(action, …).as_dict()``

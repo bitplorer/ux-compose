@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib.metadata
 import json
+import re
 import sys
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -17,6 +18,8 @@ from pathlib import Path
 
 COOLDOWN = timedelta(days=14)
 PYPI_JSON = "https://pypi.org/pypi/{name}/{version}/json"
+# Hours and minutes, optional seconds. "+00" is not a complete offset.
+_OFFSET_WITH_MINUTES = re.compile(r"[+-]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?\Z")
 
 
 class CooldownCheckError(Exception):
@@ -141,19 +144,48 @@ def fetch_pypi_json(name: str, version: str) -> dict:
     return payload
 
 
+def _timezone_suffix(text: str) -> str | None:
+    if text.endswith(("Z", "z")):
+        return text[-1]
+    # The date occupies the first 10 characters, so a sign after that is the offset.
+    for index in range(len(text) - 1, 9, -1):
+        if text[index] in "+-":
+            return text[index:]
+    return None
+
+
+def _reject_upload_time(name: str, version: str, raw: object, reason: str) -> CooldownCheckError:
+    return CooldownCheckError(
+        "dependency cooldown check failed closed: "
+        f"{name} {version} has upload_time_iso_8601 {raw!r} {reason}"
+    )
+
+
 def _parse_upload_time(raw: object, *, name: str, version: str) -> datetime:
     text = str(raw).strip()
-    if text.endswith("Z"):
-        text = text[:-1] + "+00:00"
+    suffix = _timezone_suffix(text)
+    if suffix is None:
+        raise _reject_upload_time(name, version, raw, "with no timezone offset")
+    if suffix in {"Z", "z"}:
+        normalized = text[:-1] + "+00:00"
+    elif _OFFSET_WITH_MINUTES.fullmatch(suffix):
+        normalized = text
+    else:
+        raise _reject_upload_time(
+            name,
+            version,
+            raw,
+            "whose timezone offset must include minutes",
+        )
     try:
-        parsed = datetime.fromisoformat(text)
+        parsed = datetime.fromisoformat(normalized)
     except ValueError as exc:
         raise CooldownCheckError(
             "dependency cooldown check failed closed: "
             f"{name} {version} has an unreadable upload_time_iso_8601 {raw!r}: {exc}"
         ) from exc
     if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
+        raise _reject_upload_time(name, version, raw, "with no timezone offset")
     return parsed.astimezone(timezone.utc)
 
 

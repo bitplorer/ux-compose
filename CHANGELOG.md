@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Trust now comes from `dispatch_verified(name, payload)` (one wire call after Channel accepts a Cap) or `app.trust()`, and the `_trusted` keyword is gone. `async_dispatch_verified` is the async twin. Developer-authored server code uses `app.trust()`. A bool no longer grants trust (ux-behavior #20, pin `ad86d4c`).
 - Outside dev, a live FastAPI attach failure fails the boot. `wire/boot.py` sets `strict_attach=True`. `use_channel` raises when attach returns no channel, and a `TypeError` from attach is not retried. A missing secret, a 13-character secret, a `REDIS_URL` that `Channel.boot` refuses, or anything else `attach` raises stops the process instead of continuing without Caps. Atelier shop and studio fail at boot the same way.
 - `App.dispatch` takes the action name positionally (`dispatch(self, action, /, **kwargs)`). A payload key named `action` passes through as a normal keyword.
+- A posted key the action does not name is dropped (ux-behavior pin `ad86d4c`), including a payload key named `self`. The component instance stays the component. A key the signature rejects still returns the ordinary validation result, never a 500.
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

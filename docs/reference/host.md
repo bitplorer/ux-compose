@@ -344,13 +344,13 @@ is how the handler records the acceptance, for one call.
 `App.trust` delegates to `Behavior.trust`. It is not a substitute for a Cap
 on a request a client sent.
 
-A payload key named `self` reaches the action only when that parameter is
-positional-only (`def save(self, /, ...)`). A normal method already binds
-`self` to the instance, so the key is not that instance and does not arrive
-as an argument. That comes back the same way as every other action
-validation error: the message (`unexpected keyword argument 'self'`) on
-the result, the same HTTP status, the same result shape, never a 500.
-There is no separate status for this key.
+A payload key named `action` arrives when the action names that parameter.
+The component instance is bound positionally. A posted key named `self` is
+not that instance and is not passed into the action, including through
+`**kwargs`. When the signature does not accept the key at all, it comes
+back the same way as every other action validation error: the message
+(`unexpected keyword argument 'self'`) on the result, the same HTTP status,
+the same result shape, never a 500. There is no separate status for this key.
 
 ## Attach secret
 

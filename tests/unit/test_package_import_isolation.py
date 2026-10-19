@@ -2553,3 +2553,50 @@ def test_rebuild_does_not_rebind_an_unchanged_page(tmp_path):
     finally:
         _purge_package(name)
         _drop_tree(tmp_path)
+
+
+def test_route_shell_without_path_is_dropped(tmp_path):
+    """routes/__init__.py with no __path__ is a package shell, so release drops it.
+
+    A helper would stay. Classifying that file as a route package is what
+    drops it.
+    """
+    from ux_compose.routing.core import release_build_package_modules
+
+    name = "shellapp"
+    root = tmp_path / name
+    init = root / "routes" / "__init__.py"
+    init.parent.mkdir(parents=True)
+    (root / "__init__.py").write_text("", encoding="utf-8")
+    init.write_text("", encoding="utf-8")
+    key = f"{name}.routes"
+    mod = types.ModuleType(key)
+    mod.__file__ = str(init.resolve())
+    sys.modules[key] = mod
+    try:
+        release_build_package_modules(root, {})
+        assert key not in sys.modules
+    finally:
+        sys.modules.pop(key, None)
+        _purge_package(name)
+
+
+def test_detached_loads_keep_distinct_module_keys(tmp_path):
+    """Two detached files stay in sys.modules under different names."""
+    from ux_compose.routing.core import load_detached_module
+
+    left = tmp_path / "left.py"
+    right = tmp_path / "right.py"
+    left.write_text("MARK = 'LEFT'\n", encoding="utf-8")
+    right.write_text("MARK = 'RIGHT'\n", encoding="utf-8")
+    first = load_detached_module(left)
+    second = load_detached_module(right)
+    try:
+        assert first.MARK == "LEFT"
+        assert second.MARK == "RIGHT"
+        assert first.__name__ != second.__name__
+        assert sys.modules[first.__name__] is first
+        assert sys.modules[second.__name__] is second
+    finally:
+        sys.modules.pop(first.__name__, None)
+        sys.modules.pop(second.__name__, None)

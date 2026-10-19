@@ -310,6 +310,147 @@ def test_threaded_same_name_builds_serve_their_own_routes(tmp_path):
         _drop_tree(tmp_path)
 
 
+def _run_daemon(fn, timeout: float) -> None:
+    """Run ``fn`` on a daemon thread. A hung import fails at ``timeout``."""
+    errors: list[BaseException] = []
+
+    def target() -> None:
+        try:
+            fn()
+        except BaseException as exc:
+            errors.append(exc)
+
+    thread = threading.Thread(target=target, daemon=True)
+    thread.start()
+    thread.join(timeout)
+    assert not thread.is_alive(), "thread still running"
+    if errors:
+        raise errors[0]
+
+
+def test_import_lock_and_package_lock_do_not_deadlock(tmp_path, monkeypatch):
+    """Thread B holds shared_mod's import lock and then build().
+
+    Thread A holds the package import lock while its route imports
+    shared_mod. Joins are timed so a deadlock fails the test.
+    """
+    from starlette.testclient import TestClient
+
+    from ux_compose.build import build
+
+    root = tmp_path
+    probe: dict[str, str] = {}
+
+    def mk(folder: str, files: dict[str, str], name: str = "myapp") -> Path:
+        pkg = root / folder / name
+        payload = {"routes/__init__.py": "", "__init__.py": "", **files}
+        for rel, src in payload.items():
+            dest = pkg / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(textwrap.dedent(src), encoding="utf-8")
+        return pkg
+
+    def get(pkg: Path, path: str) -> str:
+        _app, asgi, _bundle = build(pkg, name="X", host="asgi", live="null", level=1)
+        response = TestClient(asgi, raise_server_exceptions=False).get(path)
+        return f"{response.status_code}:{response.text.strip()[:60]!r}"
+
+    def route(cls: str, expr: str, pre: str = "") -> str:
+        return pre + (
+            f"class {cls}:\n    def render(self):\n        return {expr}\n"
+        )
+
+    inner = mk("p2", {"routes/b.py": route("B", "'<p>b</p>'")}, name="other")
+    (root / "shared_mod.py").write_text(
+        "import time\n"
+        "time.sleep(0.5)\n"
+        "from pathlib import Path\n"
+        "from ux_compose.build import build\n"
+        f"build(Path({str(inner)!r}), name='S', host='asgi', live='null', level=1)\n"
+        "X = 1\n",
+        encoding="utf-8",
+    )
+    outer = mk(
+        "p1",
+        {
+            "routes/a.py": "import time\ntime.sleep(0.2)\nimport shared_mod\n"
+            + route("A", "'<p>a</p>'"),
+        },
+    )
+    monkeypatch.syspath_prepend(str(root))
+
+    def import_shared() -> None:
+        importlib.import_module("shared_mod")
+
+    def build_outer() -> None:
+        probe["body"] = get(outer, "/a")
+
+    try:
+        importer = threading.Thread(target=import_shared, daemon=True)
+        builder = threading.Thread(target=build_outer, daemon=True)
+        importer.start()
+        time.sleep(0.05)
+        builder.start()
+        builder.join(15)
+        importer.join(1)
+        assert not builder.is_alive() and not importer.is_alive()
+        assert probe["body"].startswith("200:")
+        assert "<p>a</p>" in probe["body"]
+    finally:
+        _drop_tree(root)
+        for key in list(sys.modules):
+            if key in {"shared_mod", "myapp", "other"} or key.startswith(
+                ("myapp.", "other.", "ux_surface_")
+            ):
+                sys.modules.pop(key, None)
+
+
+def test_reentrant_build_same_package_name_keeps_both_routes(tmp_path, monkeypatch):
+    inner = _write(
+        tmp_path / "right" / "demo",
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'INNER'\n"
+            ),
+        },
+    )
+    outer = _write(
+        tmp_path / "left" / "demo",
+        {
+            "routes/hello.py": (
+                "from pathlib import Path\n"
+                "from ux_compose.build import build\n"
+                f"BUILT = build(Path({str(inner)!r}), name='I', host='asgi', live='null', level=1)\n"
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'OUTER'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(outer.parent))
+    holder: dict[str, object] = {}
+
+    def load() -> None:
+        holder["mod"] = importlib.import_module("demo.routes.hello")
+
+    try:
+        _run_daemon(load, 10)
+        mod = holder["mod"]
+        inner_asgi = mod.BUILT[1]
+        assert asgi_get(inner_asgi, "/hello").text == "INNER"
+        outer_body = _serve(outer)
+        assert outer_body == "OUTER"
+    finally:
+        _drop_tree(tmp_path)
+        for key in list(sys.modules):
+            if key == "demo" or key.startswith("demo."):
+                sys.modules.pop(key, None)
+
+
 def _free_port() -> int:
     import socket
 

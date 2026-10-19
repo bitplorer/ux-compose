@@ -1,9 +1,8 @@
-"""Outside dev, a missing channel secret must fail the boot.
+"""Outside dev, an attach failure must fail the boot.
 
-ux-behavior refuses ``attach()`` without ``UX_CHANNEL_SECRET`` (or
-``UX_BEHAVIOR_SECRET``) when ``DEBUG`` is not a dev value. Compose must
-not boot the live ASGI path anyway. Atelier already raises. ``examples/live_asgi.py``
-still exits 0 because ``build()`` swallows the error.
+A missing secret already raises inside ux-behavior. A 13-character secret
+does not: Channel refuses it, and without ``strict_attach`` compose
+continues. ``live_asgi`` and ``build()`` must exit non-zero for that secret.
 """
 from __future__ import annotations
 
@@ -14,6 +13,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 PY = sys.executable
+# 13 characters. Channel refuses a capability secret shorter than 16.
+SHORT_SECRET = "shortsecret13"
 
 
 def _env_without_secret() -> dict[str, str]:
@@ -24,11 +25,16 @@ def _env_without_secret() -> dict[str, str]:
     return env
 
 
-def _run(argv: list[str]) -> subprocess.CompletedProcess[str]:
+def _run(
+    argv: list[str], extra: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
+    env = _env_without_secret()
+    if extra:
+        env.update(extra)
     return subprocess.run(
         argv,
         cwd=ROOT,
-        env=_env_without_secret(),
+        env=env,
         capture_output=True,
         text=True,
         check=False,
@@ -41,6 +47,26 @@ def test_live_asgi_fails_loudly_when_channel_secret_missing():
     blob = proc.stdout + proc.stderr
     assert proc.returncode != 0, blob
     assert "UX_CHANNEL_SECRET" in blob
+
+
+def test_live_asgi_fails_on_13_char_secret():
+    """A short secret is an attach failure. The process must not stay up."""
+    assert len(SHORT_SECRET) == 13
+    proc = _run([PY, "examples/live_asgi.py"], {"UX_CHANNEL_SECRET": SHORT_SECRET})
+    blob = proc.stdout + proc.stderr
+    assert proc.returncode != 0, blob
+
+
+def test_build_fails_on_13_char_secret():
+    """build() on the live FastAPI path must raise, not return an app."""
+    code = (
+        "from pathlib import Path\n"
+        "from ux_compose.build import build\n"
+        "build(Path('examples/live_asgi_app'), name='LiveDemo', host='fastapi', live='auto')\n"
+    )
+    proc = _run([PY, "-c", code], {"UX_CHANNEL_SECRET": SHORT_SECRET})
+    blob = proc.stdout + proc.stderr
+    assert proc.returncode != 0, blob
 
 
 def test_atelier_shop_boot_fails_without_channel_secret():

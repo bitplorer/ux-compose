@@ -1567,10 +1567,12 @@ def test_in_use_helper_from_another_folder_is_rejected(tmp_path, monkeypatch):
     """Building P2 must not serve a helper that another thread is loading from P1.
 
     The helper module is already in sys.modules from P1 and that import
-    has not finished. Main serves P1's value. build() has to fail and
-    name both folders.
+    has not finished. Main serves P1's value. build() has to fail closed.
+    Twenty overlaps each raise PackageImportConflict, and the two
+    directories are the exception's loaded_from and building fields.
     """
     from ux_compose.build import build
+    from ux_compose.routing.core import PackageImportConflict
 
     gate_name = "gate_foreign_helper"
     (tmp_path / f"{gate_name}.py").write_text(
@@ -1580,13 +1582,10 @@ def test_in_use_helper_from_another_folder_is_rejected(tmp_path, monkeypatch):
     monkeypatch.syspath_prepend(str(tmp_path))
     p1 = tmp_path / "P1" / "myapp"
     p2 = tmp_path / "P2" / "myapp"
-    for folder, mark, body in (
-        (
-            p1,
-            "FROM_P1",
-            f"import {gate_name}\nMARK = 'FROM_P1'\n{gate_name}.IN.set()\n{gate_name}.OUT.wait(2)\n",
-        ),
-        (p2, "FROM_P2", "MARK = 'FROM_P2'\n"),
+    hold = f"import {gate_name}\nMARK = 'FROM_P1'\n{gate_name}.IN.set()\n{gate_name}.OUT.wait(0.15)\n"
+    for folder, body in (
+        (p1, hold),
+        (p2, "MARK = 'FROM_P2'\n"),
     ):
         (folder / "routes").mkdir(parents=True)
         (folder / "__init__.py").write_text("", encoding="utf-8")
@@ -1602,19 +1601,204 @@ def test_in_use_helper_from_another_folder_is_rejected(tmp_path, monkeypatch):
         )
     monkeypatch.syspath_prepend(str(p1.parent))
     gate = importlib.import_module(gate_name)
+    raised = 0
+    try:
+        for _ in range(20):
+            _purge_package("myapp")
+            importlib.invalidate_caches()
+            gate.IN.clear()
+            gate.OUT.clear()
+            out: dict[str, object] = {}
+
+            def loader() -> None:
+                try:
+                    importlib.import_module("myapp.helpers")
+                except BaseException as exc:
+                    out["loader"] = exc
+
+            def builder() -> None:
+                assert gate.IN.wait(5)
+                try:
+                    built = build(p2, name="X", host="asgi", live="null", level=1)
+                    out["served"] = asgi_get(built[1], "/home").text
+                except BaseException as exc:
+                    out["err"] = exc
+                finally:
+                    gate.OUT.set()
+
+            left = threading.Thread(target=loader, daemon=True)
+            right = threading.Thread(target=builder, daemon=True)
+            left.start()
+            right.start()
+            left.join(8)
+            right.join(8)
+            assert not left.is_alive() and not right.is_alive()
+            err = out.get("err")
+            assert isinstance(err, PackageImportConflict), out.get("served")
+            assert err.loaded_from == p1.resolve()
+            assert err.building == p2.resolve()
+            assert out.get("served") != "FROM_P1"
+            raised += 1
+        assert raised == 20
+    finally:
+        gate.OUT.set()
+        _purge_package("myapp")
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)
+
+
+def test_importing_another_trees_main_serves_this_folder(tmp_path, monkeypatch):
+    """Thread A is importing x1's myapp.main. Thread B's build of x2 serves x2.
+
+    x2 does not ship main.py. The overlap is not a PackageImportConflict.
+    Three builds each return x2's three routes.
+    """
+    from ux_compose.build import build
+
+    gate_name = "gate_x1_main"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import time\nIN = __import__('threading').Event()\nFINISHED = None\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    x1 = tmp_path / "x1" / "myapp"
+    x2 = tmp_path / "x2" / "myapp"
+    x1.mkdir(parents=True)
+    (x1 / "__init__.py").write_text("", encoding="utf-8")
+    (x1 / "main.py").write_text(
+        f"import {gate_name}\n"
+        "import time\n"
+        f"{gate_name}.IN.set()\n"
+        "time.sleep(0.3)\n"
+        f"{gate_name}.FINISHED = time.monotonic()\n"
+        "VALUE = 'X1'\n",
+        encoding="utf-8",
+    )
+    _write(
+        x2,
+        {
+            "routes/a.py": (
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'X2-a'\n"
+            ),
+            "routes/b.py": (
+                "class B:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'X2-b'\n"
+            ),
+            "routes/c.py": (
+                "class C:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'X2-c'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(x1.parent))
+    gate = importlib.import_module(gate_name)
+    served_ok = 0
+    try:
+        for _ in range(3):
+            _purge_package("myapp")
+            importlib.invalidate_caches()
+            gate.IN.clear()
+            gate.FINISHED = None
+            out: dict[str, object] = {}
+
+            def loader() -> None:
+                try:
+                    importlib.import_module("myapp.main")
+                except BaseException as exc:
+                    out["loader"] = exc
+
+            def builder() -> None:
+                assert gate.IN.wait(5)
+                out["started"] = time.monotonic()
+                try:
+                    built = build(x2, name="X", host="asgi", live="null", level=1)
+                    out["pages"] = [
+                        asgi_get(built[1], "/a").text,
+                        asgi_get(built[1], "/b").text,
+                        asgi_get(built[1], "/c").text,
+                    ]
+                except BaseException as exc:
+                    out["err"] = exc
+
+            left = threading.Thread(target=loader, daemon=True)
+            right = threading.Thread(target=builder, daemon=True)
+            left.start()
+            right.start()
+            left.join(8)
+            right.join(8)
+            assert not left.is_alive() and not right.is_alive()
+            assert out.get("loader") is None, out.get("loader")
+            assert "err" not in out, out.get("err")
+            assert out.get("pages") == ["X2-a", "X2-b", "X2-c"]
+            assert out["started"] < gate.FINISHED
+            served_ok += 1
+        assert served_ok == 3
+    finally:
+        _purge_package("myapp")
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)
+
+
+def test_blocked_foreign_import_times_out_as_build_lock_timeout(tmp_path, monkeypatch):
+    """Waiting out a foreign import raises BuildLockTimeout and serves nothing.
+
+    The other folder's main stays blocked. lock_timeout bounds the wait.
+    The page from that folder is not returned.
+    """
+    from ux_compose.build import BuildLockTimeout, build
+
+    gate_name = "gate_import_timeout"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\nIN = threading.Event()\nOUT = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    x1 = tmp_path / "x1" / "myapp"
+    x2 = tmp_path / "x2" / "myapp"
+    x1.mkdir(parents=True)
+    (x1 / "__init__.py").write_text("", encoding="utf-8")
+    (x1 / "main.py").write_text(
+        f"import {gate_name}\n"
+        f"{gate_name}.IN.set()\n"
+        f"{gate_name}.OUT.wait(5)\n"
+        "VALUE = 'X1'\n",
+        encoding="utf-8",
+    )
+    _write(
+        x2,
+        {
+            "routes/a.py": (
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'X2-a'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(x1.parent))
+    gate = importlib.import_module(gate_name)
     out: dict[str, object] = {}
 
     def loader() -> None:
         try:
-            importlib.import_module("myapp.helpers")
+            importlib.import_module("myapp.main")
         except BaseException as exc:
             out["loader"] = exc
 
     def builder() -> None:
         assert gate.IN.wait(5)
         try:
-            built = build(p2, name="X", host="asgi", live="null", level=1)
-            out["served"] = asgi_get(built[1], "/home").text
+            built = build(
+                x2, name="X", host="asgi", live="null", level=1, lock_timeout=0.2
+            )
+            out["served"] = asgi_get(built[1], "/a").text
         except BaseException as exc:
             out["err"] = exc
         finally:
@@ -1629,11 +1813,9 @@ def test_in_use_helper_from_another_folder_is_rejected(tmp_path, monkeypatch):
         right.join(8)
         assert not left.is_alive() and not right.is_alive()
         err = out.get("err")
-        assert err is not None, out.get("served")
-        text = str(err)
-        assert str(p1.resolve()) in text
-        assert str(p2.resolve()) in text
-        assert out.get("served") != "FROM_P1"
+        assert isinstance(err, BuildLockTimeout), err
+        assert err.package == "myapp"
+        assert "served" not in out
     finally:
         gate.OUT.set()
         _purge_package("myapp")

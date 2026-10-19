@@ -48,7 +48,8 @@ def _on_stream_replace(exc: UnicodeError) -> tuple[str, int]:
     decoder = _stream_decoder.get()
     if decoder is not None and not decoder.warned:
         decoder.warned = True
-        # Path only. The exception text contains the bad bytes.
+        # Route template only. The request path can carry a token and a newline,
+        # and the exception text contains the bad bytes.
         logger.warning(
             "streamed bytes were not valid UTF-8; replaced with U+FFFD; path=%s",
             decoder.path,
@@ -338,8 +339,9 @@ def _sanitized_stream(payload: Any, *, path: str = "") -> Any:
     """Sanitize a sync or async stream with one UTF-8 decoder for the response.
 
     Each decoded piece is its own fragment. The decoder is flushed with
-    ``final=True`` when the stream ends. ``path`` is the route path for
-    the replacement warning; the chunk text is not logged.
+    ``final=True`` when the stream ends. ``path`` is the route template
+    for the replacement warning, not the request path. The chunk text is
+    not logged.
     """
     decoder = _Utf8Stream(path)
     if inspect.isasyncgen(payload) or hasattr(payload, "__aiter__"):

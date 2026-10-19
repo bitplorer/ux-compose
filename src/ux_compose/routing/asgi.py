@@ -230,7 +230,7 @@ class DirectoryASGI:
                     send,
                     result,
                     content_type=b"text/html; charset=utf-8",
-                    path=path,
+                    path=rec.path or "",
                 )
                 return
             if not is_json_payload(result):

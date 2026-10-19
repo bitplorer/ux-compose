@@ -129,11 +129,8 @@ def page_endpoint(
             tree = _call_render(inst, path_params)
         if inspect.isawaitable(tree):
             tree = await tree
-        path = ""
-        if request is not None:
-            url = getattr(request, "url", None)
-            path = str(getattr(url, "path", None) or getattr(request, "path", None) or "")
-        return _as_http_response(tree, document=document, path=path)
+        # Route template, not the request path. A token can carry a newline.
+        return _as_http_response(tree, document=document, path=rec.path or "")
 
     # from __future__ import annotations stringifies types. FastAPI must see
     # the Request class object or it treats `request` as a body field (422).

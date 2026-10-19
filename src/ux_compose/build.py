@@ -27,7 +27,9 @@ import ast
 from pathlib import Path
 from typing import Any
 
-__all__ = ["build", "BuildResult"]
+from ux_compose.routing.core import BuildLockTimeout
+
+__all__ = ["BuildLockTimeout", "build", "BuildResult"]
 
 _UNSET = object()
 
@@ -161,7 +163,13 @@ def build(
     from ux_compose import App
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks
     from ux_compose.routing.core import begin_build_module_notes, end_build_module_notes
-    from ux_compose.routing.core import isolate_package_imports
+    from ux_compose.routing.core import isolate_package_imports, package_build_lock
+    from ux_compose.routing.core import pin_package_finder, unpin_package_finder
+    from ux_compose.routing.core import (
+        release_build_package_modules,
+        snapshot_package_modules,
+    )
+    from ux_compose.routing.core import PACKAGE_BUILD_LOCK_TIMEOUT
     from ux_compose.routing.host import KIND_FASTAPI, bind as host_bind
     from ux_compose.routing.host import open as host_open
 
@@ -227,44 +235,58 @@ def build(
             if pinned is not None and pinned >= 3:
                 raise
 
-    # isolate only swaps sys.modules entries. Route modules run after the
-    # lock is released so an import inside a route can call build().
-    begin_build_module_notes()
+    # Same folder name imports one at a time. The lock is reentrant for
+    # this thread and times out for another thread. It is not global, so
+    # other package names keep running, and package_import_lock stays off
+    # the route body.
+    name_lock = package_build_lock(package_dir.name)
+    if not name_lock.acquire(timeout=PACKAGE_BUILD_LOCK_TIMEOUT):
+        raise BuildLockTimeout(package_dir.name)
     try:
-        isolate_package_imports(package_dir)
+        finder = pin_package_finder(package_dir)
+        try:
+            before = snapshot_package_modules(package_dir)
+            begin_build_module_notes()
+            try:
+                isolate_package_imports(package_dir)
 
-        bundle = app.mount(
-            package_dir,
-            asgi_app=None,
-            base=base,
-            fail_closed=fail_closed,
-            bind_pages=False,
-        )
+                bundle = app.mount(
+                    package_dir,
+                    asgi_app=None,
+                    base=base,
+                    fail_closed=fail_closed,
+                    bind_pages=False,
+                )
 
-        registry = dict(getattr(bundle, "unit_registry", {}) or {})
+                registry = dict(getattr(bundle, "unit_registry", {}) or {})
 
-        def _resolve(cls, path, name):
-            sid = str(getattr(cls, "id", None) or cls.__name__.lower())
-            return registry.get(sid)
+                def _resolve(cls, path, name):
+                    sid = str(getattr(cls, "id", None) or cls.__name__.lower())
+                    return registry.get(sid)
 
-        core = DirectoryRoutes(
-            package_dir,
-            base_directory=base,
-            hooks=RouterHooks(resolve_unit=_resolve),
-            fail_closed=fail_closed,
-        )
-        core.discover()
-        asgi = host_bind(
-            asgi=asgi,
-            kind=kind,
-            core=core,
-            document=document,
-            wrap=author_wrap,
-            resolve_unit=_resolve,
-        )
-        if bundle is not None and core.records:
-            bundle.route_table = core.route_table()
+                core = DirectoryRoutes(
+                    package_dir,
+                    base_directory=base,
+                    hooks=RouterHooks(resolve_unit=_resolve),
+                    fail_closed=fail_closed,
+                )
+                core.discover()
+                asgi = host_bind(
+                    asgi=asgi,
+                    kind=kind,
+                    core=core,
+                    document=document,
+                    wrap=author_wrap,
+                    resolve_unit=_resolve,
+                )
+                if bundle is not None and core.records:
+                    bundle.route_table = core.route_table()
+            finally:
+                end_build_module_notes()
+                release_build_package_modules(package_dir, before)
+        finally:
+            unpin_package_finder(finder)
     finally:
-        end_build_module_notes()
+        name_lock.release()
 
     return BuildResult((app, asgi, bundle))

@@ -250,6 +250,24 @@ modules those routes import — `models.py`, and any other module that is not
 the route file — keep the module object from the first import. Editing a
 helper is not picked up on rebuild. Restart the process to load it.
 
+### Same-name builds take turns importing
+
+Two `build()` calls whose package folders share a name import one at a
+time. The wait is reentrant on the thread that already holds that name, so a
+route may call `build()` for the same folder name on the same thread.
+Different folder names keep running together. Nothing in that wait is held
+across another package's route body.
+
+While a name is importing, `pkg` and `pkg.*` resolve to that build's
+directory even if another thread has put a different copy first on
+`sys.path`. The build serves the helper from its own tree. It does not
+serve another app's helper.
+
+A second thread that is still waiting when the timeout elapses gets
+`BuildLockTimeout` from `ux_compose.build`, and the exception names the
+package. That build does not continue, so it cannot bind the other
+thread's modules.
+
 ---
 
 ## 9. CSP on FastAPI (two layers, one nonce)

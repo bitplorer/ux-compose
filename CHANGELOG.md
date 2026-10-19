@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Login's password input carries `data-ux-keep-value`. The server still paints `value=""`. ux-channel @ `0ffe8e9907cd1a0701ffc8cb2e5414d6b39d2996` (#64 merge) copies the live value in that browser after Show and Hide. Password and text are one class, so Show keeps the typed password. PasswordField's secret input does not carry the mark: Hold and Hide clear the plain-text field, because Reveal is what puts the secret on screen and this field is always `type="text"`.
 - `App.control` and `App.mint_cap` take the action name positionally. A payload key named `action` passes through, as it does for `App.dispatch`.
 
+### Fixed
+
+- Same-name `build()` calls import one package at a time, pinned to that
+  directory, so one app cannot serve another app's helper. A second thread
+  that waits too long gets `BuildLockTimeout` naming the package instead of
+  blocking on the import lock.
+
 ## 0.2.0 — remove deprecations and bloat cleanup
 
 ux-compose and its ux-* specialists are not on PyPI, so these are removed

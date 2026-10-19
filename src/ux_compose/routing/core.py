@@ -382,6 +382,155 @@ def _forget_module(name: str) -> list[Path]:
 # code runs: that deadlocks with the import lock when a module calls build().
 package_import_lock = threading.RLock()
 
+# One reentrant lock per package folder name. Held across that name's
+# import phase so two directories cannot share sys.modules keys at once.
+# Different names stay parallel. A cross-thread wait is bounded.
+PACKAGE_BUILD_LOCK_TIMEOUT = 8.0
+_package_build_locks: dict[str, threading.RLock] = {}
+_package_build_locks_guard = threading.Lock()
+
+
+class BuildLockTimeout(TimeoutError):
+    """Another thread is still importing this package name."""
+
+    def __init__(self, package: str) -> None:
+        self.package = package
+        super().__init__(
+            f"timed out waiting to build {package!r}; "
+            "another thread is still importing it"
+        )
+
+
+def package_build_lock(package: str) -> threading.RLock:
+    with _package_build_locks_guard:
+        lock = _package_build_locks.get(package)
+        if lock is None:
+            lock = threading.RLock()
+            _package_build_locks[package] = lock
+        return lock
+
+
+class _PinnedPackageFinder:
+    """Resolve one package name to one directory, ignoring sys.path order."""
+
+    def __init__(self, package: str, root: Path) -> None:
+        self.package = package
+        self.root = root.resolve()
+
+    def find_spec(self, fullname: str, path: object = None, target: object = None):
+        if fullname != self.package and not fullname.startswith(self.package + "."):
+            return None
+        rel = fullname[len(self.package) :].lstrip(".")
+        base = self.root.joinpath(*rel.split(".")) if rel else self.root
+        init = base / "__init__.py"
+        module = base.with_suffix(".py")
+        if init.is_file():
+            return importlib.util.spec_from_file_location(
+                fullname,
+                init,
+                submodule_search_locations=[str(base)],
+            )
+        if module.is_file():
+            return importlib.util.spec_from_file_location(fullname, module)
+        return None
+
+
+def pin_package_finder(package_dir: Path) -> _PinnedPackageFinder:
+    finder = _PinnedPackageFinder(package_dir.name, Path(package_dir))
+    with package_import_lock:
+        sys.meta_path.insert(0, finder)
+    return finder
+
+
+def unpin_package_finder(finder: _PinnedPackageFinder) -> None:
+    with package_import_lock:
+        try:
+            sys.meta_path.remove(finder)
+        except ValueError:
+            pass
+
+
+def snapshot_package_modules(package_dir: str | Path) -> dict[str, int]:
+    """Identity of ``sys.modules`` entries for this folder name, before import."""
+    name = Path(package_dir).resolve().name
+    with package_import_lock:
+        return {
+            key: id(mod)
+            for key, mod in sys.modules.items()
+            if mod is not None and (key == name or key.startswith(name + "."))
+        }
+
+
+def _is_route_file(path: Path, root: Path) -> bool:
+    if path.name == "__init__.py" or not path.is_relative_to(root):
+        return False
+    rel = path.relative_to(root)
+    if not rel.parts or rel.parts[0] != "routes":
+        return False
+    return not any(part.startswith("_") for part in rel.parts)
+
+
+def _keep_helper(mod: Any, root: Path) -> bool:
+    """Helpers stay for the next rebuild. Route files and package shells do not."""
+    origins = _resolved_origins(mod)
+    if not origins:
+        return True
+    for path in origins:
+        if not path.is_relative_to(root) or path.name == "__init__.py":
+            return False
+        if _is_route_file(path, root):
+            return False
+    return True
+
+
+def release_build_package_modules(
+    package_dir: str | Path, before: dict[str, int]
+) -> None:
+    """Drop route modules this build introduced. Keep helpers and prior imports.
+
+    The pinned finder lets ``importlib`` load the package by name. Those
+    route entries would otherwise stay in ``sys.modules`` after ``build()``.
+    A helper imported for the first time stays, which is what a later rebuild
+    of the same directory reuses. A module that was already present keeps
+    its identity.
+    """
+    root = Path(package_dir).resolve()
+    name = root.name
+    with package_import_lock:
+        keep: set[str] = set()
+        drop: list[str] = []
+        for key in list(sys.modules):
+            if key != name and not key.startswith(name + "."):
+                continue
+            mod = sys.modules.get(key)
+            if mod is None:
+                continue
+            if (
+                before.get(key) == id(mod)
+                or _is_on_stack(mod)
+                or _is_installed_module(mod)
+            ):
+                keep.add(key)
+                continue
+            if _keep_helper(mod, root):
+                keep.add(key)
+                continue
+            drop.append(key)
+        anchored = set(keep)
+        for key in keep:
+            parent, _, _ = key.rpartition(".")
+            while parent:
+                anchored.add(parent)
+                parent, _, _ = parent.rpartition(".")
+        for key in sorted(drop, key=lambda item: item.count("."), reverse=True):
+            if key in anchored:
+                continue
+            mod = sys.modules.get(key)
+            if mod is None or _is_on_stack(mod) or _is_installed_module(mod):
+                continue
+            _forget_module(key)
+
+
 _source_tokens: weakref.WeakKeyDictionary[Any, bytes] = weakref.WeakKeyDictionary()
 _installed_roots: tuple[Path, ...] | None = None
 _build_notes = threading.local()
@@ -443,7 +592,7 @@ def _is_on_stack(mod: Any) -> bool:
     """
     mod_dict = getattr(mod, "__dict__", None)
     name = getattr(mod, "__name__", None)
-    frame = sys._getframe(1)
+    frame: Any = sys._getframe(1)
     while frame is not None:
         globs = frame.f_globals
         if mod_dict is not None and globs is mod_dict:

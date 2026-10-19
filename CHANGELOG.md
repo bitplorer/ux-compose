@@ -112,8 +112,8 @@ outright, with no shims. Call sites, docs and tests are updated.
   **Breaks:** on a Level-1 page with no Channel, the Login "Log out" button is
   now refused (``AuthorityError``). Migrate one of three ways: (a) attach the
   Channel (``app.use_channel()`` / ``build(live="auto")``) so ``control()``
-  mints the Cap; (b) call it from trusted host code:
-  ``app.dispatch("login.logout", _trusted=True)``; (c) in your own copy
+  mints the Cap; (b) call it from trusted host code with ``app.trust()``,
+  or after a verified Cap with ``dispatch_verified``; (c) in your own copy
   (``uxcompose add login``) set ``@action(caps=())`` on ``logout`` if sign-out
   is purely local in your app.
 - Gated (server state / user content): ``StockBadge.sell`` / ``restock`` →

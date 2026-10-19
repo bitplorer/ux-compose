@@ -272,10 +272,10 @@ def bridge_actions(behavior: Any, channel: Any) -> list[str]:
     """Register product @action names on Channel so Caps mint against author names.
 
     Channel verifies the Cap at the edge. The handler then calls
-    ``dispatch_verified(name, payload)`` (or ``async_dispatch_verified`` on
-    the async path). Trust is that one call. A task started while the
-    action runs does not inherit it. A bool does not grant trust.
-    Attaching Channel does not skip the check by itself (ux-behavior >=0.4.0).
+    ``dispatch_verified(name, payload)``. Trust is that one call. A task
+    started while the action runs does not inherit it. A bool does not
+    grant trust. Attaching Channel does not skip the check by itself
+    (ux-behavior >=0.4.0).
     """
     registered: list[str] = []
     if behavior is None or channel is None:

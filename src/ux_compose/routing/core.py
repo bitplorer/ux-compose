@@ -416,6 +416,38 @@ _package_build_locks: dict[str, threading.RLock] = {}
 _package_build_locks_guard = threading.Lock()
 
 
+class PackageImportConflict(RuntimeError):
+    """A module under this name is in use from a different folder.
+
+    Main serves that other folder's code. ``build()`` fails instead, and
+    the message names both directories.
+    """
+
+    def __init__(self, module: str, loaded_from: Path, building: Path) -> None:
+        self.module = module
+        self.loaded_from = loaded_from
+        self.building = building
+        super().__init__(
+            f"{module} is already loaded from {loaded_from} while building {building}"
+        )
+
+
+def _top_package_dir(mod: Any, module_name: str) -> Path | None:
+    """Directory of the top package, from a module file that belongs to it."""
+    origins = _resolved_origins(mod)
+    if not origins:
+        return None
+    file = origins[0]
+    parts = module_name.split(".")
+    index = len(parts) - 1 if file.name == "__init__.py" else len(parts) - 2
+    if index < 0:
+        return file.parent
+    try:
+        return file.parents[index]
+    except IndexError:
+        return file.parent
+
+
 class BuildLockTimeout(TimeoutError):
     """Another thread is still importing this package name."""
 
@@ -694,12 +726,14 @@ def _should_replace(mod: Any, root: Path) -> bool:
 
 
 def isolate_package_imports(package_dir: str | Path) -> None:
-    """Reuse this directory's modules. Drop only another directory's.
+    """Reuse this directory's modules. Drop an idle module from another one.
 
     A cached ``sys.modules`` entry under the package name stays when its
-    file resolves inside ``package_dir``. It is replaced when that file
-    resolves somewhere else. The module currently importing, and stdlib
-    or site-packages modules, are left in place.
+    file resolves inside ``package_dir``. An idle entry from another
+    directory is dropped so this build can load its own file. An entry
+    another thread is still importing from a different directory is not
+    usable: that is :class:`PackageImportConflict`, and the message names
+    both directories. Stdlib and site-packages modules are left in place.
     """
     with package_import_lock:
         root = Path(package_dir).resolve()
@@ -711,6 +745,11 @@ def isolate_package_imports(package_dir: str | Path) -> None:
             mod = sys.modules.get(key)
             if mod is None or not _should_replace(mod, root):
                 continue
+            if _other_thread_importing(key):
+                loaded = _top_package_dir(mod, key)
+                raise PackageImportConflict(
+                    key, loaded if loaded is not None else Path("."), root
+                )
             doomed.append(key)
         forgotten: list[Path] = []
         for key in sorted(doomed, key=lambda item: item.count("."), reverse=True):

@@ -212,6 +212,17 @@ ORDER_RAW_BODY = b"caf\n\xef\xbf\xbd\n<b>R</b>\xef\xbf\xbd\n"
 
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])
 @pytest.mark.parametrize("mode", ["sync", "async"])
+@pytest.mark.parametrize("empty", [b"", ""], ids=["empty-bytes", "empty-str"])
+def test_empty_chunk_does_not_flush_a_split_character(
+    tmp_path: Path, host: str, mode: str, empty
+):
+    """'' and b'' neither flush nor emit, so é still joins across them."""
+    chunks = (b"<p>caf\xc3", empty, b"\xa9</p>")
+    assert _stream_body(tmp_path, host, mode, chunks) == CAFE_BODY
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
 def test_raw_chunk_flushes_pending_bytes_in_order(tmp_path: Path, host: str, mode: str):
     """b'caf\\xc3', raw('<b>R</b>'), b'\\xa9' stays in that order, with U+FFFD."""
     assert _stream_body(tmp_path, host, mode, ORDER_RAW) == ORDER_RAW_BODY

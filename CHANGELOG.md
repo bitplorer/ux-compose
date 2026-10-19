@@ -40,6 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it. The file runs again only when its bytes change. A different directory
   with the same package name is what replaces it. The pin applies to the
   building thread only.
+- The same-name build wait defaults to 60 seconds. `build(lock_timeout=...)`
+  and `UX_COMPOSE_BUILD_LOCK_TIMEOUT` override it. `None` waits until the
+  other build finishes. `BuildLockTimeout` names the package and the setting.
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

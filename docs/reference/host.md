@@ -275,9 +275,13 @@ directory even if another thread has put a different copy first on
 serve another app's helper.
 
 A second thread that is still waiting when the timeout elapses gets
-`BuildLockTimeout` from `ux_compose.build`, and the exception names the
-package. That build does not continue, so it cannot bind the other
-thread's modules.
+`BuildLockTimeout` from `ux_compose.build`. The message names the package
+and the setting. The default wait is 60 seconds, so a slow route still
+finishes and a deadlock still ends in that error. `build(lock_timeout=...)`
+overrides it. `UX_COMPOSE_BUILD_LOCK_TIMEOUT` overrides it when the
+argument is omitted. `lock_timeout=None`, or `none` in the environment,
+waits until the other build finishes. That build does not continue after
+a timeout, so it cannot bind the other thread's modules.
 
 ---
 

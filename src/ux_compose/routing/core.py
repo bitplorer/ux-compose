@@ -385,7 +385,7 @@ package_import_lock = threading.RLock()
 # One reentrant lock per package folder name. Held across that name's
 # import phase so two directories cannot share sys.modules keys at once.
 # Different names stay parallel. A cross-thread wait is bounded.
-PACKAGE_BUILD_LOCK_TIMEOUT = 8.0
+PACKAGE_BUILD_LOCK_TIMEOUT = 60.0
 _package_build_locks: dict[str, threading.RLock] = {}
 _package_build_locks_guard = threading.Lock()
 
@@ -393,11 +393,14 @@ _package_build_locks_guard = threading.Lock()
 class BuildLockTimeout(TimeoutError):
     """Another thread is still importing this package name."""
 
-    def __init__(self, package: str) -> None:
+    def __init__(self, package: str, timeout: float) -> None:
         self.package = package
+        self.timeout = timeout
         super().__init__(
-            f"timed out waiting to build {package!r}; "
-            "another thread is still importing it"
+            f"timed out waiting to build {package!r} after {timeout:g}s; "
+            "another thread is still importing it "
+            "(UX_COMPOSE_BUILD_LOCK_TIMEOUT or build(lock_timeout=...); "
+            "lock_timeout=None waits until that build finishes)"
         )
 
 

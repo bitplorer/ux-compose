@@ -24,14 +24,30 @@ and HTML wrap live elsewhere.
 from __future__ import annotations
 
 import ast
+import os
 from pathlib import Path
 from typing import Any
 
-from ux_compose.routing.core import BuildLockTimeout
+from ux_compose.routing.core import PACKAGE_BUILD_LOCK_TIMEOUT, BuildLockTimeout
 
 __all__ = ["BuildLockTimeout", "build", "BuildResult"]
 
 _UNSET = object()
+
+
+def _resolve_lock_timeout(lock_timeout: Any) -> float | None:
+    """None waits until the other build finishes. Omitted reads the env, else 60."""
+    if lock_timeout is None:
+        return None
+    if lock_timeout is not _UNSET:
+        return float(lock_timeout)
+    raw = os.environ.get("UX_COMPOSE_BUILD_LOCK_TIMEOUT")
+    if raw is None or not raw.strip():
+        return float(PACKAGE_BUILD_LOCK_TIMEOUT)
+    token = raw.strip().lower()
+    if token in {"none", "inf", "infinite"}:
+        return None
+    return float(raw)
 
 
 def _const_bool(node: ast.AST) -> bool | None:
@@ -130,6 +146,7 @@ def build(
     cek: str = "require",
     openapi: Any = _UNSET,
     strict_caps: bool = True,
+    lock_timeout: Any = _UNSET,
 ) -> BuildResult:
     """Boot specialists + mount page units. Host and live set only here.
 
@@ -159,6 +176,12 @@ def build(
         Cap Host ≠ HTTP Product host (ADR 0002).
       - ``"adapt"`` — compare-only lab
       - ``"off"`` — do not attach Cap Host (honest off; see ``App.use_cek``)
+
+    lock_timeout:
+      Seconds another thread waits while this package name is importing.
+      ``None`` waits until that build finishes. When omitted, the value is
+      ``UX_COMPOSE_BUILD_LOCK_TIMEOUT`` if set, otherwise 60. ``none`` in
+      the environment also waits until done.
     """
     from ux_compose import App
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks
@@ -169,7 +192,6 @@ def build(
         release_build_package_modules,
         snapshot_package_modules,
     )
-    from ux_compose.routing.core import PACKAGE_BUILD_LOCK_TIMEOUT
     from ux_compose.routing.host import KIND_FASTAPI, bind as host_bind
     from ux_compose.routing.host import open as host_open
 
@@ -240,8 +262,11 @@ def build(
     # other package names keep running, and package_import_lock stays off
     # the route body.
     name_lock = package_build_lock(package_dir.name)
-    if not name_lock.acquire(timeout=PACKAGE_BUILD_LOCK_TIMEOUT):
-        raise BuildLockTimeout(package_dir.name)
+    timeout = _resolve_lock_timeout(lock_timeout)
+    if timeout is None:
+        name_lock.acquire()
+    elif not name_lock.acquire(timeout=timeout):
+        raise BuildLockTimeout(package_dir.name, timeout)
     try:
         finder = pin_package_finder(package_dir)
         try:

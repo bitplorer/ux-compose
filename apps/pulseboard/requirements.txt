@@ -1,7 +1,7 @@
 # Create-app style pins. From this repo prefer: pip install -e ".[dev]"
 ux-compose @ git+https://github.com/bitplorer/ux-compose.git@4978576
 ux-dom @ git+https://github.com/bitplorer/ux-dom.git@0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4
-ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@2ae5c3de6c60756cfccfa0174355037436bb3f14
+ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@674a5755b0214e31cf85b5c0dff58cd977925d2f
 ux-motion @ git+https://github.com/bitplorer/ux-motion.git@bbe7d73466a6c1eccb47e711568c80ce3b4d5487
 ux-channel @ git+https://github.com/bitplorer/ux-channel.git@f1a93fcf298c97a59fa6538697731e19aac8586d#subdirectory=python
 cek-host>=0.2.0

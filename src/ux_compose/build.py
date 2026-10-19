@@ -44,15 +44,18 @@ _DEFAULT_LOCK_TIMEOUT = 60.0
 def _rebind_detached_pages(app: Any, registry: dict, bundle: Any, records: list) -> None:
     """Dispatch and GET use the dotted route class, not the scan copy.
 
-    Scan loads a path-unique module and behavior registers that class.
-    The path-unique module is dropped when the build ends. The dotted
-    module stays. Channel actions and the page GET have to share that
-    class, or MorphState updates never reach the document.
+    Scan already registered this id in this build. The path-unique module
+    is dropped when the build ends, so the dotted instance has to take
+    its place. That swap is bookkeeping: it must not go through
+    ``behavior.add``, which logs COMPONENT_REPLACE. A page whose registry
+    instance is already the dotted class is left as it is.
     """
     behavior = getattr(app, "_behavior", None)
-    if behavior is None or not hasattr(behavior, "add"):
+    if behavior is None:
         return
-    components = getattr(app, "_components", None)
+    components = getattr(behavior, "_components", None)
+    if not isinstance(components, dict):
+        return
     for rec in records:
         page_cls = getattr(rec, "page_cls", None)
         if not isinstance(page_cls, type):
@@ -65,13 +68,17 @@ def _rebind_detached_pages(app: Any, registry: dict, bundle: Any, records: list)
         page_mod = str(getattr(page_cls, "__module__", ""))
         if inst_mod == page_mod or not inst_mod.startswith("ux_surface_"):
             continue
-        replacement = behavior.add(page_cls)
+        replacement = page_cls()
+        bind = getattr(replacement, "bind_behavior", None)
+        if callable(bind):
+            bind(behavior)
+        else:
+            setattr(replacement, "_behavior", behavior)
+        components[sid] = replacement
         registry[sid] = replacement
         unit_registry = getattr(bundle, "unit_registry", None)
         if isinstance(unit_registry, dict):
             unit_registry[sid] = replacement
-        if isinstance(components, dict):
-            components[sid] = page_cls
 
 
 def _checked_lock_timeout(value: Any, *, where: str) -> float | None:
@@ -358,18 +365,7 @@ def build(
 
                 def _resolve(cls, path, name):
                     sid = str(getattr(cls, "id", None) or cls.__name__.lower())
-                    inst = registry.get(sid)
-                    if inst is None:
-                        return None
-                    # Scan may have loaded a path-unique copy. The route
-                    # record's class is the one left in sys.modules, and
-                    # that is the class whose globals type hints read.
-                    inst_mod = getattr(type(inst), "__module__", None)
-                    if inst_mod != getattr(cls, "__module__", None) and str(
-                        inst_mod
-                    ).startswith("ux_surface_"):
-                        return None
-                    return inst
+                    return registry.get(sid)
 
                 core = DirectoryRoutes(
                     package_dir,

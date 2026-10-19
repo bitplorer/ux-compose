@@ -64,6 +64,7 @@ def _marked_hello(label: str) -> str:
     return (
         "from demo.models import MARKER\n"
         "class Hello:\n"
+        "    routes = ('get',)\n"
         "    def render(self):\n"
         f"        return 'ROUTE-{label}:' + MARKER\n"
     )
@@ -148,6 +149,7 @@ def test_myapp_main_py_builds_at_import(tmp_path, monkeypatch):
         {
             "routes/hello.py": (
                 "class Hello:\n"
+                "    routes = ('get',)\n"
                 "    def render(self):\n"
                 "        return 'from-main'\n"
             ),
@@ -191,6 +193,7 @@ def test_models_imported_before_build_keep_identity_and_state(tmp_path, monkeypa
             "routes/hello.py": (
                 "from myapp.models import Item, MARKER\n"
                 "class Hello:\n"
+                "    routes = ('get',)\n"
                 "    def render(self):\n"
                 "        return f'{id(Item)}:{MARKER[\"n\"]}'\n"
             ),
@@ -228,6 +231,7 @@ def test_route_edit_is_picked_up_on_rebuild(tmp_path):
         {
             "routes/hello.py": (
                 "class Hello:\n"
+                "    routes = ('get',)\n"
                 "    def render(self):\n"
                 "        return 'version-1'\n"
             ),
@@ -238,6 +242,7 @@ def test_route_edit_is_picked_up_on_rebuild(tmp_path):
         hello = pkg / "routes" / "hello.py"
         hello.write_text(
             "class Hello:\n"
+            "    routes = ('get',)\n"
             "    def render(self):\n"
             "        return 'version-2'\n",
             encoding="utf-8",
@@ -257,6 +262,7 @@ def test_threaded_same_name_builds_serve_their_own_routes(tmp_path):
         {
             "routes/hello.py": (
                 "class Hello:\n"
+                "    routes = ('get',)\n"
                 "    def render(self):\n"
                 "        return 'THREAD-ALPHA'\n"
             ),
@@ -267,6 +273,7 @@ def test_threaded_same_name_builds_serve_their_own_routes(tmp_path):
         {
             "routes/hello.py": (
                 "class Hello:\n"
+                "    routes = ('get',)\n"
                 "    def render(self):\n"
                 "        return 'THREAD-BETA'\n"
             ),

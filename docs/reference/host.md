@@ -347,9 +347,10 @@ on a request a client sent.
 ## Attach secret
 
 Outside dev, `Behavior.attach` requires `UX_CHANNEL_SECRET` (or
-`UX_BEHAVIOR_SECRET`). That refusal belongs to ux-behavior. Compose does
-not invent a secret and does not continue without Caps. `build()` on the
-FastAPI live path lets the error propagate, so `examples/live_asgi.py`
-fails the process. `apps/atelier_shop` and `apps/atelier_studio` fail at
-boot with the same message. Dev is `DEBUG` in `1` / `true` / `yes` / `on`.
-Tests and CI set `UX_CHANNEL_SECRET`.
+`UX_BEHAVIOR_SECRET`). A secret shorter than 16 characters, and any other
+error `Channel.boot` raises, is an attach failure too. Compose boots that
+path with `strict_attach=True` (`wire/boot.py` and `build()`), so the
+error propagates. Compose does not invent a secret and does not continue
+without Caps. `examples/live_asgi.py`, `apps/atelier_shop`, and
+`apps/atelier_studio` fail the process. Dev is `DEBUG` in `1` / `true` /
+`yes` / `on`.

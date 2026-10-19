@@ -113,6 +113,10 @@ def attach_channel(
         attach_kwargs: dict[str, Any] = {}
         if secret is not None:
             attach_kwargs["secret"] = secret
+        # Any attach failure must raise: a short secret, a REDIS_URL
+        # Channel.boot refuses, anything else. The default leaves the
+        # process up with no Caps.
+        behavior.strict_attach = True
         try:
             behavior.attach(asgi, **attach_kwargs)
             ch = getattr(behavior, "_wire", None)

@@ -1,10 +1,8 @@
 """Outside dev, an attach failure must fail the boot.
 
-A missing secret already raises inside ux-behavior. A 13-character secret
-does not: Channel refuses it, and without ``strict_attach`` compose
-continues. ``live_asgi``, ``build()``, and both Atelier servers must
-exit non-zero for that secret. The missing-secret Atelier checks passed
-on base because ux-behavior already raises; a short secret does not.
+A 13-character secret is under Channel's 16-character minimum.
+``strict_attach=True`` makes ``live_asgi``, ``build()``, and both Atelier
+servers exit non-zero instead of continuing without Caps.
 """
 from __future__ import annotations
 

@@ -91,6 +91,19 @@ def test_submit_validates():
     assert not bool(inst.authed)
 
 
+def test_empty_password_asks_for_a_password():
+    """An empty posted password is its own error, not the length error."""
+    app = _boot(strict_caps=False)
+    app.dispatch("login.submit", email="you@atelier.test", password="")
+    inst = app.behavior.get("login")
+    assert not bool(inst.authed)
+    assert str(inst.err_password) == "Enter your password."
+    assert "8" not in str(inst.err_password)
+    app.dispatch("login.submit", email="you@atelier.test", password="short")
+    inst = app.behavior.get("login")
+    assert str(inst.err_password) == "Password must be at least 8 characters."
+
+
 def test_blocked_account_fail_closed():
     app = _boot(strict_caps=False)
     app.dispatch(

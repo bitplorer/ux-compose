@@ -37,6 +37,39 @@ _UNSET = object()
 _DEFAULT_LOCK_TIMEOUT = 60.0
 
 
+def _rebind_detached_pages(app: Any, registry: dict, bundle: Any, records: list) -> None:
+    """Dispatch and GET use the dotted route class, not the scan copy.
+
+    Scan loads a path-unique module and behavior registers that class.
+    The path-unique module is dropped when the build ends. The dotted
+    module stays. Channel actions and the page GET have to share that
+    class, or MorphState updates never reach the document.
+    """
+    behavior = getattr(app, "_behavior", None)
+    if behavior is None or not hasattr(behavior, "add"):
+        return
+    components = getattr(app, "_components", None)
+    for rec in records:
+        page_cls = getattr(rec, "page_cls", None)
+        if not isinstance(page_cls, type):
+            continue
+        sid = str(getattr(page_cls, "id", None) or page_cls.__name__.lower())
+        inst = registry.get(sid)
+        if inst is None:
+            continue
+        inst_mod = str(getattr(type(inst), "__module__", ""))
+        page_mod = str(getattr(page_cls, "__module__", ""))
+        if inst_mod == page_mod or not inst_mod.startswith("ux_surface_"):
+            continue
+        replacement = behavior.add(page_cls)
+        registry[sid] = replacement
+        unit_registry = getattr(bundle, "unit_registry", None)
+        if isinstance(unit_registry, dict):
+            unit_registry[sid] = replacement
+        if isinstance(components, dict):
+            components[sid] = page_cls
+
+
 def _checked_lock_timeout(value: Any, *, where: str) -> float | None:
     """Seconds, or None for "wait until done". Rejects negatives and NaN.
 
@@ -336,6 +369,7 @@ def build(
                     fail_closed=fail_closed,
                 )
                 core.discover()
+                _rebind_detached_pages(app, registry, bundle, core.records)
                 asgi = host_bind(
                     asgi=asgi,
                     kind=kind,

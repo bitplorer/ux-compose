@@ -1514,3 +1514,217 @@ def test_route_import_does_not_keep_another_threads_helper(tmp_path, monkeypatch
     finally:
         _purge_package("myapp")
         _drop_tree(tmp_path)
+
+
+def test_package_init_helper_survives_three_builds(tmp_path, monkeypatch):
+    """A helper package's __init__ stays imported, so hints keep resolving."""
+    from starlette.testclient import TestClient
+
+    from ux_compose.build import build
+
+    name = "myapp"
+    counter = tmp_path / "runs.txt"
+    counter.write_text("", encoding="utf-8")
+    pkg = tmp_path / "pi" / name
+    (pkg / "routes").mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "routes" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "models").mkdir()
+    (pkg / "models" / "__init__.py").write_text(
+        "from __future__ import annotations\n"
+        "import dataclasses\n"
+        f"open({str(counter)!r}, 'a', encoding='utf-8').write('x')\n"
+        "class M:\n"
+        "    pass\n"
+        "@dataclasses.dataclass\n"
+        "class D:\n"
+        "    m: M | None = None\n"
+        "STATE = {'n': 0}\n",
+        encoding="utf-8",
+    )
+    (pkg / "routes" / "h.py").write_text(
+        "import typing\n"
+        "from myapp.models import D\n"
+        "class H:\n"
+        "    routes = ('get',)\n"
+        "    def render(self):\n"
+        "        return '<p>' + str(typing.get_type_hints(D)) + '</p>'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(pkg.parent))
+    try:
+        statuses: list[int] = []
+        for _ in range(3):
+            _app, asgi, _bundle = build(pkg, name="X", host="asgi", live="null", level=1)
+            response = TestClient(asgi).get("/h")
+            statuses.append(response.status_code)
+            assert response.status_code == 200, response.text
+        assert statuses == [200, 200, 200]
+        assert counter.read_text(encoding="utf-8") == "x"
+        assert f"{name}.models" in sys.modules
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_package_init_helper_keeps_state_across_import(tmp_path, monkeypatch):
+    """The served route and a later import are the same models package."""
+    from ux_compose.build import build
+
+    name = "myapp"
+    counter = tmp_path / "runs.txt"
+    counter.write_text("", encoding="utf-8")
+    pkg = tmp_path / "ps" / name
+    (pkg / "routes").mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "routes" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "models").mkdir()
+    (pkg / "models" / "__init__.py").write_text(
+        f"open({str(counter)!r}, 'a', encoding='utf-8').write('x')\n"
+        "STATE = {'n': 0}\n",
+        encoding="utf-8",
+    )
+    (pkg / "routes" / "c.py").write_text(
+        "from myapp import models\n"
+        "class C:\n"
+        "    routes = ('get',)\n"
+        "    def render(self):\n"
+        "        return str(models.STATE['n'])\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(pkg.parent))
+    try:
+        _app, asgi, _bundle = build(pkg, name="X", host="asgi", live="null", level=1)
+        models = importlib.import_module(f"{name}.models")
+        models.STATE["n"] = 7
+        assert asgi_get(asgi, "/c").text == "7"
+        assert counter.read_text(encoding="utf-8") == "x"
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_bad_env_lock_timeout_names_the_setting(monkeypatch):
+    from ux_compose.build import _UNSET, _resolve_lock_timeout
+
+    for raw in ("abc", "nan", "-2"):
+        monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", raw)
+        with pytest.raises(ValueError, match="UX_COMPOSE_BUILD_LOCK_TIMEOUT"):
+            _resolve_lock_timeout(_UNSET)
+
+
+def test_negative_lock_timeout_is_rejected(tmp_path):
+    """-1 must not reach the lock. That value waits forever once the lock is held."""
+    from ux_compose.build import build
+
+    pkg = _write(
+        tmp_path / "negapp",
+        {
+            "routes/a.py": (
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'neg'\n"
+            ),
+        },
+    )
+    try:
+        with pytest.raises(ValueError):
+            build(pkg, name="X", host="asgi", live="null", level=1, lock_timeout=-1)
+    finally:
+        _purge_package("negapp")
+        _drop_tree(tmp_path)
+
+
+def test_inf_lock_timeout_waits_without_overflow(tmp_path, monkeypatch):
+    from ux_compose.build import _UNSET, _resolve_lock_timeout, build
+
+    assert _resolve_lock_timeout(float("inf")) is None
+    monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "inf")
+    assert _resolve_lock_timeout(_UNSET) is None
+    pkg = _write(
+        tmp_path / "infapp",
+        {
+            "routes/a.py": (
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'inf-ok'\n"
+            ),
+        },
+    )
+    try:
+        built = build(pkg, name="X", host="asgi", live="null", level=1, lock_timeout=float("inf"))
+        assert asgi_get(built[1], "/a").text == "inf-ok"
+        monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "infinite")
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/a").text == "inf-ok"
+    finally:
+        _purge_package("infapp")
+        _drop_tree(tmp_path)
+
+
+def test_popping_parent_during_child_import_does_not_raise_keyerror(tmp_path, monkeypatch):
+    """Another thread must not pop the parent between importlib's two lookups."""
+    from ux_compose.routing.core import _forget_module
+
+    pkg = tmp_path / "myapp"
+    pkg.mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "helpers.py").write_text("MARK = 'HELPER'\n", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(tmp_path))
+    _purge_package("myapp")
+    importlib.invalidate_caches()
+
+    original = sys.modules
+    at_lookup = threading.Event()
+    other_done = threading.Event()
+    state: dict[str, object] = {"fired": False, "importer": None}
+
+    class _ParentLookup(dict):
+        def __getitem__(self, key: str):
+            if (
+                key == "myapp"
+                and not state["fired"]
+                and threading.current_thread() is state["importer"]
+            ):
+                state["fired"] = True
+                at_lookup.set()
+                assert other_done.wait(5), "popper did not return"
+            return dict.__getitem__(self, key)
+
+    lookup = _ParentLookup(original)
+    out: dict[str, object] = {}
+
+    def importer() -> None:
+        try:
+            module = importlib.import_module("myapp.helpers")
+            out["mark"] = module.MARK
+        except BaseException as exc:
+            out["err"] = exc
+
+    def popper() -> None:
+        assert at_lookup.wait(5), "import never looked up the parent"
+        _forget_module("myapp")
+        other_done.set()
+
+    owner = threading.Thread(target=importer, daemon=True)
+    state["importer"] = owner
+    other = threading.Thread(target=popper, daemon=True)
+    sys.modules = lookup
+    try:
+        other.start()
+        owner.start()
+        owner.join(5)
+        other.join(5)
+        assert not owner.is_alive() and not other.is_alive()
+        assert state["fired"]
+        assert "err" not in out, out.get("err")
+        assert out.get("mark") == "HELPER"
+    finally:
+        snapshot = dict(lookup)
+        sys.modules = original
+        original.update(snapshot)
+        other_done.set()
+        _purge_package("myapp")
+        _drop_tree(tmp_path)

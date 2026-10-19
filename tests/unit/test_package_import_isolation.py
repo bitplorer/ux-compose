@@ -495,6 +495,32 @@ def test_reentrant_build_of_another_package_serves_both(tmp_path, monkeypatch):
                 sys.modules.pop(key, None)
 
 
+def test_repeated_builds_do_not_grow_sys_modules(tmp_path):
+    from ux_compose.build import build
+
+    def hello(name: str) -> dict[str, str]:
+        return {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                f"        return {name!r}\n"
+            ),
+        }
+
+    warm = _write(tmp_path / "warm" / "warmpkg", hello("warm"))
+    try:
+        build(warm, name="W", host="asgi", live="null", level=1)
+        base = len(sys.modules)
+        for index in range(30):
+            pkg = _write(tmp_path / f"d{index}" / f"pkg{index}", hello(f"n{index}"))
+            built = build(pkg, name="N", host="asgi", live="null", level=1)
+            assert asgi_get(built[1], "/hello").text == f"n{index}"
+        assert len(sys.modules) == base
+    finally:
+        _drop_tree(tmp_path)
+
+
 def test_sixteen_threads_three_builds_serve_their_own_routes(tmp_path):
     left = _write(
         tmp_path / "left" / "demo",

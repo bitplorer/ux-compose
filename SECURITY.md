@@ -20,7 +20,7 @@ Compose’s security is the union of the levels you enabled:
 
 Product code must **not** import `ux_channel` outside compose `wire/`. HMR and tunnel exist only under `uxcompose serve`.
 
-A capped action runs when the author wraps the call in `app.trust()`, or when Channel has accepted a Cap and `wire/caps.bridge_actions` calls `dispatch_verified(name, payload)` (trust for that one call). A bool supplied by the caller is not authority. See [docs/reference/host.md](docs/reference/host.md) (Cap default).
+A capped action runs when the author wraps the call in `app.trust()`, or when Channel has accepted a Cap and `wire/caps.bridge_actions` calls `dispatch_verified(name, payload)` (trust for that one call). A bool supplied by the caller is not authority. Outside dev, booting the live ASGI path without `UX_CHANNEL_SECRET` fails the process; compose does not swallow that or invent a secret. See [docs/reference/host.md](docs/reference/host.md) (Cap default, Attach secret).
 
 ## Reporting
 

@@ -343,3 +343,13 @@ is how the handler records the acceptance, for one call.
 
 `App.trust` delegates to `Behavior.trust`. It is not a substitute for a Cap
 on a request a client sent.
+
+## Attach secret
+
+Outside dev, `Behavior.attach` requires `UX_CHANNEL_SECRET` (or
+`UX_BEHAVIOR_SECRET`). That refusal belongs to ux-behavior. Compose does
+not invent a secret and does not continue without Caps. `build()` on the
+FastAPI live path lets the error propagate, so `examples/live_asgi.py`
+fails the process. `apps/atelier_shop` and `apps/atelier_studio` fail at
+boot with the same message. Dev is `DEBUG` in `1` / `true` / `yes` / `on`.
+Tests and CI set `UX_CHANNEL_SECRET`.

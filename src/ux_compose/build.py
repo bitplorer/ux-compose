@@ -191,13 +191,9 @@ def build(
     document = _attach_document(app, author_document, use_htmx=use_htmx)
 
     if want_channel and kind == KIND_FASTAPI and asgi is not None:
-        try:
-            app.use_channel(asgi_app=asgi)
-        except ImportError:
-            raise
-        except Exception:
-            if live_l == "channel":
-                raise
+        # A missing UX_CHANNEL_SECRET must fail the boot. Swallowing it
+        # used to start the process with no Caps.
+        app.use_channel(asgi_app=asgi)
     elif want_channel:
         try:
             app.use_channel()

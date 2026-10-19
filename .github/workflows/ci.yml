@@ -9,6 +9,10 @@ jobs:
   full-stack:
     name: full-stack (py3.14)
     runs-on: ubuntu-latest
+    env:
+      # ux-behavior refuses attach() outside dev without this. Not the
+      # published dev constant.
+      UX_CHANNEL_SECRET: ux-compose-ci-channel-secret
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

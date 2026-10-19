@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 - Trust now comes from `dispatch_verified(name, payload)` (one wire call after Channel accepts a Cap) or `app.trust()`, and the `_trusted` keyword is gone. `async_dispatch_verified` is the async twin. Developer-authored server code uses `app.trust()`. A bool no longer grants trust (ux-behavior #20, pin `674a575`).
+- Outside dev, a live FastAPI attach without `UX_CHANNEL_SECRET` fails the boot. `build()` no longer continues without Caps. Atelier shop and studio fail at boot with that message. Tests and CI set the secret.
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

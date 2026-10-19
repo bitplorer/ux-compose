@@ -49,10 +49,12 @@ def _checked_lock_timeout(value: Any, *, where: str) -> float | None:
     except (TypeError, ValueError) as exc:
         raise ValueError(
             f"invalid {where} value {value!r}; expected seconds, inf, or none"
+            " (UX_COMPOSE_BUILD_LOCK_TIMEOUT)"
         ) from exc
     if math.isnan(number) or number < 0:
         raise ValueError(
             f"invalid {where} value {value!r}; expected a non-negative number of seconds"
+            " (UX_COMPOSE_BUILD_LOCK_TIMEOUT)"
         )
     if math.isinf(number):
         return None
@@ -207,8 +209,8 @@ def build(
       ``UX_COMPOSE_BUILD_LOCK_TIMEOUT`` if set, otherwise 60. ``none`` or
       ``inf`` waits until done. A blank environment value keeps the
       default. A negative number, ``nan``, or any other bad value raises
-      ``ValueError`` (the environment error names
-      ``UX_COMPOSE_BUILD_LOCK_TIMEOUT``). ``-1`` does not wait forever.
+      ``ValueError``. The message names ``UX_COMPOSE_BUILD_LOCK_TIMEOUT``.
+      ``-1`` does not wait forever.
     """
     from ux_compose import App
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks

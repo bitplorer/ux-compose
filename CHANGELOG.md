@@ -54,7 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and `UX_COMPOSE_BUILD_LOCK_TIMEOUT` override it. `None`, `none`, and
   `inf` wait until the other build finishes. A blank environment value
   keeps the default. A negative number, `nan`, or other bad value raises
-  `ValueError` (`-1` does not wait forever). `BuildLockTimeout` names the
+  `ValueError` naming `UX_COMPOSE_BUILD_LOCK_TIMEOUT` (`-1` does not wait
+  forever). `BuildLockTimeout` names the
   package and the setting.
 - `build()` does not pop a package out of `sys.modules` while another
   thread is importing a child of that package, so that import does not

@@ -288,8 +288,8 @@ argument is omitted. A blank environment value keeps that default.
 `lock_timeout=None`, `none`, or `inf` (argument or environment) waits
 until the other build finishes. `inf` is not passed to the lock, so it
 does not raise `OverflowError`. A negative number, including `-1`, and
-any other bad value raises `ValueError` before the wait. The environment
-error names `UX_COMPOSE_BUILD_LOCK_TIMEOUT`. That build does not continue
+any other bad value raises `ValueError` before the wait. The message
+names `UX_COMPOSE_BUILD_LOCK_TIMEOUT`. That build does not continue
 after a timeout, so it cannot bind the other thread's modules.
 
 ---

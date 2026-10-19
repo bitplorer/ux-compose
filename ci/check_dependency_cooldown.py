@@ -13,6 +13,7 @@ import json
 import sys
 import urllib.request
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 COOLDOWN = timedelta(days=14)
 PYPI_JSON = "https://pypi.org/pypi/{name}/{version}/json"
@@ -23,19 +24,37 @@ class CooldownCheckError(Exception):
 
 
 class Installed:
-    __slots__ = ("name", "version", "direct_url")
+    __slots__ = ("name", "version", "direct_url", "location")
 
-    def __init__(self, name: str, version: str, direct_url: dict | None = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        version: str,
+        direct_url: dict | None = None,
+        *,
+        location: str | None = None,
+    ) -> None:
         self.name = name
         self.version = version
         self.direct_url = direct_url
+        self.location = location
 
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _outside_environment(location: str | None) -> bool:
+    """True when metadata sits in a source tree rather than site-packages."""
+    if not location:
+        return False
+    parts = {part.lower() for part in Path(location).parts}
+    return "site-packages" not in parts and "dist-packages" not in parts
+
+
 def is_pypi_distribution(installed: Installed) -> bool:
+    if _outside_environment(installed.location):
+        return False
     info = installed.direct_url
     if not info:
         return True
@@ -54,10 +73,18 @@ def is_pypi_distribution(installed: Installed) -> bool:
     return True
 
 
+def _location(dist) -> str | None:
+    locate = getattr(dist, "locate_file", None)
+    if locate is None:
+        return None
+    return str(locate(""))
+
+
 def from_distribution(dist) -> Installed:
     raw = dist.read_text("direct_url.json")
+    location = _location(dist)
     if not raw:
-        return Installed(name=dist.name, version=dist.version)
+        return Installed(name=dist.name, version=dist.version, location=location)
     try:
         direct = json.loads(raw)
     except json.JSONDecodeError as exc:
@@ -70,7 +97,12 @@ def from_distribution(dist) -> Installed:
             "dependency cooldown check failed closed: "
             f"direct_url.json for {dist.name} {dist.version} is not an object"
         )
-    return Installed(name=dist.name, version=dist.version, direct_url=direct)
+    return Installed(
+        name=dist.name,
+        version=dist.version,
+        direct_url=direct,
+        location=location,
+    )
 
 
 def iter_installed() -> list[Installed]:

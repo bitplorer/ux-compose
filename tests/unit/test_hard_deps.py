@@ -84,7 +84,8 @@ def test_pin_ssot_lockstep_makefile_scaffold_ci():
     assert 'python-version: "3.14"' in ci
     assert "3.12" not in ci
     assert "offline-shim" not in ci
-    assert 'pip install -e ".[dev]"' in ci
+    assert 'uv pip install --python "$venv" --exclude-newer "$UV_EXCLUDE_NEWER"' in ci
+    assert '-e ".[dev]"' in ci
     assert "25338a6" not in ci
     assert "76adc72" not in ci
     assert "PYTHONPATH=src:. $(PY314) -m uvicorn apps.pulse.server:app" in makefile

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- CI PyPI installs use `uv pip install --exclude-newer`, set to 14 days
+  before the run. `ci/check_dependency_cooldown.py` fails the job when a
+  resolved distribution is younger than that. Git SHA siblings stay pinned;
+  their PyPI dependencies use the same cutoff.
+
 - Trust now comes from `dispatch_verified(name, payload)` (one wire call after Channel accepts a Cap) or `app.trust()`, and the `_trusted` keyword is gone. `async_dispatch_verified` is the async twin. Developer-authored server code uses `app.trust()`. A bool no longer grants trust (ux-behavior #20, pin `09a9a65`).
 - Outside dev, a live FastAPI attach failure fails the boot. `wire/boot.py` sets `strict_attach=True`. `use_channel` raises when attach returns no channel, and a `TypeError` from attach is not retried. A missing secret raises `RuntimeError` (`attach() requires UX_CHANNEL_SECRET or UX_BEHAVIOR_SECRET outside dev`). A 13-character secret raises `ValueError` (`capability secret must be at least 16 characters`) because `strict_attach` re-raises `Channel.boot`. Without that flag the short secret becomes `RuntimeError` ("Channel attach returned no channel"). A `REDIS_URL` that `Channel.boot` refuses, or anything else `attach` raises, stops the process instead of continuing without Caps. Atelier shop and studio fail at boot the same way.
 - `App.dispatch` takes the action name positionally (`dispatch(self, action, /, **kwargs)`). A payload key named `action` passes through as a normal keyword.

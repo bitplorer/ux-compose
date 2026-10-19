@@ -128,6 +128,12 @@ Pen-style tests are **defensive unit checks** (sanitization, isolation), not a s
 
 ---
 
+## CI
+
+`.github/workflows/ci.yml` installs with `uv pip install --exclude-newer`
+(14 days before the run) and then runs `ci/check_dependency_cooldown.py`.
+The rule is in [CONTRIBUTING.md](../../CONTRIBUTING.md).
+
 ## CI suggestion
 
 ```yaml

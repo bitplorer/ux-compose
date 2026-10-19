@@ -148,6 +148,38 @@ def test_local_editable_and_git_sha_installs_are_skipped(direct_url):
     assert seen == [("fastapi", "0.142.2")]
 
 
+def test_source_tree_egg_info_is_skipped_as_local():
+    """Editable installs also drop a project egg-info with no direct_url.json.
+
+    That metadata lives next to the source, not in site-packages. It is not a
+    PyPI release and must not be looked up (PyPI returns 404 for ux-compose).
+    """
+    seen: list[tuple[str, str]] = []
+
+    def fetch(name: str, version: str) -> dict:
+        seen.append((name, version))
+        return _payload(FASTAPI_0142_2_UPLOADED)
+
+    checked = cooldown.check_installed(
+        [
+            cooldown.Installed(
+                "ux-compose",
+                "0.2.0",
+                location="/workspace/src/ux_compose.egg-info",
+            ),
+            cooldown.Installed(
+                "fastapi",
+                "0.142.2",
+                location="/tmp/venv/lib/python3.14/site-packages/fastapi-0.142.2.dist-info",
+            ),
+        ],
+        now=RUN,
+        fetch=fetch,
+    )
+    assert checked == 1
+    assert seen == [("fastapi", "0.142.2")]
+
+
 def test_network_error_fails_closed():
     def fetch(name: str, version: str) -> dict:
         raise urllib.error.URLError("timed out")

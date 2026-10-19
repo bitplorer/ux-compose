@@ -26,6 +26,23 @@ PYTHONPATH=src:. pytest tests/regression -q   # hard-cut ownership
 See [docs/guides/TESTING.md](docs/guides/TESTING.md) for the full matrix (unit, integration,
 regression, concurrency, load, security).
 
+## Dependency cooldown
+
+A PyPI release may enter CI only after it has been on PyPI for 14 days.
+`.github/workflows/ci.yml` computes a UTC timestamp 14 days before the run
+and passes it to every `uv pip install --exclude-newer`. That is the pip,
+setuptools, and wheel install, and `uv pip install -e ".[dev]"`. Git SHA
+siblings (ux-dom, ux-channel, ux-behavior, ux-motion) stay pinned by commit.
+Their PyPI dependencies use the same cutoff.
+
+`ci/check_dependency_cooldown.py` runs after the install. It checks each
+installed distribution that came from PyPI and skips local, editable, and
+git-SHA installs. For each remaining distribution it reads
+`upload_time_iso_8601` from `https://pypi.org/pypi/<name>/<version>/json`
+and fails the job if the earliest file upload is less than 14 days before
+the run. The failure names the package, version, and upload time. A network
+or payload failure fails closed. The checker is standard library only.
+
 Live showcase: `apps/pulse` via `uxcompose serve dev apps.pulse.server:app`.
 
 ## Ownership (do not regress)

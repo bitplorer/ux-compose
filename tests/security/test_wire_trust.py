@@ -210,6 +210,22 @@ def test_control_and_mint_cap_take_the_action_name_positionally():
     assert claims["args_hash"] == app._channel.registry._caps.hash_args({"action": "x"})
 
 
+def test_mint_cap_rejects_a_conflicting_payload_action():
+    """``action=`` and ``args['action']`` are one key. A mismatch is an error.
+
+    The same value in both places still mints. The positional name stays
+    the cap action.
+    """
+    app = App.boot("Box", level=1, strict_caps=False)
+    app.use_channel()
+    with pytest.raises(ValueError, match="action"):
+        app.mint_cap("box.save", {"action": "keep"}, action="other")
+    cap = app.mint_cap("box.save", {"action": "x"}, action="x")
+    claims = _cap_claims(app, cap)
+    assert claims["action"] == "box.save"
+    assert claims["args_hash"] == app._channel.registry._caps.hash_args({"action": "x"})
+
+
 def test_control_without_a_channel_keeps_the_payload_action():
     """Offline control still renders a payload key named action.
 

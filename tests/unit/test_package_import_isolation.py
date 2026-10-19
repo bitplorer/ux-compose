@@ -640,6 +640,151 @@ def test_sixteen_threads_three_builds_serve_their_own_routes(tmp_path):
         _drop_tree(tmp_path)
 
 
+def _marker(html: str) -> str:
+    start = html.find("<div id=m>")
+    if start < 0:
+        return html[:80]
+    start += len("<div id=m>")
+    end = html.find("</div>", start)
+    return html[start:end] if end >= 0 else html[start:start + 80]
+
+
+def test_concurrent_same_name_builds_keep_their_helpers(tmp_path):
+    """16 threads x 3 builds, 4 shared package names, each route imports a sibling."""
+    from starlette.testclient import TestClient
+
+    from ux_compose.build import build
+
+    jobs: list[tuple[int, Path, str]] = []
+    for thread_index in range(16):
+        for build_index in range(3):
+            pkg_name = f"thh{(thread_index + build_index) % 4}"
+            marker = f"T{thread_index}_B{build_index}_{pkg_name}"
+            root = tmp_path / f"t{thread_index}b{build_index}" / pkg_name
+            (root / "routes").mkdir(parents=True)
+            (root / "__init__.py").write_text("", encoding="utf-8")
+            (root / "routes" / "__init__.py").write_text("", encoding="utf-8")
+            (root / "routes" / "_helper.py").write_text(
+                f"import time\ntime.sleep(0.01)\nTEXT = {marker!r}\n",
+                encoding="utf-8",
+            )
+            (root / "routes" / "home.py").write_text(
+                "import time\n"
+                f"from {pkg_name}.routes._helper import TEXT\n"
+                "time.sleep(0.01)\n"
+                f"OWN = {marker!r}\n"
+                "class Home:\n"
+                "    def render(self):\n"
+                "        return f'<div id=m>{OWN}|{TEXT}</div>'\n",
+                encoding="utf-8",
+            )
+            jobs.append((thread_index, root, marker))
+
+    results: dict[str, object] = {}
+    errors: list[tuple[str, str]] = []
+    barrier = threading.Barrier(16)
+    guard = threading.Lock()
+
+    def worker(thread_index: int) -> None:
+        barrier.wait(timeout=10)
+        for owner, root, marker in jobs:
+            if owner != thread_index:
+                continue
+            try:
+                sys.path.insert(0, str(root.parent))
+                results[marker] = build(
+                    root, name=f"T{thread_index}", host="fastapi", live="null", level=1
+                )[1]
+            except Exception as exc:
+                with guard:
+                    errors.append((marker, f"{type(exc).__name__}: {exc}"[:160]))
+
+    threads = [
+        threading.Thread(target=worker, args=(index,), daemon=True) for index in range(16)
+    ]
+    try:
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(30)
+        assert not any(thread.is_alive() for thread in threads)
+        wrong: list[tuple[str, str]] = []
+        for marker, asgi in results.items():
+            with TestClient(asgi) as client:
+                got = _marker(client.get("/home").text)
+            if got != f"{marker}|{marker}":
+                wrong.append((marker, got))
+        assert errors == []
+        assert wrong == []
+    finally:
+        _drop_tree(tmp_path)
+        for key in list(sys.modules):
+            if key.startswith("thh") and key[3:4].isdigit():
+                sys.modules.pop(key, None)
+
+
+def test_cross_thread_same_name_build_times_out_instead_of_hanging(tmp_path, monkeypatch):
+    """A route import that joins build() of the same name on another thread."""
+    import builtins
+
+    from ux_compose.build import build
+
+    inner = tmp_path / "B2" / "reent2"
+    (inner / "routes").mkdir(parents=True)
+    (inner / "__init__.py").write_text("", encoding="utf-8")
+    (inner / "routes" / "__init__.py").write_text("", encoding="utf-8")
+    (inner / "routes" / "home.py").write_text(
+        "class Home:\n    def render(self):\n        return '<div id=m>REENT2_B</div>'\n",
+        encoding="utf-8",
+    )
+    outer = tmp_path / "A2" / "reent2"
+    (outer / "routes").mkdir(parents=True)
+    (outer / "__init__.py").write_text("", encoding="utf-8")
+    (outer / "routes" / "__init__.py").write_text("", encoding="utf-8")
+    (outer / "routes" / "home.py").write_text(
+        "import builtins, threading\n"
+        "from pathlib import Path\n"
+        "from ux_compose.build import build\n"
+        "def _b():\n"
+        "    try:\n"
+        f"        build(Path({str(inner)!r}), name='B2', host='fastapi', live='null', level=1)\n"
+        "        builtins._REENT2_EXC = 'ok'\n"
+        "    except Exception as exc:\n"
+        "        builtins._REENT2_EXC = f'{type(exc).__name__}: {exc}'\n"
+        "_t = threading.Thread(target=_b, daemon=True)\n"
+        "_t.start()\n"
+        "_t.join(20)\n"
+        "builtins._REENT2_JOINED = not _t.is_alive()\n"
+        "class Home:\n"
+        "    def render(self):\n"
+        "        return '<div id=m>REENT2_A</div>'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(outer.parent))
+    monkeypatch.delattr(builtins, "_REENT2_EXC", raising=False)
+    monkeypatch.delattr(builtins, "_REENT2_JOINED", raising=False)
+
+    def run() -> None:
+        build(outer, name="A2", host="fastapi", live="null", level=1)
+
+    started = time.time()
+    thread = threading.Thread(target=run, daemon=True)
+    try:
+        thread.start()
+        thread.join(12)
+        assert not thread.is_alive()
+        assert time.time() - started < 12
+        recorded = getattr(builtins, "_REENT2_EXC", "")
+        assert recorded.startswith("BuildLockTimeout")
+        assert "reent2" in recorded
+        assert getattr(builtins, "_REENT2_JOINED", False) is True
+    finally:
+        _drop_tree(tmp_path)
+        for key in list(sys.modules):
+            if key == "reent2" or key.startswith("reent2."):
+                sys.modules.pop(key, None)
+
+
 def _free_port() -> int:
     import socket
 

@@ -58,6 +58,8 @@ _ALLOWLIST = {
     ("login", "set_field"),
     ("login", "submit"),
 }
+# A used secret is cleared, the way Login.submit clears the password.
+_CLEARED = {("otp", "verify")}
 _CHANNEL = "application/ux-channel+json"
 
 
@@ -270,9 +272,18 @@ def test_rendered_control_keeps_every_posted_field():
         _line(row)
         for row in _all_rows()
         if (row["kit"], row["method"]) not in _ALLOWLIST
+        and (row["kit"], row["method"]) not in _CLEARED
         and (row["missing"] or row["chip"] or row["status"] != 200)
     ]
     assert lost == [], "\n".join(lost)
+
+
+def test_used_otp_code_is_cleared():
+    """Verify spends the code. The marker is gone, as Login.submit clears the password."""
+    rows = [row for row in _post_row("otp", Otp, None) if row["method"] == "verify"]
+    assert len(rows) == 1
+    assert rows[0]["status"] == 200, rows[0]["body"]
+    assert "code" in rows[0]["missing"], rows[0]
 
 
 @pytest.mark.xfail(strict=True, reason="needs ux-behavior fields= allowlist")

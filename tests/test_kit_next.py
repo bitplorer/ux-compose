@@ -168,9 +168,10 @@ def test_otp_attach_and_verify():
     app.dispatch("otp.verify", code="123456")
     inst = app.behavior.get("otp")
     assert bool(inst.ok)
-    assert str(inst.code or "") == "123456"
+    assert str(inst.code or "") == ""
     html = _html(app, "otp")
     assert "Code accepted" in html
+    assert "The secret is cleared." in html
 
     strict = _boot(Otp, strict_caps=True)
     with pytest.raises(Exception):

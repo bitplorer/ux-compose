@@ -57,12 +57,11 @@ def test_cap_verified_wire_call_runs_and_unverified_does_not():
     assert ran["n"] == 1, repr(accepted)
 
 
-def test_payload_action_binds_and_self_is_not_passed_on():
-    """A valid Cap delivers a named action field. A posted self does not ride along.
+def test_posted_self_stays_absent_and_declared_action_arrives():
+    """A posted self stays absent. A declared field named action arrives.
 
-    ``action`` is a parameter, so it arrives. The component instance is bound
-    positionally. A payload key named ``self`` is dropped, including from
-    ``**extra``.
+    The component instance is bound positionally and stays the component.
+    A payload key named ``self`` is not passed into ``**extra``.
     """
     got: dict[str, object] = {}
 
@@ -90,11 +89,10 @@ def test_payload_action_binds_and_self_is_not_passed_on():
 
 
 def test_payload_self_on_a_normal_method_is_not_a_500():
-    """A normal method already binds self. That key is a validation error.
+    """A normal method already binds self. A posted self is a validation error.
 
-    It reaches the action only when self is positional-only. Otherwise the
-    wire returns the validation message, the same way as any other bad
-    argument, and the action does not run. That result is never a 500.
+    The action does not run. The wire returns that the same way as any other
+    unexpected keyword, and the result is never a 500.
     """
     from fastapi import FastAPI
 

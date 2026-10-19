@@ -14,10 +14,37 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - name: Install specialists + package
+      # setup-uv v10.2.0 (2026-09-21) and uv 0.12.23 (2026-10-03) are both
+      # older than 14 days as of 2026-10-19. uv is a workflow tool, not a
+      # project distribution. Cache stays off so a warm wheel cache cannot
+      # skip the cutoff.
+      - name: Install uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.12.23"
+          enable-cache: false
+      - name: Dependency cooldown cutoff
+        id: cooldown
         run: |
-          python -m pip install -U pip setuptools wheel
-          pip install -e ".[dev]"
+          cutoff=$(date -u -d '14 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          echo "cutoff=$cutoff" >> "$GITHUB_OUTPUT"
+          echo "uv exclude-newer cutoff (14 days before this run): $cutoff"
+      - name: Install specialists + package
+        env:
+          UV_EXCLUDE_NEWER: ${{ steps.cooldown.outputs.cutoff }}
+        run: |
+          python_bin="$(python -c 'import sys; print(sys.executable)')"
+          uv venv "$RUNNER_TEMP/cooldown-venv" --python "$python_bin"
+          venv="$RUNNER_TEMP/cooldown-venv/bin/python"
+          # Every registry resolve uses --exclude-newer. Git SHA siblings
+          # (ux-dom, ux-channel, ux-behavior, ux-motion) stay pinned; their
+          # PyPI dependencies honor the same cutoff.
+          uv pip install --python "$venv" --exclude-newer "$UV_EXCLUDE_NEWER" \
+            --reinstall pip setuptools wheel
+          uv pip install --python "$venv" --exclude-newer "$UV_EXCLUDE_NEWER" \
+            -e ".[dev]"
+          echo "$RUNNER_TEMP/cooldown-venv/bin" >> "$GITHUB_PATH"
+          "$venv" -c "from importlib.metadata import version; print('resolved fastapi', version('fastapi'))"
       # Sibling live repro is optional and not required here:
       # make cek-repro-morph-shell → ../cek-auto-suite/repro_morph_shell.py
       # (do not import ux_channel from product).
@@ -28,6 +55,8 @@ jobs:
           sudo apt-get install -y /tmp/chrome.deb
       - name: Chrome version
         run: python scripts/chrome_floor.py "$(command -v google-chrome)"
+      - name: Dependency cooldown check
+        run: python ci/check_dependency_cooldown.py
       - name: Full suite
         env:
           UX_KEEP_VALUE_REQUIRE_BROWSER: "1"

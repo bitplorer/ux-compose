@@ -128,6 +128,15 @@ Pen-style tests are **defensive unit checks** (sanitization, isolation), not a s
 
 ---
 
+## CI
+
+`.github/workflows/ci.yml` installs with `uv pip install --exclude-newer`
+(14 days before the run) and then runs `ci/check_dependency_cooldown.py`.
+There is no override. A newer dependency waits out the 14 days, or it gets
+an explicit pin in a reviewed pull request. The cutoff is CI-only. The
+Makefile's local `pip install` targets are not under it.
+The rule is in [CONTRIBUTING.md](../../CONTRIBUTING.md).
+
 ## CI suggestion
 
 ```yaml

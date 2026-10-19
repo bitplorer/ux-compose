@@ -71,7 +71,8 @@ def test_chat_log_and_send():
     assert 'for="chat-draft"' in html or 'id="chat-draft"' in html
     assert "the table is set" in html
 
-    app.dispatch("chat.send", text="held until dusk", _trusted=True)
+    with app.trust():
+        app.dispatch("chat.send", text="held until dusk")
     inst = app.behavior.get("chat")
     lines = tuple(inst.lines or ())
     assert any("held until dusk" in str(x) for x in lines)

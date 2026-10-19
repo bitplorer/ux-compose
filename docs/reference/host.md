@@ -324,5 +324,22 @@ quietly add a second pipeline.
 ## Cap default (0.2.0)
 
 `App` and `build()` fail closed: `strict_caps=True` is the default. A capped
-`@action` with no Channel Cap, `app.trust()` or `_trusted=True` raises
-`AuthorityError`. Pass `strict_caps=False` only for an unchecked local sandbox.
+`@action` raises `AuthorityError` unless the call is inside `app.trust()`
+or the wire called `dispatch_verified(name, payload)` after Channel accepted
+a Cap. Pass `strict_caps=False` only for an unchecked local sandbox.
+
+Two doors, and they are not interchangeable:
+
+| Door | Who | What it means |
+|------|-----|----------------|
+| `with app.trust():` | Developer-authored server code (demos, tests, admin tools) | This task may run capped actions. Trust stays on a task started inside the block, so do not start a long-lived worker, queue consumer, or background task there. |
+| `dispatch_verified(name, payload)` | `wire/caps.bridge_actions`, after Channel accepts the Cap | Trust for that one call. `async_dispatch_verified` is the async twin. A bool does not grant trust (ux-behavior #20). |
+
+Channel verifies the Cap at the edge. `bridge_actions` was added so product
+action names mint against the author name, and the handler then host-dispatches
+because that check already happened (`a82495d`). From ux-behavior 0.4.0,
+attaching Channel does not skip the check by itself. `dispatch_verified`
+is how the handler records the acceptance, for one call.
+
+`App.trust` delegates to `Behavior.trust`. It is not a substitute for a Cap
+on a request a client sent.

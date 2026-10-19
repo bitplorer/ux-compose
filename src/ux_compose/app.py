@@ -238,6 +238,21 @@ class App:
         self.use_behavior()
         return mount_surfaces(package_dir=package_dir, base_directory=base_directory or base, compose_app=self, asgi_app=asgi_app, fail_closed=fail_closed, bind_pages=bind_pages, on_surface=on_surface, package_name=package_name, host=host or getattr(self, "_host", "auto"))
 
+    def trust(self):
+        """Trust dispatches in this context only.
+
+        Developer-authored server code: demos, tests, and admin tools.
+        A Cap-verified wire call does not use this door. ``bridge_actions``
+        calls ``dispatch_verified(name, payload)`` after Channel accepts
+        the Cap, and that grants trust for the one call.
+
+        The trust is per task. A task started inside the block keeps it
+        after the block ends, so do not start a long-lived worker, queue
+        consumer, or background task here.
+        """
+        self.use_behavior()
+        return self._behavior.trust()
+
     def dispatch(self, action: str, **kwargs) -> List[Any]:
         self.use_behavior()
         kwargs = _unpack_action_kwargs(kwargs)

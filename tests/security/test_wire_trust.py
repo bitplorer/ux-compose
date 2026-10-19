@@ -22,7 +22,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_cap_verified_wire_call_is_trusted_and_unverified_is_not():
+def test_cap_verified_wire_call_runs_and_unverified_does_not():
     """A minted Cap runs the action. A direct dispatch, and an Intent with no Cap, do not."""
     ran = {"n": 0}
 

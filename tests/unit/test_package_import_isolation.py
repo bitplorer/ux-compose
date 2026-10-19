@@ -113,7 +113,9 @@ def test_scaffold_folder_named_app_starts_through_uvicorn(tmp_path):
     root = create_app(tmp_path / "app", name="App", level=1, host="asgi")
     port = _free_port()
     env = dict(os.environ)
-    env["PYTHONPATH"] = str(ROOT / "src")
+    inherited = env.get("PYTHONPATH")
+    src = str(ROOT / "src")
+    env["PYTHONPATH"] = src if not inherited else src + os.pathsep + inherited
     proc = subprocess.Popen(
         [
             sys.executable,

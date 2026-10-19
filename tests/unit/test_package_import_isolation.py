@@ -1437,3 +1437,81 @@ def test_env_lock_timeout_and_none_override(tmp_path, monkeypatch):
         _purge_package(name)
         sys.modules.pop("holdgate", None)
         _drop_tree(tmp_path)
+
+
+def test_route_import_does_not_keep_another_threads_helper(tmp_path, monkeypatch):
+    """T2 caches folder B's helper, then A's route imports that name.
+
+    Pausing inside the route is too late: the package is already A's.
+    The import is paused before the route module loads, which is the
+    order where B's helper is what gets served.
+    """
+    import ux_compose.surfaces as surfaces
+
+    for side, mark in (("A", "HELPER_A"), ("B", "HELPER_B")):
+        pkg = tmp_path / side / "myapp"
+        (pkg / "routes").mkdir(parents=True)
+        (pkg / "__init__.py").write_text("", encoding="utf-8")
+        (pkg / "routes" / "__init__.py").write_text("", encoding="utf-8")
+        (pkg / "helpers.py").write_text(f"MARK = {mark!r}\n", encoding="utf-8")
+    (tmp_path / "A" / "myapp" / "routes" / "home.py").write_text(
+        "from myapp.helpers import MARK\n"
+        "class Home:\n"
+        "    def render(self):\n"
+        "        return f'<div id=m>A|{MARK}</div>'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path / "B"))
+    armed = threading.Event()
+    cached = threading.Event()
+    builder: dict[str, threading.Thread] = {}
+    real_import = importlib.import_module
+
+    def paused_import(name: str, package: str | None = None):
+        if (
+            builder.get("thread") is threading.current_thread()
+            and not paused_import.tripped
+            and (name == "myapp" or name.startswith("myapp."))
+        ):
+            paused_import.tripped = True
+            armed.set()
+            assert cached.wait(5), "T2 did not cache the helper"
+        return real_import(name, package)
+
+    paused_import.tripped = False
+    monkeypatch.setattr(surfaces.importlib, "import_module", paused_import)
+
+    from ux_compose.build import build
+
+    out: dict[str, object] = {}
+
+    def t2() -> None:
+        assert armed.wait(5)
+        module = real_import("myapp.helpers")
+        out["t2"] = module.MARK
+        cached.set()
+
+    def t1() -> None:
+        builder["thread"] = threading.current_thread()
+        try:
+            out["built"] = build(
+                tmp_path / "A" / "myapp", name="A", host="asgi", live="null", level=1
+            )
+        except BaseException as exc:
+            out["err"] = exc
+
+    other = threading.Thread(target=t2, daemon=True)
+    owner = threading.Thread(target=t1, daemon=True)
+    try:
+        other.start()
+        owner.start()
+        owner.join(15)
+        other.join(5)
+        assert not owner.is_alive() and not other.is_alive()
+        assert "err" not in out, out.get("err")
+        assert out.get("t2") == "HELPER_B"
+        built = out["built"]
+        assert asgi_get(built[1], "/home").text == "<div id=m>A|HELPER_A</div>"
+    finally:
+        _purge_package("myapp")
+        _drop_tree(tmp_path)

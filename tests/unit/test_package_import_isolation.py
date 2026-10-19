@@ -2119,3 +2119,162 @@ def test_detached_module_is_not_left_in_sys_modules(tmp_path):
             if key.startswith("ux_surface_") or key.startswith("demo"):
                 sys.modules.pop(key, None)
         _drop_tree(tmp_path)
+
+
+def test_failed_build_does_not_leave_the_package(tmp_path, monkeypatch):
+    """A route that fails to import must not leave the package loaded.
+
+    Package shells are not helpers. Keeping them after the route raises
+    would leave ``myapp`` in ``sys.modules``.
+    """
+    from ux_compose.build import build
+    from ux_compose.surfaces import SurfaceError
+
+    name = "myapp"
+    pkg = _write(
+        tmp_path / name,
+        {"routes/home.py": "raise RuntimeError('boom')\n"},
+    )
+    monkeypatch.syspath_prepend(str(pkg.parent))
+    try:
+        with pytest.raises(SurfaceError):
+            build(pkg, name="X", host="asgi", live="null", level=1)
+        left = [key for key in sys.modules if key == name or key.startswith(name + ".")]
+        assert left == []
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_single_file_module_on_sys_path_pins_the_package(tmp_path, monkeypatch):
+    """``myapp.py`` on sys.path makes the name importable, so the pin applies.
+
+    The folder being built is what ``import myapp`` returns. Deleting the
+    ``{package}.py`` check treats the name as off-path and serves the file.
+    """
+    from ux_compose.build import build
+
+    on_path = tmp_path / "onpath"
+    on_path.mkdir()
+    (on_path / "myapp.py").write_text("VALUE = 'file'\n", encoding="utf-8")
+    pkg = tmp_path / "off" / "myapp"
+    (pkg / "routes").mkdir(parents=True)
+    (pkg / "__init__.py").write_text("VALUE = 'pkg'\n", encoding="utf-8")
+    (pkg / "routes" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "routes" / "home.py").write_text(
+        "import myapp\n"
+        "class Home:\n"
+        "    routes = ('get',)\n"
+        "    def render(self):\n"
+        "        return myapp.VALUE + '|' + str(myapp.__file__)\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(on_path))
+    try:
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        value, origin = asgi_get(built[1], "/home").text.split("|", 1)
+        assert value == "pkg"
+        assert Path(origin).resolve() == (pkg / "__init__.py").resolve()
+    finally:
+        _purge_package("myapp")
+        _drop_tree(tmp_path)
+
+
+def test_idle_py_helper_from_another_folder_is_replaced(tmp_path, monkeypatch):
+    """An idle ``helpers.py`` from another folder is not what this build serves.
+
+    ``build()`` drops that module and loads this folder's file. A second
+    build of the folder the helper came from reuses that module.
+    """
+    from ux_compose.build import build
+
+    p1 = tmp_path / "P1" / "myapp"
+    p2 = tmp_path / "P2" / "myapp"
+    for folder, mark in ((p1, "FROM_P1"), (p2, "FROM_P2")):
+        (folder / "routes").mkdir(parents=True)
+        (folder / "__init__.py").write_text("", encoding="utf-8")
+        (folder / "routes" / "__init__.py").write_text("", encoding="utf-8")
+        (folder / "helpers.py").write_text(f"MARK = {mark!r}\n", encoding="utf-8")
+        (folder / "routes" / "home.py").write_text(
+            "from myapp.helpers import MARK\n"
+            "class Home:\n"
+            "    routes = ('get',)\n"
+            "    def render(self):\n"
+            "        return MARK\n",
+            encoding="utf-8",
+        )
+    monkeypatch.syspath_prepend(str(p1.parent))
+    try:
+        _purge_package("myapp")
+        importlib.invalidate_caches()
+        preloaded = importlib.import_module("myapp.helpers")
+        assert preloaded.MARK == "FROM_P1"
+        built = build(p2, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/home").text == "FROM_P2"
+        first = build(p1, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(first[1], "/home").text == "FROM_P1"
+        helper = sys.modules["myapp.helpers"]
+        assert helper.MARK == "FROM_P1"
+        second = build(p1, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(second[1], "/home").text == "FROM_P1"
+        assert sys.modules["myapp.helpers"] is helper
+    finally:
+        _purge_package("myapp")
+        _drop_tree(tmp_path)
+
+
+def test_pin_serves_a_py_submodule_while_the_parent_is_another_folder(
+    tmp_path, monkeypatch
+):
+    """An uncached ``helpers.py`` comes from the pinned folder.
+
+    The parent package is already loaded from somewhere else, so its
+    ``__path__`` points there. The pin still has to serve this folder's
+    file. A finder that only returns ``__init__.py`` serves the parent
+    path instead. A helper already loaded from the pinned folder is the
+    same module object on the next import.
+    """
+    from ux_compose.routing.core import pin_package_finder, unpin_package_finder
+
+    p1 = tmp_path / "P1" / "myapp"
+    p2 = tmp_path / "P2" / "myapp"
+    for folder, mark in ((p1, "FROM_P1"), (p2, "FROM_P2")):
+        folder.mkdir(parents=True)
+        (folder / "__init__.py").write_text("", encoding="utf-8")
+        (folder / "helpers.py").write_text(f"MARK = {mark!r}\n", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(p1.parent))
+    finder = None
+    try:
+        _purge_package("myapp")
+        importlib.invalidate_caches()
+        parent = importlib.import_module("myapp")
+        assert Path(parent.__file__).resolve() == (p1 / "__init__.py").resolve()
+        finder = pin_package_finder(p2)
+        loaded = importlib.import_module("myapp.helpers")
+        assert loaded.MARK == "FROM_P2"
+        assert Path(loaded.__file__).resolve() == (p2 / "helpers.py").resolve()
+        assert importlib.import_module("myapp.helpers") is loaded
+    finally:
+        if finder is not None:
+            unpin_package_finder(finder)
+        _purge_package("myapp")
+        _drop_tree(tmp_path)
+
+
+def test_failed_route_exec_does_not_leave_the_module(tmp_path):
+    """``import_route_module`` drops a module whose body raised.
+
+    The name is inserted before exec. A failed exec has to pop it.
+    ``discover`` is not involved, so nothing else removes the name.
+    """
+    from ux_compose.routing.core import import_route_module
+
+    name = "boommod.routes.home"
+    file = tmp_path / "home.py"
+    file.write_text("raise RuntimeError('boom')\n", encoding="utf-8")
+    try:
+        with pytest.raises(RuntimeError, match="boom"):
+            import_route_module(name, file)
+        assert name not in sys.modules
+    finally:
+        sys.modules.pop(name, None)

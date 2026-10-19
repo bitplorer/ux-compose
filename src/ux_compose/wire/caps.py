@@ -273,7 +273,8 @@ def bridge_actions(behavior: Any, channel: Any) -> list[str]:
 
     Channel verifies the Cap at the edge. The handler then calls
     ``dispatch_verified(name, payload)`` (or ``async_dispatch_verified`` on
-    the async path). That grants trust for the one call. A bool does not.
+    the async path). Trust is that one call. A task started while the
+    action runs does not inherit it. A bool does not grant trust.
     Attaching Channel does not skip the check by itself (ux-behavior >=0.4.0).
     """
     registered: list[str] = []

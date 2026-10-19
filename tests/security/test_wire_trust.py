@@ -1,9 +1,9 @@
 """Cap-verified wire calls stay trusted. A call Channel did not accept does not.
 
-ux-behavior #20 (674a575) grants trust only for the private wire sentinel.
-A bool does not. The wire may pass that sentinel only after Channel
-accepts the Cap. This test is the live contract for ``bridge_actions``:
-it fails while the handler still passes a bool.
+ux-behavior #20 grants trust for one call via ``dispatch_verified``.
+A bool does not. The wire calls that helper only after Channel accepts
+the Cap. A task started during the call does not inherit the trust.
+This test fails while the handler still passes a bool.
 """
 from __future__ import annotations
 

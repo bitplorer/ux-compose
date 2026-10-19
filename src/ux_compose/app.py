@@ -244,7 +244,8 @@ class App:
         Developer-authored server code: demos, tests, and admin tools.
         A Cap-verified wire call does not use this door. ``bridge_actions``
         calls ``dispatch_verified(name, payload)`` after Channel accepts
-        the Cap, and that grants trust for the one call.
+        the Cap. That grants trust for the one call. A task started
+        during that call does not keep it.
 
         The trust is per task. A task started inside the block keeps it
         after the block ends, so do not start a long-lived worker, queue

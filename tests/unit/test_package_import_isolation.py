@@ -332,8 +332,8 @@ def _run_daemon(fn, timeout: float) -> None:
 def test_import_lock_and_package_lock_do_not_deadlock(tmp_path, monkeypatch):
     """Thread B holds shared_mod's import lock and then build().
 
-    Thread A holds the package import lock while its route imports
-    shared_mod. Joins are timed so a deadlock fails the test.
+    Thread A builds while its route imports shared_mod. Events order the
+    two sides. A deadlock fails the join. The importer must raise nothing.
     """
     from starlette.testclient import TestClient
 
@@ -341,6 +341,7 @@ def test_import_lock_and_package_lock_do_not_deadlock(tmp_path, monkeypatch):
 
     root = tmp_path
     probe: dict[str, str] = {}
+    errors: dict[str, BaseException] = {}
 
     def mk(folder: str, files: dict[str, str], name: str = "myapp") -> Path:
         pkg = root / folder / name
@@ -361,10 +362,19 @@ def test_import_lock_and_package_lock_do_not_deadlock(tmp_path, monkeypatch):
             f"class {cls}:\n    def render(self):\n        return {expr}\n"
         )
 
+    (root / "x1gate.py").write_text(
+        "import threading\n"
+        "IN_SHARED = threading.Event()\n"
+        "RELEASE_SHARED = threading.Event()\n"
+        "ROUTE_IMPORTING = threading.Event()\n",
+        encoding="utf-8",
+    )
     inner = mk("p2", {"routes/b.py": route("B", "'<p>b</p>'")}, name="other")
     (root / "shared_mod.py").write_text(
-        "import time\n"
-        "time.sleep(0.5)\n"
+        "import x1gate\n"
+        "x1gate.IN_SHARED.set()\n"
+        "if not x1gate.RELEASE_SHARED.wait(10):\n"
+        "    raise TimeoutError('shared_mod was not released')\n"
         "from pathlib import Path\n"
         "from ux_compose.build import build\n"
         f"build(Path({str(inner)!r}), name='S', host='asgi', live='null', level=1)\n"
@@ -374,33 +384,47 @@ def test_import_lock_and_package_lock_do_not_deadlock(tmp_path, monkeypatch):
     outer = mk(
         "p1",
         {
-            "routes/a.py": "import time\ntime.sleep(0.2)\nimport shared_mod\n"
+            "routes/a.py": (
+                "import x1gate\n"
+                "x1gate.ROUTE_IMPORTING.set()\n"
+                "import shared_mod\n"
+            )
             + route("A", "'<p>a</p>'"),
         },
     )
     monkeypatch.syspath_prepend(str(root))
 
     def import_shared() -> None:
-        importlib.import_module("shared_mod")
+        try:
+            importlib.import_module("shared_mod")
+        except BaseException as exc:
+            errors["importer"] = exc
 
     def build_outer() -> None:
-        probe["body"] = get(outer, "/a")
+        try:
+            probe["body"] = get(outer, "/a")
+        except BaseException as exc:
+            errors["builder"] = exc
 
     try:
         importer = threading.Thread(target=import_shared, daemon=True)
         builder = threading.Thread(target=build_outer, daemon=True)
         importer.start()
-        time.sleep(0.05)
+        assert importlib.import_module("x1gate").IN_SHARED.wait(5)
         builder.start()
-        builder.join(15)
-        importer.join(1)
+        assert importlib.import_module("x1gate").ROUTE_IMPORTING.wait(5)
+        importlib.import_module("x1gate").RELEASE_SHARED.set()
+        builder.join(10)
+        importer.join(10)
         assert not builder.is_alive() and not importer.is_alive()
+        assert "importer" not in errors, errors.get("importer")
+        assert "builder" not in errors, errors.get("builder")
         assert probe["body"].startswith("200:")
         assert "<p>a</p>" in probe["body"]
     finally:
         _drop_tree(root)
         for key in list(sys.modules):
-            if key in {"shared_mod", "myapp", "other"} or key.startswith(
+            if key in {"shared_mod", "x1gate", "myapp", "other"} or key.startswith(
                 ("myapp.", "other.", "ux_surface_")
             ):
                 sys.modules.pop(key, None)
@@ -760,7 +784,7 @@ def test_cross_thread_same_name_build_times_out_instead_of_hanging(tmp_path, mon
         "from ux_compose.build import build\n"
         "def _b():\n"
         "    try:\n"
-        f"        build(Path({str(inner)!r}), name='B2', host='fastapi', live='null', level=1)\n"
+        f"        build(Path({str(inner)!r}), name='B2', host='fastapi', live='null', level=1, lock_timeout=1)\n"
         "        builtins._REENT2_EXC = 'ok'\n"
         "    except Exception as exc:\n"
         "        builtins._REENT2_EXC = f'{type(exc).__name__}: {exc}'\n"
@@ -790,6 +814,7 @@ def test_cross_thread_same_name_build_times_out_instead_of_hanging(tmp_path, mon
         recorded = getattr(builtins, "_REENT2_EXC", "")
         assert recorded.startswith("BuildLockTimeout")
         assert "reent2" in recorded
+        assert "UX_COMPOSE_BUILD_LOCK_TIMEOUT" in recorded
         assert getattr(builtins, "_REENT2_JOINED", False) is True
     finally:
         _drop_tree(tmp_path)
@@ -978,4 +1003,437 @@ def test_distinct_folders_grow_sys_modules_at_most_once(tmp_path):
     finally:
         for name in names:
             _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_different_name_builds_while_same_name_is_held(tmp_path, monkeypatch):
+    """A different package name must not wait on a name that is already importing."""
+    from ux_compose.build import build
+
+    (tmp_path / "holdgate.py").write_text(
+        "import threading\n"
+        "ENTERED = threading.Event()\n"
+        "RELEASE = threading.Event()\n"
+        "FINISHED = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    held = _write(
+        tmp_path / "held" / "heldapp",
+        {
+            "routes/a.py": (
+                "import holdgate\n"
+                "holdgate.ENTERED.set()\n"
+                "holdgate.RELEASE.wait(10)\n"
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'held'\n"
+            ),
+        },
+    )
+    other = _write(
+        tmp_path / "other" / "otherapp",
+        {
+            "routes/a.py": (
+                "import holdgate\n"
+                "holdgate.FINISHED.set()\n"
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'other'\n"
+            ),
+        },
+    )
+    errors: list[BaseException] = []
+
+    def run(pkg: Path) -> None:
+        try:
+            build(pkg, name="X", host="asgi", live="null", level=1)
+        except BaseException as exc:
+            errors.append(exc)
+
+    gate = importlib.import_module("holdgate")
+    threads = [
+        threading.Thread(target=run, args=(held,), daemon=True),
+        threading.Thread(target=run, args=(other,), daemon=True),
+    ]
+    try:
+        threads[0].start()
+        assert gate.ENTERED.wait(5)
+        threads[1].start()
+        assert gate.FINISHED.wait(2), "different name waited on the held name"
+        gate.RELEASE.set()
+        for thread in threads:
+            thread.join(5)
+        assert not any(thread.is_alive() for thread in threads)
+        assert errors == []
+    finally:
+        _purge_package("heldapp")
+        _purge_package("otherapp")
+        sys.modules.pop("holdgate", None)
+        _drop_tree(tmp_path)
+
+
+def test_helper_imported_by_the_route_stays_after_build(tmp_path):
+    from ux_compose.build import build
+
+    name = "helplock"
+    pkg = _write(
+        tmp_path / name,
+        {
+            "models.py": "MARKER = {'n': 1}\n",
+            "routes/a.py": (
+                f"from {name}.models import MARKER\n"
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return str(MARKER['n'])\n"
+            ),
+        },
+    )
+    try:
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/a").text == "1"
+        assert f"{name}.models" in sys.modules
+        models = sys.modules[f"{name}.models"]
+        models.MARKER["n"] = 9
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        assert sys.modules[f"{name}.models"] is models
+        assert asgi_get(built[1], "/a").text == "9"
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_route_package_parents_stay_importable(tmp_path):
+    from ux_compose.build import build
+
+    name = "anchorapp"
+    pkg = _write(
+        tmp_path / name,
+        {
+            "routes/a.py": (
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'anchored'\n"
+            ),
+        },
+    )
+    try:
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/a").text == "anchored"
+        mod = importlib.import_module(f"{name}.routes.a")
+        assert sys.modules[name] is not None
+        assert sys.modules[f"{name}.routes"] is not None
+        assert sys.modules[f"{name}.routes.a"] is mod
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_preimported_subpackage_survives_build(tmp_path, monkeypatch):
+    from ux_compose.build import build
+
+    name = "snapapp"
+    pkg = _write(
+        tmp_path / name,
+        {
+            "routes/a.py": (
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'snap'\n"
+            ),
+        },
+    )
+    extra = pkg / "extra"
+    extra.mkdir()
+    (extra / "__init__.py").write_text("TOKEN = 'mine'\n", encoding="utf-8")
+    monkeypatch.syspath_prepend(str(pkg.parent))
+    try:
+        _purge_package(name)
+        imported = importlib.import_module(f"{name}.extra")
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/a").text == "snap"
+        assert sys.modules[f"{name}.extra"] is imported
+        assert imported.TOKEN == "mine"
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_package_import_lock_blocks_another_thread():
+    from ux_compose.routing.core import isolate_package_imports, package_import_lock
+
+    release = threading.Event()
+    held = threading.Event()
+    done = threading.Event()
+
+    def holder() -> None:
+        package_import_lock.acquire()
+        try:
+            held.set()
+            release.wait(5)
+        finally:
+            package_import_lock.release()
+
+    def worker() -> None:
+        isolate_package_imports(Path("/tmp/ux-compose-lock-probe"))
+        done.set()
+
+    owner = threading.Thread(target=holder, daemon=True)
+    other = threading.Thread(target=worker, daemon=True)
+    owner.start()
+    assert held.wait(2)
+    other.start()
+    assert not done.wait(0.3)
+    release.set()
+    assert done.wait(2)
+    owner.join(2)
+    other.join(2)
+    assert not owner.is_alive() and not other.is_alive()
+
+
+def test_on_path_route_edit_is_picked_up(tmp_path, monkeypatch):
+    name = "editon"
+    pkg = _write(
+        tmp_path / name,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'version-1'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(pkg.parent))
+    try:
+        assert _serve(pkg) == "version-1"
+        hello = pkg / "routes" / "hello.py"
+        hello.write_text(
+            "class Hello:\n"
+            "    routes = ('get',)\n"
+            "    def render(self):\n"
+            "        return 'version-2'\n",
+            encoding="utf-8",
+        )
+        fresh = time.time() + 5
+        os.utime(hello, (fresh, fresh))
+        assert _serve(pkg) == "version-2"
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_detached_loads_do_not_share_a_module_key(tmp_path):
+    """Two directories stay distinct when the dotted name is already taken."""
+    left = _write(
+        tmp_path / "left" / "demo",
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'ALPHA'\n"
+            ),
+        },
+    )
+    right = _write(
+        tmp_path / "right" / "demo",
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'BETA'\n"
+            ),
+        },
+    )
+    for part in ("demo", "demo.routes", "demo.routes.hello"):
+        sys.modules[part] = types.ModuleType(part)
+    try:
+        assert _serve(left) == "ALPHA"
+        assert _serve(right) == "BETA"
+    finally:
+        _purge_package("demo")
+        for key in list(sys.modules):
+            if key.startswith("ux_surface_") or key.startswith("demo_"):
+                sys.modules.pop(key, None)
+        _drop_tree(tmp_path)
+
+
+def _hold_package(root: Path, name: str) -> Path:
+    return _write(
+        root / name,
+        {
+            "routes/a.py": (
+                "import holdgate\n"
+                "holdgate.ENTERED.set()\n"
+                "holdgate.RELEASE.wait(30)\n"
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                f"        return {name!r}\n"
+            ),
+        },
+    )
+
+
+def test_default_timeout_serves_a_nine_second_route(tmp_path, monkeypatch):
+    """Both threads get 200 when one route takes 9s and the default wait is 60s."""
+    from ux_compose.build import build
+
+    monkeypatch.delenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", raising=False)
+    name = "slowapp"
+    pkg = _write(
+        tmp_path / name,
+        {
+            "routes/a.py": (
+                "import time\n"
+                "time.sleep(9)\n"
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'slow-ok'\n"
+            ),
+        },
+    )
+    errors: list[str] = []
+    bodies: list[str] = []
+
+    def run() -> None:
+        try:
+            built = build(pkg, name="X", host="asgi", live="null", level=1)
+            response = asgi_get(built[1], "/a")
+            if response.status_code != 200:
+                errors.append(f"{response.status_code}:{response.text[:80]}")
+            else:
+                bodies.append(response.text)
+        except BaseException as exc:
+            errors.append(f"{type(exc).__name__}: {exc}")
+
+    threads = [threading.Thread(target=run, daemon=True) for _ in range(2)]
+    try:
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(30)
+        assert not any(thread.is_alive() for thread in threads)
+        assert errors == []
+        assert bodies == ["slow-ok", "slow-ok"]
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_tiny_lock_timeout_names_package_and_setting(tmp_path, monkeypatch):
+    from ux_compose.build import build
+
+    (tmp_path / "holdgate.py").write_text(
+        "import threading\n"
+        "ENTERED = threading.Event()\n"
+        "RELEASE = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.delenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", raising=False)
+    name = "tinyapp"
+    pkg = _hold_package(tmp_path, name)
+    gate = importlib.import_module("holdgate")
+    errors: list[BaseException] = []
+
+    def hold() -> None:
+        try:
+            build(pkg, name="H", host="asgi", live="null", level=1)
+        except BaseException as exc:
+            errors.append(exc)
+
+    def wait() -> None:
+        try:
+            build(pkg, name="W", host="asgi", live="null", level=1, lock_timeout=0.2)
+        except BaseException as exc:
+            errors.append(exc)
+
+    holder = threading.Thread(target=hold, daemon=True)
+    waiter = threading.Thread(target=wait, daemon=True)
+    try:
+        holder.start()
+        assert gate.ENTERED.wait(5)
+        waiter.start()
+        waiter.join(3)
+        assert not waiter.is_alive()
+        assert len(errors) == 1
+        exc = errors[0]
+        assert type(exc).__name__ == "BuildLockTimeout"
+        text = str(exc)
+        assert name in text
+        assert "UX_COMPOSE_BUILD_LOCK_TIMEOUT" in text
+        gate.RELEASE.set()
+        holder.join(5)
+        assert not holder.is_alive()
+    finally:
+        gate.RELEASE.set()
+        _purge_package(name)
+        sys.modules.pop("holdgate", None)
+        _drop_tree(tmp_path)
+
+
+def test_env_lock_timeout_and_none_override(tmp_path, monkeypatch):
+    from ux_compose.build import build
+
+    (tmp_path / "holdgate.py").write_text(
+        "import threading\n"
+        "ENTERED = threading.Event()\n"
+        "RELEASE = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    name = "envapp"
+    pkg = _hold_package(tmp_path, name)
+    gate = importlib.import_module("holdgate")
+    monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "0.2")
+    seen: list[BaseException] = []
+
+    def hold() -> None:
+        build(pkg, name="H", host="asgi", live="null", level=1, lock_timeout=None)
+
+    def timed() -> None:
+        try:
+            build(pkg, name="W", host="asgi", live="null", level=1)
+        except BaseException as exc:
+            seen.append(exc)
+
+    def unlimited() -> None:
+        try:
+            build(pkg, name="U", host="asgi", live="null", level=1, lock_timeout=None)
+            seen.append(None)
+        except BaseException as exc:
+            seen.append(exc)
+
+    holder = threading.Thread(target=hold, daemon=True)
+    try:
+        holder.start()
+        assert gate.ENTERED.wait(5)
+        waiter = threading.Thread(target=timed, daemon=True)
+        waiter.start()
+        waiter.join(2)
+        assert not waiter.is_alive()
+        assert len(seen) == 1 and type(seen[0]).__name__ == "BuildLockTimeout"
+        assert name in str(seen[0])
+        follower = threading.Thread(target=unlimited, daemon=True)
+        follower.start()
+        follower.join(0.3)
+        assert follower.is_alive()
+        gate.RELEASE.set()
+        follower.join(5)
+        holder.join(5)
+        assert not follower.is_alive() and not holder.is_alive()
+        assert None in seen
+    finally:
+        gate.RELEASE.set()
+        _purge_package(name)
+        sys.modules.pop("holdgate", None)
         _drop_tree(tmp_path)

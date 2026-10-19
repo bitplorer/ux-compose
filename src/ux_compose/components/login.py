@@ -470,8 +470,8 @@ class Login(Component):
         if not _email_ok(email):
             self.err_email = "Enter a valid email address."
             ok = False
-        if not password.strip():
-            # Spaces are empty. Keeping them would be a short password.
+        if not password:
+            # Only a missing password. Whitespace is a password and keeps its bytes.
             self.password = ""
             self.err_password = "Enter your password."
             ok = False

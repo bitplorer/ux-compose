@@ -128,11 +128,14 @@ class App:
             from ux_compose.wire.caps import register_live_channel
 
             ch = attach_channel(self, **config)
+            if ch is None:
+                raise RuntimeError(
+                    "Channel attach returned no channel; refusing to continue without Caps"
+                )
             self._channel = ch
             self._channel_asgi = asgi
-            if ch is not None:
-                self._level = max(self._level, Level.L2)
-                register_live_channel(ch)
+            self._level = max(self._level, Level.L2)
+            register_live_channel(ch)
         except ImportError as exc:
             self._note("use_channel", "L2", exc)
             raise ImportError(

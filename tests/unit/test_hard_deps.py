@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 UX_DOM_SHA = "0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4"
-UX_CHANNEL_SHA = "f1a93fcf298c97a59fa6538697731e19aac8586d"
+UX_CHANNEL_SHA = "133d3cb1cebfd8e6c3177e59bac077e925150d72"
 UX_BEHAVIOR_SHA = "09a9a658e7dbd06f51acf6104a85c3ba608dfe7a"
 UX_MOTION_SHA = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
 COMPOSE_SHA = "24a182f35e3d0743a2faafddb5ba0396324b2d9a"

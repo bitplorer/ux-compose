@@ -373,6 +373,7 @@ class Login(Component):
                     value=value,
                     placeholder="At least 8 characters",
                     autocomplete="current-password",
+                    data_ux_keep_value="1",
                     className=inp,
                     aria_invalid="true" if error else "false",
                     **({"aria_describedby": "login-password-err"} if error else {}),

@@ -17,9 +17,10 @@ from ux_compose import (
     form,
     button,
     control,
+    input_,
 )
 
-from ux_compose.author import act, field, mark_dirty
+from ux_compose.author import act, mark_dirty
 
 class PasswordField(Component):
     """Reveal is boolean MorphState. The secret stays on RefState and is never painted."""
@@ -42,7 +43,15 @@ class PasswordField(Component):
             ),
             p(face, className="lede"),
             form(
-                field("secret", "", placeholder="Passphrase", kind="text"),
+                input_(
+                    type="text",
+                    name="secret",
+                    value="",
+                    placeholder="Passphrase",
+                    className="field",
+                    autocomplete="off",
+                    data_ux_keep_value="1",
+                ),
                 button("Hold", type="submit", className="btn-secondary", **control("password.set")),
                 method="post",
                 action="/act/password.set",

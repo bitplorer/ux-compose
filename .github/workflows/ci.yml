@@ -21,6 +21,11 @@ jobs:
       # Sibling live repro is optional and not required here:
       # make cek-repro-morph-shell → ../cek-auto-suite/repro_morph_shell.py
       # (do not import ux_channel from product).
+      - name: Install Chrome
+        run: |
+          wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get update
+          sudo apt-get install -y /tmp/chrome.deb
       - name: Full suite
         run: python -m pytest tests/ -q
       - name: Nested-shell fragment-law

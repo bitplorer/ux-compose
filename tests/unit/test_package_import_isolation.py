@@ -1563,6 +1563,84 @@ def test_off_path_package_import_raises_module_not_found(tmp_path):
         _drop_tree(tmp_path)
 
 
+def test_in_use_helper_from_another_folder_is_rejected(tmp_path, monkeypatch):
+    """Building P2 must not serve a helper that another thread is loading from P1.
+
+    The helper module is already in sys.modules from P1 and that import
+    has not finished. Main serves P1's value. build() has to fail and
+    name both folders.
+    """
+    from ux_compose.build import build
+
+    gate_name = "gate_foreign_helper"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\nIN = threading.Event()\nOUT = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    p1 = tmp_path / "P1" / "myapp"
+    p2 = tmp_path / "P2" / "myapp"
+    for folder, mark, body in (
+        (
+            p1,
+            "FROM_P1",
+            f"import {gate_name}\nMARK = 'FROM_P1'\n{gate_name}.IN.set()\n{gate_name}.OUT.wait(2)\n",
+        ),
+        (p2, "FROM_P2", "MARK = 'FROM_P2'\n"),
+    ):
+        (folder / "routes").mkdir(parents=True)
+        (folder / "__init__.py").write_text("", encoding="utf-8")
+        (folder / "routes" / "__init__.py").write_text("", encoding="utf-8")
+        (folder / "helpers.py").write_text(body, encoding="utf-8")
+        (folder / "routes" / "home.py").write_text(
+            "from myapp.helpers import MARK\n"
+            "class Home:\n"
+            "    routes = ('get',)\n"
+            "    def render(self):\n"
+            "        return MARK\n",
+            encoding="utf-8",
+        )
+    monkeypatch.syspath_prepend(str(p1.parent))
+    gate = importlib.import_module(gate_name)
+    out: dict[str, object] = {}
+
+    def loader() -> None:
+        try:
+            importlib.import_module("myapp.helpers")
+        except BaseException as exc:
+            out["loader"] = exc
+
+    def builder() -> None:
+        assert gate.IN.wait(5)
+        try:
+            built = build(p2, name="X", host="asgi", live="null", level=1)
+            out["served"] = asgi_get(built[1], "/home").text
+        except BaseException as exc:
+            out["err"] = exc
+        finally:
+            gate.OUT.set()
+
+    left = threading.Thread(target=loader, daemon=True)
+    right = threading.Thread(target=builder, daemon=True)
+    try:
+        left.start()
+        right.start()
+        left.join(8)
+        right.join(8)
+        assert not left.is_alive() and not right.is_alive()
+        err = out.get("err")
+        assert err is not None, out.get("served")
+        text = str(err)
+        assert str(p1.resolve()) in text
+        assert str(p2.resolve()) in text
+        assert out.get("served") != "FROM_P1"
+    finally:
+        gate.OUT.set()
+        _purge_package("myapp")
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)
+
+
 def test_off_path_route_runs_twice_across_three_builds(tmp_path):
     """Main runs an off-path route file twice, then keeps the module.
 

@@ -6,6 +6,7 @@ reorder these cases. The seeded host step does not collect this module.
 from __future__ import annotations
 
 import importlib
+import logging
 import os
 import subprocess
 import sys
@@ -2460,3 +2461,95 @@ def test_failed_route_exec_does_not_leave_the_module(tmp_path):
         assert name not in sys.modules
     finally:
         sys.modules.pop(name, None)
+
+
+def _plain_off_path(root: Path, name: str) -> Path:
+    return _write(
+        root / name,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    id = 'hello'\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'hello'\n"
+            ),
+        },
+    )
+
+
+def test_off_path_first_build_does_not_log_component_replace(tmp_path, caplog):
+    """Scan already registered the id. The dotted swap must not warn."""
+    from ux_compose.build import build
+
+    name = "quietapp"
+    pkg = _plain_off_path(tmp_path, name)
+    try:
+        with caplog.at_level(logging.WARNING, logger="ux_behavior"):
+            built = build(pkg, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/hello").text == "hello"
+        assert "COMPONENT_REPLACE" not in caplog.text
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_scaffold_build_does_not_log_component_replace(tmp_path, caplog):
+    """A fresh scaffold build logs no COMPONENT_REPLACE, the same as main."""
+    from ux_compose.build import build
+    from ux_compose.scaffold import create_app
+
+    dest = create_app(tmp_path / "myapp", name="myapp", level=1)
+    try:
+        with caplog.at_level(logging.WARNING, logger="ux_behavior"):
+            build(dest, name="X", host="asgi", live="null", level=1)
+        assert "COMPONENT_REPLACE" not in caplog.text
+    finally:
+        _purge_package("myapp")
+        _drop_tree(tmp_path)
+
+
+def test_unit_registry_holds_the_dotted_route_instance(tmp_path):
+    """The registry instance is the dotted module, not the scan copy."""
+    from ux_compose.build import build
+
+    name = "dotreg"
+    pkg = _plain_off_path(tmp_path, name)
+    try:
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        inst = built[2].unit_registry["hello"]
+        assert type(inst).__module__ == f"{name}.routes.hello"
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_rebuild_does_not_rebind_an_unchanged_page(tmp_path):
+    """A second build of the same file constructs the page once.
+
+    The registry already holds the dotted class, so rebind leaves it.
+    """
+    from ux_compose.build import build
+
+    name = "samepage"
+    pkg = _plain_off_path(tmp_path, name)
+    try:
+        build(pkg, name="X", host="asgi", live="null", level=1)
+        cls = sys.modules[f"{name}.routes.hello"].Hello
+        calls = {"n": 0}
+        original = cls.__init__
+
+        def wrapped(self, *args, **kwargs):
+            calls["n"] += 1
+            original(self, *args, **kwargs)
+
+        cls.__init__ = wrapped
+        try:
+            built = build(pkg, name="X", host="asgi", live="null", level=1)
+            assert calls["n"] == 1
+            assert type(built[2].unit_registry["hello"]) is cls
+        finally:
+            cls.__init__ = original
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)

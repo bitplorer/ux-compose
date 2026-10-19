@@ -8,7 +8,6 @@ stays out of B's HTML.
 """
 from __future__ import annotations
 
-from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
 from tests.asgi_http import asgi_get, asgi_post_json

@@ -43,9 +43,6 @@ jobs:
             --reinstall pip setuptools wheel
           uv pip install --python "$venv" --exclude-newer "$UV_EXCLUDE_NEWER" \
             -e ".[dev]"
-          # DELIBERATE RED. Revert this commit. fastapi 0.148.0 is outside the
-          # 14-day cutoff; the cooldown check must fail and name it.
-          env -u UV_EXCLUDE_NEWER uv pip install --python "$venv" "fastapi==0.148.0"
           echo "$RUNNER_TEMP/cooldown-venv/bin" >> "$GITHUB_PATH"
           "$venv" -c "from importlib.metadata import version; print('resolved fastapi', version('fastapi'))"
       # Sibling live repro is optional and not required here:

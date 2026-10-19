@@ -12,6 +12,7 @@ import sys
 import textwrap
 import threading
 import time
+import types
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -493,6 +494,70 @@ def test_reentrant_build_of_another_package_serves_both(tmp_path, monkeypatch):
         for key in list(sys.modules):
             if key in {"demo", "other"} or key.startswith(("demo.", "other.")):
                 sys.modules.pop(key, None)
+
+
+def test_build_folder_named_json_keeps_stdlib(tmp_path):
+    import json
+
+    json_mod = sys.modules["json"]
+    dumps = json.dumps
+    pkg = _write(
+        tmp_path / "json",
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'from-json-app'\n"
+            ),
+        },
+    )
+    try:
+        assert _serve(pkg) == "from-json-app"
+        assert sys.modules["json"] is json_mod
+        assert json.dumps is dumps
+        assert json.dumps({"a": 1}) == '{"a": 1}'
+    finally:
+        _drop_tree(tmp_path)
+        for key in list(sys.modules):
+            if key == "json.routes" or key.startswith("json.routes.") or key.startswith("json.routes"):
+                origin = getattr(sys.modules.get(key), "__file__", None)
+                if isinstance(origin, str):
+                    try:
+                        if Path(origin).resolve().is_relative_to(tmp_path.resolve()):
+                            sys.modules.pop(key, None)
+                    except OSError:
+                        continue
+
+
+def test_path_keyerror_does_not_abort_build(tmp_path):
+    pkg = _write(
+        tmp_path / "widget",
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'widget-ok'\n"
+            ),
+        },
+    )
+
+    class BoomPath:
+        def __iter__(self):
+            raise KeyError("widget")
+
+    sentinel = types.ModuleType("widget")
+    sentinel.__file__ = str(pkg / "__init__.py")
+    sentinel.__path__ = BoomPath()
+    sys.modules["widget"] = sentinel
+    try:
+        assert _serve(pkg) == "widget-ok"
+        assert sys.modules["widget"] is sentinel
+    finally:
+        if sys.modules.get("widget") is sentinel:
+            sys.modules.pop("widget", None)
+        _drop_tree(tmp_path)
 
 
 def test_repeated_builds_do_not_grow_sys_modules(tmp_path):

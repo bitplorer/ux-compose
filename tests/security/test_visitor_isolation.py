@@ -12,6 +12,7 @@ from fastapi.responses import HTMLResponse
 
 from tests.asgi_http import asgi_get, asgi_post_json
 from tests.security.test_kit_wire_fields import _KITS, _Tree, _boot, _controls
+from ux_compose.components.otp import Otp
 from ux_compose.components.passwordfield import PasswordField
 
 _CHANNEL = "application/ux-channel+json"
@@ -173,3 +174,43 @@ def test_password_mask_does_not_vary_with_secret_length():
             inst.shown = shown
             pages.append(str(inst.render()))
         assert pages[0] == pages[1]
+
+
+def test_refused_otp_digits_are_absent_from_the_next_visitor():
+    """A refused verify must not leave A's digits for B.
+
+    Demo ``000000`` is refused. The input is already ``value=""``, so the
+    page can hide the digits while ``Otp.code`` still holds them. B's HTML
+    and that shared code both have to be clear.
+    """
+    digits = "000000"
+    asgi, inst = _boot(Otp, None)
+    _page(asgi, inst)
+    verify = next(item for item in _controls(str(inst.render())) if item["action"] == "otp.verify")
+    posted = asgi_post_json(
+        asgi,
+        "/ux-channel/action",
+        {
+            "v": "1",
+            "action": verify["action"],
+            "args": verify["sealed"],
+            "cap": verify["cap"],
+            "form": {"code": digits},
+        },
+        headers={"content-type": _CHANNEL, "accept": _CHANNEL},
+    )
+    assert posted.status_code == 200, posted.text
+    assert not bool(inst.ok)
+    assert "not valid" in str(inst.err)
+    html = asgi_get(asgi, "/").text
+    assert digits not in html
+    assert str(inst.code or "") == ""
+    tree = _Tree()
+    tree.feed(html)
+    inputs = [
+        node.attrs
+        for node in tree.all
+        if node.tag == "input" and node.attrs.get("name") == "code"
+    ]
+    assert inputs
+    assert all(node.get("value", "") == "" for node in inputs)

@@ -55,3 +55,33 @@ def test_cap_verified_wire_call_runs_and_unverified_does_not():
     accepted = app.submit_intent("vault.wipe", cap=cap, args={})
     assert getattr(accepted, "ok", None) is True, repr(accepted)
     assert ran["n"] == 1, repr(accepted)
+
+
+def test_payload_keys_named_action_and_self_reach_the_action():
+    """A valid Cap carries payload keys that share names with the entry point.
+
+    ``action`` and ``self`` are caller data. The wire passes them through
+    ``dispatch_verified(name, payload)`` and they arrive on the action.
+    """
+    got: dict[str, object] = {}
+
+    class Box(Component):
+        id = "box"
+
+        def render(self):
+            return '<div id="box"></div>'
+
+        @action(caps=("box.save",))
+        def save(self, /, action: str = "", **extra):
+            got["action"] = action
+            got["self"] = extra.get("self")
+            return []
+
+    app = App.boot("Box", strict_caps=True)
+    app.add(Box)
+    app.use_channel()
+    payload = {"action": "keep", "self": "me"}
+    cap = app.mint_cap("box.save", payload)
+    accepted = app.submit_intent("box.save", cap=cap, args=payload)
+    assert getattr(accepted, "ok", None) is True, repr(accepted)
+    assert got == {"action": "keep", "self": "me"}, repr(accepted)

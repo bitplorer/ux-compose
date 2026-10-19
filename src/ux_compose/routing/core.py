@@ -28,7 +28,7 @@ from typing import Any, Callable, Optional, Protocol, runtime_checkable
 from markupsafe import Markup
 from ux_dom import Fragment
 from ux_dom.dom import defHTML
-from ux_dom.dom.src.utils.dom_util import raw
+from ux_dom.dom.src.utils.dom_util import dom_text, raw
 from ux_dom.response.serialize import to_html_bytes
 
 logger = logging.getLogger("ux_compose.routing.core")
@@ -307,11 +307,27 @@ def _html_chunk_bytes(chunk: Any) -> bytes:
     return to_html_bytes(chunk)
 
 
+def _is_empty_chunk(chunk: Any) -> bool:
+    """True when this yield must not flush and must not emit.
+
+    Emptiness is a type check. ``Markup('')`` is an empty ``str``.
+    ``raw('')`` is a ``dom_text`` whose ``text`` is empty; the node
+    itself is truthy, so it is not tested with ``not chunk``.
+    """
+    if chunk is None:
+        return True
+    if isinstance(chunk, (str, bytes, bytearray, memoryview)) and not chunk:
+        return True
+    return (
+        isinstance(chunk, dom_text)
+        and isinstance(chunk.text, str)
+        and not chunk.text
+    )
+
+
 def _decode_chunk(decoder: _Utf8Stream, chunk: Any) -> bytes:
-    # Empty str/bytes emit nothing and do not flush, so a character can span them.
-    if chunk is None or chunk == "" or (
-        isinstance(chunk, (bytes, bytearray, memoryview)) and len(chunk) == 0
-    ):
+    # None, '', b'', Markup(''), and raw('') emit nothing and do not flush.
+    if _is_empty_chunk(chunk):
         return b""
     if isinstance(chunk, (bytes, bytearray, memoryview)):
         text = decoder.decode(bytes(chunk))

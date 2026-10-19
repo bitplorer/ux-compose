@@ -351,3 +351,30 @@ def test_empty_password_does_not_sign_in_with_another_clients_secret():
     assert "You're in" not in html
     assert secret not in html
     assert str(inst.password or "") == ""
+
+
+def test_empty_password_through_set_mode_clears_the_stored_secret():
+    """``set_mode`` is on the sign-in path. An empty password clears the stored one.
+
+    A has stored a password with Show. B switches the sign-in tab with an
+    empty password and does not toggle. The intended stored password is "".
+    """
+    secret = "password12"
+    asgi, inst = _boot(Login, None)
+    _page(asgi, inst)
+    _store_password(asgi, inst, secret)
+    controls = _controls(_get(asgi, _CLIENT_B).text)
+    set_mode = next(
+        item
+        for item in controls
+        if item["action"] == "login.set_mode" and item["sealed"].get("mode") == "login"
+    )
+    posted = _post(
+        asgi,
+        set_mode,
+        {"email": "bee-b@x.test", "password": "", "name": ""},
+        _CLIENT_B,
+    )
+    assert posted.status_code == 200, posted.text
+    assert str(inst.password or "") == ""
+    assert not bool(inst.authed)

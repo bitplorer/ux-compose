@@ -257,7 +257,7 @@ class App:
         self.use_behavior()
         return self._behavior.trust()
 
-    def dispatch(self, action: str, **kwargs) -> List[Any]:
+    def dispatch(self, action: str, /, **kwargs) -> List[Any]:
         self.use_behavior()
         kwargs = _unpack_action_kwargs(kwargs)
         return self._behavior.dispatch(action, **kwargs) or []

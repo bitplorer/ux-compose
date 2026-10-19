@@ -263,15 +263,19 @@ def test_otp_input_does_not_paint_another_clients_digits():
         assert all(node.get("value", "") == "" for node in inputs)
 
 
-def test_empty_password_does_not_sign_in_with_another_clients_secret():
-    """A stores a password. B's empty Show clears it before any submit.
+def _watch_authenticate(inst) -> list[str]:
+    seen: list[str] = []
+    real = inst.authenticate
 
-    B must then be refused on an empty submit. The empty post must not
-    keep A's secret either. The stored password after the empty Show is "".
-    """
-    secret = "password12"
-    asgi, inst = _boot(Login, None)
-    _page(asgi, inst)
+    def spy(*, email: str, password: str, name: str, signup: bool):
+        seen.append(password)
+        return real(email=email, password=password, name=name, signup=signup)
+
+    inst.authenticate = spy
+    return seen
+
+
+def _store_password(asgi, inst, secret: str):
     controls = _controls(_get(asgi, _CLIENT_A).text)
     toggle = next(item for item in controls if item["action"] == "login.toggle_password")
     typed = _post(
@@ -282,6 +286,46 @@ def test_empty_password_does_not_sign_in_with_another_clients_secret():
     )
     assert typed.status_code == 200, typed.text
     assert str(inst.password or "") == secret
+
+
+def test_empty_submit_does_not_sign_in_with_a_stored_password():
+    """A types a password and uses Show. B submits an empty password and never toggles.
+
+    B is refused. ``authenticate`` is not called. The stored password is "".
+    """
+    secret = "password12"
+    asgi, inst = _boot(Login, None)
+    _page(asgi, inst)
+    _store_password(asgi, inst, secret)
+    seen = _watch_authenticate(inst)
+    submit = next(
+        item for item in _controls(_get(asgi, _CLIENT_B).text) if item["action"] == "login.submit"
+    )
+    posted = _post(
+        asgi,
+        submit,
+        {"email": "bee-b@x.test", "password": "", "name": ""},
+        _CLIENT_B,
+    )
+    assert posted.status_code == 200, posted.text
+    html = _get(asgi, _CLIENT_B).text
+    assert not bool(inst.authed)
+    assert "You're in" not in html
+    assert secret not in html
+    assert seen == []
+    assert str(inst.password or "") == ""
+
+
+def test_empty_password_does_not_sign_in_with_another_clients_secret():
+    """A stores a password. B's empty Show clears it before any submit.
+
+    B must then be refused on an empty submit. The empty post must not
+    keep A's secret either. The stored password after the empty Show is "".
+    """
+    secret = "password12"
+    asgi, inst = _boot(Login, None)
+    _page(asgi, inst)
+    _store_password(asgi, inst, secret)
     revealed = _controls(_get(asgi, _CLIENT_B).text)
     empty_toggle = next(item for item in revealed if item["action"] == "login.toggle_password")
     cleared = _post(

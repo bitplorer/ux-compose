@@ -408,10 +408,10 @@ class Login(Component):
             self.email = str(email)
         elif kwargs.get("email") is not None:
             self.email = str(kwargs["email"])
-        if password:
-            self.password = str(password)
-        elif kwargs.get("password") is not None:
-            self.password = str(kwargs["password"])
+        posted_password = password if password else kwargs.get("password")
+        # An empty post replaces the stored password. Keeping it would
+        # sign the next visitor in with the previous one.
+        self.password = "" if posted_password is None else str(posted_password)
         if name:
             self.name = str(name)
         elif kwargs.get("name") is not None:
@@ -454,11 +454,12 @@ class Login(Component):
         name: str = "",
         **kwargs,
     ):
-        self._take_fields(email=email, password=password, name=name, **kwargs)
+        entered_password = str(password or "")
+        self._take_fields(email=email, password=entered_password, name=name, **kwargs)
         self._clear_errors()
         is_signup = str(self.mode or "login") == "signup"
         email = str(self.email or "").strip()
-        password = str(self.password or "")
+        password = entered_password
         name = str(self.name or "").strip()
 
         ok = True

@@ -419,13 +419,11 @@ class _PinnedPackageFinder:
     def __init__(self, package: str, root: Path) -> None:
         self.package = package
         self.root = root.resolve()
-        self.owner = threading.get_ident()
 
     def find_spec(self, fullname: str, path: object = None, target: object = None):
-        # Only the building thread is pinned. Another thread importing this
-        # name is not redirected onto the directory being built.
-        if threading.get_ident() != self.owner:
-            return None
+        # Every thread, not only the builder. A cached module skips find_spec,
+        # so another thread must not be able to load a different folder under
+        # this name while the pin is installed.
         if fullname != self.package and not fullname.startswith(self.package + "."):
             return None
         rel = fullname[len(self.package) :].lstrip(".")

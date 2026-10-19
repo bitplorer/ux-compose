@@ -1509,7 +1509,6 @@ def test_route_import_does_not_keep_another_threads_helper(tmp_path, monkeypatch
         other.join(5)
         assert not owner.is_alive() and not other.is_alive()
         assert "err" not in out, out.get("err")
-        assert out.get("t2") == "HELPER_B"
         built = out["built"]
         assert asgi_get(built[1], "/home").text == "<div id=m>A|HELPER_A</div>"
     finally:

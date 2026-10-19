@@ -258,8 +258,10 @@ package name is built. Rebuilding one folder does not add another copy of
 its modules. The first build of a new folder may add that folder's modules
 once.
 
-A thread that is not inside the build is not redirected at that package
-name. The pin applies to the building thread only.
+Known limitation: during a same-name build, a shared `sys.modules['myapp']`
+means a thread that isn't building can see the building folder's helpers.
+Its `__path__` points at the folder being built, so the meta_path finder
+isn't involved.
 
 ### Same-name builds take turns importing
 

@@ -275,7 +275,8 @@ across another package's route body.
 While a name is importing, `pkg` and `pkg.*` resolve to that build's
 directory even if another thread has put a different copy first on
 `sys.path`. The build serves the helper from its own tree. It does not
-serve another app's helper.
+serve another app's helper. A name that is not on `sys.path` at all is
+not imported: `build()` raises `ModuleNotFoundError` for that name.
 
 A second thread that is still waiting when the timeout elapses gets
 `BuildLockTimeout` from `ux_compose.build`. The message names the package

@@ -584,13 +584,14 @@ def test_path_keyerror_does_not_abort_build(tmp_path):
         _drop_tree(tmp_path)
 
 
-def test_repeated_builds_do_not_grow_sys_modules(tmp_path):
+def test_repeated_builds_do_not_grow_sys_modules(tmp_path, monkeypatch):
     """Rebuilding one folder adds nothing.
 
-    A different package name adds exactly that package, its ``routes``
-    package, and the route module. Those three stay so the served module
-    remains importable (``release_build_package_modules`` keeps the route
-    and anchors its parents). Nothing else is added.
+    A different package name that is on ``sys.path`` adds exactly that
+    package, its ``routes`` package, and the route module. Those three
+    stay so the served module remains importable
+    (``release_build_package_modules`` keeps the route and anchors its
+    parents). A rebuild of the same name adds nothing else.
     """
     from ux_compose.build import build
 
@@ -606,6 +607,7 @@ def test_repeated_builds_do_not_grow_sys_modules(tmp_path):
 
     warm = _write(tmp_path / "warm" / "warmpkg", hello("warm"))
     names = ["warmpkg"]
+    monkeypatch.syspath_prepend(str(warm.parent))
     try:
         build(warm, name="W", host="asgi", live="null", level=1)
         base = len(sys.modules)
@@ -617,6 +619,7 @@ def test_repeated_builds_do_not_grow_sys_modules(tmp_path):
             name = f"pkg{index}"
             names.append(name)
             pkg = _write(tmp_path / f"d{index}" / name, hello(f"n{index}"))
+            monkeypatch.syspath_prepend(str(pkg.parent))
             before = set(sys.modules)
             built = build(pkg, name="N", host="asgi", live="null", level=1)
             assert asgi_get(built[1], "/hello").text == f"n{index}"
@@ -886,38 +889,35 @@ def _hints_package(root: Path, name: str, counter: Path) -> Path:
     return pkg
 
 
-def test_type_hints_survive_build_on_and_off_path(tmp_path):
-    """Future annotations resolve after build, whether or not the folder is on sys.path."""
+def test_type_hints_survive_build_on_path(tmp_path, monkeypatch):
+    """Future annotations resolve after build when the folder is on sys.path."""
     from starlette.testclient import TestClient
 
     from ux_compose.build import build
 
-    for label, on_path in (("off", False), ("on", True)):
-        name = f"hint{label}"
-        counter = tmp_path / f"{name}-runs.txt"
-        counter.write_text("", encoding="utf-8")
-        pkg = _hints_package(tmp_path / label, name, counter)
-        if on_path:
-            sys.path.insert(0, str(pkg.parent))
-        try:
-            _app, asgi, _bundle = build(pkg, name="X", host="asgi", live="null", level=1)
-            response = TestClient(asgi).get("/h")
-            assert response.status_code == 200, response.text
-            assert "M" in response.text
-        finally:
-            if on_path:
-                sys.path.remove(str(pkg.parent))
-            _purge_package(name)
-            _drop_tree(tmp_path)
+    name = "hinton"
+    counter = tmp_path / f"{name}-runs.txt"
+    counter.write_text("", encoding="utf-8")
+    pkg = _hints_package(tmp_path / "on", name, counter)
+    monkeypatch.syspath_prepend(str(pkg.parent))
+    try:
+        _app, asgi, _bundle = build(pkg, name="X", host="asgi", live="null", level=1)
+        response = TestClient(asgi).get("/h")
+        assert response.status_code == 200, response.text
+        assert "M" in response.text
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
 
 
-def test_route_file_runs_once_over_three_builds(tmp_path):
+def test_route_file_runs_once_over_three_builds(tmp_path, monkeypatch):
     from ux_compose.build import build
 
     name = "onceapp"
     counter = tmp_path / "once-runs.txt"
     counter.write_text("", encoding="utf-8")
     pkg = _hints_package(tmp_path, name, counter)
+    monkeypatch.syspath_prepend(str(pkg.parent))
     try:
         for _ in range(3):
             build(pkg, name="X", host="asgi", live="null", level=1)
@@ -927,7 +927,7 @@ def test_route_file_runs_once_over_three_builds(tmp_path):
         _drop_tree(tmp_path)
 
 
-def test_import_after_build_is_the_served_module(tmp_path):
+def test_import_after_build_is_the_served_module(tmp_path, monkeypatch):
     from ux_compose.build import build
 
     name = "idapp"
@@ -944,6 +944,7 @@ def test_import_after_build_is_the_served_module(tmp_path):
         "        return str(SERVED)\n",
         encoding="utf-8",
     )
+    monkeypatch.syspath_prepend(str(pkg.parent))
     try:
         _app, asgi, _bundle = build(pkg, name="X", host="asgi", live="null", level=1)
         mod = importlib.import_module(f"{name}.routes.a")
@@ -954,7 +955,7 @@ def test_import_after_build_is_the_served_module(tmp_path):
         _drop_tree(tmp_path)
 
 
-def test_same_folder_thirty_builds_do_not_grow_sys_modules(tmp_path):
+def test_same_folder_thirty_builds_do_not_grow_sys_modules(tmp_path, monkeypatch):
     from ux_compose.build import build
 
     name = "flatapp"
@@ -969,6 +970,7 @@ def test_same_folder_thirty_builds_do_not_grow_sys_modules(tmp_path):
             ),
         },
     )
+    monkeypatch.syspath_prepend(str(pkg.parent))
     try:
         build(pkg, name="X", host="asgi", live="null", level=1)
         base = len(sys.modules)
@@ -981,7 +983,7 @@ def test_same_folder_thirty_builds_do_not_grow_sys_modules(tmp_path):
         _drop_tree(tmp_path)
 
 
-def test_distinct_folders_grow_sys_modules_at_most_once(tmp_path):
+def test_distinct_folders_grow_sys_modules_at_most_once(tmp_path, monkeypatch):
     from ux_compose.build import build
 
     names: list[str] = []
@@ -1000,6 +1002,7 @@ def test_distinct_folders_grow_sys_modules_at_most_once(tmp_path):
                     ),
                 },
             )
+            monkeypatch.syspath_prepend(str(pkg.parent))
             before = len(sys.modules)
             built = build(pkg, name="X", host="asgi", live="null", level=1)
             assert asgi_get(built[1], "/a").text == name
@@ -1084,7 +1087,7 @@ def test_different_name_builds_while_same_name_is_held(tmp_path, monkeypatch):
         _drop_tree(tmp_path)
 
 
-def test_helper_imported_by_the_route_stays_after_build(tmp_path):
+def test_helper_imported_by_the_route_stays_after_build(tmp_path, monkeypatch):
     from ux_compose.build import build
 
     name = "helplock"
@@ -1101,6 +1104,7 @@ def test_helper_imported_by_the_route_stays_after_build(tmp_path):
             ),
         },
     )
+    monkeypatch.syspath_prepend(str(pkg.parent))
     try:
         built = build(pkg, name="X", host="asgi", live="null", level=1)
         assert asgi_get(built[1], "/a").text == "1"
@@ -1115,7 +1119,7 @@ def test_helper_imported_by_the_route_stays_after_build(tmp_path):
         _drop_tree(tmp_path)
 
 
-def test_route_package_parents_stay_importable(tmp_path):
+def test_route_package_parents_stay_importable(tmp_path, monkeypatch):
     from ux_compose.build import build
 
     name = "anchorapp"
@@ -1130,6 +1134,7 @@ def test_route_package_parents_stay_importable(tmp_path):
             ),
         },
     )
+    monkeypatch.syspath_prepend(str(pkg.parent))
     try:
         built = build(pkg, name="X", host="asgi", live="null", level=1)
         assert asgi_get(built[1], "/a").text == "anchored"
@@ -1806,7 +1811,7 @@ def test_release_drops_a_module_that_is_not_this_folder(tmp_path):
         _drop_tree(tmp_path)
 
 
-def test_routes_package_init_is_not_kept_as_a_route(tmp_path):
+def test_routes_package_init_is_not_kept_as_a_route(tmp_path, monkeypatch):
     """A routes subpackage is not a route file just because its directory sits under routes."""
     from ux_compose.build import build
 
@@ -1827,6 +1832,7 @@ def test_routes_package_init_is_not_kept_as_a_route(tmp_path):
         "        return str(VALUE)\n",
         encoding="utf-8",
     )
+    monkeypatch.syspath_prepend(str(pkg.parent))
     try:
         built = build(pkg, name="X", host="asgi", live="null", level=1)
         assert asgi_get(built[1], "/home").text == "1"

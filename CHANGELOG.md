@@ -41,6 +41,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with the same package name is what replaces it. While that build holds
   the name, the import pin redirects every thread, so the route cannot
   bind a helper another thread cached from a different folder.
+- The import pin does not make an off-path package importable. When
+  that name is not on `sys.path`, `build()` raises `ModuleNotFoundError`,
+  the same as an ordinary import.
 - Known limitation: a shared `sys.modules['myapp']` means a thread that
   isn't building can see the building folder's helpers. Its `__path__`
   points at the folder being built, so the meta_path finder isn't involved.

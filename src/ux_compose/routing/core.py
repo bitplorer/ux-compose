@@ -439,8 +439,24 @@ def package_build_lock(package: str) -> threading.RLock:
         return lock
 
 
+def _package_name_on_sys_path(package: str) -> bool:
+    """True when a normal import of ``package`` could already see a file."""
+    for entry in list(sys.path):
+        root = Path(entry or ".").resolve()
+        if (root / package / "__init__.py").is_file():
+            return True
+        if (root / f"{package}.py").is_file():
+            return True
+    return False
+
+
 class _PinnedPackageFinder:
-    """Resolve one package name to one directory, ignoring sys.path order."""
+    """Resolve one package name to one directory, ignoring sys.path order.
+
+    The name still has to be importable. A folder that is not on
+    ``sys.path``, and has no other copy there, is left alone so the
+    import raises ``ModuleNotFoundError`` the way a normal import does.
+    """
 
     def __init__(self, package: str, root: Path) -> None:
         self.package = package
@@ -451,6 +467,8 @@ class _PinnedPackageFinder:
         # so another thread must not be able to load a different folder under
         # this name while the pin is installed.
         if fullname != self.package and not fullname.startswith(self.package + "."):
+            return None
+        if not _package_name_on_sys_path(self.package):
             return None
         rel = fullname[len(self.package) :].lstrip(".")
         base = self.root.joinpath(*rel.split(".")) if rel else self.root

@@ -52,7 +52,8 @@ def test_use_channel_stamps_l2_only_when_channel_exists():
     stamp = "self._level = max(self._level, Level.L2)"
     assert stamp in chunk
     before, _, after = chunk.partition(stamp)
-    assert "if ch is not None:" in before
+    assert "if ch is None:" in before
+    assert "no channel" in before
     assert "register_live_channel(ch)" in after
     assert "except ImportError" in chunk
     assert 'self._note("use_channel", "L2", exc)' in chunk

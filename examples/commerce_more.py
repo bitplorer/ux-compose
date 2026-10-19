@@ -42,7 +42,8 @@ def demo() -> None:
     print("wish", app.dispatch("wishlist.toggle", sku="oak"))
     print("coup", app.dispatch("coupon.check", code="HOUSE10"))
     print("who", app.dispatch("checkout.next", name="Noor"))
-    print("stock", app.dispatch("stock.sell", _trusted=True))
+    with app.trust():
+        print("stock", app.dispatch("stock.sell"))
     print("cmp", app.dispatch("compare.toggle", sku="wool"))
     strict = App.boot("CommerceMore", strict_caps=True)
     strict.add(Coupon, CheckoutFlow)

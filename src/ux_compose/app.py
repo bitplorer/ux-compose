@@ -128,11 +128,14 @@ class App:
             from ux_compose.wire.caps import register_live_channel
 
             ch = attach_channel(self, **config)
+            if ch is None:
+                raise RuntimeError(
+                    "Channel attach returned no channel; refusing to continue without Caps"
+                )
             self._channel = ch
             self._channel_asgi = asgi
-            if ch is not None:
-                self._level = max(self._level, Level.L2)
-                register_live_channel(ch)
+            self._level = max(self._level, Level.L2)
+            register_live_channel(ch)
         except ImportError as exc:
             self._note("use_channel", "L2", exc)
             raise ImportError(
@@ -191,11 +194,19 @@ class App:
             self._cek = None
         return self
 
-    def mint_cap(self, action: str, args: Optional[dict] = None, **kwargs) -> str:
+    def mint_cap(self, action: str, /, args: Optional[dict] = None, **kwargs) -> str:
         if self._channel is None:
             self.use_channel()
         from ux_compose.wire.caps import mint_cap
-        return mint_cap(self._channel, action, args, **kwargs)
+        payload = dict(args or {})
+        if "action" in kwargs:
+            posted = kwargs.pop("action")
+            if "action" in payload and payload["action"] != posted:
+                raise ValueError(
+                    "mint_cap action conflicts with args['action']"
+                )
+            payload["action"] = posted
+        return mint_cap(self._channel, action, payload, **kwargs)
 
     def submit_intent(self, action: str, *, cap: Optional[str] = None, mint: bool = False, args: Optional[dict] = None, **kwargs):
         if self._channel is None:
@@ -238,22 +249,43 @@ class App:
         self.use_behavior()
         return mount_surfaces(package_dir=package_dir, base_directory=base_directory or base, compose_app=self, asgi_app=asgi_app, fail_closed=fail_closed, bind_pages=bind_pages, on_surface=on_surface, package_name=package_name, host=host or getattr(self, "_host", "auto"))
 
-    def dispatch(self, action: str, **kwargs) -> List[Any]:
+    def trust(self):
+        """Trust dispatches in this context only.
+
+        Developer-authored server code: demos, tests, and admin tools.
+        A Cap-verified wire call does not use this door. ``bridge_actions``
+        calls ``dispatch_verified(name, payload)`` after Channel accepts
+        the Cap. That grants trust for the one call. A task started
+        during that call does not keep it.
+
+        The trust is per task. A task started inside the block keeps it
+        after the block ends, so do not start a long-lived worker, queue
+        consumer, or background task here.
+        """
+        self.use_behavior()
+        return self._behavior.trust()
+
+    def dispatch(self, action: str, /, **kwargs) -> List[Any]:
         self.use_behavior()
         kwargs = _unpack_action_kwargs(kwargs)
         return self._behavior.dispatch(action, **kwargs) or []
 
-    def control(self, action: str, **args) -> dict:
+    def control(self, action: str, /, **args) -> dict:
         self.use_behavior()
         if self._channel is not None:
             from ux_compose.wire.caps import control_attrs
 
             # Product verb (hello.inc), not Behavior.control's ux_behavior.dispatch remap.
             return control_attrs(self._channel, action, **args)
-        if self._behavior is not None and hasattr(self._behavior, "control"):
+        # Behavior.control names its action parameter. A payload key of the
+        # same name is caller data and is rendered through the offline attrs.
+        if "action" not in args and self._behavior is not None and hasattr(self._behavior, "control"):
             return self._behavior.control(action, **args)
-        from ux_compose.helpers import control
-        return control(action, **args)
+        if "action" not in args:
+            from ux_compose.helpers import control
+            return control(action, **args)
+        from ux_compose.helpers import _action_attrs
+        return _action_attrs(action, args)
 
     @property
     def level(self) -> Level:

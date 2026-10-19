@@ -352,6 +352,33 @@ def test_dispatch_args_dict_unpacks():
     assert isinstance(ops2, list)
 
 
+def test_dispatch_payload_key_named_action_is_a_normal_kwarg():
+    """A payload key named action is caller data, not the action name.
+
+    ``App.dispatch`` takes the action name positionally. ``action=`` in the
+    payload must reach the action as a normal keyword.
+    """
+    from ux_compose import App, Component, action
+
+    got: dict[str, str] = {}
+
+    class Box(Component):
+        id = "box"
+
+        def render(self):
+            return '<div id="box"></div>'
+
+        @action(caps=())
+        def save(self, action: str = ""):
+            got["action"] = action
+            return []
+
+    app = App.boot("Box", level=1, strict_caps=False)
+    app.add(Box)
+    app.dispatch("box.save", action="keep")
+    assert got == {"action": "keep"}
+
+
 def test_attach_motion_returns_instances():
     pytest.importorskip("ux_motion")
     from ux_compose.wire.boot import attach_motion

@@ -289,8 +289,8 @@ PORTS: dict[str, dict] = {'activityfeed': {'css': False,
              'page': False,
              'stem': 'palette'},
  'passwordfield': {'css': False,
-                   'description': 'Reveal is boolean MorphState. The secret itself is RefState '
-                                  '(not painted as MorphState).',
+                   'description': 'Reveal is boolean MorphState. The secret stays on RefState '
+                                  'and is never painted.',
                    'exports': ['PasswordField'],
                    'module': 'ux_compose.components.passwordfield',
                    'name': 'PasswordField',

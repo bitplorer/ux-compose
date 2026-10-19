@@ -31,7 +31,8 @@ def demo() -> None:
     app = App.boot("Feeds")
     app.add(Carousel, Comments, Timeline, EmptyRetry, ReorderList, ActivityFeed)
     print("car", app.dispatch("carousel.next"))
-    print("cmt", app.dispatch("comments.post", text="held", _trusted=True))
+    with app.trust():
+        print("cmt", app.dispatch("comments.post", text="held"))
     print("tl", app.dispatch("timeline.choose", key="cut"))
     print("empty", app.dispatch("emptyretry.load"))
     print("ord", app.dispatch("reorder.up", sku="oak"))

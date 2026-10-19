@@ -27,7 +27,7 @@ def test_frozen_names():
 
 def test_lifecycle_exports_env_and_clears_kv(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.delenv(STATE_STORE_ENV, raising=False)
+    _track_state_store(monkeypatch)
     monkeypatch.delenv("REDIS_URL", raising=False)
     path = prepare_shared_state(tmp_path)
     assert path.name == STATE_STORE_NAME
@@ -43,6 +43,7 @@ def test_lifecycle_exports_env_and_clears_kv(tmp_path, monkeypatch):
     conn.close()
     drop_shared_state(tmp_path)
     assert not path.exists()
+    assert _state_store_will_be_undone(monkeypatch)
 
 
 def test_prepare_does_not_export_file_store_when_redis_url_set(tmp_path, monkeypatch):
@@ -58,7 +59,7 @@ def test_prepare_does_not_export_file_store_when_redis_url_set(tmp_path, monkeyp
 
 def test_drop_unlinks_wal_sidecars(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.delenv(STATE_STORE_ENV, raising=False)
+    _track_state_store(monkeypatch)
     monkeypatch.delenv("REDIS_URL", raising=False)
     path = prepare_shared_state(tmp_path)
     path.write_bytes(b"x")
@@ -70,6 +71,28 @@ def test_drop_unlinks_wal_sidecars(tmp_path, monkeypatch):
     assert not path.exists()
     assert not wal.exists()
     assert not shm.exists()
+    assert _state_store_will_be_undone(monkeypatch)
+
+
+def _track_state_store(monkeypatch):
+    """Record an undo before prepare_shared_state writes the env itself.
+
+    setenv stores NOTSET when the name is absent, so teardown deletes the
+    path prepare wrote. delenv on a missing name records nothing.
+    """
+    monkeypatch.setenv(STATE_STORE_ENV, os.environ.get(STATE_STORE_ENV, ""))
+
+
+def _state_store_will_be_undone(monkeypatch):
+    """prepare_shared_state writes os.environ directly.
+
+    delenv on a missing name records nothing, so the write survives the
+    test and the next test inherits the sqlite path.
+    """
+    return any(
+        mapping is os.environ and key == STATE_STORE_ENV
+        for mapping, key, _old in monkeypatch._setitem
+    )
 
 
 def test_clear_without_env_is_noop(monkeypatch):

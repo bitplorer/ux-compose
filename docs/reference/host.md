@@ -223,7 +223,7 @@ OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
   not a frozen compose import. Boot applies the Cap adapter when
   `cek != "off"`. Do not assume classic `CapService` at `cek=require`.
 - Channel prefers Redis when `REDIS_URL` is set. serve-dev will not export
-  both `REDIS_URL` and `UXCOMPOSE_STATE_STORE`. Pin: ux-channel @ `f1a93fc`
+  both `REDIS_URL` and `UXCOMPOSE_STATE_STORE`. Pin: ux-channel @ `0ffe8e9`
   (Python ≥3.14 tip; Cut C floor `985e58a`).
 - Cold import never pulls `wire/`.
 - Document is SSoT: one `Document` in `document.py`. `build(document=)` attaches
@@ -324,5 +324,45 @@ quietly add a second pipeline.
 ## Cap default (0.2.0)
 
 `App` and `build()` fail closed: `strict_caps=True` is the default. A capped
-`@action` with no Channel Cap, `app.trust()` or `_trusted=True` raises
-`AuthorityError`. Pass `strict_caps=False` only for an unchecked local sandbox.
+`@action` raises `AuthorityError` unless the call is inside `app.trust()`
+or the wire called `dispatch_verified(name, payload)` after Channel accepted
+a Cap. Pass `strict_caps=False` only for an unchecked local sandbox.
+
+Two doors, and they are not interchangeable:
+
+| Door | Who | What it means |
+|------|-----|----------------|
+| `with app.trust():` | Developer-authored server code (demos, tests, admin tools) | This task may run capped actions. Trust stays on a task started inside the block, so do not start a long-lived worker, queue consumer, or background task there. |
+| `dispatch_verified(name, payload)` | `wire/caps.bridge_actions`, after Channel accepts the Cap | Trust for that one call. A task started inside it does not inherit the trust. `async_dispatch_verified` is the async twin. A bool does not grant trust (ux-behavior #20, pin `09a9a65`). |
+
+Channel verifies the Cap at the edge. `bridge_actions` was added so product
+action names mint against the author name, and the handler then host-dispatches
+because that check already happened (`a82495d`). From ux-behavior 0.4.0,
+attaching Channel does not skip the check by itself. `dispatch_verified`
+is how the handler records the acceptance, for one call.
+
+`App.trust` delegates to `Behavior.trust`. It is not a substitute for a Cap
+on a request a client sent.
+
+A payload key named `action` arrives when the action names that parameter.
+`App.control` and `App.mint_cap` take the action name positionally, so
+`control('box.open', action='x')` and `mint_cap('box.save', action='x')`
+pass that key through as caller data.
+The component instance is bound positionally. A posted key named `self` is
+not that instance and is not passed into the action, including through
+`**kwargs`. When the signature does not accept the key at all, it comes
+back the same way as every other action validation error: the message
+(`unexpected keyword argument 'self'`) on the result, the same HTTP status,
+the same result shape, never a 500. There is no separate status for this key.
+
+## Attach secret
+
+Outside dev, `Behavior.attach` requires `UX_CHANNEL_SECRET` (or
+`UX_BEHAVIOR_SECRET`). A secret shorter than 16 characters, and any other
+error `Channel.boot` raises, is an attach failure too. `wire/boot.py`
+sets `strict_attach=True` before `attach`, so the error propagates.
+`use_channel` raises when that call returns no channel. A `TypeError`
+from `attach` stops the boot; compose does not retry without `secret=`.
+Compose does not invent a secret and does not continue without Caps. `examples/live_asgi.py`, `apps/atelier_shop`, and
+`apps/atelier_studio` fail the process. Dev is `DEBUG` in `1` / `true` /
+`yes` / `on`.

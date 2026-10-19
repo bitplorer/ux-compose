@@ -182,7 +182,11 @@ class FilterBar(Component):
         return update_with(self)
 
     @action(caps=())
-    def choose(self, key: str = ""):
+    def choose(self, key: str = "", q: str = ""):
+        # q is named so a chip inside the query form is not a validation
+        # error. It is ignored. Storing it would paint one visitor's query
+        # on the next visitor's page.
+        del q
         keys = {row[0] for row in self._filters()}
         self.which = key if key in keys else self._filters()[0][0]
         self._mark()

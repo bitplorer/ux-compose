@@ -171,6 +171,7 @@ def test_otp_attach_and_verify():
     assert str(inst.code or "") == ""
     html = _html(app, "otp")
     assert "Code accepted" in html
+    assert "The secret is cleared." in html
 
     strict = _boot(Otp, strict_caps=True)
     with pytest.raises(Exception):

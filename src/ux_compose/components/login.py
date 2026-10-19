@@ -1,8 +1,8 @@
 """Drop-in login card — MorphState presence, RefState secrets, Cap on submit.
 
 Show/Hide and tab switches attach live form values onto RefState *before*
-the morph, so the new input paints with ``value=``. The secret never lives
-on MorphState.
+the morph, so email and name paint with ``value=``. The password stays on
+RefState and is never painted back. It does not live on MorphState.
 
 MorphState: ``mode``, ``show_password``, ``submitting``, ``authed``, ``error_dirty``.
 RefState: ``email``, ``password``, ``name``, field/form errors.
@@ -282,7 +282,7 @@ class Login(Component):
             placeholder="you@company.com", autocomplete="email",
         ))
         fields.append(self._password_field(
-            str(self.password or ""), str(self.err_password or ""),
+            "", str(self.err_password or ""),
             show_pw,
         ))
 
@@ -373,6 +373,7 @@ class Login(Component):
                     value=value,
                     placeholder="At least 8 characters",
                     autocomplete="current-password",
+                    data_ux_keep_value="1",
                     className=inp,
                     aria_invalid="true" if error else "false",
                     **({"aria_describedby": "login-password-err"} if error else {}),
@@ -408,10 +409,10 @@ class Login(Component):
             self.email = str(email)
         elif kwargs.get("email") is not None:
             self.email = str(kwargs["email"])
-        if password:
-            self.password = str(password)
-        elif kwargs.get("password") is not None:
-            self.password = str(kwargs["password"])
+        posted_password = password if password else kwargs.get("password")
+        # An empty post replaces the stored password. Keeping it would
+        # sign the next visitor in with the previous one.
+        self.password = "" if posted_password is None else str(posted_password)
         if name:
             self.name = str(name)
         elif kwargs.get("name") is not None:
@@ -454,11 +455,12 @@ class Login(Component):
         name: str = "",
         **kwargs,
     ):
-        self._take_fields(email=email, password=password, name=name, **kwargs)
+        entered_password = str(password or "")
+        self._take_fields(email=email, password=entered_password, name=name, **kwargs)
         self._clear_errors()
         is_signup = str(self.mode or "login") == "signup"
         email = str(self.email or "").strip()
-        password = str(self.password or "")
+        password = entered_password
         name = str(self.name or "").strip()
 
         ok = True
@@ -468,7 +470,12 @@ class Login(Component):
         if not _email_ok(email):
             self.err_email = "Enter a valid email address."
             ok = False
-        if not _password_ok(password, signup=is_signup):
+        if not password:
+            # Only a missing password. Whitespace keeps its bytes. _take_fields already stored ""; this clear stays as defence in depth.
+            self.password = ""
+            self.err_password = "Enter your password."
+            ok = False
+        elif not _password_ok(password, signup=is_signup):
             self.err_password = (
                 "Use 8+ characters with at least one number."
                 if is_signup else "Password must be at least 8 characters."

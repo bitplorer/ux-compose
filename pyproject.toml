@@ -22,8 +22,8 @@ classifiers = [
 ]
 dependencies = [
     "ux-dom @ git+https://github.com/bitplorer/ux-dom.git@0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4",
-    "ux-channel @ git+https://github.com/bitplorer/ux-channel.git@f1a93fcf298c97a59fa6538697731e19aac8586d#subdirectory=python",
-    "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@2ae5c3de6c60756cfccfa0174355037436bb3f14",
+    "ux-channel @ git+https://github.com/bitplorer/ux-channel.git@0ffe8e9907cd1a0701ffc8cb2e5414d6b39d2996#subdirectory=python",
+    "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@09a9a658e7dbd06f51acf6104a85c3ba608dfe7a",
     "ux-motion @ git+https://github.com/bitplorer/ux-motion.git@bbe7d73466a6c1eccb47e711568c80ce3b4d5487",
     "cek-host>=0.2.0",
     "cek-surface>=0.2.0",

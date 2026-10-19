@@ -38,7 +38,8 @@ def test_toggle_attaches_password_on_morph():
     assert isinstance(ops, list)
     html = _html(app)
     assert 'id="login"' in html
-    assert "password12" in html
+    assert "password12" not in html
+    assert str(app.behavior.get("login").password or "") == "password12"
     assert 'type="text"' in html
     assert "Hide" in html
 
@@ -48,7 +49,8 @@ def test_toggle_hide_keeps_value():
     app.dispatch("login.toggle_password", password="password12", email="a@b.co")
     app.dispatch("login.toggle_password", password="password12", email="a@b.co")
     html = _html(app)
-    assert "password12" in html
+    assert "password12" not in html
+    assert str(app.behavior.get("login").password or "") == "password12"
     assert 'type="password"' in html
     assert "Show" in html
 
@@ -73,7 +75,8 @@ def test_set_mode_keeps_typed_values():
     html = _html(app)
     assert "Create account" in html
     assert "you@atelier.test" in html
-    assert "password12" in html
+    assert "password12" not in html
+    assert str(app.behavior.get("login").password or "") == "password12"
     assert 'name="name"' in html
     assert 'aria-selected="true"' in html
     assert 'id="login-p-signup"' in html
@@ -86,6 +89,86 @@ def test_submit_validates():
     assert "valid email" in html.lower() or "Email" in html
     inst = app.behavior.get("login")
     assert not bool(inst.authed)
+
+
+def _authenticate_saw(password: str) -> list[str]:
+    app = _boot(strict_caps=False)
+    inst = app.behavior.get("login")
+    seen: list[str] = []
+    real = inst.authenticate
+
+    def spy(*, email: str, password: str, name: str, signup: bool):
+        seen.append(password)
+        return real(email=email, password=password, name=name, signup=signup)
+
+    inst.authenticate = spy
+    app.dispatch("login.submit", email="you@atelier.test", password=password)
+    return seen
+
+
+def test_empty_password_asks_for_a_password():
+    """Only a missing password says ``Enter your password.``
+
+    The intended message for ``""`` is ``Enter your password.`` A password
+    of spaces is not missing.
+    """
+    app = _boot(strict_caps=False)
+    app.dispatch("login.submit", email="you@atelier.test", password="")
+    inst = app.behavior.get("login")
+    assert not bool(inst.authed)
+    assert str(inst.err_password) == "Enter your password."
+    assert str(inst.password or "") == ""
+    assert "8" not in str(inst.err_password)
+
+
+def test_short_whitespace_password_gets_the_length_error():
+    """Three spaces are a short password, not a missing one.
+
+    The intended message is ``Password must be at least 8 characters.``
+    """
+    app = _boot(strict_caps=False)
+    app.dispatch("login.submit", email="you@atelier.test", password="   ")
+    inst = app.behavior.get("login")
+    assert not bool(inst.authed)
+    assert str(inst.err_password) == "Password must be at least 8 characters."
+    assert _authenticate_saw("   ") == []
+
+
+def _password_characters():
+    """Every character ``str.strip`` treats as space, plus ZWSP and U+FEFF.
+
+    ``str.isspace`` is that class: tab, LF, VT, FF, CR, the C1 separators,
+    space, NEL, NBSP, Ogham space, the U+2000–U+200A spaces, line and
+    paragraph separators, narrow NBSP, medium mathematical space, and
+    ideographic space. ZWSP and U+FEFF are not in it, and they are not trimmed.
+    """
+    chars = [chr(i) for i in range(0x110000) if chr(i).isspace()]
+    for extra in ("\u200b", "\ufeff"):
+        if extra not in chars:
+            chars.append(extra)
+    return chars
+
+
+def test_blank_passwords_reach_authenticate_byte_for_byte():
+    """Eight of each whitespace character reaches ``authenticate`` unchanged.
+
+    A run of CR, LF, or CRLF is a password, not a missing one.
+    """
+    secrets = [char * 8 for char in _password_characters()]
+    secrets.append("\r\n" * 4)
+    for secret in secrets:
+        assert _authenticate_saw(secret) == [secret], repr(secret)
+
+
+def test_password_with_edge_spaces_is_not_trimmed():
+    """A whitespace, ZWSP, or U+FEFF on either edge stays on the password."""
+    secrets = []
+    for char in _password_characters():
+        secrets.append(char + "password12")
+        secrets.append("password12" + char)
+    secrets.extend(("  password12  ", "password12\r\n"))
+    for secret in secrets:
+        assert _authenticate_saw(secret) == [secret], repr(secret)
 
 
 def test_blocked_account_fail_closed():

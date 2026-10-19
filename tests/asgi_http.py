@@ -13,6 +13,7 @@ def asgi_http(
     method: str = "GET",
     body: bytes = b"",
     headers: dict[str, str] | None = None,
+    client: tuple[str, int] = ("test", 123),
 ) -> tuple[int, dict[str, str], bytes]:
     """One HTTP request against any ASGI app. Returns (status, headers, body)."""
     status = {"code": 0, "headers": {}}
@@ -60,7 +61,7 @@ def asgi_http(
         "query_string": b"",
         "headers": hdrs,
         "server": ("test", 80),
-        "client": ("test", 123),
+        "client": (str(client[0]), int(client[1])),
         "root_path": "",
     }
     asyncio.run(app(scope, receive, send))
@@ -78,9 +79,17 @@ class AsgiResponse:
         return json.loads(self.text)
 
 
-def asgi_get(app: Any, path: str) -> AsgiResponse:
-    code, headers, body = asgi_http(app, path, method="GET")
-    return AsgiResponse(code, headers, body)
+def asgi_get(
+    app: Any,
+    path: str,
+    *,
+    client: tuple[str, int] = ("test", 123),
+    headers: dict[str, str] | None = None,
+) -> AsgiResponse:
+    code, out_headers, body = asgi_http(
+        app, path, method="GET", headers=headers, client=client
+    )
+    return AsgiResponse(code, out_headers, body)
 
 
 def asgi_post_json(
@@ -89,6 +98,7 @@ def asgi_post_json(
     payload: dict,
     *,
     headers: dict[str, str] | None = None,
+    client: tuple[str, int] = ("test", 123),
 ) -> AsgiResponse:
     """POST JSON Intent. Sends ``X-Channel: 1`` (Cap Host CSRF header)."""
     hdrs = {
@@ -99,6 +109,6 @@ def asgi_post_json(
         hdrs.update(headers)
     raw = json.dumps(payload).encode("utf-8")
     code, out_headers, body = asgi_http(
-        app, path, method="POST", body=raw, headers=hdrs
+        app, path, method="POST", body=raw, headers=hdrs, client=client
     )
     return AsgiResponse(code, out_headers, body)

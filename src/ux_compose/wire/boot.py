@@ -113,23 +113,14 @@ def attach_channel(
         attach_kwargs: dict[str, Any] = {}
         if secret is not None:
             attach_kwargs["secret"] = secret
-        try:
-            behavior.attach(asgi, **attach_kwargs)
-            ch = getattr(behavior, "_wire", None)
-            _bridge(behavior, ch)
-            return ch
-        except TypeError:
-            # Older attach() signatures — retry positional
-            try:
-                behavior.attach(asgi)
-                ch = getattr(behavior, "_wire", None)
-                _bridge(behavior, ch)
-                return ch
-            except Exception:
-                if asgi is not None:
-                    raise
-        except Exception:
-            raise
+        # Any attach failure must raise: a short secret, a REDIS_URL
+        # Channel.boot refuses, anything else. The default leaves the
+        # process up with no Caps.
+        behavior.strict_attach = True
+        behavior.attach(asgi, **attach_kwargs)
+        ch = getattr(behavior, "_wire", None)
+        _bridge(behavior, ch)
+        return ch
 
     # Headless / fallback boot — fail closed (do not impersonate offline)
     if cfg is not None:

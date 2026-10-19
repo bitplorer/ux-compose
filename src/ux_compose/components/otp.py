@@ -118,7 +118,6 @@ class Otp(Component):
                 className=self.class_card,
                 data_ok="1",
             )
-        code = str(self.code or "")
         err = str(self.err or "")
         return wrap_in_card(self,
             form(
@@ -127,7 +126,7 @@ class Otp(Component):
                     type="text",
                     name="code",
                     id="otp-code",
-                    value=code,
+                    value="",
                     maxlength="6",
                     inputmode="numeric",
                     autocomplete="one-time-code",
@@ -171,11 +170,13 @@ class Otp(Component):
         digits = str(self.code or "")
         if len(digits) != 6:
             self.err = "Enter all six digits."
+            self.code = ""
             self._mark_dirty()
             return update_with(self, extra_ops=[notify("Check the code")])
         refused = self.on_verify(digits)
         if refused:
             self.err = refused
+            self.code = ""
             self._mark_dirty()
             return update_with(self, extra_ops=[notify(refused)])
         self.ok = True

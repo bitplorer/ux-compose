@@ -77,7 +77,7 @@ def _call_control(control_fn: Any, action: str, args: Mapping[str, Any]) -> Any:
         return control_fn(action)
 
 
-def control_attrs(channel: Any, action: str, **args: Any) -> dict[str, str]:
+def control_attrs(channel: Any, action: str, /, **args: Any) -> dict[str, str]:
     """Mint Channel control attrs for *action*; merge progressive data-ux-*.
 
     Isolation door: duck-type ``channel.control(action, …).as_dict()``
@@ -271,8 +271,11 @@ async def async_submit_intent(
 def bridge_actions(behavior: Any, channel: Any) -> list[str]:
     """Register product @action names on Channel so Caps mint against author names.
 
-    Channel verifies Caps at the edge; the handler then Host-dispatches with
-    _trusted=True (the Channel has already verified the Cap; ux-behavior >=0.4.0 no longer skips the check just because _wire is set).
+    Channel verifies the Cap at the edge. The handler then calls
+    ``dispatch_verified(name, payload)``. Trust is that one call. A task
+    started while the action runs does not inherit it. A bool does not
+    grant trust. Attaching Channel does not skip the check by itself
+    (ux-behavior >=0.4.0).
     """
     registered: list[str] = []
     if behavior is None or channel is None:
@@ -296,7 +299,7 @@ def bridge_actions(behavior: Any, channel: Any) -> list[str]:
             args: Any = None,
             **kw: Any,
         ) -> list[dict]:
-            # Channel Intent is args=dict. Behavior.dispatch is **kwargs.
+            # Channel Intent is args=dict. dispatch_verified takes that payload.
             payload: dict[str, Any] = {}
             if isinstance(args, dict):
                 payload.update(args)
@@ -306,7 +309,7 @@ def bridge_actions(behavior: Any, channel: Any) -> list[str]:
                 if isinstance(extra, dict):
                     for key, value in extra.items():
                         payload.setdefault(key, value)
-            raw = behavior.dispatch(_action, _trusted=True, **payload)
+            raw = behavior.dispatch_verified(_action, payload)
             return ops_to_wire(raw)
 
         try:

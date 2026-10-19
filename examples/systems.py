@@ -29,7 +29,8 @@ def demo() -> None:
     app.add(
         Chat, NotifyCenter, Tree, Skeleton, Consent, Theme, Stepper, Rating, Chips, InlineEdit
     )
-    print("chat", app.dispatch("chat.send", text="held", _trusted=True))
+    with app.trust():
+        print("chat", app.dispatch("chat.send", text="held"))
     print("tree", app.dispatch("tree.select", key="oak"))
     print("step", app.dispatch("stepper.next"))
     print("rate", app.dispatch("rating.choose", key="five"))

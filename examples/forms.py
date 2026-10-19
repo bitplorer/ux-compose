@@ -22,8 +22,9 @@ from ux_compose.components.wizard import Wizard
 def demo() -> None:
     app = App.boot("Forms")
     app.add(SignupForm, Wizard, Search)
-    print("bad", app.dispatch("signup.submit", email="nope", _trusted=True))
-    print("ok", app.dispatch("signup.submit", email="you@atelier.test", _trusted=True))
+    with app.trust():
+        print("bad", app.dispatch("signup.submit", email="nope"))
+        print("ok", app.dispatch("signup.submit", email="you@atelier.test"))
     print("wiz", app.dispatch("wizard.next", name="Noor"))
     print("search", app.dispatch("search.type", q="oak"))
     strict = App.boot("Forms", strict_caps=True)

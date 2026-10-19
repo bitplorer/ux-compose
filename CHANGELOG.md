@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- Trust now comes from `dispatch_verified(name, payload)` (one wire call after Channel accepts a Cap) or `app.trust()`, and the `_trusted` keyword is gone. `async_dispatch_verified` is the async twin. Developer-authored server code uses `app.trust()`. A bool no longer grants trust (ux-behavior #20, pin `09a9a65`).
+- Outside dev, a live FastAPI attach failure fails the boot. `wire/boot.py` sets `strict_attach=True`. `use_channel` raises when attach returns no channel, and a `TypeError` from attach is not retried. A missing secret raises `RuntimeError` (`attach() requires UX_CHANNEL_SECRET or UX_BEHAVIOR_SECRET outside dev`). A 13-character secret raises `ValueError` (`capability secret must be at least 16 characters`) because `strict_attach` re-raises `Channel.boot`. Without that flag the short secret becomes `RuntimeError` ("Channel attach returned no channel"). A `REDIS_URL` that `Channel.boot` refuses, or anything else `attach` raises, stops the process instead of continuing without Caps. Atelier shop and studio fail at boot the same way.
+- `App.dispatch` takes the action name positionally (`dispatch(self, action, /, **kwargs)`). A payload key named `action` passes through as a normal keyword.
+- A posted key a named signature does not declare is a validation error (ux-behavior pin `09a9a65`), including a payload key named `self` and a host field such as `csrf`. The action does not run. The result is the ordinary validation result, never a 500. The component instance stays the component. A `**kwargs` signature does not receive that key either.
+- Kit `set_field` stays on `**kwargs`, matching main. The posted control name is not stored. Restoring those fields waits on a per-visitor state decision.
+- `FilterBar.choose` names `q` and does not store it, so a chip inside the query form still applies.
+- `Otp.verify` clears the posted code after a successful check and on every refusal, including a code rejected for its length. The page says the secret is cleared. The refused code is not left on the shared instance. The input stays `value=""`.
+- `Login.submit` uses only the password posted in that request. A missing password (`""`) is refused with "Enter your password." and does not keep a previous visitor's password. A whitespace password is a password: under 8 characters gets the length error, and 8 or more reaches `authenticate` unchanged, including leading or trailing spaces. A short password still gets the length error. A posted password, a posted OTP code, and PasswordField's secret (the lede and the type=text input, including after Reveal) are not painted back into the page. The lede is eight bullets when a secret is stored, and `empty` when it is not, so the length is not painted.
+- `scripts/chrome_floor.py` is the Chrome 155 check. CI and the Login and PasswordField browser tests call that script. A major below 155, a version with no digits, a broken binary, and a missing binary exit non-zero.
+- Login's password input carries `data-ux-keep-value`. The server still paints `value=""`. ux-channel @ `0ffe8e9907cd1a0701ffc8cb2e5414d6b39d2996` (#64 merge) copies the live value in that browser after Show and Hide. Password and text are one class, so Show keeps the typed password. PasswordField's secret input does not carry the mark: Hold and Hide clear the plain-text field, because Reveal is what puts the secret on screen and this field is always `type="text"`.
+- `App.control` and `App.mint_cap` take the action name positionally. A payload key named `action` passes through, as it does for `App.dispatch`.
+
 ## 0.2.0 — remove deprecations and bloat cleanup
 
 ux-compose and its ux-* specialists are not on PyPI, so these are removed
@@ -109,8 +121,8 @@ outright, with no shims. Call sites, docs and tests are updated.
   **Breaks:** on a Level-1 page with no Channel, the Login "Log out" button is
   now refused (``AuthorityError``). Migrate one of three ways: (a) attach the
   Channel (``app.use_channel()`` / ``build(live="auto")``) so ``control()``
-  mints the Cap; (b) call it from trusted host code:
-  ``app.dispatch("login.logout", _trusted=True)``; (c) in your own copy
+  mints the Cap; (b) call it from trusted host code with ``app.trust()``,
+  or after a verified Cap with ``dispatch_verified``; (c) in your own copy
   (``uxcompose add login``) set ``@action(caps=())`` on ``logout`` if sign-out
   is purely local in your app.
 - Gated (server state / user content): ``StockBadge.sell`` / ``restock`` →

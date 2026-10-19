@@ -153,7 +153,7 @@ Level 1 page units stay correct at L2/L3. Zero rewrite. Not an optional-package 
 - HMR / tunnel are delivery under `uxcompose serve dev`, not Document APIs
 - Frozen serve verbs: `dev` / `prod` / `restart-channel`. argv
   `development` / `production` / `restart_channel` fail closed
-- Cap door is `Channel.boot` (pin ux-channel @ `f1a93fc`; Cut C floor `985e58a`)
+- Cap door is `Channel.boot` (pin ux-channel @ `0ffe8e9`; Cut C floor `985e58a`)
 - Authors do not import `ux_channel` outside compose `wire/`
 - Do not reimplement specialists in this repo
 
@@ -193,6 +193,8 @@ Public names are `ux_compose.__all__` (re-exported specialists + compose’s own
 ```bash
 make test314
 ```
+
+The full suite needs Chrome 155 or newer on `PATH` as `google-chrome`. `scripts/chrome_floor.py` is that check. CI and the Login and PasswordField browser tests call it, and a major below 155 fails them. `UX_KEEP_VALUE_REQUIRE_BROWSER=1` only changes the message when Chrome is missing; the Chrome tests fail either way and do not skip.
 
 ## Security
 

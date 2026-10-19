@@ -32,9 +32,9 @@ class PasswordField(Component):
     def render(self):
         shown = bool(self.shown)
         raw_s = str(self.secret or "")
-        # Main paints raw_s here and in the type=text input after Reveal.
-        # The secret is shared kit state, so that page is the next visitor's.
-        face = "•" * len(raw_s) if raw_s else "empty"
+        # Fixed mask. One bullet per character would tell the next visitor the length.
+        # ``empty`` stays when there is no secret.
+        face = "••••••••" if raw_s else "empty"
         kids = (
             header(
                 p("Bool reveal · secret silent", className="kicker"),

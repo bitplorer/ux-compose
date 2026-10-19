@@ -6,6 +6,7 @@ need a verbatim chunk use ``markupsafe.Markup`` or ux-dom ``raw()``.
 from __future__ import annotations
 
 import asyncio
+import html
 import logging
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ from markupsafe import Markup
 
 from ux_compose import div, raw
 from ux_dom import Fragment
+from ux_dom.dom.src.htmltags import comment
 from ux_dom.dom.src.utils.dom_util import dom_text
 from ux_compose.routing.asgi import DirectoryASGI
 from ux_compose.routing.core import DirectoryRoutes, RouteRecord
@@ -349,6 +351,63 @@ def test_dom_text_whose_text_lies_about_length_is_kept(
     node = dom_text("IGNORED", escape=False)
     node.text = _LiesEmpty("<b>Z</b>")
     assert _stream_body(tmp_path, host, mode, (node,)) == b"<b>Z</b>"
+
+
+_IMG = "<img src=x onerror=alert(1)>"
+_IMG_ESCAPED = b"&lt;img src=x onerror=alert(1)&gt;"
+
+
+class _EscapingText(dom_text):
+    """Subclass _render escapes. Rebuilding it as raw dom_text would be XSS."""
+
+    def _render(self, sb, *a, **kw):
+        sb.append(html.escape(self.text))
+        return sb
+
+
+class _Note(comment):
+    def _render(self, sb, *a, **kw):
+        sb.append("<!--note-->")
+        return sb
+
+
+class _ClaimsFull(str):
+    """Empty buffer that reports a length. Only a plain copy is empty."""
+
+    def __len__(self) -> int:
+        return 5
+
+    def __bool__(self) -> bool:
+        return True
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_dom_text_subclass_render_escapes_markup(
+    tmp_path: Path, host: str, mode: str
+):
+    """The subclass _render escapes the img. The bytes stay &lt;img ...&gt;."""
+    node = _EscapingText(_IMG, escape=False)
+    assert _stream_body(tmp_path, host, mode, (node,)) == _IMG_ESCAPED
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_comment_subclass_keeps_its_render(tmp_path: Path, host: str, mode: str):
+    """A comment subclass renders through its own _render."""
+    assert _stream_body(tmp_path, host, mode, (_Note("ignored"),)) == b"<!--note-->"
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_exact_dom_text_empty_text_subclass_does_not_flush(
+    tmp_path: Path, host: str, mode: str
+):
+    """Exact dom_text copies .text with str.__str__ before the empty check."""
+    node = dom_text("IGNORED", escape=False)
+    node.text = _ClaimsFull("")
+    chunks = (b"a\xc3", node, b"\xa9")
+    assert _stream_body(tmp_path, host, mode, chunks) == b"a\n\xc3\xa9\n"
 
 
 def _zero_dim_byte() -> memoryview:

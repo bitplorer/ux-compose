@@ -392,6 +392,57 @@ def test_urls_missing_null_or_empty_fails_closed(monkeypatch, capsys, payload, d
     assert expected in capsys.readouterr().err
 
 
+def _urlopen_body(monkeypatch, body: bytes):
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return body
+
+    def urlopen(request, timeout=0):
+        return Response()
+
+    monkeypatch.setattr(cooldown.urllib.request, "urlopen", urlopen)
+
+
+@pytest.mark.parametrize("body", [b"{not json", b'{"urls":['])
+def test_malformed_json_fails_closed(monkeypatch, capsys, body):
+    _pin_fastapi(monkeypatch)
+    _urlopen_body(monkeypatch, body)
+    text = body.decode()
+    with pytest.raises(cooldown.CooldownCheckError) as caught:
+        cooldown.fetch_pypi_json("fastapi", "0.142.2")
+    message = str(caught.value)
+    assert "invalid JSON" in message
+    assert text in message
+    assert "https://pypi.org/pypi/fastapi/0.142.2/json" in message
+    assert cooldown.main([]) == 1
+    err = capsys.readouterr().err
+    assert text in err
+    assert "invalid JSON" in err
+
+
+@pytest.mark.parametrize("body", [b"[]", b"null"])
+def test_non_object_json_fails_closed(monkeypatch, capsys, body):
+    _pin_fastapi(monkeypatch)
+    _urlopen_body(monkeypatch, body)
+    text = body.decode()
+    with pytest.raises(cooldown.CooldownCheckError) as caught:
+        cooldown.fetch_pypi_json("fastapi", "0.142.2")
+    message = str(caught.value)
+    assert "unexpected payload" in message
+    assert text in message
+    assert "https://pypi.org/pypi/fastapi/0.142.2/json" in message
+    assert cooldown.main([]) == 1
+    err = capsys.readouterr().err
+    assert text in err
+    assert "unexpected payload" in err
+
+
 def test_main_fails_closed_when_no_pypi_distribution_was_checked(monkeypatch, capsys):
     monkeypatch.setattr(cooldown, "utc_now", lambda: RUN)
     monkeypatch.setattr(

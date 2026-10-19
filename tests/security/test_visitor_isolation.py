@@ -145,10 +145,9 @@ def test_passwordfield_revealed_secret_is_not_painted():
 
 
 def test_password_mask_does_not_vary_with_secret_length():
-    """Two secrets of different lengths must render the same HTML.
+    """A stored secret renders as eight bullets, for any length.
 
-    A bullet per character tells the next visitor the length. ``empty``
-    stays the face when there is no secret.
+    One bullet per character would tell the next visitor the length.
     """
     for shown in (False, True):
         pages = []
@@ -158,6 +157,20 @@ def test_password_mask_does_not_vary_with_secret_length():
             inst.shown = shown
             pages.append(str(inst.render()))
         assert pages[0] == pages[1]
+        assert "••••••••" in pages[0]
+        assert pages[0].count("•") == 8
+
+
+def test_passwordfield_with_no_secret_renders_empty():
+    """With no secret stored, the lede is ``empty`` and has no mask."""
+    for shown in (False, True):
+        inst = PasswordField()
+        inst.secret = ""
+        inst.shown = shown
+        html = str(inst.render())
+        lede = html.split('class="lede">', 1)[1].split("</p>", 1)[0]
+        assert lede.strip() == "empty"
+        assert "•" not in html
 
 
 def test_refused_otp_digits_are_absent_from_the_next_visitor():

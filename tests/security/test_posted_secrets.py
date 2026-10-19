@@ -19,6 +19,8 @@ from ux_compose.components.passwordfield import PasswordField
 _CHANNEL = "application/ux-channel+json"
 _PASSWORD = "pw-SECRET-99"
 _CODE = "482916"
+_CLIENT_A = ("10.1.0.1", 4101)
+_CLIENT_B = ("10.2.0.2", 4102)
 
 
 def _serve(component):
@@ -35,7 +37,7 @@ def _serve(component):
     return asgi, inst
 
 
-def _post(asgi, ctrl, form):
+def _post(asgi, ctrl, form, client=_CLIENT_A):
     return asgi_post_json(
         asgi,
         "/ux-channel/action",
@@ -46,7 +48,12 @@ def _post(asgi, ctrl, form):
             "cap": ctrl["cap"],
             "form": form,
         },
-        headers={"content-type": _CHANNEL, "accept": _CHANNEL},
+        headers={
+            "content-type": _CHANNEL,
+            "accept": _CHANNEL,
+            "x-channel-session": f"visitor-{client[0]}",
+        },
+        client=client,
     )
 
 
@@ -60,10 +67,19 @@ def _control(inst, action, **sealed):
     raise AssertionError(f"no {action} {sealed}")
 
 
-def _pages(asgi, inst):
-    visitor_a = str(inst.render())
-    visitor_b = asgi_get(asgi, "/").text
-    return visitor_a, visitor_b
+def _pages(asgi, _inst):
+    """Two clients. The route renders the shared component for each."""
+    pages = []
+    for client in (_CLIENT_A, _CLIENT_B):
+        pages.append(
+            asgi_get(
+                asgi,
+                "/",
+                client=client,
+                headers={"x-channel-session": f"visitor-{client[0]}"},
+            ).text
+        )
+    return pages
 
 
 def test_posted_password_is_absent_from_every_visitors_page():

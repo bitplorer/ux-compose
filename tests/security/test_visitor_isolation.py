@@ -1,10 +1,10 @@
-"""One process, two visitors. A's posted field must not be on B's page.
+"""One process, two clients. A's posted field must not be on B's page.
 
-Kit state is one instance per component id. A field that is stored and
-painted is the next visitor's page. Actions that already do that on main
-``c22e419`` are listed in ``_MAIN_PAINTS`` and wait on a per-visitor state
-decision. Every other posted value, including PasswordField and Typeahead,
-stays out of B's HTML.
+Each visitor is a separate ASGI client. Actions that already paint a
+posted field on main ``c22e419`` are listed in ``_MAIN_PAINTS``. That
+list is only the baseline. Isolating those fields waits on the pending
+per-visitor state decision. Every other posted value, including
+PasswordField and Typeahead, stays out of B's HTML.
 """
 from __future__ import annotations
 
@@ -12,12 +12,15 @@ from fastapi.responses import HTMLResponse
 
 from tests.asgi_http import asgi_get, asgi_post_json
 from tests.security.test_kit_wire_fields import _KITS, _Tree, _boot, _controls
+from ux_compose.components.login import Login
 from ux_compose.components.otp import Otp
 from ux_compose.components.passwordfield import PasswordField
 
 _CHANNEL = "application/ux-channel+json"
-# (action, field) pairs whose render on main c22e419 already includes the
-# posted value. Isolating these waits on per-visitor state.
+_CLIENT_A = ("10.1.0.1", 4101)
+_CLIENT_B = ("10.2.0.2", 4102)
+# Baseline only: fields main c22e419 already paints. Isolating them waits
+# on the pending per-visitor state decision. Do not add to this list.
 _MAIN_PAINTS = {
     ("login.toggle_password", "email"),
     ("login.submit", "email"),
@@ -55,6 +58,31 @@ def _page(asgi, inst):
     return asgi
 
 
+def _session(client):
+    return {"x-channel-session": f"visitor-{client[0]}"}
+
+
+def _post(asgi, ctrl, form, client):
+    headers = {"content-type": _CHANNEL, "accept": _CHANNEL, **_session(client)}
+    return asgi_post_json(
+        asgi,
+        "/ux-channel/action",
+        {
+            "v": "1",
+            "action": ctrl["action"],
+            "args": ctrl["sealed"],
+            "cap": ctrl["cap"],
+            "form": form,
+        },
+        headers=headers,
+        client=client,
+    )
+
+
+def _get(asgi, client):
+    return asgi_get(asgi, "/", client=client, headers=_session(client))
+
+
 def test_other_visitor_does_not_see_posted_kit_fields():
     leaks = []
     kits = (*_KITS, ("passwordfield", PasswordField, None))
@@ -71,39 +99,17 @@ def test_other_visitor_does_not_see_posted_kit_fields():
                 name: _marker(name, ctrl["types"].get(name, ""), kit, nth)
                 for name in ctrl["form"]
             }
-            response = asgi_post_json(
-                asgi,
-                "/ux-channel/action",
-                {
-                    "v": "1",
-                    "action": ctrl["action"],
-                    "args": ctrl["sealed"],
-                    "cap": ctrl["cap"],
-                    "form": markers,
-                },
-                headers={"content-type": _CHANNEL, "accept": _CHANNEL},
-            )
+            response = _post(asgi, ctrl, markers, _CLIENT_A)
             if response.status_code != 200:
                 leaks.append(f"{ctrl['action']} status={response.status_code}")
                 continue
             if ctrl["action"] == "password.set":
-                revealed = _controls(str(inst.render()))
+                revealed = _controls(_get(asgi, _CLIENT_A).text)
                 toggle = next(item for item in revealed if item["action"] == "password.toggle")
-                toggled = asgi_post_json(
-                    asgi,
-                    "/ux-channel/action",
-                    {
-                        "v": "1",
-                        "action": toggle["action"],
-                        "args": toggle["sealed"],
-                        "cap": toggle["cap"],
-                        "form": {},
-                    },
-                    headers={"content-type": _CHANNEL, "accept": _CHANNEL},
-                )
+                toggled = _post(asgi, toggle, {}, _CLIENT_A)
                 if toggled.status_code != 200:
                     leaks.append(f"password.toggle status={toggled.status_code}")
-            html = asgi_get(asgi, "/").text
+            html = _get(asgi, _CLIENT_B).text
             for name, marker in markers.items():
                 if (ctrl["action"], name) in _MAIN_PAINTS:
                     continue
@@ -116,37 +122,15 @@ def test_passwordfield_revealed_secret_is_not_painted():
     """Main paints the secret in the lede and the type=text input after Reveal."""
     asgi, inst = _boot(PasswordField, None)
     _page(asgi, inst)
-    ctrl = _controls(str(inst.render()))
+    ctrl = _controls(_get(asgi, _CLIENT_A).text)
     setter = next(item for item in ctrl if item["action"] == "password.set")
     secret = "zzvis-secret-revealed"
-    posted = asgi_post_json(
-        asgi,
-        "/ux-channel/action",
-        {
-            "v": "1",
-            "action": setter["action"],
-            "args": setter["sealed"],
-            "cap": setter["cap"],
-            "form": {"secret": secret},
-        },
-        headers={"content-type": _CHANNEL, "accept": _CHANNEL},
-    )
+    posted = _post(asgi, setter, {"secret": secret}, _CLIENT_A)
     assert posted.status_code == 200, posted.text
-    toggle = next(item for item in _controls(str(inst.render())) if item["action"] == "password.toggle")
-    revealed = asgi_post_json(
-        asgi,
-        "/ux-channel/action",
-        {
-            "v": "1",
-            "action": toggle["action"],
-            "args": toggle["sealed"],
-            "cap": toggle["cap"],
-            "form": {},
-        },
-        headers={"content-type": _CHANNEL, "accept": _CHANNEL},
-    )
+    toggle = next(item for item in _controls(_get(asgi, _CLIENT_A).text) if item["action"] == "password.toggle")
+    revealed = _post(asgi, toggle, {}, _CLIENT_A)
     assert revealed.status_code == 200, revealed.text
-    for html in (str(inst.render()), asgi_get(asgi, "/").text):
+    for html in (_get(asgi, _CLIENT_A).text, _get(asgi, _CLIENT_B).text):
         assert secret not in html
         tree = _Tree()
         tree.feed(html)
@@ -186,23 +170,12 @@ def test_refused_otp_digits_are_absent_from_the_next_visitor():
     digits = "000000"
     asgi, inst = _boot(Otp, None)
     _page(asgi, inst)
-    verify = next(item for item in _controls(str(inst.render())) if item["action"] == "otp.verify")
-    posted = asgi_post_json(
-        asgi,
-        "/ux-channel/action",
-        {
-            "v": "1",
-            "action": verify["action"],
-            "args": verify["sealed"],
-            "cap": verify["cap"],
-            "form": {"code": digits},
-        },
-        headers={"content-type": _CHANNEL, "accept": _CHANNEL},
-    )
+    verify = next(item for item in _controls(_get(asgi, _CLIENT_A).text) if item["action"] == "otp.verify")
+    posted = _post(asgi, verify, {"code": digits}, _CLIENT_A)
     assert posted.status_code == 200, posted.text
     assert not bool(inst.ok)
     assert "not valid" in str(inst.err)
-    html = asgi_get(asgi, "/").text
+    html = _get(asgi, _CLIENT_B).text
     assert digits not in html
     assert str(inst.code or "") == ""
     tree = _Tree()
@@ -214,3 +187,69 @@ def test_refused_otp_digits_are_absent_from_the_next_visitor():
     ]
     assert inputs
     assert all(node.get("value", "") == "" for node in inputs)
+
+
+def _otp_page_for(code):
+    asgi, inst = _boot(Otp, None)
+    _page(asgi, inst)
+    verify = next(item for item in _controls(_get(asgi, _CLIENT_A).text) if item["action"] == "otp.verify")
+    posted = _post(asgi, verify, {"code": code}, _CLIENT_A)
+    assert posted.status_code == 200, posted.text
+    return inst, _get(asgi, _CLIENT_B).text
+
+
+def test_otp_input_does_not_paint_another_clients_digits():
+    """``otp.py`` paints ``value=""``. A second client must not see the digits.
+
+    Covers a refused six-digit code and a short code. ``value=str(self.code)``
+    would put the short code on B's page.
+    """
+    refused, refused_html = _otp_page_for("000000")
+    assert not bool(refused.ok)
+    assert "not valid" in str(refused.err)
+    assert "000000" not in refused_html
+    _short, short_html = _otp_page_for("83921")
+    assert "83921" not in short_html
+    for html in (refused_html, short_html):
+        tree = _Tree()
+        tree.feed(html)
+        inputs = [
+            node.attrs
+            for node in tree.all
+            if node.tag == "input" and node.attrs.get("name") == "code"
+        ]
+        assert inputs
+        assert all(node.get("value", "") == "" for node in inputs)
+
+
+def test_empty_password_does_not_sign_in_with_another_clients_secret():
+    """A stores a password. B submits that form with an empty password.
+
+    B must be refused. The empty post must not keep A's secret either.
+    """
+    secret = "password12"
+    asgi, inst = _boot(Login, None)
+    _page(asgi, inst)
+    controls = _controls(_get(asgi, _CLIENT_A).text)
+    toggle = next(item for item in controls if item["action"] == "login.toggle_password")
+    typed = _post(
+        asgi,
+        toggle,
+        {"email": "ada-a@x.test", "password": secret, "name": ""},
+        _CLIENT_A,
+    )
+    assert typed.status_code == 200, typed.text
+    assert str(inst.password or "") == secret
+    submit = next(item for item in _controls(_get(asgi, _CLIENT_B).text) if item["action"] == "login.submit")
+    posted = _post(
+        asgi,
+        submit,
+        {"email": "bee-b@x.test", "password": "", "name": ""},
+        _CLIENT_B,
+    )
+    assert posted.status_code == 200, posted.text
+    html = _get(asgi, _CLIENT_B).text
+    assert not bool(inst.authed)
+    assert "You're in" not in html
+    assert secret not in html
+    assert str(inst.password or "") == ""

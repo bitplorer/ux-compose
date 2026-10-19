@@ -7,6 +7,7 @@ This test fails while the handler still passes a bool.
 """
 from __future__ import annotations
 
+import contextvars
 import importlib.util
 import json
 
@@ -190,6 +191,44 @@ def test_payload_self_matches_any_other_validation_error():
     assert _validation_shape(self_key, "self") == _validation_shape(other, "note")
     assert "unexpected keyword argument 'self'" in self_key.text
     assert "unexpected keyword argument 'note'" in other.text
+    assert ran["n"] == 0
+
+
+def test_uncapped_wire_context_does_not_trust_a_later_cap():
+    """An uncapped wire action saves its context. A capped action run from
+    that copy must raise ``AuthorityError``.
+
+    The wire handler calls ``dispatch_verified``. Wrapping that call in
+    ``behavior.trust()`` would leave trust in the saved context.
+    """
+    saved: list[contextvars.Context] = []
+    ran = {"n": 0}
+
+    class Box(Component):
+        id = "box"
+
+        def render(self):
+            return '<div id="box"></div>'
+
+        @action(caps=())
+        def remember(self):
+            saved.append(contextvars.copy_context())
+            return []
+
+        @action(caps=("box.use",))
+        def use(self):
+            ran["n"] += 1
+            return []
+
+    app = App.boot("Box", strict_caps=True)
+    app.add(Box)
+    app.use_channel()
+    handler = app._channel.registry.get("box.remember")
+    assert callable(handler)
+    handler()
+    assert saved
+    with pytest.raises(AuthorityError):
+        saved[0].run(lambda: app.dispatch("box.use"))
     assert ran["n"] == 0
 
 

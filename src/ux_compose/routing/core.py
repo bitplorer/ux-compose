@@ -384,6 +384,7 @@ package_import_lock = threading.RLock()
 
 _source_tokens: weakref.WeakKeyDictionary[Any, bytes] = weakref.WeakKeyDictionary()
 _installed_roots: tuple[Path, ...] | None = None
+_build_notes = threading.local()
 
 
 def _installed_roots_resolved() -> tuple[Path, ...]:
@@ -524,6 +525,37 @@ def _detached_module_name(resolved: Path) -> str:
     return "ux_surface_" + digest
 
 
+def begin_build_module_notes() -> None:
+    """Start a per-build list of sys.modules entries this build creates."""
+    stack = getattr(_build_notes, "stack", None)
+    if stack is None:
+        stack = []
+        _build_notes.stack = stack
+    stack.append([])
+
+
+def end_build_module_notes() -> None:
+    """Drop modules this build registered, once their code has finished."""
+    stack = getattr(_build_notes, "stack", None)
+    if not stack:
+        return
+    noted: list[tuple[str, Any]] = stack.pop()
+    with package_import_lock:
+        for key, mod in noted:
+            if sys.modules.get(key) is not mod:
+                continue
+            if _is_on_stack(mod):
+                continue
+            _forget_module(key)
+
+
+def _note_build_module(name: str, mod: Any) -> None:
+    stack = getattr(_build_notes, "stack", None)
+    if not stack:
+        return
+    stack[-1].append((name, mod))
+
+
 def _register_module(name: str, resolved: Path) -> Any:
     """Insert a new module object. Caller holds ``package_import_lock``."""
     spec = importlib.util.spec_from_file_location(name, resolved)
@@ -531,6 +563,7 @@ def _register_module(name: str, resolved: Path) -> Any:
         raise ImportError(f"Cannot load {resolved}")
     mod = importlib.util.module_from_spec(spec)
     sys.modules[name] = mod
+    _note_build_module(name, mod)
     return mod
 
 

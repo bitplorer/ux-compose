@@ -160,6 +160,7 @@ def build(
     """
     from ux_compose import App
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks
+    from ux_compose.routing.core import begin_build_module_notes, end_build_module_notes
     from ux_compose.routing.core import isolate_package_imports
     from ux_compose.routing.host import KIND_FASTAPI, bind as host_bind
     from ux_compose.routing.host import open as host_open
@@ -228,38 +229,42 @@ def build(
 
     # isolate only swaps sys.modules entries. Route modules run after the
     # lock is released so an import inside a route can call build().
-    isolate_package_imports(package_dir)
+    begin_build_module_notes()
+    try:
+        isolate_package_imports(package_dir)
 
-    bundle = app.mount(
-        package_dir,
-        asgi_app=None,
-        base=base,
-        fail_closed=fail_closed,
-        bind_pages=False,
-    )
+        bundle = app.mount(
+            package_dir,
+            asgi_app=None,
+            base=base,
+            fail_closed=fail_closed,
+            bind_pages=False,
+        )
 
-    registry = dict(getattr(bundle, "unit_registry", {}) or {})
+        registry = dict(getattr(bundle, "unit_registry", {}) or {})
 
-    def _resolve(cls, path, name):
-        sid = str(getattr(cls, "id", None) or cls.__name__.lower())
-        return registry.get(sid)
+        def _resolve(cls, path, name):
+            sid = str(getattr(cls, "id", None) or cls.__name__.lower())
+            return registry.get(sid)
 
-    core = DirectoryRoutes(
-        package_dir,
-        base_directory=base,
-        hooks=RouterHooks(resolve_unit=_resolve),
-        fail_closed=fail_closed,
-    )
-    core.discover()
-    asgi = host_bind(
-        asgi=asgi,
-        kind=kind,
-        core=core,
-        document=document,
-        wrap=author_wrap,
-        resolve_unit=_resolve,
-    )
-    if bundle is not None and core.records:
-        bundle.route_table = core.route_table()
+        core = DirectoryRoutes(
+            package_dir,
+            base_directory=base,
+            hooks=RouterHooks(resolve_unit=_resolve),
+            fail_closed=fail_closed,
+        )
+        core.discover()
+        asgi = host_bind(
+            asgi=asgi,
+            kind=kind,
+            core=core,
+            document=document,
+            wrap=author_wrap,
+            resolve_unit=_resolve,
+        )
+        if bundle is not None and core.records:
+            bundle.route_table = core.route_table()
+    finally:
+        end_build_module_notes()
 
     return BuildResult((app, asgi, bundle))

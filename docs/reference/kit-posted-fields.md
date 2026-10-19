@@ -1,0 +1,39 @@
+# Kit posted fields
+
+> **Diátaxis:** reference · **Canonical:** `docs/reference/kit-posted-fields.md` · **Layer:** ux-compose
+
+How a live control posts a field, and whether that field arrives on the action.
+
+`ux-channel.js` `fireControl` sends `data-channel-args` plus the named control (and, for a submit control, the rest of the form). Compose `App.dispatch` receives that payload. ux-behavior `ad86d4c` and compose main's pin `2ae5c3d` both drop a posted key the action signature does not name. A key that is a named parameter arrives. `**kwargs` does not receive the dropped keys. Undeclared keys such as `is_admin` and `role` stay out of the action.
+
+Measured with `App.dispatch` on compose main `c22e419` (ux-behavior `2ae5c3de6c60756cfccfa0174355037436bb3f14`) and on this branch (ux-behavior `ad86d4cc7cf2390f8d1200cdb7d2cc68f6508b82`). The kit source is the same on both. "Arrives" means the component state holds the posted value after that dispatch. Login's successful submit clears the stored password; an empty password error plus `authed` shows the password was accepted. OTP's successful verify clears the stored code; `ok` shows the six digits were accepted.
+
+**Static** means the posted names are written in the action. **Dynamic** means the names come from the form (`FormLayout._fields()`), so they are not known as parameters when the action is written.
+
+| Kit | Action | Posted fields | Kind | Main | `ad86d4c` |
+|-----|--------|---------------|------|------|-----------|
+| FormLayout | `set_field` `components/formlayout.py:131` | names from `_fields()` (default `name`, `email`, `note`) | Dynamic | no | no |
+| FormLayout | `submit` `components/formlayout.py:143` | same names | Dynamic | no | no |
+| Login | `set_field` `components/login.py:435` | `email`, `password`, `name` | Static | no | no |
+| Login | `submit` `components/login.py:450` | `email`, `password`, `name` | Static, already parameters | yes | yes |
+| Newsletter | `set_field` `components/newsletter.py:105` | `email` | Static | no | no |
+| Newsletter | `subscribe` `components/newsletter.py:113` | `email` | Static, already a parameter | yes | yes |
+| Otp | `set_field` `components/otp.py:159` | `code` | Static | no | no |
+| Otp | `verify` `components/otp.py:169` | `code` | Static, already a parameter | yes | yes |
+| Combobox | `set_field` `components/combobox.py:212` | `q` (also accepts `field="query"`) | Static | no | no |
+| Combobox | `type_query` `components/combobox.py:205` | `q` | Static, already a parameter | yes | yes |
+| Command | `set_field` `components/command.py:262` | `q` (also accepts `field="query"`) | Static | no | no |
+| Command | `type_query` `components/command.py:255` | `q` | Static, already a parameter | yes | yes |
+| Chat | `set_field` `components/chat.py:122` | `text` | Static | no | no |
+| Chat | `send` `components/chat.py:129` | `text` | Static, already a parameter | yes | yes |
+| TagsInput | `set_field` `components/tagsinput.py:103` | `tag` | Static | no | no |
+| TagsInput | `add` `components/tagsinput.py:110` | `tag` | Static, already a parameter | yes | yes |
+| SearchBar | `set_field` `components/searchbar.py:106` | `q` | Static | no | no |
+| SearchBar | `search` `components/searchbar.py:113` | `q` | Static, already a parameter | yes | yes |
+| FilterBar | `set_field` `components/filterbar.py:178` | `q` | Static | no | no |
+| SpinButton | `set_value` `components/spinbutton.py:127` | `value` | Static, already a parameter | yes | yes |
+| ColorPicker | `set_field` `components/colorpicker.py:122` | `hex` | Static | no | no |
+
+FormLayout is the dynamic case. Its field list is the `fields` seam (`_fields()` at `components/formlayout.py:77`). No compose change in this round declares those names. A later allowlist can pass only fields that form declares.
+
+The static `set_field` rows are the lost posts: the control's name is not a parameter, so the value is stored as `''`.

@@ -43,6 +43,11 @@ and fails the job if the earliest file upload is less than 14 days before
 the run. The failure names the package, version, and upload time. A network
 or payload failure fails closed. The checker is standard library only.
 
+There is no override. A newer dependency waits out the 14 days, or it gets
+an explicit pin in a reviewed pull request. The cutoff is CI-only. The
+Makefile's local `pip install` targets (`venv314`, `specialists`) are not
+under it.
+
 Live showcase: `apps/pulse` via `uxcompose serve dev apps.pulse.server:app`.
 
 ## Ownership (do not regress)

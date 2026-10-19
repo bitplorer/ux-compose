@@ -212,13 +212,27 @@ ORDER_RAW_BODY = b"caf\n\xef\xbf\xbd\n<b>R</b>\xef\xbf\xbd\n"
 
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])
 @pytest.mark.parametrize("mode", ["sync", "async"])
-@pytest.mark.parametrize("empty", [b"", ""], ids=["empty-bytes", "empty-str"])
+@pytest.mark.parametrize(
+    "empty",
+    [b"", "", None, Markup("")],
+    ids=["empty-bytes", "empty-str", "none", "empty-markup"],
+)
 def test_empty_chunk_does_not_flush_a_split_character(
     tmp_path: Path, host: str, mode: str, empty
 ):
-    """'' and b'' neither flush nor emit, so é still joins across them."""
+    """None, Markup(''), '' and b'' neither flush nor emit, so é still joins."""
     chunks = (b"<p>caf\xc3", empty, b"\xa9</p>")
     assert _stream_body(tmp_path, host, mode, chunks) == CAFE_BODY
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_empty_raw_chunk_does_not_split_a_character(
+    tmp_path: Path, host: str, mode: str
+):
+    """b'a\\xc3', raw(''), b'\\xa9' joins as aé. raw('') does not flush."""
+    chunks = (b"a\xc3", raw(""), b"\xa9")
+    assert _stream_body(tmp_path, host, mode, chunks) == b"a\n\xc3\xa9\n"
 
 
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])

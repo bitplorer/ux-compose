@@ -73,7 +73,7 @@ def test_asgi_stream_str_chunks_drop_script_and_onclick(tmp_path: Path):
 
 
 def test_fastapi_stream_bytes_chunks_drop_script_and_onclick():
-    """A bytes chunk is strict-UTF-8 HTML, same door as a str chunk."""
+    """A bytes chunk is HTML, same door as a str chunk."""
 
     def gen():
         yield BYTES
@@ -82,7 +82,7 @@ def test_fastapi_stream_bytes_chunks_drop_script_and_onclick():
 
 
 def test_asgi_stream_bytes_chunks_drop_script_and_onclick(tmp_path: Path):
-    """A bytes chunk is strict-UTF-8 HTML, same door as a str chunk."""
+    """A bytes chunk is HTML, same door as a str chunk."""
 
     def gen():
         yield BYTES

@@ -18,7 +18,7 @@ from ux_compose.routing.core import (
     DirectoryRoutesError,
     RouteRecord,
     RouterHooks,
-    _html_chunk_bytes,
+    _sanitized_stream,
     apply_html_document,
     is_json_payload,
     is_stream_payload,
@@ -126,10 +126,6 @@ def _encode(result: Any) -> tuple[bytes, bytes]:
     return _body_bytes(result), b"text/html; charset=utf-8"
 
 
-def _chunk_bytes(chunk: Any) -> bytes:
-    return _html_chunk_bytes(chunk)
-
-
 async def _send_stream(send: Callable, iterable: Any, *, content_type: bytes) -> None:
     await send(
         {
@@ -139,16 +135,15 @@ async def _send_stream(send: Callable, iterable: Any, *, content_type: bytes) ->
         }
     )
     try:
-        if hasattr(iterable, "__aiter__"):
-            async for chunk in iterable:
-                data = _chunk_bytes(chunk)
+        sanitized = _sanitized_stream(iterable)
+        if hasattr(sanitized, "__aiter__"):
+            async for data in sanitized:
                 if data:
                     await send(
                         {"type": "http.response.body", "body": data, "more_body": True}
                     )
         else:
-            for chunk in iterable:
-                data = _chunk_bytes(chunk)
+            for data in sanitized:
                 if data:
                     await send(
                         {"type": "http.response.body", "body": data, "more_body": True}

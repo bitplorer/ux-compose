@@ -14,9 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dropped. An explicit `markupsafe.Markup` or ux-dom `raw()` node stays
   verbatim. The same parse is used when that string is serialized for a morph
   (`html=` included). If the Document shell raises, the return is that
-  sanitized fragment, not the original source string.
+  sanitized fragment, not the original source string. This pin
+  (`67176c9`) still drops fragment `<link>` and `<meta>` and garbles
+  entities until the ux-dom re-pin.
 - Trusted HTML returned as a plain `str` now gets its handlers and scripts stripped. Authors who want it verbatim must wrap it in `Markup()` or `raw()`.
-- A streamed plain `str` chunk is sanitized as its own fragment (`<script>` and `onclick` dropped). A streamed `bytes` chunk is decoded as strict UTF-8 and sanitized the same way. `Markup` and `raw()` chunks stay verbatim. A tag split across two plain-str chunks is not reassembled; use `Markup()` or `raw()` for that.
+- A streamed plain `str` chunk is sanitized as its own fragment (`<script>` and `onclick` dropped). `bytes` chunks are decoded incrementally, one UTF-8 decoder per response, and each decoded piece is sanitized the same way. Invalid bytes are replaced with U+FFFD. `Markup` and `raw()` chunks stay verbatim. A tag split across two plain `str` or `bytes` chunks is not reassembled; use `Markup()` or `raw()` for that.
 - A nonce is never stamped onto a plain `str` or `Markup`. Trusted inline scripts are `script()` nodes.
 - After ux-dom #32/#33, not on this pin: a string starting with `<!DOCTYPE` or `<html` is sanitized as a whole document: doctype, head and body, title, meta (minus refresh), safe link and style are kept, and scripts and handlers are stripped. Text is not reflowed, so no whitespace is added. This head (`67176c9`) still drops the doctype and meta, garbles entities, and adds whitespace.
 - Pin ux-dom to `67176c9`, the head of ux-dom

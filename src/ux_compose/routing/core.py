@@ -14,6 +14,8 @@ Locked model:
 """
 from __future__ import annotations
 
+import codecs
+import contextvars
 import importlib.util
 import inspect
 import logging
@@ -30,6 +32,31 @@ from ux_dom.dom.src.utils.dom_util import raw
 from ux_dom.response.serialize import to_html_bytes
 
 logger = logging.getLogger("ux_compose.routing.core")
+
+# One registered handler. The active response's decoder is set only for the
+# duration of ``decode``, so a warning stays one per response.
+_STREAM_REPLACE = "uxcompose-stream-replace"
+_stream_decoder: contextvars.ContextVar["_Utf8Stream | None"] = contextvars.ContextVar(
+    "uxcompose_stream_decoder",
+    default=None,
+)
+
+
+def _on_stream_replace(exc: UnicodeError) -> tuple[str, int]:
+    if not isinstance(exc, UnicodeDecodeError):
+        raise exc
+    decoder = _stream_decoder.get()
+    if decoder is not None and not decoder.warned:
+        decoder.warned = True
+        logger.warning("streamed bytes were not valid UTF-8; replaced with U+FFFD")
+    # Same replacement as errors='replace': one U+FFFD, then resume.
+    return codecs.replace_errors(exc)
+
+
+try:
+    codecs.lookup_error(_STREAM_REPLACE)
+except LookupError:
+    codecs.register_error(_STREAM_REPLACE, _on_stream_replace)
 
 __all__ = [
     "DirectoryRoutesError",
@@ -235,18 +262,39 @@ def _author_html(value: str) -> Any:
     return Fragment(*nodes)
 
 
-def _html_chunk_bytes(chunk: Any) -> bytes:
-    """One streamed chunk. A plain str or bytes is sanitized as its own fragment.
+class _Utf8Stream:
+    """One incremental UTF-8 decoder for a single response.
 
-    ``bytes`` are decoded as strict UTF-8, then sanitized like ``str``.
-    ``Markup`` is encoded unchanged. A ``raw()`` node is its verbatim HTML.
-    A tag split across plain-str chunks is not reassembled; authors who
-    need that chunk verbatim yield ``Markup`` or ``raw()``.
+    Invalid bytes use ``errors='replace'`` and log one warning for the
+    response, not one per chunk. This differs on purpose from ux-dom
+    ``to_fragment(bytes)``, which stays strict because a synchronous
+    caller can see the error. Mid-stream the status is already 200, so
+    U+FFFD beats a silent truncation. The replaced text is still sanitized.
+    """
+
+    def __init__(self) -> None:
+        self.warned = False
+        self._dec = codecs.getincrementaldecoder("utf-8")(_STREAM_REPLACE)
+
+    def decode(self, data: bytes, *, final: bool = False) -> str:
+        token = _stream_decoder.set(self)
+        try:
+            return self._dec.decode(data, final)
+        finally:
+            _stream_decoder.reset(token)
+
+
+def _html_chunk_bytes(chunk: Any) -> bytes:
+    """Sanitize one already-decoded streamed piece.
+
+    A plain ``str`` is its own fragment. ``Markup`` is encoded unchanged.
+    A ``raw()`` node is its verbatim HTML. Bytes are decoded by the
+    response's :class:`_Utf8Stream` before this runs. A tag split across
+    plain ``str`` or ``bytes`` chunks is not reassembled; authors who need
+    that chunk verbatim yield ``Markup`` or ``raw()``.
     """
     if chunk is None:
         return b""
-    if isinstance(chunk, (bytes, bytearray, memoryview)):
-        chunk = bytes(chunk).decode("utf-8", errors="strict")
     if isinstance(chunk, Markup):
         return str(chunk).encode("utf-8")
     if isinstance(chunk, str):
@@ -254,19 +302,46 @@ def _html_chunk_bytes(chunk: Any) -> bytes:
     return to_html_bytes(chunk)
 
 
+def _decode_chunk(decoder: _Utf8Stream, chunk: Any) -> bytes:
+    if isinstance(chunk, (bytes, bytearray, memoryview)):
+        text = decoder.decode(bytes(chunk))
+        if text == "":
+            return b""
+        return _html_chunk_bytes(text)
+    return _html_chunk_bytes(chunk)
+
+
+def _flush_decoder(decoder: _Utf8Stream) -> bytes:
+    text = decoder.decode(b"", final=True)
+    if text == "":
+        return b""
+    return _html_chunk_bytes(text)
+
+
 def _sanitized_stream(payload: Any) -> Any:
-    """Map each chunk of a sync or async stream through ``_html_chunk_bytes``."""
+    """Sanitize a sync or async stream with one UTF-8 decoder for the response.
+
+    Each decoded piece is its own fragment. The decoder is flushed with
+    ``final=True`` when the stream ends.
+    """
+    decoder = _Utf8Stream()
     if inspect.isasyncgen(payload) or hasattr(payload, "__aiter__"):
 
         async def _agen():
             async for chunk in payload:
-                yield _html_chunk_bytes(chunk)
+                yield _decode_chunk(decoder, chunk)
+            tail = _flush_decoder(decoder)
+            if tail:
+                yield tail
 
         return _agen()
 
     def _gen():
         for chunk in payload:
-            yield _html_chunk_bytes(chunk)
+            yield _decode_chunk(decoder, chunk)
+        tail = _flush_decoder(decoder)
+        if tail:
+            yield tail
 
     return _gen()
 

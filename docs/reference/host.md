@@ -91,7 +91,7 @@ Predicates (host-agnostic, `routing/core.py`):
 Dispatch (`routing/fastapi.py` `_as_http_response`):
 
 1. already a Response **or** JSON payload → return as-is (FastAPI JSON-encodes dicts)
-2. stream payload → `StreamingResponse` (ux-dom if it accepts the body, else Starlette). Each plain `str` chunk is sanitized as its own fragment. A `bytes` chunk is decoded as strict UTF-8 and sanitized the same way. A tag split across two plain-str chunks is not reassembled; yield `Markup()` or `raw()` for a verbatim chunk.
+2. stream payload → `StreamingResponse` (ux-dom if it accepts the body, else Starlette). Each plain `str` chunk is sanitized as its own fragment. `bytes` chunks are decoded incrementally, one UTF-8 decoder per response, and each decoded piece is sanitized the same way. Invalid bytes are replaced with U+FFFD. A tag split across two plain `str` or `bytes` chunks is not reassembled; yield `Markup()` or `raw()` for a verbatim chunk.
 3. else → `apply_html_document(wrap, tree)` then `HTMLResponse`
 
 `apply_html_document` lives in `routing/core.py`. A plain HTML `str` (or

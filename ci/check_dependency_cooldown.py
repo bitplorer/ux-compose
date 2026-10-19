@@ -190,11 +190,21 @@ def _parse_upload_time(raw: object, *, name: str, version: str) -> datetime:
 
 
 def _earliest_upload(payload: dict, *, name: str, version: str) -> datetime:
-    urls = payload.get("urls") if isinstance(payload, dict) else None
+    if not isinstance(payload, dict) or "urls" not in payload:
+        raise CooldownCheckError(
+            "dependency cooldown check failed closed: "
+            f"{name} {version} urls is missing"
+        )
+    urls = payload["urls"]
+    if urls is None:
+        raise CooldownCheckError(
+            "dependency cooldown check failed closed: "
+            f"{name} {version} urls is null"
+        )
     if not isinstance(urls, list) or not urls:
         raise CooldownCheckError(
             "dependency cooldown check failed closed: "
-            f"{name} {version} has no files on PyPI"
+            f"{name} {version} urls is empty"
         )
     times = [
         _parse_upload_time(item["upload_time_iso_8601"], name=name, version=version)

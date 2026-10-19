@@ -17,7 +17,7 @@ import pytest
 
 from ux_compose import Component, div, raw, span
 from ux_compose.brand import _as_child, brand_wrap
-from ux_compose.helpers import _serialize_tree
+from ux_compose.helpers import _serialize_tree, update_with
 from ux_compose.routing.core import _document_child, apply_html_document
 
 from tests.asgi_http import asgi_get
@@ -224,3 +224,26 @@ def test_plain_string_route_bytes_drop_runnable_constructs():
     html = _html(_document_child(PAY.encode("utf-8")))
     assert _runnable(html) == []
     assert "<img" in html
+
+
+def test_fragment_bytes_drop_script_and_onclick():
+    """Bytes on the fragment/morph path are decoded, then sanitized.
+
+    ``_serialize_tree`` decodes bytes before ``defHTML``. Dropping that
+    decode would send the original ``<script>`` and ``onclick`` through.
+    """
+    payload = b'<script>alert(1)</script><div id="box" onclick="x">hi</div>'
+    expected = '<div id="box">\n  hi\n</div>'
+    assert _serialize_tree(payload) == expected
+
+    class Box(Component):
+        id = "box"
+
+        def render(self):
+            return payload
+
+    assert Box().__render__() == expected
+    ops = update_with(Box())
+    assert ops[0].payload["patch"] == expected
+    assert "<script" not in ops[0].payload["patch"]
+    assert "onclick" not in ops[0].payload["patch"]

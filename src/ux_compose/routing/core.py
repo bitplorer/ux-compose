@@ -1006,17 +1006,15 @@ def _wait_for_import_or_name_lock(
     lock: _PackageBuildLock,
     timeout: float | None,
 ) -> bool | None:
-    """``True`` when an importer takes ``lock``.
+    """``None`` when those imports release. ``False`` when ``timeout`` elapses.
 
-    ``None`` when those imports release. ``False`` when ``timeout`` elapses.
-    ``timeout is None`` waits until the import ends or the importer takes
-    the name lock. This does not hold the name lock.
+    ``timeout is None`` waits until the import ends. This does not hold
+    the name lock. An importer that takes the name lock is caught when
+    this build takes the lock again and the generation moved.
     """
     deadline = None if timeout is None else time.monotonic() + timeout
     pending = list(names)
     while pending:
-        if _importers_need_name_lock(lock, pending):
-            return True
         if deadline is not None and time.monotonic() >= deadline:
             return False
         slice_for = 0.01

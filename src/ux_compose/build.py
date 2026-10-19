@@ -160,7 +160,7 @@ def build(
     """
     from ux_compose import App
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks
-    from ux_compose.routing.core import release_package_import_state
+    from ux_compose.routing.core import isolate_package_imports, package_import_lock
     from ux_compose.routing.host import KIND_FASTAPI, bind as host_bind
     from ux_compose.routing.host import open as host_open
 
@@ -226,39 +226,40 @@ def build(
             if pinned is not None and pinned >= 3:
                 raise
 
-    # Folder name is the import key. Drop the previous directory first.
-    release_package_import_state(package_dir)
+    # Hold the lock across both walks so a second build cannot swap modules.
+    with package_import_lock:
+        isolate_package_imports(package_dir)
 
-    bundle = app.mount(
-        package_dir,
-        asgi_app=None,
-        base=base,
-        fail_closed=fail_closed,
-        bind_pages=False,
-    )
+        bundle = app.mount(
+            package_dir,
+            asgi_app=None,
+            base=base,
+            fail_closed=fail_closed,
+            bind_pages=False,
+        )
 
-    registry = dict(getattr(bundle, "unit_registry", {}) or {})
+        registry = dict(getattr(bundle, "unit_registry", {}) or {})
 
-    def _resolve(cls, path, name):
-        sid = str(getattr(cls, "id", None) or cls.__name__.lower())
-        return registry.get(sid)
+        def _resolve(cls, path, name):
+            sid = str(getattr(cls, "id", None) or cls.__name__.lower())
+            return registry.get(sid)
 
-    core = DirectoryRoutes(
-        package_dir,
-        base_directory=base,
-        hooks=RouterHooks(resolve_unit=_resolve),
-        fail_closed=fail_closed,
-    )
-    core.discover()
-    asgi = host_bind(
-        asgi=asgi,
-        kind=kind,
-        core=core,
-        document=document,
-        wrap=author_wrap,
-        resolve_unit=_resolve,
-    )
-    if bundle is not None and core.records:
-        bundle.route_table = core.route_table()
+        core = DirectoryRoutes(
+            package_dir,
+            base_directory=base,
+            hooks=RouterHooks(resolve_unit=_resolve),
+            fail_closed=fail_closed,
+        )
+        core.discover()
+        asgi = host_bind(
+            asgi=asgi,
+            kind=kind,
+            core=core,
+            document=document,
+            wrap=author_wrap,
+            resolve_unit=_resolve,
+        )
+        if bundle is not None and core.records:
+            bundle.route_table = core.route_table()
 
     return BuildResult((app, asgi, bundle))

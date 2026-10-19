@@ -22,6 +22,8 @@ import logging
 import re
 import sys
 import sysconfig
+import threading
+import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional, Protocol, runtime_checkable
@@ -339,26 +341,6 @@ def _path_roots(*keys: str) -> tuple[Path, ...]:
     return tuple(roots)
 
 
-def _is_protected_module(name: str, mod: Any) -> bool:
-    """Keep stdlib, builtins, and installed distributions loaded."""
-    if name in sys.builtin_module_names:
-        return True
-    resolved = [
-        item for item in (_resolved(path) for path in _module_paths(mod)) if item is not None
-    ]
-    top = name.partition(".")[0]
-    stdlib_names = sys.stdlib_module_names
-    if name in stdlib_names or top in stdlib_names:
-        stdlib_roots = _path_roots("stdlib", "platstdlib")
-        if not resolved:
-            return True
-        return any(_is_under(path, root) for path in resolved for root in stdlib_roots)
-    if not resolved:
-        return False
-    roots = _path_roots("stdlib", "platstdlib", "purelib", "platlib")
-    return all(any(_is_under(path, root) for root in roots) for path in resolved)
-
-
 def _module_matches_file(mod: Any, file: Path) -> bool:
     origin = getattr(mod, "__file__", None)
     if not isinstance(origin, str) or not origin:
@@ -395,78 +377,181 @@ def _forget_module(name: str) -> list[Path]:
     return _module_paths(mod)
 
 
-def _belongs_to_package_name(path: Path, name: str, root: Path) -> bool:
-    if _is_under(path, root):
-        return True
-    return any(parent.name == name for parent in path.parents)
+# One lock for isolate + route import. build() holds it across mount and
+# discover so two same-named packages cannot swap sys.modules mid-load.
+package_import_lock = threading.RLock()
+
+_source_tokens: weakref.WeakKeyDictionary[Any, bytes] = weakref.WeakKeyDictionary()
+_installed_roots: tuple[Path, ...] | None = None
 
 
-def release_package_import_state(package_dir: str | Path) -> None:
-    """Drop import and linecache state for one package directory.
+def _installed_roots_resolved() -> tuple[Path, ...]:
+    global _installed_roots
+    if _installed_roots is None:
+        _installed_roots = _path_roots("stdlib", "platstdlib", "purelib", "platlib")
+    return _installed_roots
 
-    Route modules are keyed by folder name. Another directory with that
-    name must not reuse the first directory's imported routes.
+
+def _resolved_origins(mod: Any) -> list[Path]:
+    """File locations for ``mod``. Skips names and parent-folder guesses."""
+    found: list[Path] = []
+    seen: set[Path] = set()
+
+    def add(value: object) -> None:
+        if not isinstance(value, str) or not value:
+            return
+        if value in {"built-in", "frozen", "namespace"}:
+            return
+        resolved = _resolved(Path(value))
+        if resolved is None or resolved in seen:
+            return
+        seen.add(resolved)
+        found.append(resolved)
+
+    add(getattr(mod, "__file__", None))
+    spec = getattr(mod, "__spec__", None)
+    add(getattr(spec, "origin", None) if spec is not None else None)
+    pkg_paths = getattr(mod, "__path__", None)
+    if pkg_paths is None:
+        return found
+    try:
+        entries = list(pkg_paths)
+    except KeyError:
+        return found
+    for entry in entries:
+        add(entry)
+    return found
+
+
+def _is_installed_path(path: Path) -> bool:
+    return any(path.is_relative_to(root) for root in _installed_roots_resolved())
+
+
+def _is_installed_module(mod: Any) -> bool:
+    origins = _resolved_origins(mod)
+    return bool(origins) and any(_is_installed_path(path) for path in origins)
+
+
+def _is_on_stack(mod: Any) -> bool:
+    """True when ``mod`` is the module currently executing an import/build."""
+    mod_dict = getattr(mod, "__dict__", None)
+    if mod_dict is None:
+        return False
+    frame = sys._getframe(1)
+    while frame is not None:
+        if frame.f_globals is mod_dict:
+            return True
+        frame = frame.f_back
+    return False
+
+
+def _should_replace(mod: Any, root: Path) -> bool:
+    """Replace only a module whose file resolves to a different directory."""
+    if _is_on_stack(mod) or _is_installed_module(mod):
+        return False
+    origins = _resolved_origins(mod)
+    if not origins:
+        return False
+    return not all(path.is_relative_to(root) for path in origins)
+
+
+def isolate_package_imports(package_dir: str | Path) -> None:
+    """Reuse this directory's modules. Drop only another directory's.
+
+    A cached ``sys.modules`` entry under the package name stays when its
+    file resolves inside ``package_dir``. It is replaced when that file
+    resolves somewhere else. The module currently importing, and stdlib
+    or site-packages modules, are left in place.
     """
-    root = Path(package_dir).resolve()
-    name = root.name
-    forgotten: list[Path] = []
-    prefix_dot = name + "."
-    prefix_safe = name + "_"
-    for key in list(sys.modules):
-        dotted = key == name or key.startswith(prefix_dot)
-        safe_name = key.startswith(prefix_safe)
-        if not dotted and not safe_name:
-            continue
-        mod = sys.modules.get(key)
-        if mod is None or _is_protected_module(key, mod):
-            continue
-        if safe_name:
-            paths = _module_paths(mod)
-            if paths and not any(_belongs_to_package_name(path, name, root) for path in paths):
+    with package_import_lock:
+        root = Path(package_dir).resolve()
+        name = root.name
+        doomed: list[str] = []
+        for key in list(sys.modules):
+            if key != name and not key.startswith(name + "."):
                 continue
-        forgotten.extend(_forget_module(key))
-    importlib.invalidate_caches()
-    _clear_linecache(forgotten)
+            mod = sys.modules.get(key)
+            if mod is None or not _should_replace(mod, root):
+                continue
+            doomed.append(key)
+        forgotten: list[Path] = []
+        for key in sorted(doomed, key=lambda item: item.count("."), reverse=True):
+            forgotten.extend(_forget_module(key))
+        if doomed:
+            importlib.invalidate_caches()
+            _clear_linecache(forgotten)
 
 
-def load_cached_route_module(module: str, file: Path) -> Any | None:
-    """Return the cached module when it was loaded from ``file``.
+def _remember_source(mod: Any, path: Path) -> None:
+    try:
+        _source_tokens[mod] = path.read_bytes()
+    except OSError:
+        return
 
-    A cached module from another directory is dropped unless it is
-    stdlib or an installed distribution.
+
+def _reload_module(mod: Any, path: Path) -> Any:
+    """Re-exec ``path`` into ``mod`` without requiring parent packages."""
+    linecache.cache.pop(str(path), None)
+    linecache.checkcache(str(path))
+    spec = getattr(mod, "__spec__", None)
+    loader = getattr(spec, "loader", None) if spec is not None else None
+    if loader is None:
+        code = compile(path.read_bytes(), str(path), "exec")
+        exec(code, mod.__dict__)
+    else:
+        loader.exec_module(mod)
+    _remember_source(mod, path)
+    return mod
+
+
+def refresh_cached_module(mod: Any, file: str | Path) -> Any:
+    """Return ``mod`` when it already came from ``file``.
+
+    Re-exec only when the file bytes changed, so an edit shows up on
+    rebuild and an untouched module keeps its identity.
     """
-    cached = sys.modules.get(module)
-    if cached is None:
-        return None
-    if _module_matches_file(cached, file):
-        return cached
-    if _is_protected_module(module, cached):
-        return None
-    forgotten = _forget_module(module)
-    importlib.invalidate_caches()
-    _clear_linecache(forgotten)
-    return None
+    with package_import_lock:
+        resolved = Path(file).resolve()
+        if _is_on_stack(mod):
+            return mod
+        try:
+            current = resolved.read_bytes()
+        except OSError:
+            return mod
+        previous = _source_tokens.get(mod)
+        if previous is None:
+            _source_tokens[mod] = current
+            return mod
+        if previous == current:
+            return mod
+        return _reload_module(mod, resolved)
 
 
 def import_route_module(module: str, file: Path) -> Any:
-    cached = sys.modules.get(module)
-    if cached is not None and _is_protected_module(module, cached):
-        return cached
-    fresh = load_cached_route_module(module, file)
-    if fresh is not None:
-        return fresh
-    spec = importlib.util.spec_from_file_location(module, file)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Cannot load {file}")
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules[module] = mod
-    try:
-        spec.loader.exec_module(mod)
-    except Exception:
-        if sys.modules.get(module) is mod:
-            sys.modules.pop(module, None)
-        raise
-    return mod
+    with package_import_lock:
+        resolved = Path(file).resolve()
+        cached = sys.modules.get(module)
+        if cached is not None and _module_matches_file(cached, resolved):
+            return refresh_cached_module(cached, resolved)
+        if cached is not None and (_is_on_stack(cached) or _is_installed_module(cached)):
+            return cached
+        if cached is not None:
+            forgotten = _forget_module(module)
+            importlib.invalidate_caches()
+            _clear_linecache(forgotten)
+        spec = importlib.util.spec_from_file_location(module, resolved)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Cannot load {resolved}")
+        mod = importlib.util.module_from_spec(spec)
+        sys.modules[module] = mod
+        try:
+            spec.loader.exec_module(mod)
+        except Exception:
+            if sys.modules.get(module) is mod:
+                sys.modules.pop(module, None)
+            raise
+        _remember_source(mod, resolved)
+        return mod
 
 
 @dataclass
@@ -501,7 +586,7 @@ class DirectoryRoutes:
 
     def discover(self) -> list:
         parent = Path(self.package_dir).resolve()
-        release_package_import_state(parent)
+        isolate_package_imports(parent)
         base = parent / self.base_directory
         self.records = []
         if not base.exists():

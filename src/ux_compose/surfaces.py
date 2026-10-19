@@ -22,6 +22,7 @@ Page unit + host bind (when asgi_app is provided):
 
 from __future__ import annotations
 
+import hashlib
 import importlib
 import importlib.util
 import logging
@@ -30,7 +31,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional, Sequence
 
-from ux_compose.routing.core import load_cached_route_module, release_package_import_state
+from ux_compose.routing.core import (
+    import_route_module,
+    isolate_package_imports,
+    package_import_lock,
+    refresh_cached_module,
+)
 
 logger = logging.getLogger("ux_compose.surfaces")
 
@@ -167,30 +173,49 @@ def _file_url(prefix: str, stem: str) -> str:
     return http_path(*segs)
 
 
+def _same_resolved_file(mod: Any, file: Path) -> bool:
+    origin = getattr(mod, "__file__", None)
+    if not isinstance(origin, str) or not origin:
+        return False
+    try:
+        return Path(origin).resolve() == file.resolve()
+    except OSError:
+        return False
+
+
 def _load_from_file(module: str, file: Path) -> Any:
-    safe = module.replace("/", "_").replace(".", "_").replace("-", "_")
-    if not safe.isidentifier():
-        safe = "ux_surface_" + str(abs(hash(str(file))))
-    spec = importlib.util.spec_from_file_location(safe, file)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"cannot load {file}")
-    loaded = importlib.util.module_from_spec(spec)
-    sys.modules[safe] = loaded
-    spec.loader.exec_module(loaded)
-    return loaded
+    """Load ``file`` under a name that is unique to its resolved path.
+
+    A name derived only from the dotted module would be shared by two
+    directories that use the same folder name.
+    """
+    del module
+    resolved = Path(file).resolve()
+    key = "ux_surface_" + hashlib.sha256(str(resolved).encode()).hexdigest()[:32]
+    with package_import_lock:
+        existing = sys.modules.get(key)
+        if existing is not None and _same_resolved_file(existing, resolved):
+            return refresh_cached_module(existing, resolved)
+        spec = importlib.util.spec_from_file_location(key, resolved)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load {resolved}")
+        loaded = importlib.util.module_from_spec(spec)
+        sys.modules[key] = loaded
+        spec.loader.exec_module(loaded)
+        return refresh_cached_module(loaded, resolved)
 
 
 def _import_module(module: str, file: Path) -> Any:
-    cached = load_cached_route_module(module, file)
-    if cached is not None:
-        return cached
+    resolved = Path(file).resolve()
+    cached = sys.modules.get(module)
+    if cached is not None and _same_resolved_file(cached, resolved):
+        return import_route_module(module, resolved)
     try:
-        importlib.import_module(module)
+        loaded = importlib.import_module(module)
     except Exception:
         return _load_from_file(module, file)
-    matched = load_cached_route_module(module, file)
-    if matched is not None:
-        return matched
+    if _same_resolved_file(loaded, resolved):
+        return import_route_module(module, resolved)
     return _load_from_file(module, file)
 
 
@@ -203,7 +228,7 @@ def scan_surfaces(
 ) -> list[Surface]:
     """Discover units under package_dir/base_directory (define-in-module only)."""
     root = Path(package_dir).resolve()
-    release_package_import_state(root)
+    isolate_package_imports(root)
     base = root / base_directory
     if not base.exists():
         return []

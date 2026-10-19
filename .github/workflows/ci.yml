@@ -27,6 +27,27 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y /tmp/chrome.deb
       - name: Full suite
+        env:
+          UX_KEEP_VALUE_REQUIRE_BROWSER: "1"
         run: python -m pytest tests/ -q
+      - name: X1 Chrome keep-value
+        env:
+          UX_KEEP_VALUE_REQUIRE_BROWSER: "1"
+        run: |
+          python -m pytest tests/security/test_login_typed_password.py -v -rs --tb=short --junitxml=/tmp/x1-chrome.xml
+          python << 'PY'
+          import xml.etree.ElementTree as ET
+          root = ET.parse("/tmp/x1-chrome.xml").getroot()
+          suites = [root] if root.tag == "testsuite" else list(root.findall("testsuite"))
+          tests = skipped = failures = errors = 0
+          for suite in suites:
+              tests += int(suite.get("tests", "0"))
+              skipped += int(suite.get("skipped", "0"))
+              failures += int(suite.get("failures", "0"))
+              errors += int(suite.get("errors", "0"))
+          passed = tests - skipped - failures - errors
+          print(f"X1 Chrome: {passed} passed, {skipped} skipped")
+          raise SystemExit(0 if skipped == 0 and failures == 0 and errors == 0 and passed == 2 else 1)
+          PY
       - name: Nested-shell fragment-law
         run: python -m pytest tests/feature -q -m cto_red --tb=short

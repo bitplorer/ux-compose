@@ -7,6 +7,7 @@ The server still paints ``value=""``. ``data-ux-keep-value`` asks
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import socket
 import subprocess
@@ -26,6 +27,19 @@ from ux_compose.wire.caps import register_live_channel
 
 _EMAIL = "you@atelier.test"
 _PASSWORD = "password12"
+
+
+def _chrome_bin() -> str:
+    """Real Chrome. A missing browser fails the test.
+
+    ``UX_KEEP_VALUE_REQUIRE_BROWSER=1`` is the CI switch. It does not skip.
+    """
+    found = shutil.which("google-chrome") or shutil.which("google-chrome-stable")
+    if found:
+        return found
+    required = os.environ.get("UX_KEEP_VALUE_REQUIRE_BROWSER") == "1"
+    prefix = "UX_KEEP_VALUE_REQUIRE_BROWSER=1 and " if required else ""
+    pytest.fail(f"{prefix}Chrome is not on PATH")
 
 
 def _free_port() -> int:
@@ -89,7 +103,7 @@ class _Chrome:
         self.profile = tempfile.mkdtemp(prefix="ux-login-")
         self.proc = subprocess.Popen(
             [
-                "google-chrome",
+                _chrome_bin(),
                 "--headless=new",
                 "--disable-gpu",
                 "--no-sandbox",

@@ -7,7 +7,7 @@ VENV  ?= /tmp/ux314venv
 # SSOT pins (keep in lockstep with pyproject.toml / scaffold REQUIREMENTS).
 UX_BEHAVIOR_SHA = 09a9a658e7dbd06f51acf6104a85c3ba608dfe7a
 UX_MOTION_SHA = bbe7d73466a6c1eccb47e711568c80ce3b4d5487
-UX_CHANNEL_SHA = 133d3cb1cebfd8e6c3177e59bac077e925150d72
+UX_CHANNEL_SHA = b549e90daaffd492c8aba1d93e337b8aca7d4d0f
 UX_DOM_SHA = 0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4
 
 .PHONY: test test-matrix coverage test314 venv314 specialists examples doctor shop studio pulse pulseboard nook test-cto test-cto-fragment-law cek-repro-morph-shell

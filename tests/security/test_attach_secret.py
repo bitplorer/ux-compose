@@ -2,7 +2,9 @@
 
 A missing secret already raises inside ux-behavior. A 13-character secret
 does not: Channel refuses it, and without ``strict_attach`` compose
-continues. ``live_asgi`` and ``build()`` must exit non-zero for that secret.
+continues. ``live_asgi``, ``build()``, and both Atelier servers must
+exit non-zero for that secret. The missing-secret Atelier checks passed
+on base because ux-behavior already raises; a short secret does not.
 """
 from __future__ import annotations
 
@@ -69,15 +71,19 @@ def test_build_fails_on_13_char_secret():
     assert proc.returncode != 0, blob
 
 
-def test_atelier_shop_boot_fails_without_channel_secret():
-    proc = _run([PY, "-c", "import apps.atelier_shop.server"])
+def test_atelier_shop_boot_fails_on_13_char_secret():
+    proc = _run(
+        [PY, "-c", "import apps.atelier_shop.server"],
+        {"UX_CHANNEL_SECRET": SHORT_SECRET},
+    )
     blob = proc.stdout + proc.stderr
     assert proc.returncode != 0, blob
-    assert "UX_CHANNEL_SECRET" in blob
 
 
-def test_atelier_studio_boot_fails_without_channel_secret():
-    proc = _run([PY, "-c", "import apps.atelier_studio.server"])
+def test_atelier_studio_boot_fails_on_13_char_secret():
+    proc = _run(
+        [PY, "-c", "import apps.atelier_studio.server"],
+        {"UX_CHANNEL_SECRET": SHORT_SECRET},
+    )
     blob = proc.stdout + proc.stderr
     assert proc.returncode != 0, blob
-    assert "UX_CHANNEL_SECRET" in blob

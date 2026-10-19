@@ -252,6 +252,26 @@ def test_empty_chunk_whose_eq_raises_does_not_flush(
     assert _stream_body(tmp_path, host, mode, chunks) == b"a\n\xc3\xa9\n"
 
 
+class _LiesEmpty(str):
+    """Non-empty text that reports itself empty through __len__ and __bool__."""
+
+    def __len__(self) -> int:
+        return 0
+
+    def __bool__(self) -> bool:
+        return False
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_str_subclass_that_lies_about_being_empty_flushes(
+    tmp_path: Path, host: str, mode: str
+):
+    """Base str length decides. A liar between b'a\\xc3' and b'\\xa9' does not join aé."""
+    chunks = (b"a\xc3", _LiesEmpty("x"), b"\xa9")
+    assert _stream_body(tmp_path, host, mode, chunks) == b"a\n\xef\xbf\xbd\n\xef\xbf\xbd\n"
+
+
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])
 @pytest.mark.parametrize("mode", ["sync", "async"])
 def test_raw_chunk_flushes_pending_bytes_in_order(tmp_path: Path, host: str, mode: str):

@@ -134,12 +134,12 @@ def fetch_pypi_json(name: str, version: str) -> dict:
     except json.JSONDecodeError as exc:
         raise CooldownCheckError(
             "dependency cooldown check failed closed: "
-            f"invalid JSON from {url}: {exc}"
+            f"invalid JSON from {url}: {raw!r}: {exc}"
         ) from exc
     if not isinstance(payload, dict):
         raise CooldownCheckError(
             "dependency cooldown check failed closed: "
-            f"unexpected payload from {url}"
+            f"unexpected payload from {url}: {raw!r}"
         )
     return payload
 

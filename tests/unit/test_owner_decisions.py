@@ -79,11 +79,15 @@ def test_apply_html_document_logs_and_keeps_the_fragment(caplog):
     def shell(child=None):
         raise RuntimeError("shell-broke")
 
-    fragment = "<script>alert(1)</script>"
+    script = "<script>alert(1)</script>"
     with caplog.at_level(logging.ERROR):
-        out = apply_html_document(shell, fragment)
-    assert str(out) == ""
+        stripped = apply_html_document(shell, script)
+    assert str(stripped) == ""
     assert "shell-broke" in caplog.text
+
+    safe = "<div id='hello'>hi</div>"
+    kept = apply_html_document(shell, safe)
+    assert str(kept) == '<div id="hello">\n  hi\n</div>'
 
 
 def test_restart_channel_times_out_without_a_clear_result(tmp_path: Path, monkeypatch):

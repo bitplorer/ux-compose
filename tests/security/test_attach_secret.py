@@ -41,6 +41,16 @@ def _run(
     )
 
 
+def test_child_pythonpath_keeps_the_parent_entries(monkeypatch):
+    """The child needs this repo on the path and must keep the caller's entries."""
+    marker = "/opt/caller-already-on-path"
+    monkeypatch.setenv("PYTHONPATH", marker)
+    parts = _env_without_secret()["PYTHONPATH"].split(os.pathsep)
+    assert str(ROOT / "src") in parts
+    assert str(ROOT) in parts
+    assert marker in parts
+
+
 def test_live_asgi_fails_loudly_when_channel_secret_missing():
     """build() on the live FastAPI path must not continue without Caps."""
     proc = _run([PY, "examples/live_asgi.py"])

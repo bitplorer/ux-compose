@@ -63,8 +63,15 @@ def test_apply_html_document_never_drops_fragment():
     def shell(child=None):
         return f"SHELL:{child}"
 
-    assert apply_html_document(None, "<div id='hello'>hi</div>") == "<div id='hello'>hi</div>"
-    assert apply_html_document(shell, "<div id='hello'>hi</div>") == "SHELL:<div id='hello'>hi</div>"
+    # A plain string is parsed markup, so the source text is not byte-identical.
+    bare = str(apply_html_document(None, "<div id='hello'>hi</div>"))
+    assert "<div" in bare
+    assert "hello" in bare
+    assert "hi" in bare
+    wrapped = str(apply_html_document(shell, "<div id='hello'>hi</div>"))
+    assert wrapped.startswith("SHELL:")
+    assert "hello" in wrapped
+    assert "hi" in wrapped
     assert apply_html_document(shell, None) == "SHELL:None"
 
 

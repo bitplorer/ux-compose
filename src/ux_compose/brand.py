@@ -22,7 +22,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from ux_compose.dom import nav, raw, span
+from ux_compose.dom import nav, span
+from ux_compose.routing.core import _author_html
 
 GET_BRAND_ATTR = "data-uxcompose-brand"
 DEFAULT_BRAND = "App"
@@ -35,13 +36,17 @@ __all__ = [
 
 
 def _as_child(inner: Any) -> Any:
-    """Accept a GET fragment (tag tree or HTML str via ``raw()``)."""
+    """Accept a GET fragment (tag tree, or HTML str via ``defHTML``).
+
+    A plain string is sanitized markup. ``markupsafe.Markup`` stays
+    verbatim. An existing ``raw()`` node is not a string and passes through.
+    """
     if inner is None:
         return None
     if isinstance(inner, (bytes, bytearray, memoryview)):
         inner = bytes(inner).decode("utf-8")
     if isinstance(inner, str):
-        return raw(inner)
+        return _author_html(inner)
     return inner
 
 

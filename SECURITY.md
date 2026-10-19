@@ -13,10 +13,12 @@ Compose’s security is the union of the levels you enabled:
 
 | Level | Specialist | Security you get |
 |-------|------------|------------------|
-| 0 | ux-dom | Render + CSP stamp |
+| 0 | ux-dom | Render + CSP stamp. A plain route or fragment `str` is parsed and sanitized (`defHTML`); `Markup` and `raw()` stay verbatim. |
 | 1 | ux-behavior | Offline Cap Law / `AuthorityError` |
 | 2 | ux-channel | Live Caps, signed Intent, JTI |
-| 3 | ux-motion | Plan IR (host still owns HTML escaping) |
+| 3 | ux-motion | Plan IR. Plain strings that compose serializes are sanitized first; `Markup` and `raw()` are not. |
+
+A plain `str` or `bytes` from a route or fragment is HTML. Compose parses it with ux-dom `defHTML` and drops runnable constructs (script, event handlers, Alpine and `hx-on` attributes, `javascript:` URLs). Safe tags stay. Pass `markupsafe.Markup` or an ux-dom `raw()` node to keep that markup verbatim. Author tag trees are not re-parsed. CSP remains the ux-dom stamp.
 
 Product code must **not** import `ux_channel` outside compose `wire/`. HMR and tunnel exist only under `uxcompose serve`.
 

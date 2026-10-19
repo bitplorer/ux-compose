@@ -94,8 +94,11 @@ Dispatch (`routing/fastapi.py` `_as_http_response`):
 2. stream payload → `StreamingResponse` (ux-dom if it accepts the body, else Starlette)
 3. else → `apply_html_document(wrap, tree)` then `HTMLResponse`
 
-`apply_html_document` lives in `routing/core.py`. HTML `str` becomes
-ux-dom `raw()` so the fragment is body markup, not a script `src`.
+`apply_html_document` lives in `routing/core.py`. A plain HTML `str` (or
+`bytes`) is parsed with ux-dom `defHTML` and sanitized: the string stays
+markup, and runnable constructs are dropped. That is ux-dom's string→HTML
+path (F-03), not `raw()`, and not a script `src`. An explicit
+`markupsafe.Markup` or an ux-dom `raw()` node stays verbatim.
 
 DirectoryASGI (`host="asgi"`) uses the same predicates. Streams go out as
 chunked ASGI `more_body`. JSON is `json.dumps`. HTML is `to_html_bytes`.

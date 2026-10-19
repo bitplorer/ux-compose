@@ -16,6 +16,8 @@ from ux_behavior import bind as _behavior_bind, notify as _real_notify, update a
 from ux_behavior.ops import Op as _Op
 from ux_dom.response.serialize import to_html_bytes
 
+from ux_compose.routing.core import _author_html
+
 # Soft USE (ux-dom#20 / compose#80 C2): prefer owner extract when the
 # symbol exists. Homemade walker below is escape if absent. Cached so
 # tests can pin the owner or the escape (channel Soft 1+4 ponytail).
@@ -149,11 +151,18 @@ def control(action: str, **args) -> dict:
 
 
 def _serialize_tree(tree: Any) -> str:
-    """Serialize via ux-dom. No homemade HTML-string renderer."""
+    """Serialize via ux-dom. No homemade HTML-string renderer.
+
+    A plain str is parsed to sanitized markup (runnable constructs dropped).
+    ``markupsafe.Markup`` stays verbatim. Tag trees and raw nodes serialize
+    as they are.
+    """
     if tree is None:
         return ""
+    if isinstance(tree, (bytes, bytearray, memoryview)):
+        tree = bytes(tree).decode("utf-8")
     if isinstance(tree, str):
-        return tree
+        return to_html_bytes(_author_html(tree)).decode("utf-8")
     return to_html_bytes(tree).decode("utf-8")
 
 
@@ -319,7 +328,7 @@ def _fragment_for_target(html: str, target_id: str) -> str:
 
 def _render_html(component_or_id: Any, *, target_id: str | None = None) -> str:
     if isinstance(component_or_id, str):
-        html = component_or_id
+        html = _serialize_tree(component_or_id)
     else:
         render = getattr(component_or_id, "render", None)
         tree = render() if callable(render) else component_or_id
@@ -431,7 +440,7 @@ def update_with(
     if fields:
         morph_payload["fields"] = list(fields)
     if html is not None:
-        morph_payload["html"] = _fragment_for_target(html, tid)
+        morph_payload["html"] = _fragment_for_target(_serialize_tree(html), tid)
     else:
         morph_payload["html"] = _render_html(component, target_id=tid)
     # strip helper kwargs that are not morph fields

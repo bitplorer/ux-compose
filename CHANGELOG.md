@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Security
+
+- A plain `str` or `bytes` returned from a route or fragment is parsed as HTML
+  with ux-dom `defHTML` (F-03). Safe markup stays. Runnable constructs are
+  dropped. An explicit `markupsafe.Markup` or ux-dom `raw()` node stays
+  verbatim. The same parse is used when that string is serialized for a morph
+  (`html=` included). If the Document shell raises, the return is that
+  sanitized fragment, not the original source string.
+- Pin ux-dom to `67176c9`, the head of ux-dom
+  [#32](https://github.com/bitplorer/ux-dom/pull/32), so `defHTML` is the
+  sanitizer. Replace this pin with the final ux-dom tip when #32 lands.
+  Lockstep: `pyproject.toml`, `Makefile`, `scaffold.py`,
+  `apps/*/requirements.txt`.
+
 ## 0.2.0 — remove deprecations and bloat cleanup
 
 ux-compose and its ux-* specialists are not on PyPI, so these are removed

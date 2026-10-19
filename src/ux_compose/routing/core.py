@@ -23,6 +23,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional, Protocol, runtime_checkable
 
+from markupsafe import Markup
+from ux_dom import Fragment
+from ux_dom.dom import defHTML
+from ux_dom.dom.src.utils.dom_util import raw
+
 logger = logging.getLogger("ux_compose.routing.core")
 
 __all__ = [
@@ -191,20 +196,42 @@ def apply_html_document(document: Any, payload: Any) -> Any:
     skip it). Author-provided ``document=`` is the SSoT. A synthesized
     Document is for ``document.mount`` (CSP / static), not for wrapping.
 
-    HTML strings are not valid ``Document(*args)`` children — ux-dom treats
-    a positional str on ``<body>`` as a script ``src``. Convert via ``raw()``
-    so the fragment lands in the body as markup.
+    A plain HTML ``str`` is not a valid ``Document`` child — ux-dom treats
+    a positional str on ``<body>`` as a script ``src``. Parse it with
+    ``defHTML`` so the fragment is sanitized markup. ``markupsafe.Markup``
+    and an existing ``raw()`` node stay verbatim. With no shell, the
+    sanitized node is the body.
     """
-    if document is None or not callable(document):
-        return payload
     child = _document_child(payload)
+    if document is None or not callable(document):
+        if isinstance(payload, (str, bytes, bytearray, memoryview)):
+            return child
+        return payload
     try:
         if child is None:
             return document()
         return document(child)
     except Exception:
         logger.exception("apply_html_document failed; returning the fragment")
-        return payload
+        return child if child is not None else payload
+
+
+def _author_html(value: str) -> Any:
+    """Plain str → ux-dom ``defHTML`` nodes. ``Markup`` stays ``raw()``.
+
+    ``defHTML`` parses the string as HTML and drops runnable constructs
+    (ux-dom F-03). Safe tags stay markup. An explicit ``Markup`` is the
+    verbatim opt-out, same as an ux-dom ``raw()`` node (those are not
+    strings, so callers pass them through).
+    """
+    if isinstance(value, Markup):
+        return raw(str(value))
+    nodes = defHTML(value)
+    if not nodes:
+        return raw("")
+    if len(nodes) == 1:
+        return nodes[0]
+    return Fragment(*nodes)
 
 
 def _document_child(payload: Any) -> Any:
@@ -213,12 +240,7 @@ def _document_child(payload: Any) -> Any:
     if isinstance(payload, (bytes, bytearray, memoryview)):
         payload = bytes(payload).decode("utf-8")
     if isinstance(payload, str):
-        try:
-            from ux_dom.dom.src.utils.dom_util import raw
-
-            return raw(payload)
-        except Exception:
-            return payload
+        return _author_html(payload)
     return payload
 
 

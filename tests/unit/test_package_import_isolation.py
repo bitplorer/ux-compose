@@ -1157,16 +1157,16 @@ def test_preimported_subpackage_survives_build(tmp_path, monkeypatch):
             ),
         },
     )
-    extra = pkg / "extra"
-    extra.mkdir()
-    (extra / "__init__.py").write_text("TOKEN = 'mine'\n", encoding="utf-8")
+    legacy = pkg / "routes" / "legacy"
+    legacy.mkdir()
+    (legacy / "__init__.py").write_text("TOKEN = 'mine'\n", encoding="utf-8")
     monkeypatch.syspath_prepend(str(pkg.parent))
     try:
         _purge_package(name)
-        imported = importlib.import_module(f"{name}.extra")
+        imported = importlib.import_module(f"{name}.routes.legacy")
         built = build(pkg, name="X", host="asgi", live="null", level=1)
         assert asgi_get(built[1], "/a").text == "snap"
-        assert sys.modules[f"{name}.extra"] is imported
+        assert sys.modules[f"{name}.routes.legacy"] is imported
         assert imported.TOKEN == "mine"
     finally:
         _purge_package(name)

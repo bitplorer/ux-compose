@@ -190,11 +190,12 @@ def test_stream_ending_mid_character_flushes_replacement(
     assert _stream_body(tmp_path, host, mode, MID) == MID_BODY
 
 
-# A str chunk must not let the next bytes chunk finish the held character.
+# The bytes chunk emits 'caf' immediately. The held lead byte is flushed
+# as its own U+FFFD fragment before the str, and b'\xa9' is U+FFFD after it.
 ORDER = (b"caf\xc3", "<i>S</i>", b"\xa9")
-ORDER_BODY = b"caf\xef\xbf\xbd\n<i>\n  S\n</i>\xef\xbf\xbd\n"
+ORDER_BODY = b"caf\n\xef\xbf\xbd\n<i>\n  S\n</i>\xef\xbf\xbd\n"
 ORDER_MARKUP = (b"caf\xc3", Markup("<i>S</i>"), b"\xa9")
-ORDER_MARKUP_BODY = b"caf\xef\xbf\xbd\n<i>S</i>\xef\xbf\xbd\n"
+ORDER_MARKUP_BODY = b"caf\n\xef\xbf\xbd\n<i>S</i>\xef\xbf\xbd\n"
 
 
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])

@@ -235,6 +235,23 @@ def test_empty_raw_chunk_does_not_split_a_character(
     assert _stream_body(tmp_path, host, mode, chunks) == b"a\n\xc3\xa9\n"
 
 
+class _EqRaises(str):
+    """Empty string whose equality comparison always raises."""
+
+    def __eq__(self, other: object) -> bool:
+        raise RuntimeError("__eq__")
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_empty_chunk_whose_eq_raises_does_not_flush(
+    tmp_path: Path, host: str, mode: str
+):
+    """Emptiness must not call __eq__. b'a\\xc3', EqRaises(''), b'\\xa9' joins as aé."""
+    chunks = (b"a\xc3", _EqRaises(""), b"\xa9")
+    assert _stream_body(tmp_path, host, mode, chunks) == b"a\n\xc3\xa9\n"
+
+
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])
 @pytest.mark.parametrize("mode", ["sync", "async"])
 def test_raw_chunk_flushes_pending_bytes_in_order(tmp_path: Path, host: str, mode: str):

@@ -188,6 +188,8 @@ def test_payload_self_matches_any_other_validation_error():
     assert self_key.status_code != 500, self_key.text
     assert _validation_shape(self_key, "self") == _validation_shape(other, "note")
     assert "unexpected keyword argument 'self'" in self_key.text
+    assert "unexpected keyword argument 'note'" in other.text
+    assert ran["n"] == 0
 
 
 def test_control_and_mint_cap_take_the_action_name_positionally():
@@ -202,5 +204,3 @@ def test_control_and_mint_cap_take_the_action_name_positionally():
     assert json.loads(attrs["data-channel-args"])["action"] == "x"
     cap = app.mint_cap("box.save", action="x")
     assert isinstance(cap, str) and len(cap) > 8
-    assert "unexpected keyword argument 'note'" in other.text
-    assert ran["n"] == 0

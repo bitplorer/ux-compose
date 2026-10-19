@@ -807,3 +807,162 @@ def _wait_http(proc: subprocess.Popen[str], url: str) -> str:
             last = str(exc)
             time.sleep(0.05)
     raise AssertionError(last or "uvicorn did not serve /hello")
+
+
+def _purge_package(name: str) -> None:
+    for key in list(sys.modules):
+        if key == name or key.startswith(name + "."):
+            sys.modules.pop(key, None)
+
+
+def _hints_package(root: Path, name: str, counter: Path) -> Path:
+    pkg = root / name
+    (pkg / "routes").mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "routes" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "models.py").write_text("class M:\n    pass\n", encoding="utf-8")
+    (pkg / "routes" / "h.py").write_text(
+        "from __future__ import annotations\n"
+        "import dataclasses\n"
+        "import typing\n"
+        f"from {name}.models import M\n"
+        f"open({str(counter)!r}, 'a', encoding='utf-8').write('x')\n"
+        "@dataclasses.dataclass\n"
+        "class D:\n"
+        "    m: M | None = None\n"
+        "class H:\n"
+        "    routes = ('get',)\n"
+        "    def render(self):\n"
+        "        return '<p>' + str(typing.get_type_hints(D)) + '</p>'\n",
+        encoding="utf-8",
+    )
+    return pkg
+
+
+def test_type_hints_survive_build_on_and_off_path(tmp_path):
+    """Future annotations resolve after build, whether or not the folder is on sys.path."""
+    from starlette.testclient import TestClient
+
+    from ux_compose.build import build
+
+    for label, on_path in (("off", False), ("on", True)):
+        name = f"hint{label}"
+        counter = tmp_path / f"{name}-runs.txt"
+        counter.write_text("", encoding="utf-8")
+        pkg = _hints_package(tmp_path / label, name, counter)
+        if on_path:
+            sys.path.insert(0, str(pkg.parent))
+        try:
+            _app, asgi, _bundle = build(pkg, name="X", host="asgi", live="null", level=1)
+            response = TestClient(asgi).get("/h")
+            assert response.status_code == 200, response.text
+            assert "M" in response.text
+        finally:
+            if on_path:
+                sys.path.remove(str(pkg.parent))
+            _purge_package(name)
+            _drop_tree(tmp_path)
+
+
+def test_route_file_runs_once_over_three_builds(tmp_path):
+    from ux_compose.build import build
+
+    name = "onceapp"
+    counter = tmp_path / "once-runs.txt"
+    counter.write_text("", encoding="utf-8")
+    pkg = _hints_package(tmp_path, name, counter)
+    try:
+        for _ in range(3):
+            build(pkg, name="X", host="asgi", live="null", level=1)
+        assert counter.read_text(encoding="utf-8") == "x"
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_import_after_build_is_the_served_module(tmp_path):
+    from ux_compose.build import build
+
+    name = "idapp"
+    pkg = tmp_path / name
+    (pkg / "routes").mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "routes" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "routes" / "a.py").write_text(
+        "import sys\n"
+        "SERVED = id(sys.modules[__name__])\n"
+        "class A:\n"
+        "    routes = ('get',)\n"
+        "    def render(self):\n"
+        "        return str(SERVED)\n",
+        encoding="utf-8",
+    )
+    try:
+        _app, asgi, _bundle = build(pkg, name="X", host="asgi", live="null", level=1)
+        mod = importlib.import_module(f"{name}.routes.a")
+        assert asgi_get(asgi, "/a").text == str(id(mod))
+        assert sys.modules[f"{name}.routes.a"] is mod
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_same_folder_thirty_builds_do_not_grow_sys_modules(tmp_path):
+    from ux_compose.build import build
+
+    name = "flatapp"
+    pkg = _write(
+        tmp_path / name,
+        {
+            "routes/a.py": (
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'flat'\n"
+            ),
+        },
+    )
+    try:
+        build(pkg, name="X", host="asgi", live="null", level=1)
+        base = len(sys.modules)
+        for _ in range(29):
+            built = build(pkg, name="X", host="asgi", live="null", level=1)
+            assert asgi_get(built[1], "/a").text == "flat"
+        assert len(sys.modules) == base
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_distinct_folders_grow_sys_modules_at_most_once(tmp_path):
+    from ux_compose.build import build
+
+    names: list[str] = []
+    try:
+        for index in range(3):
+            name = f"grow{index}"
+            names.append(name)
+            pkg = _write(
+                tmp_path / f"d{index}" / name,
+                {
+                    "routes/a.py": (
+                        "class A:\n"
+                        "    routes = ('get',)\n"
+                        "    def render(self):\n"
+                        f"        return {name!r}\n"
+                    ),
+                },
+            )
+            before = len(sys.modules)
+            built = build(pkg, name="X", host="asgi", live="null", level=1)
+            assert asgi_get(built[1], "/a").text == name
+            assert f"{name}.routes.a" in sys.modules
+            after = len(sys.modules)
+            assert after > before
+            built = build(pkg, name="X", host="asgi", live="null", level=1)
+            assert len(sys.modules) == after
+            assert asgi_get(built[1], "/a").text == name
+    finally:
+        for name in names:
+            _purge_package(name)
+        _drop_tree(tmp_path)

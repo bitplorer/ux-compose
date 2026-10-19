@@ -29,6 +29,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional, Sequence
 
+from ux_compose.routing.core import (
+    import_route_module,
+    isolate_package_imports,
+    load_detached_module,
+)
+
 logger = logging.getLogger("ux_compose.surfaces")
 
 __all__ = [
@@ -164,22 +170,39 @@ def _file_url(prefix: str, stem: str) -> str:
     return http_path(*segs)
 
 
-def _import_module(module: str, file: Path) -> Any:
+def _same_resolved_file(mod: Any, file: Path) -> bool:
+    origin = getattr(mod, "__file__", None)
+    if not isinstance(origin, str) or not origin:
+        return False
     try:
-        return importlib.import_module(module)
-    except Exception:
-        import importlib.util as ilu
+        return Path(origin).resolve() == file.resolve()
+    except OSError:
+        return False
 
-        safe = module.replace("/", "_").replace(".", "_").replace("-", "_")
-        if not safe.isidentifier():
-            safe = "ux_surface_" + str(abs(hash(str(file))))
-        spec = ilu.spec_from_file_location(safe, file)
-        if spec is None or spec.loader is None:
-            raise ImportError(f"cannot load {file}")
-        mod = ilu.module_from_spec(spec)
-        sys.modules[safe] = mod
-        spec.loader.exec_module(mod)
-        return mod
+
+def _load_from_file(module: str, file: Path) -> Any:
+    """Load ``file`` under a name that is unique to its resolved path.
+
+    A name derived only from the dotted module would be shared by two
+    directories that use the same folder name. Module code runs outside
+    ``package_import_lock``.
+    """
+    del module
+    return load_detached_module(file)
+
+
+def _import_module(module: str, file: Path) -> Any:
+    resolved = Path(file).resolve()
+    cached = sys.modules.get(module)
+    if cached is not None and _same_resolved_file(cached, resolved):
+        return import_route_module(module, resolved)
+    try:
+        loaded = importlib.import_module(module)
+    except Exception:
+        return _load_from_file(module, file)
+    if _same_resolved_file(loaded, resolved):
+        return import_route_module(module, resolved)
+    return _load_from_file(module, file)
 
 
 def scan_surfaces(
@@ -191,6 +214,7 @@ def scan_surfaces(
 ) -> list[Surface]:
     """Discover units under package_dir/base_directory (define-in-module only)."""
     root = Path(package_dir).resolve()
+    isolate_package_imports(root)
     base = root / base_directory
     if not base.exists():
         return []

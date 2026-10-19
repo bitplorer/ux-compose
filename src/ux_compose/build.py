@@ -27,9 +27,64 @@ import ast
 from pathlib import Path
 from typing import Any
 
-__all__ = ["build", "BuildResult"]
+from ux_compose.routing.core import (
+    BuildLockTimeout,
+    begin_build_import_wait,
+    end_build_import_wait,
+    lock_timeout_from_env,
+    parse_lock_timeout,
+)
+
+__all__ = ["BuildLockTimeout", "build", "BuildResult"]
 
 _UNSET = object()
+
+
+def _rebind_detached_pages(app: Any, registry: dict, bundle: Any, records: list) -> None:
+    """Dispatch and GET use the dotted route class, not the scan copy.
+
+    Scan already registered this id in this build. The path-unique module
+    is dropped when the build ends, so the dotted instance has to take
+    its place. That swap is bookkeeping: it must not go through
+    ``behavior.add``, which logs COMPONENT_REPLACE. A page whose registry
+    instance is already the dotted class is left as it is.
+    """
+    behavior = getattr(app, "_behavior", None)
+    if behavior is None:
+        return
+    components = getattr(behavior, "_components", None)
+    if not isinstance(components, dict):
+        return
+    for rec in records:
+        page_cls = getattr(rec, "page_cls", None)
+        if not isinstance(page_cls, type):
+            continue
+        sid = str(getattr(page_cls, "id", None) or page_cls.__name__.lower())
+        inst = registry.get(sid)
+        if inst is None:
+            continue
+        inst_mod = str(getattr(type(inst), "__module__", ""))
+        page_mod = str(getattr(page_cls, "__module__", ""))
+        if inst_mod == page_mod or not inst_mod.startswith("ux_surface_"):
+            continue
+        replacement = page_cls()
+        bind = getattr(replacement, "bind_behavior", None)
+        if callable(bind):
+            bind(behavior)
+        else:
+            setattr(replacement, "_behavior", behavior)
+        components[sid] = replacement
+        registry[sid] = replacement
+        unit_registry = getattr(bundle, "unit_registry", None)
+        if isinstance(unit_registry, dict):
+            unit_registry[sid] = replacement
+
+
+def _resolve_lock_timeout(lock_timeout: Any) -> float | None:
+    """None waits until the other build finishes. Omitted reads the env, else 60."""
+    if lock_timeout is _UNSET:
+        return lock_timeout_from_env()
+    return parse_lock_timeout(lock_timeout, where="UX_COMPOSE_BUILD_LOCK_TIMEOUT")
 
 
 def _const_bool(node: ast.AST) -> bool | None:
@@ -128,6 +183,7 @@ def build(
     cek: str = "require",
     openapi: Any = _UNSET,
     strict_caps: bool = True,
+    lock_timeout: Any = _UNSET,
 ) -> BuildResult:
     """Boot specialists + mount page units. Host and live set only here.
 
@@ -157,9 +213,27 @@ def build(
         Cap Host ≠ HTTP Product host (ADR 0002).
       - ``"adapt"`` — compare-only lab
       - ``"off"`` — do not attach Cap Host (honest off; see ``App.use_cek``)
+
+    lock_timeout:
+      Seconds to wait while another thread is importing this package name.
+      Omitted reads ``UX_COMPOSE_BUILD_LOCK_TIMEOUT``, otherwise 60.
+      A blank string is that same default. ``0`` tries once and raises
+      ``BuildLockTimeout`` without waiting. ``None``, ``none``, and
+      ``inf`` (any case) wait until the other import ends. A negative
+      number, ``nan``, or any other bad value raises ``ValueError``.
+      The message names ``UX_COMPOSE_BUILD_LOCK_TIMEOUT``. ``-1`` does
+      not wait forever. ``App.mount`` and ``DirectoryRoutes.discover``
+      use this same parser.
     """
     from ux_compose import App
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks
+    from ux_compose.routing.core import begin_build_module_notes, end_build_module_notes
+    from ux_compose.routing.core import isolate_package_imports, package_build_lock
+    from ux_compose.routing.core import pin_package_finder, unpin_package_finder
+    from ux_compose.routing.core import (
+        release_build_package_modules,
+        snapshot_package_modules,
+    )
     from ux_compose.routing.host import KIND_FASTAPI, bind as host_bind
     from ux_compose.routing.host import open as host_open
 
@@ -225,36 +299,71 @@ def build(
             if pinned is not None and pinned >= 3:
                 raise
 
-    bundle = app.mount(
-        package_dir,
-        asgi_app=None,
-        base=base,
-        fail_closed=fail_closed,
-        bind_pages=False,
-    )
+    # Same folder name imports one at a time. The lock is reentrant for
+    # this thread and times out for another thread. It is not global, so
+    # other package names keep running, and package_import_lock stays off
+    # the route body. isolate releases this lock while it waits for another
+    # folder's import, then takes it again. Holding it across that wait
+    # deadlocks a main.py that calls build().
+    name_lock = package_build_lock(package_dir.name)
+    timeout = _resolve_lock_timeout(lock_timeout)
+    wait_token = begin_build_import_wait(timeout)
+    acquired = False
+    try:
+        if timeout is None:
+            name_lock.acquire()
+            acquired = True
+        elif name_lock.acquire(timeout=timeout):
+            acquired = True
+        else:
+            raise BuildLockTimeout(package_dir.name, timeout)
+        finder = pin_package_finder(package_dir)
+        try:
+            before = snapshot_package_modules(package_dir)
+            begin_build_module_notes()
+            try:
+                isolate_package_imports(package_dir)
 
-    registry = dict(getattr(bundle, "unit_registry", {}) or {})
+                bundle = app.mount(
+                    package_dir,
+                    asgi_app=None,
+                    base=base,
+                    fail_closed=fail_closed,
+                    bind_pages=False,
+                )
 
-    def _resolve(cls, path, name):
-        sid = str(getattr(cls, "id", None) or cls.__name__.lower())
-        return registry.get(sid)
+                registry = dict(getattr(bundle, "unit_registry", {}) or {})
 
-    core = DirectoryRoutes(
-        package_dir,
-        base_directory=base,
-        hooks=RouterHooks(resolve_unit=_resolve),
-        fail_closed=fail_closed,
-    )
-    core.discover()
-    asgi = host_bind(
-        asgi=asgi,
-        kind=kind,
-        core=core,
-        document=document,
-        wrap=author_wrap,
-        resolve_unit=_resolve,
-    )
-    if bundle is not None and core.records:
-        bundle.route_table = core.route_table()
+                def _resolve(cls, path, name):
+                    sid = str(getattr(cls, "id", None) or cls.__name__.lower())
+                    return registry.get(sid)
+
+                core = DirectoryRoutes(
+                    package_dir,
+                    base_directory=base,
+                    hooks=RouterHooks(resolve_unit=_resolve),
+                    fail_closed=fail_closed,
+                )
+                core.discover()
+                _rebind_detached_pages(app, registry, bundle, core.records)
+                asgi = host_bind(
+                    asgi=asgi,
+                    kind=kind,
+                    core=core,
+                    document=document,
+                    wrap=author_wrap,
+                    resolve_unit=_resolve,
+                )
+                if bundle is not None and core.records:
+                    bundle.route_table = core.route_table()
+            finally:
+                end_build_module_notes()
+                release_build_package_modules(package_dir, before)
+        finally:
+            unpin_package_finder(finder)
+    finally:
+        if acquired and name_lock.depth_of_current() > 0:
+            name_lock.release()
+        end_build_import_wait(wait_token)
 
     return BuildResult((app, asgi, bundle))

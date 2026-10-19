@@ -242,6 +242,75 @@ OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
   stays offline Behavior. Complete documents and `/css` are not
   double-wrapped.
 
+### Helper modules are not reloaded
+
+`build()` leaves the route module in `sys.modules`. After `build()`,
+`import pkg.routes.a` is the module that served the page, and
+`typing.get_type_hints` can still read that module's globals, including
+when the package is not on `sys.path`. A folder on `sys.path` runs the
+route file once. A folder that is not runs it twice on the first build,
+then not again unless the file's bytes changed. Helper modules those routes import —
+`models.py`, a helper package such as `models/__init__.py`, and any other
+module that is not the route file — keep the module object from the first
+import. Editing a helper is not picked up on rebuild. Restart the process
+to load it.
+
+Isolation and eviction run only when a different directory with the same
+package name is built. Rebuilding one folder does not add another copy of
+its modules. The first build of a new folder may add that folder's modules
+once. Each distinct app adds three `sys.modules` keys, and a rebuild adds
+none, so the growth is bounded by the number of distinct apps.
+
+Known limitation: during a same-name build, a shared `sys.modules['myapp']`
+means a thread that isn't building can see the building folder's helpers.
+Its `__path__` points at the folder being built, so the meta_path finder
+isn't involved.
+
+### Same-name builds take turns importing
+
+Two `build()` calls whose package folders share a name import one at a
+time. The wait is reentrant on the thread that already holds that name, so a
+route may call `build()` for the same folder name on the same thread.
+Different folder names keep running together. Nothing in that wait is held
+across another package's route body.
+
+While a name is importing, `pkg` and `pkg.*` resolve to that build's
+directory even if another thread has put a different copy first on
+`sys.path`. The build serves the helper from its own tree. It does not
+serve another app's helper. A name that is not on `sys.path` at all is
+not imported: `build()` raises `ModuleNotFoundError` for that name.
+
+A second thread that is still waiting when the timeout elapses gets
+`BuildLockTimeout` from `ux_compose.build`. The message names the package
+and the setting. `lock_timeout=None` does not turn a deadlock into that
+error. `build()`, `App.mount`, and `DirectoryRoutes.discover` share one
+parser. `build(lock_timeout=...)` overrides the environment.
+`UX_COMPOSE_BUILD_LOCK_TIMEOUT` applies when that argument is omitted,
+and it is the only input `App.mount` and `DirectoryRoutes.discover` read.
+
+| Value | Meaning |
+| --- | --- |
+| unset, or `''` | 60 seconds |
+| `0` | no wait: one try, then `BuildLockTimeout` |
+| `inf`, `none` (any case; `infinite` too) | no limit |
+| `abc`, `-1`, `nan` | `ValueError` naming `UX_COMPOSE_BUILD_LOCK_TIMEOUT` |
+
+`UX_COMPOSE_BUILD_LOCK_TIMEOUT` and `build(lock_timeout=...)` are new in
+this release. A value that is not a timeout raises `ValueError`. The
+message names `UX_COMPOSE_BUILD_LOCK_TIMEOUT`.
+
+`lock_timeout=None` is the same as `none`. `inf` is not passed to the
+lock, so it does not raise `OverflowError`. `-1` does not wait forever.
+That build does not continue after a timeout, so it cannot bind the
+other thread's modules.
+
+The wait for another folder's import does not hold the package-name
+lock. `build()` releases it, then takes it again and rechecks the
+folder. An import that calls `build()` for that same name, including
+when the timeout is `None`, is `PackageImportConflict`. The exception
+names the folder that was loaded and the folder being built. The other
+folder is not served.
+
 ---
 
 ## 9. CSP on FastAPI (two layers, one nonce)

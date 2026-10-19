@@ -29,6 +29,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Login's password input carries `data-ux-keep-value`. The server still paints `value=""`. ux-channel @ `0ffe8e9907cd1a0701ffc8cb2e5414d6b39d2996` (#64 merge) copies the live value in that browser after Show and Hide. Password and text are one class, so Show keeps the typed password. PasswordField's secret input does not carry the mark: Hold and Hide clear the plain-text field, because Reveal is what puts the secret on screen and this field is always `type="text"`.
 - `App.control` and `App.mint_cap` take the action name positionally. A payload key named `action` passes through, as it does for `App.dispatch`.
 
+### Fixed
+
+- Same-name `build()` calls import one package at a time, pinned to that
+  directory, so one app cannot serve another app's helper. A second thread
+  that waits too long gets `BuildLockTimeout` naming the package instead of
+  blocking on the import lock.
+- A folder's route module stays in `sys.modules` after `build()`, so
+  `import` returns the served module and `typing.get_type_hints` can read
+  it. The file runs again only when its bytes change. A different directory
+  with the same package name is what replaces it. If another thread is
+  still importing that name, `build()` waits for the import to release,
+  bounded by the same timeout as the build lock, then loads this folder.
+  The package-name lock is not held during that wait. Holding it
+  deadlocks when that import calls `build()` for the same name, so the
+  lock is released and taken again. If the importer is blocked on the
+  lock, or the folder is still the other one after that `build()`,
+  `build()` raises `PackageImportConflict` and names both folders. It
+  also raises `PackageImportConflict` when a module this folder also has
+  is still the other folder's copy. If that wait runs out, `build()`
+  raises `BuildLockTimeout` and does not serve the other folder. Main
+  silently served that other folder's code. This is a security fix.
+- The import pin does not make an off-path package importable. When
+  that name is not on `sys.path`, `build()` raises `ModuleNotFoundError`,
+  the same as an ordinary import.
+- Known limitation: a shared `sys.modules['myapp']` means a thread that
+  isn't building can see the building folder's helpers. Its `__path__`
+  points at the folder being built, so the meta_path finder isn't involved.
+- Helper packages stay imported. `models/__init__.py` is not dropped after
+  `build()`, so `typing.get_type_hints` can still see its names and a later
+  import is the module the route captured.
+- `UX_COMPOSE_BUILD_LOCK_TIMEOUT` and `build(lock_timeout=...)` are new
+  in this release. `build()`, `App.mount`, and `DirectoryRoutes.discover`
+  share one parser. Unset or blank is 60 seconds. `0` tries once and
+  raises `BuildLockTimeout` with no wait. `none` and `inf`, any case,
+  wait until the other import ends (`infinite` is `inf`). `abc`, `-1`,
+  and `nan` raise `ValueError` naming `UX_COMPOSE_BUILD_LOCK_TIMEOUT`
+  (`-1` does not wait forever). `BuildLockTimeout` names the package
+  and the setting.
+- Security: two folders with the same package name keep their own
+  component HTML. While one folder is building, the other folder's
+  `main.py` calling `build()` does not make the in-progress build serve
+  that other folder's HTML. The in-progress build raises
+  `PackageImportConflict` and reports its own folder. Main served the
+  other folder's component.
+- `build()` does not pop a package out of `sys.modules` while another
+  thread is importing a child of that package, so that import does not
+  raise `KeyError`.
+
 ## 0.2.0 — remove deprecations and bloat cleanup
 
 ux-compose and its ux-* specialists are not on PyPI, so these are removed

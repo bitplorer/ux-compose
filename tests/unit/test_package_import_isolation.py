@@ -3586,3 +3586,77 @@ def test_direct_mount_and_discover_reject_a_bad_timeout_env(
     finally:
         _purge_package(name)
         _drop_tree(tmp_path)
+
+
+def test_same_thread_package_lock_is_not_another_importer(tmp_path, monkeypatch):
+    """This thread holds the package lock while another thread imports a child.
+
+    The child module is only in the other folder. build() serves this
+    folder. Treating our package lock as another importer conflicts on
+    the package both folders ship.
+    """
+    import importlib._bootstrap as bootstrap
+
+    from ux_compose.build import build
+
+    gate_name = "gate_exact_owner"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\nIN = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    name = "exactapp"
+    folder_b = tmp_path / "b" / name
+    folder_a = tmp_path / "a" / name
+    folder_b.mkdir(parents=True)
+    (folder_b / "__init__.py").write_text("", encoding="utf-8")
+    (folder_b / "extra.py").write_text(
+        f"import {gate_name}\n"
+        "import time\n"
+        f"{gate_name}.IN.set()\n"
+        "time.sleep(0.2)\n"
+        "MARK = 'EXTRA'\n",
+        encoding="utf-8",
+    )
+    _write(
+        folder_a,
+        {
+            "routes/home.py": (
+                "class Home:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'OURS'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(folder_b.parent))
+    gate = importlib.import_module(gate_name)
+    lock = None
+    out: dict[str, object] = {}
+    try:
+        _purge_package(name)
+        importlib.invalidate_caches()
+        importlib.import_module(name)
+        lock = bootstrap._get_module_lock(name)
+        lock.acquire()
+
+        def loader() -> None:
+            try:
+                importlib.import_module(f"{name}.extra")
+            except BaseException as exc:
+                out["loader"] = exc
+
+        left = threading.Thread(target=loader, daemon=True)
+        left.start()
+        assert gate.IN.wait(2)
+        built = build(folder_a, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/home").text == "OURS"
+        left.join(2)
+        assert not left.is_alive()
+        assert out.get("loader") is None, out.get("loader")
+    finally:
+        if lock is not None and getattr(lock, "owner", None) is not None:
+            lock.release()
+        _purge_package(name)
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)

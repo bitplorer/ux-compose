@@ -223,8 +223,9 @@ def _otp_page_for(code):
 def test_otp_input_does_not_paint_another_clients_digits():
     """``otp.py`` paints ``value=""``. A second client must not see the digits.
 
-    Covers a refused six-digit code and a short code. ``value=str(self.code)``
-    would put the short code on B's page.
+    A refused code and a short code are cleared, so neither page shows them.
+    A code that is still stored is also unpainted. ``value=str(self.code)``
+    would put that stored code on both clients' pages.
     """
     refused, refused_html = _otp_page_for("000000")
     assert not bool(refused.ok)
@@ -232,7 +233,12 @@ def test_otp_input_does_not_paint_another_clients_digits():
     assert "000000" not in refused_html
     _short, short_html = _otp_page_for("83921")
     assert "83921" not in short_html
-    for html in (refused_html, short_html):
+    stored_asgi, stored = _boot(Otp, None)
+    _page(stored_asgi, stored)
+    stored.code = "83921"
+    stored_pages = (_get(stored_asgi, _CLIENT_A).text, _get(stored_asgi, _CLIENT_B).text)
+    assert all("83921" not in html for html in stored_pages)
+    for html in (refused_html, short_html, *stored_pages):
         tree = _Tree()
         tree.feed(html)
         inputs = [

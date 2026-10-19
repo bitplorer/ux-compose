@@ -170,6 +170,7 @@ class Otp(Component):
         digits = str(self.code or "")
         if len(digits) != 6:
             self.err = "Enter all six digits."
+            self.code = ""
             self._mark_dirty()
             return update_with(self, extra_ops=[notify("Check the code")])
         refused = self.on_verify(digits)

@@ -69,7 +69,7 @@ def test_stream_error_after_first_byte_is_logged_and_not_sent(tmp_path: Path, ca
     with caplog.at_level(logging.ERROR):
         status, _headers, body = asgi_http(DirectoryASGI(core), "/g")
     assert status == 200
-    assert b"<div>a</div>" in body
+    assert body == b"<div>\n  a\n</div>"
     assert b"Error:" not in body
     assert b"boom-mid-stream" not in body
     assert "boom-mid-stream" in caplog.text

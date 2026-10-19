@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`html=` included). If the Document shell raises, the return is that
   sanitized fragment, not the original source string.
 - Trusted HTML returned as a plain `str` now gets its handlers and scripts stripped. Authors who want it verbatim must wrap it in `Markup()` or `raw()`.
+- A streamed plain `str` chunk is sanitized as its own fragment (`<script>` and `onclick` dropped). `Markup` and `raw()` chunks stay verbatim. A tag split across two plain-str chunks is not reassembled; use `Markup()` or `raw()` for that.
 - Pin ux-dom to `67176c9`, the head of ux-dom
   [#32](https://github.com/bitplorer/ux-dom/pull/32), so `defHTML` is the
   sanitizer. Replace this pin with the final ux-dom tip when #32 lands.

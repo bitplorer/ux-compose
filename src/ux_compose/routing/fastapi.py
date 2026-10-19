@@ -22,6 +22,7 @@ from typing import Any, Callable, Optional
 
 from ux_compose.routing.core import (
     DirectoryRoutes,
+    _sanitized_stream,
     apply_html_document,
     is_json_payload,
     is_stream_payload,
@@ -85,11 +86,12 @@ def _as_stream_response(payload: Any) -> Any:
     from starlette.responses import StreamingResponse
     from ux_dom.response.starlette import StreamingResponse as DomStreamingResponse
 
+    body = _sanitized_stream(payload)
     try:
-        return DomStreamingResponse(payload)
+        return DomStreamingResponse(body)
     except TypeError:
         # ux-dom's StreamingResponse rejects sync generators; Starlette accepts them.
-        return StreamingResponse(payload, media_type="text/html; charset=utf-8")
+        return StreamingResponse(body, media_type="text/html; charset=utf-8")
 
 
 def _as_http_response(payload: Any, *, document: Any = None) -> Any:

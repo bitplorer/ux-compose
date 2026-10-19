@@ -18,6 +18,7 @@ from ux_compose.routing.core import (
     DirectoryRoutesError,
     RouteRecord,
     RouterHooks,
+    _html_chunk_bytes,
     apply_html_document,
     is_json_payload,
     is_stream_payload,
@@ -126,11 +127,7 @@ def _encode(result: Any) -> tuple[bytes, bytes]:
 
 
 def _chunk_bytes(chunk: Any) -> bytes:
-    if chunk is None:
-        return b""
-    if isinstance(chunk, (bytes, bytearray, memoryview)):
-        return bytes(chunk)
-    return str(chunk).encode("utf-8")
+    return _html_chunk_bytes(chunk)
 
 
 async def _send_stream(send: Callable, iterable: Any, *, content_type: bytes) -> None:

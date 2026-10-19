@@ -27,6 +27,7 @@ from markupsafe import Markup
 from ux_dom import Fragment
 from ux_dom.dom import defHTML
 from ux_dom.dom.src.utils.dom_util import raw
+from ux_dom.response.serialize import to_html_bytes
 
 logger = logging.getLogger("ux_compose.routing.core")
 
@@ -232,6 +233,41 @@ def _author_html(value: str) -> Any:
     if len(nodes) == 1:
         return nodes[0]
     return Fragment(*nodes)
+
+
+def _html_chunk_bytes(chunk: Any) -> bytes:
+    """One streamed chunk. A plain str is sanitized as its own fragment.
+
+    ``Markup`` is encoded unchanged. A ``raw()`` node is its verbatim HTML.
+    A tag split across plain-str chunks is not reassembled; authors who
+    need that chunk verbatim yield ``Markup`` or ``raw()``.
+    """
+    if chunk is None:
+        return b""
+    if isinstance(chunk, (bytes, bytearray, memoryview)):
+        return bytes(chunk)
+    if isinstance(chunk, Markup):
+        return str(chunk).encode("utf-8")
+    if isinstance(chunk, str):
+        return to_html_bytes(_author_html(chunk))
+    return to_html_bytes(chunk)
+
+
+def _sanitized_stream(payload: Any) -> Any:
+    """Map each chunk of a sync or async stream through ``_html_chunk_bytes``."""
+    if inspect.isasyncgen(payload) or hasattr(payload, "__aiter__"):
+
+        async def _agen():
+            async for chunk in payload:
+                yield _html_chunk_bytes(chunk)
+
+        return _agen()
+
+    def _gen():
+        for chunk in payload:
+            yield _html_chunk_bytes(chunk)
+
+    return _gen()
 
 
 def _document_child(payload: Any) -> Any:

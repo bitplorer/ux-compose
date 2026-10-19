@@ -282,20 +282,23 @@ not imported: `build()` raises `ModuleNotFoundError` for that name.
 
 A second thread that is still waiting when the timeout elapses gets
 `BuildLockTimeout` from `ux_compose.build`. The message names the package
-and the setting. The default wait is 60 seconds, so a slow route still
-finishes. `lock_timeout=None` does not turn a deadlock into that error.
-`build(lock_timeout=...)`
-overrides it. `UX_COMPOSE_BUILD_LOCK_TIMEOUT` overrides it when the
-argument is omitted. A blank environment value keeps that default.
-`lock_timeout=None`, `none`, or `inf` (argument or environment) waits
-until the other build finishes. `inf` is not passed to the lock, so it
-does not raise `OverflowError`. A negative number, including `-1`, and
-any other bad value raises `ValueError` before the wait. The message
-names `UX_COMPOSE_BUILD_LOCK_TIMEOUT`. `App.mount` and
-`DirectoryRoutes.discover` read that same environment when `build()` has
-not set a timeout, and a bad value is the same `ValueError` rather than
-a silent 60 seconds. That build does not continue
-after a timeout, so it cannot bind the other thread's modules.
+and the setting. `lock_timeout=None` does not turn a deadlock into that
+error. `build()`, `App.mount`, and `DirectoryRoutes.discover` share one
+parser. `build(lock_timeout=...)` overrides the environment.
+`UX_COMPOSE_BUILD_LOCK_TIMEOUT` applies when that argument is omitted,
+and it is the only input `App.mount` and `DirectoryRoutes.discover` read.
+
+| Value | Meaning |
+| --- | --- |
+| unset, or `''` | 60 seconds |
+| `0` | no wait: one try, then `BuildLockTimeout` |
+| `inf`, `none` (any case; `infinite` too) | no limit |
+| `abc`, `-1`, `nan` | `ValueError` naming `UX_COMPOSE_BUILD_LOCK_TIMEOUT` |
+
+`lock_timeout=None` is the same as `none`. `inf` is not passed to the
+lock, so it does not raise `OverflowError`. `-1` does not wait forever.
+That build does not continue after a timeout, so it cannot bind the
+other thread's modules.
 
 The wait for another folder's import does not hold the package-name
 lock. `build()` releases it, then takes it again and rechecks the

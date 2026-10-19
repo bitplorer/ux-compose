@@ -2203,8 +2203,6 @@ def test_none_lock_timeout_ignores_a_short_default(tmp_path, monkeypatch):
     """None waits the other build out even when the default wait is tiny."""
     from ux_compose.build import build
 
-    build_mod = sys.modules["ux_compose.build"]
-
     (tmp_path / "holdgate.py").write_text(
         "import threading\n"
         "ENTERED = threading.Event()\n"
@@ -2213,7 +2211,9 @@ def test_none_lock_timeout_ignores_a_short_default(tmp_path, monkeypatch):
     )
     monkeypatch.syspath_prepend(str(tmp_path))
     monkeypatch.delenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", raising=False)
-    monkeypatch.setattr(build_mod, "_DEFAULT_LOCK_TIMEOUT", 0.2)
+    monkeypatch.setattr(
+        "ux_compose.routing.core._DEFAULT_LOCK_TIMEOUT", 0.2
+    )
     name = "noneapp"
     pkg = _hold_package(tmp_path, name)
     gate = importlib.import_module("holdgate")

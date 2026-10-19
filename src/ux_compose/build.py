@@ -24,7 +24,6 @@ and HTML wrap live elsewhere.
 from __future__ import annotations
 
 import ast
-import os
 from pathlib import Path
 from typing import Any
 
@@ -32,13 +31,13 @@ from ux_compose.routing.core import (
     BuildLockTimeout,
     begin_build_import_wait,
     end_build_import_wait,
+    lock_timeout_from_env,
     parse_lock_timeout,
 )
 
 __all__ = ["BuildLockTimeout", "build", "BuildResult"]
 
 _UNSET = object()
-_DEFAULT_LOCK_TIMEOUT = 60.0
 
 
 def _rebind_detached_pages(app: Any, registry: dict, bundle: Any, records: list) -> None:
@@ -81,30 +80,11 @@ def _rebind_detached_pages(app: Any, registry: dict, bundle: Any, records: list)
             unit_registry[sid] = replacement
 
 
-def _checked_lock_timeout(value: Any, *, where: str) -> float | None:
-    """Seconds, or None for "wait until done". Rejects negatives and NaN.
-
-    ``inf`` is None so the lock is taken without a timeout. Passing
-    ``float('inf')`` through to ``RLock.acquire`` raises OverflowError,
-    and ``-1`` waits forever once the lock is held. Direct mount and
-    discover use the same parser.
-    """
-    return parse_lock_timeout(value, where=where)
-
-
 def _resolve_lock_timeout(lock_timeout: Any) -> float | None:
     """None waits until the other build finishes. Omitted reads the env, else 60."""
-    if lock_timeout is None:
-        return None
-    if lock_timeout is not _UNSET:
-        return _checked_lock_timeout(lock_timeout, where="build(lock_timeout=...)")
-    raw = os.environ.get("UX_COMPOSE_BUILD_LOCK_TIMEOUT")
-    if raw is None or not raw.strip():
-        return float(_DEFAULT_LOCK_TIMEOUT)
-    token = raw.strip().lower()
-    if token in {"none", "inf", "infinite"}:
-        return None
-    return _checked_lock_timeout(raw.strip(), where="UX_COMPOSE_BUILD_LOCK_TIMEOUT")
+    if lock_timeout is _UNSET:
+        return lock_timeout_from_env()
+    return parse_lock_timeout(lock_timeout, where="UX_COMPOSE_BUILD_LOCK_TIMEOUT")
 
 
 def _const_bool(node: ast.AST) -> bool | None:
@@ -235,13 +215,15 @@ def build(
       - ``"off"`` — do not attach Cap Host (honest off; see ``App.use_cek``)
 
     lock_timeout:
-      Seconds another thread waits while this package name is importing.
-      ``None`` waits until that build finishes. When omitted, the value is
-      ``UX_COMPOSE_BUILD_LOCK_TIMEOUT`` if set, otherwise 60. ``none`` or
-      ``inf`` waits until done. A blank environment value keeps the
-      default. A negative number, ``nan``, or any other bad value raises
-      ``ValueError``. The message names ``UX_COMPOSE_BUILD_LOCK_TIMEOUT``.
-      ``-1`` does not wait forever.
+      Seconds to wait while another thread is importing this package name.
+      Omitted reads ``UX_COMPOSE_BUILD_LOCK_TIMEOUT``, otherwise 60.
+      A blank string is that same default. ``0`` tries once and raises
+      ``BuildLockTimeout`` without waiting. ``None``, ``none``, and
+      ``inf`` (any case) wait until the other import ends. A negative
+      number, ``nan``, or any other bad value raises ``ValueError``.
+      The message names ``UX_COMPOSE_BUILD_LOCK_TIMEOUT``. ``-1`` does
+      not wait forever. ``App.mount`` and ``DirectoryRoutes.discover``
+      use this same parser.
     """
     from ux_compose import App
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks

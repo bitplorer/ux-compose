@@ -556,15 +556,25 @@ def end_build_import_wait(token: contextvars.Token[Any]) -> None:
     _build_wait_timeout.reset(token)
 
 
-def parse_lock_timeout(value: Any, *, where: str) -> float | None:
-    """Seconds, or None to wait until done. Rejects negatives and NaN.
+_DEFAULT_LOCK_TIMEOUT = 60.0
 
-    ``none``, ``inf``, and ``infinite`` wait until the other import ends.
-    ``build()`` and a direct ``App.mount`` or ``DirectoryRoutes.discover``
-    share this parser, so a bad ``UX_COMPOSE_BUILD_LOCK_TIMEOUT`` is the
-    same ``ValueError`` on every path.
+
+def parse_lock_timeout(value: Any, *, where: str) -> float | None:
+    """Seconds, or None to wait until done.
+
+    A blank string is the default, 60 seconds. ``0`` tries once and does
+    not wait. ``none`` and ``inf``, any case, wait until done.
+    ``infinite`` is the same as ``inf``. ``None`` waits until done, the
+    same as ``lock_timeout=None``. A negative number, ``nan``, or other
+    bad value raises ``ValueError``. The message names
+    ``UX_COMPOSE_BUILD_LOCK_TIMEOUT``. ``build()``, ``App.mount``, and
+    ``DirectoryRoutes.discover`` share this parser.
     """
+    if value is None:
+        return None
     if isinstance(value, str):
+        if not value.strip():
+            return _DEFAULT_LOCK_TIMEOUT
         token = value.strip().lower()
         if token in {"none", "inf", "infinite"}:
             return None
@@ -599,9 +609,14 @@ def _import_wait_seconds() -> float | None:
     current = _build_wait_timeout.get()
     if current is not _WAIT_UNSET:
         return current
+    return lock_timeout_from_env()
+
+
+def lock_timeout_from_env() -> float | None:
+    """``UX_COMPOSE_BUILD_LOCK_TIMEOUT``, or 60 when that variable is unset."""
     raw = os.environ.get("UX_COMPOSE_BUILD_LOCK_TIMEOUT")
-    if raw is None or not raw.strip():
-        return 60.0
+    if raw is None:
+        return _DEFAULT_LOCK_TIMEOUT
     return parse_lock_timeout(raw, where="UX_COMPOSE_BUILD_LOCK_TIMEOUT")
 
 

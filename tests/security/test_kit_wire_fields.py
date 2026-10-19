@@ -206,9 +206,13 @@ def _boot(component, prelude):
 
 
 def _post_row(kit, component, prelude):
-    asgi, inst = _boot(component, prelude)
+    # One instance per control. A later click must not inherit an earlier marker.
+    _asgi, listing = _boot(component, prelude)
+    controls = _controls(str(listing.render()))
     rows = []
-    for nth, ctrl in enumerate(_controls(str(inst.render()))):
+    for nth, _listed in enumerate(controls):
+        asgi, inst = _boot(component, prelude)
+        ctrl = _controls(str(inst.render()))[nth]
         markers = {
             name: _marker(name, ctrl["types"].get(name, ""), kit, nth)
             for name in ctrl["form"]

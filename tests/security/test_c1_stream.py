@@ -5,8 +5,10 @@ need a verbatim chunk use ``markupsafe.Markup`` or ux-dom ``raw()``.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from pathlib import Path
+from typing import Any
 
 import pytest
 from markupsafe import Markup
@@ -199,3 +201,106 @@ def test_invalid_bytes_are_replaced_with_one_warning(
     assert body == BAD_BODY
     replaced = [r for r in caplog.records if "U+FFFD" in r.getMessage()]
     assert len(replaced) == 1
+
+
+async def _drain_pair(left: Any, right: Any) -> tuple[bytes, bytes]:
+    """Pull one chunk from each stream before either continues.
+
+    A module-level decoder still holds the first response's lead byte when
+    the second response decodes, so the bodies stop matching.
+    """
+    out_l: list[bytes] = []
+    out_r: list[bytes] = []
+    alive_l = True
+    alive_r = True
+    while alive_l or alive_r:
+        if alive_l:
+            try:
+                out_l.append(bytes(await left.__anext__()))
+            except StopAsyncIteration:
+                alive_l = False
+        if alive_r:
+            try:
+                out_r.append(bytes(await right.__anext__()))
+            except StopAsyncIteration:
+                alive_r = False
+    return b"".join(out_l), b"".join(out_r)
+
+
+def test_interleaved_streams_keep_a_decoder_per_response(tmp_path: Path):
+    """Two in-flight streams must not share UTF-8 state. Both hosts."""
+
+    async def fastapi_pair() -> tuple[bytes, bytes]:
+        def gen():
+            yield from CAFE
+
+        left = _as_http_response(gen()).body_iterator
+        right = _as_http_response(gen()).body_iterator
+        return await _drain_pair(left, right)
+
+    async def asgi_pair() -> tuple[bytes, bytes]:
+        held = [asyncio.Event(), asyncio.Event()]
+        release = [asyncio.Event(), asyncio.Event()]
+
+        def factory(index: int):
+            async def gen():
+                yield CAFE[0]
+                held[index].set()
+                await release[index].wait()
+                yield CAFE[1]
+
+            return gen
+
+        apps = [_page(tmp_path / f"interleave-{i}", factory(i)) for i in (0, 1)]
+        tasks = [
+            asyncio.create_task(_collect_asgi(apps[i], "/g")) for i in (0, 1)
+        ]
+        await asyncio.wait_for(held[0].wait(), timeout=5)
+        await asyncio.wait_for(held[1].wait(), timeout=5)
+        release[0].set()
+        release[1].set()
+        return tuple(await asyncio.wait_for(asyncio.gather(*tasks), timeout=5))
+
+    async def run() -> tuple[bytes, bytes, bytes, bytes]:
+        fa, fb = await fastapi_pair()
+        aa, ab = await asgi_pair()
+        return fa, fb, aa, ab
+
+    fa, fb, aa, ab = asyncio.run(run())
+    assert (fa, fb, aa, ab) == (CAFE_BODY, CAFE_BODY, CAFE_BODY, CAFE_BODY)
+
+
+async def _collect_asgi(app: Any, path: str) -> bytes:
+    chunks: list[bytes] = []
+    received = {"http": False}
+    finished = asyncio.Event()
+
+    async def receive():
+        if not received["http"]:
+            received["http"] = True
+            return {"type": "http.request", "body": b"", "more_body": False}
+        await asyncio.wait_for(finished.wait(), timeout=5)
+        return {"type": "http.disconnect"}
+
+    async def send(msg):
+        if msg["type"] == "http.response.body":
+            chunks.append(bytes(msg.get("body") or b""))
+            if not msg.get("more_body", False):
+                finished.set()
+
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": path,
+        "raw_path": path.encode("utf-8"),
+        "query_string": b"",
+        "headers": [(b"host", b"test")],
+        "server": ("test", 80),
+        "client": ("test", 123),
+        "root_path": "",
+    }
+    await app(scope, receive, send)
+    return b"".join(chunks)

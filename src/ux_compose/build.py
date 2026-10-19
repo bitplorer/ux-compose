@@ -333,7 +333,9 @@ def build(
     # Same folder name imports one at a time. The lock is reentrant for
     # this thread and times out for another thread. It is not global, so
     # other package names keep running, and package_import_lock stays off
-    # the route body.
+    # the route body. isolate releases this lock while it waits for another
+    # folder's import, then takes it again. Holding it across that wait
+    # deadlocks a main.py that calls build().
     name_lock = package_build_lock(package_dir.name)
     timeout = _resolve_lock_timeout(lock_timeout)
     wait_token = begin_build_import_wait(timeout)
@@ -391,7 +393,7 @@ def build(
         finally:
             unpin_package_finder(finder)
     finally:
-        if acquired:
+        if acquired and name_lock.depth_of_current() > 0:
             name_lock.release()
         end_build_import_wait(wait_token)
 

@@ -293,6 +293,13 @@ any other bad value raises `ValueError` before the wait. The message
 names `UX_COMPOSE_BUILD_LOCK_TIMEOUT`. That build does not continue
 after a timeout, so it cannot bind the other thread's modules.
 
+The wait for another folder's import does not hold the package-name
+lock. `build()` releases it, then takes it again and rechecks the
+folder. An import that calls `build()` for that same name, including
+when the timeout is `None`, is `PackageImportConflict`. The exception
+names the folder that was loaded and the folder being built. The other
+folder is not served.
+
 ---
 
 ## 9. CSP on FastAPI (two layers, one nonce)

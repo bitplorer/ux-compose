@@ -41,11 +41,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with the same package name is what replaces it. If another thread is
   still importing that name, `build()` waits for the import to release,
   bounded by the same timeout as the build lock, then loads this folder.
-  It raises `PackageImportConflict` only when a module this folder also
-  has is still the other folder's copy, and the exception names both
-  folders. If that wait runs out, `build()` raises `BuildLockTimeout`
-  and does not serve the other folder. Main silently served that other
-  folder's code. This is a security fix.
+  The package-name lock is not held during that wait. Holding it
+  deadlocks when that import calls `build()` for the same name, so the
+  lock is released and taken again. If the importer is blocked on the
+  lock, or the folder is still the other one after that `build()`,
+  `build()` raises `PackageImportConflict` and names both folders. It
+  also raises `PackageImportConflict` when a module this folder also has
+  is still the other folder's copy. If that wait runs out, `build()`
+  raises `BuildLockTimeout` and does not serve the other folder. Main
+  silently served that other folder's code. This is a security fix.
 - The import pin does not make an off-path package importable. When
   that name is not on `sys.path`, `build()` raises `ModuleNotFoundError`,
   the same as an ordinary import.

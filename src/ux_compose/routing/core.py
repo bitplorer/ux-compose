@@ -416,7 +416,72 @@ package_import_lock = threading.RLock()
 # One reentrant lock per package folder name. Held across that name's
 # import phase so two directories cannot share sys.modules keys at once.
 # Different names stay parallel. A cross-thread wait is bounded.
-_package_build_locks: dict[str, threading.RLock] = {}
+# The waiter set is how isolate sees that the importing thread is blocked
+# on this lock. Waiting for that import while holding the lock deadlocks.
+class _PackageBuildLock:
+    def __init__(self) -> None:
+        self._lock = threading.RLock()
+        self._guard = threading.Lock()
+        self._owner: int | None = None
+        self._depth = 0
+        self._waiters: set[int] = set()
+        self._generation = 0
+
+    def depth_of_current(self) -> int:
+        with self._guard:
+            if self._owner != threading.get_ident():
+                return 0
+            return self._depth
+
+    def owner(self) -> int | None:
+        with self._guard:
+            return self._owner
+
+    def waiters(self) -> set[int]:
+        with self._guard:
+            return set(self._waiters)
+
+    def generation(self) -> int:
+        """How many times a thread newly acquired this lock."""
+        with self._guard:
+            return self._generation
+
+    def acquire(self, timeout: float | None = None) -> bool:
+        me = threading.get_ident()
+        with self._guard:
+            if self._owner == me:
+                self._depth += 1
+                self._lock.acquire()
+                return True
+            self._waiters.add(me)
+        try:
+            if timeout is None:
+                acquired = bool(self._lock.acquire())
+            else:
+                acquired = bool(self._lock.acquire(timeout=timeout))
+        finally:
+            with self._guard:
+                self._waiters.discard(me)
+        if not acquired:
+            return False
+        with self._guard:
+            self._owner = me
+            self._depth = 1
+            self._generation += 1
+        return True
+
+    def release(self) -> None:
+        me = threading.get_ident()
+        with self._guard:
+            if self._owner != me or self._depth <= 0:
+                raise RuntimeError("cannot release un-acquired build lock")
+            self._depth -= 1
+            if self._depth == 0:
+                self._owner = None
+        self._lock.release()
+
+
+_package_build_locks: dict[str, _PackageBuildLock] = {}
 _package_build_locks_guard = threading.Lock()
 
 
@@ -466,11 +531,11 @@ class BuildLockTimeout(TimeoutError):
         )
 
 
-def package_build_lock(package: str) -> threading.RLock:
+def package_build_lock(package: str) -> _PackageBuildLock:
     with _package_build_locks_guard:
         lock = _package_build_locks.get(package)
         if lock is None:
-            lock = threading.RLock()
+            lock = _PackageBuildLock()
             _package_build_locks[package] = lock
         return lock
 
@@ -810,6 +875,121 @@ def _should_replace(mod: Any, root: Path) -> bool:
     return not all(path.is_relative_to(root) for path in origins)
 
 
+def _foreign_import_owners(names: list[str]) -> set[int]:
+    """Other threads holding an import lock for ``names`` or a child."""
+    locks = getattr(_import_bootstrap, "_module_locks", None)
+    if not isinstance(locks, dict):
+        return set()
+    me = threading.get_ident()
+    owners: set[int] = set()
+    for name in names:
+        prefix = name + "."
+        for key, ref in list(locks.items()):
+            if key != name and not (isinstance(key, str) and key.startswith(prefix)):
+                continue
+            lock = ref() if callable(ref) else None
+            owner = getattr(lock, "owner", None) if lock is not None else None
+            if isinstance(owner, int) and owner != me:
+                owners.add(owner)
+    return owners
+
+
+def _importers_need_name_lock(lock: _PackageBuildLock, names: list[str]) -> bool:
+    """True when an importer is waiting on ``lock`` or already holds it."""
+    owners = _foreign_import_owners(names)
+    if not owners:
+        return False
+    holder = lock.owner()
+    if holder in owners:
+        return True
+    return bool(owners & lock.waiters())
+
+
+def _lift_package_pins(package: str, root: Path) -> list[_PinnedPackageFinder]:
+    """Take this build's finder off ``sys.meta_path`` for the wait."""
+    lifted: list[_PinnedPackageFinder] = []
+    with package_import_lock:
+        for finder in list(sys.meta_path):
+            if (
+                isinstance(finder, _PinnedPackageFinder)
+                and finder.package == package
+                and finder.root == root
+            ):
+                try:
+                    sys.meta_path.remove(finder)
+                except ValueError:
+                    continue
+                lifted.append(finder)
+    return lifted
+
+
+def _restore_package_pins(finders: list[_PinnedPackageFinder]) -> None:
+    with package_import_lock:
+        for finder in reversed(finders):
+            if finder not in sys.meta_path:
+                sys.meta_path.insert(0, finder)
+
+
+def _loaded_from_other_folder(name: str, root: Path, keys: list[str]) -> Path | None:
+    """Directory of a module under ``name`` that is not inside ``root``."""
+    with package_import_lock:
+        for key in (name, *keys):
+            mod = sys.modules.get(key)
+            if mod is None or not _should_replace(mod, root):
+                continue
+            loaded = _top_package_dir(mod, key)
+            if loaded is not None:
+                return loaded
+    return None
+
+
+def _reacquire_name_lock(
+    lock: _PackageBuildLock, depth: int, timeout: float | None
+) -> bool:
+    """Take ``lock`` ``depth`` times. The first wait uses ``timeout``."""
+    if depth <= 0:
+        return True
+    if timeout is None:
+        acquired = lock.acquire()
+    else:
+        acquired = lock.acquire(timeout=max(0.0, timeout))
+    if not acquired:
+        return False
+    for _ in range(depth - 1):
+        if lock.acquire(timeout=0):
+            continue
+        while lock.depth_of_current() > 0:
+            lock.release()
+        return False
+    return True
+
+
+def _wait_for_import_or_name_lock(
+    names: list[str],
+    lock: _PackageBuildLock,
+    timeout: float | None,
+) -> bool | None:
+    """``True`` when an importer takes ``lock``.
+
+    ``None`` when those imports release. ``False`` when ``timeout`` elapses.
+    ``timeout is None`` waits until the import ends or the importer takes
+    the name lock. This does not hold the name lock.
+    """
+    deadline = None if timeout is None else time.monotonic() + timeout
+    pending = list(names)
+    while pending:
+        if _importers_need_name_lock(lock, pending):
+            return True
+        if deadline is not None and time.monotonic() >= deadline:
+            return False
+        slice_for = 0.01
+        if deadline is not None:
+            slice_for = min(0.01, max(0.0, deadline - time.monotonic()))
+        _wait_for_other_importers(pending, slice_for)
+        pending = [item for item in pending if _other_thread_importing(item)]
+    return None
+
+
 def isolate_package_imports(package_dir: str | Path) -> None:
     """Reuse this directory's modules. Drop an idle module from another one.
 
@@ -818,11 +998,16 @@ def isolate_package_imports(package_dir: str | Path) -> None:
     directory is dropped so this build can load its own file. An entry
     another thread is still importing is left alone until that import
     releases. The wait is bounded by the build lock timeout and does not
-    hold ``package_import_lock``. After the release, a module this folder
-    also has, still loaded from the other directory, is
-    :class:`PackageImportConflict`. A module this folder does not ship is
-    dropped with the rest. Running out of time is :class:`BuildLockTimeout`.
-    The other directory is not served. Stdlib and site-packages stay.
+    hold ``package_import_lock`` or the package-name lock. Holding the
+    name lock across that wait deadlocks when the import calls ``build()``
+    for the same name. The lock is released, then taken again. If that
+    importer is blocked on the lock, or the folder is still the other one
+    after the importer's ``build()``, this raises
+    :class:`PackageImportConflict`. After a plain import releases, a
+    module this folder also has, still loaded from the other directory,
+    is the same error. A module this folder does not ship is dropped with
+    the rest. Running out of time is :class:`BuildLockTimeout`. The other
+    directory is not served. Stdlib and site-packages stay.
     """
     root = Path(package_dir).resolve()
     name = root.name
@@ -851,12 +1036,12 @@ def isolate_package_imports(package_dir: str | Path) -> None:
                     ):
                         continue
                     mod = sys.modules.get(key)
-                    loaded = _top_package_dir(mod, key) if mod is not None else None
-                    raise PackageImportConflict(
-                        key,
-                        loaded if loaded is not None else Path("."),
-                        root,
-                    )
+                    if mod is None:
+                        continue
+                    loaded = _top_package_dir(mod, key)
+                    if loaded is None:
+                        continue
+                    raise PackageImportConflict(key, loaded, root)
                 forgotten: list[Path] = []
                 for key in sorted(
                     foreign, key=lambda item: item.count("."), reverse=True
@@ -866,11 +1051,67 @@ def isolate_package_imports(package_dir: str | Path) -> None:
                     importlib.invalidate_caches()
                     _clear_linecache(forgotten)
                 return
-        if deadline is not None and time.monotonic() >= deadline:
-            raise BuildLockTimeout(name, 0.0 if timeout is None else timeout)
-        remaining = None if deadline is None else deadline - time.monotonic()
-        if not _wait_for_other_importers(in_use, remaining):
-            raise BuildLockTimeout(name, 0.0 if timeout is None else timeout)
+        name_lock = package_build_lock(name)
+        if _importers_need_name_lock(name_lock, in_use):
+            loaded = _loaded_from_other_folder(name, root, in_use)
+            if loaded is not None:
+                raise PackageImportConflict(name, loaded, root)
+        if (
+            deadline is not None
+            and timeout is not None
+            and time.monotonic() >= deadline
+        ):
+            raise BuildLockTimeout(name, timeout)
+        depth = name_lock.depth_of_current()
+        finders: list[_PinnedPackageFinder] = []
+        gen_before = name_lock.generation()
+        outcome: bool | None = None
+        reacquired = True
+        if depth:
+            finders = _lift_package_pins(name, root)
+            for _ in range(depth):
+                name_lock.release()
+        try:
+            remaining = None if deadline is None else deadline - time.monotonic()
+            if remaining is not None and remaining < 0:
+                remaining = 0.0
+            if depth:
+                outcome = _wait_for_import_or_name_lock(in_use, name_lock, remaining)
+            elif not _wait_for_other_importers(in_use, remaining):
+                if timeout is not None:
+                    raise BuildLockTimeout(name, timeout)
+        finally:
+            if depth:
+                remaining = None if deadline is None else deadline - time.monotonic()
+                if remaining is not None and remaining < 0:
+                    remaining = 0.0
+                reacquired = _reacquire_name_lock(
+                    name_lock,
+                    depth,
+                    None if timeout is None else remaining,
+                )
+                if reacquired:
+                    _restore_package_pins(finders)
+        if depth and reacquired and name_lock.generation() - gen_before > 1:
+            outcome = True
+        elif depth and not reacquired and name_lock.generation() != gen_before:
+            outcome = True
+        if outcome is True:
+            loaded = _loaded_from_other_folder(name, root, in_use)
+            if loaded is not None:
+                raise PackageImportConflict(name, loaded, root)
+        if not reacquired:
+            if timeout is None:
+                name_lock.acquire()
+                reacquired = True
+            elif name_lock.acquire(timeout=0):
+                reacquired = True
+            else:
+                raise BuildLockTimeout(name, timeout)
+            if reacquired:
+                _restore_package_pins(finders)
+        if outcome is False and timeout is not None:
+            raise BuildLockTimeout(name, timeout)
 
 
 def _remember_source(mod: Any, path: Path) -> None:

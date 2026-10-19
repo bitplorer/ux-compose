@@ -308,29 +308,27 @@ def _html_chunk_bytes(chunk: Any) -> bytes:
 
 
 def _coerce_chunk(chunk: Any) -> Any:
-    """Copy str and bytes-like yields through the base type.
+    """Copy through the base type before the empty check and before sanitizing.
 
-    This runs before the empty check and before sanitizing. ``Markup``
-    stays a ``Markup``. A subclass ``__len__`` that raises still aborts;
-    its return value is ignored. A 0-dim ``memoryview`` is read with
-    ``tobytes()`` and is never asked for a length.
+    The stream does not call a chunk's ``__len__``, ``__eq__``, ``__bytes__``,
+    or ``__buffer__``. A subclass ``__len__`` that raises still renders.
+    Only an exact ``dom_text`` is rebuilt; a subclass keeps its ``_render``.
+    ``bytearray.copy`` reads the buffer and does not call ``__buffer__``.
     """
     if isinstance(chunk, Markup):
-        chunk.__len__()
-        return chunk
+        plain = str.__str__(chunk)
+        if str.__len__(plain) == 0:
+            return plain
+        return Markup(plain)
     if isinstance(chunk, str):
-        chunk.__len__()
         return str.__str__(chunk)
     if isinstance(chunk, bytes):
-        chunk.__len__()
         return bytes.__bytes__(chunk)
     if isinstance(chunk, bytearray):
-        chunk.__len__()
-        return memoryview.tobytes(memoryview(chunk))
+        return bytes(bytearray.copy(chunk))
     if isinstance(chunk, memoryview):
         return memoryview.tobytes(chunk)
-    if isinstance(chunk, dom_text) and isinstance(chunk.text, str):
-        chunk.text.__len__()
+    if type(chunk) is dom_text and isinstance(chunk.text, str):
         return dom_text(str.__str__(chunk.text), escape=False)
     return chunk
 
@@ -338,20 +336,16 @@ def _coerce_chunk(chunk: Any) -> Any:
 def _is_empty_chunk(chunk: Any) -> bool:
     """True when this already-copied yield must not flush and must not emit.
 
-    Length is the base type's. ``Markup('')`` is an empty ``str``.
-    ``raw('')`` and an escaped ``dom_text('')`` have empty text.
+    Length is taken from the plain copy only. ``Markup('')`` is an empty
+    ``str``. ``raw('')`` and an escaped ``dom_text('')`` have empty text.
     """
     if chunk is None:
         return True
     if isinstance(chunk, str):
         return str.__len__(chunk) == 0
-    if isinstance(chunk, bytes):
+    if type(chunk) is bytes:
         return bytes.__len__(chunk) == 0
-    if isinstance(chunk, bytearray):
-        return bytearray.__len__(chunk) == 0
-    if isinstance(chunk, memoryview):
-        return bytes.__len__(memoryview.tobytes(chunk)) == 0
-    if isinstance(chunk, dom_text) and isinstance(chunk.text, str):
+    if type(chunk) is dom_text and type(chunk.text) is str:
         return str.__len__(chunk.text) == 0
     return False
 
@@ -362,8 +356,8 @@ def _decode_chunk(decoder: _Utf8Stream, chunk: Any) -> bytes:
     chunk = _coerce_chunk(chunk)
     if _is_empty_chunk(chunk):
         return b""
-    if isinstance(chunk, (bytes, bytearray, memoryview)):
-        text = decoder.decode(bytes(chunk))
+    if type(chunk) is bytes:
+        text = decoder.decode(chunk)
         if text == "":
             return b""
         return _html_chunk_bytes(text)

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Outside dev, a live FastAPI attach failure fails the boot. `wire/boot.py` sets `strict_attach=True`. `use_channel` raises when attach returns no channel, and a `TypeError` from attach is not retried. A missing secret, a 13-character secret, a `REDIS_URL` that `Channel.boot` refuses, or anything else `attach` raises stops the process instead of continuing without Caps. Atelier shop and studio fail at boot the same way.
 - `App.dispatch` takes the action name positionally (`dispatch(self, action, /, **kwargs)`). A payload key named `action` passes through as a normal keyword.
 - A posted key the action does not name is dropped (ux-behavior pin `ad86d4c`), including a payload key named `self`. The component instance stays the component. A key the signature rejects still returns the ordinary validation result, never a 500.
+- Static kit `set_field` actions name the control they post (`email`, `password`, `name`, `code`, `q`, `query`, `text`, `tag`, `hex`). ux-behavior drops any other posted key, so those fields are parameters instead of `**kwargs`. FormLayout's field list stays form-defined and is unchanged.
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

@@ -15,25 +15,25 @@ Measured with `App.dispatch` on compose main `c22e419` (ux-behavior `2ae5c3de6c6
 | FormLayout | `set_field` `components/formlayout.py:131` | names from `_fields()` (default `name`, `email`, `note`) | Dynamic | no | no |
 | FormLayout | `submit` `components/formlayout.py:143` | same names | Dynamic | no | no |
 | Login | `set_field` `components/login.py:435` | `email`, `password`, `name` | Static | no | no |
-| Login | `submit` `components/login.py:450` | `email`, `password`, `name` | Static, already parameters | yes | yes |
+| Login | `submit` `components/login.py:458` | `email`, `password`, `name` | Static, already parameters | yes | yes |
 | Newsletter | `set_field` `components/newsletter.py:105` | `email` | Static | no | no |
-| Newsletter | `subscribe` `components/newsletter.py:113` | `email` | Static, already a parameter | yes | yes |
+| Newsletter | `subscribe` `components/newsletter.py:114` | `email` | Static, already a parameter | yes | yes |
 | Otp | `set_field` `components/otp.py:159` | `code` | Static | no | no |
-| Otp | `verify` `components/otp.py:169` | `code` | Static, already a parameter | yes | yes |
+| Otp | `verify` `components/otp.py:170` | `code` | Static, already a parameter | yes | yes |
 | Combobox | `set_field` `components/combobox.py:212` | `q` (also accepts `field="query"`) | Static | no | no |
 | Combobox | `type_query` `components/combobox.py:205` | `q` | Static, already a parameter | yes | yes |
 | Command | `set_field` `components/command.py:262` | `q` (also accepts `field="query"`) | Static | no | no |
 | Command | `type_query` `components/command.py:255` | `q` | Static, already a parameter | yes | yes |
 | Chat | `set_field` `components/chat.py:122` | `text` | Static | no | no |
-| Chat | `send` `components/chat.py:129` | `text` | Static, already a parameter | yes | yes |
+| Chat | `send` `components/chat.py:130` | `text` | Static, already a parameter | yes | yes |
 | TagsInput | `set_field` `components/tagsinput.py:103` | `tag` | Static | no | no |
-| TagsInput | `add` `components/tagsinput.py:110` | `tag` | Static, already a parameter | yes | yes |
+| TagsInput | `add` `components/tagsinput.py:111` | `tag` | Static, already a parameter | yes | yes |
 | SearchBar | `set_field` `components/searchbar.py:106` | `q` | Static | no | no |
-| SearchBar | `search` `components/searchbar.py:113` | `q` | Static, already a parameter | yes | yes |
+| SearchBar | `search` `components/searchbar.py:114` | `q` | Static, already a parameter | yes | yes |
 | FilterBar | `set_field` `components/filterbar.py:178` | `q` | Static | no | no |
 | SpinButton | `set_value` `components/spinbutton.py:127` | `value` | Static, already a parameter | yes | yes |
 | ColorPicker | `set_field` `components/colorpicker.py:122` | `hex` | Static | no | no |
 
 FormLayout is the dynamic case. Its field list is the `fields` seam (`_fields()` at `components/formlayout.py:77`). No compose change in this round declares those names. A later allowlist can pass only fields that form declares.
 
-The static `set_field` rows are the lost posts: the control's name is not a parameter, so the value is stored as `''`.
+The Main and `ad86d4c` columns are that measurement, taken before any signature change. The static `set_field` rows were the lost posts: the control's name was not a parameter, so the value was stored as `''`. This branch now declares those names on `set_field`, and the same dispatch stores the value. FormLayout is unchanged. SpinButton, and the submit actions that already named their fields, were already yes on both pins.

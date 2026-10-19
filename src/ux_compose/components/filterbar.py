@@ -175,8 +175,9 @@ class FilterBar(Component):
         )
 
     @action(caps=())
-    def set_field(self, field: str = "", value: str = "", **kwargs):
-        raw = value if value != "" else kwargs.get(field, kwargs.get("q", ""))
+    def set_field(self, field: str = "", value: str = "", q: str = ""):
+        posted = {"q": q}
+        raw = value if value != "" else posted.get(field, q)
         self.query = "" if raw is None else str(raw)
         self._mark()
         return update_with(self)

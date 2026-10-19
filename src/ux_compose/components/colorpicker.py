@@ -119,8 +119,9 @@ class ColorPicker(Component):
         return update_with(self)
 
     @action(caps=())
-    def set_field(self, field: str = "", value: str = "", **kwargs):
-        raw = value if value != "" else kwargs.get(field, kwargs.get("hex", ""))
+    def set_field(self, field: str = "", value: str = "", hex: str = ""):
+        posted = {"hex": hex}
+        raw = value if value != "" else posted.get(field, hex)
         self.hex = "" if raw is None else str(raw)
         self.dirty = "b" if self.dirty == "a" else "a"
         return update_with(self)

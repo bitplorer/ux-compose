@@ -102,8 +102,9 @@ class Newsletter(Component):
         )
 
     @action(caps=())
-    def set_field(self, field: str = "", value: str = "", **kwargs):
-        raw = value if value != "" else kwargs.get(field, kwargs.get("email", ""))
+    def set_field(self, field: str = "", value: str = "", email: str = ""):
+        posted = {"email": email}
+        raw = value if value != "" else posted.get(field, email)
         self.email = "" if raw is None else str(raw)
         self.error = ""
         self.dirty = "b" if self.dirty == "a" else "a"

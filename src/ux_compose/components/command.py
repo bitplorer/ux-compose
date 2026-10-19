@@ -259,8 +259,9 @@ class Command(Component):
         return update_with(self)
 
     @action(caps=())
-    def set_field(self, field: str = "", value: str = "", **kwargs):
-        raw = value if value != "" else kwargs.get(field, kwargs.get("q", ""))
+    def set_field(self, field: str = "", value: str = "", q: str = "", query: str = ""):
+        posted = {"q": q, "query": query}
+        raw = value if value != "" else posted.get(field) or q or query
         if field in ("q", "query"):
             self.query = "" if raw is None else str(raw)
             self._mark_dirty()

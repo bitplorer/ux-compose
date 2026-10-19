@@ -5,7 +5,7 @@ PY314 ?= /tmp/ux314venv/bin/python
 VENV  ?= /tmp/ux314venv
 
 # SSOT pins (keep in lockstep with pyproject.toml / scaffold REQUIREMENTS).
-UX_BEHAVIOR_SHA = ad86d4cc7cf2390f8d1200cdb7d2cc68f6508b82
+UX_BEHAVIOR_SHA = 09a9a658e7dbd06f51acf6104a85c3ba608dfe7a
 UX_MOTION_SHA = bbe7d73466a6c1eccb47e711568c80ce3b4d5487
 UX_CHANNEL_SHA = f1a93fcf298c97a59fa6538697731e19aac8586d
 UX_DOM_SHA = 0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4

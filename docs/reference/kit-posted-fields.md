@@ -12,11 +12,11 @@ A named signature rejects an extra posted key, such as a host `csrf` field. That
 
 `ux-channel.js` `fireControl` sends `data-channel-args` plus the named control (and, for a submit control, the rest of the form). Compose `App.dispatch` receives that payload. A key that is a named parameter arrives. Undeclared keys such as `is_admin` and `role` are the same validation error.
 
-Measured with `App.dispatch` on compose main `c22e419` (ux-behavior `2ae5c3de6c60756cfccfa0174355037436bb3f14`) and on this branch (ux-behavior `ad86d4cc7cf2390f8d1200cdb7d2cc68f6508b82`). Kit `set_field` matches main. `FilterBar.choose` is the exception: it names `q` and does not store it. "Arrives" means the component state holds the posted value after that dispatch. Login's successful submit clears the stored password; an empty password error plus `authed` shows the password was accepted. OTP's successful verify clears the posted code, and `ok` shows the six digits were accepted. A password, an OTP code, and PasswordField's secret are not painted.
+Measured with `App.dispatch` on compose main `c22e419` (ux-behavior `2ae5c3de6c60756cfccfa0174355037436bb3f14`) and on this branch (ux-behavior `09a9a658e7dbd06f51acf6104a85c3ba608dfe7a`). Kit `set_field` matches main. `FilterBar.choose` is the exception: it names `q` and does not store it. "Arrives" means the component state holds the posted value after that dispatch. Login's successful submit clears the stored password; an empty password error plus `authed` shows the password was accepted. OTP's successful verify clears the posted code, and `ok` shows the six digits were accepted. A password, an OTP code, and PasswordField's secret are not painted.
 
 **Static** means the posted names are written in the action. **Dynamic** means the names come from the form (`FormLayout._fields()`), so they are not known as parameters when the action is written.
 
-| Kit | Action | Posted fields | Kind | Main | `ad86d4c` |
+| Kit | Action | Posted fields | Kind | Main | `09a9a65` |
 |-----|--------|---------------|------|------|-----------|
 | FormLayout | `set_field` `components/formlayout.py:131` | names from `_fields()` (default `name`, `email`, `note`) | Dynamic | no | no |
 | FormLayout | `submit` `components/formlayout.py:143` | same names | Dynamic | no | no |
@@ -43,4 +43,4 @@ Measured with `App.dispatch` on compose main `c22e419` (ux-behavior `2ae5c3de6c6
 
 FormLayout is the dynamic case. Its field list is the `fields` seam (`_fields()` at `components/formlayout.py:77`). Those names are not parameters, so they are not stored. Restoring them waits on a per-visitor state decision.
 
-The Main and `ad86d4c` columns are whether the posted name is in component state after dispatch. The static `set_field` rows are no on both: the control's name is not a parameter. This branch matches that. It does not declare those names. Login `submit` still clears the password. SpinButton, and the other actions that already named their fields, were already yes on both.
+The Main and `09a9a65` columns are whether the posted name is in component state after dispatch. The static `set_field` rows are no on both: the control's name is not a parameter. This branch matches that. It does not declare those names. Login `submit` still clears the password. SpinButton, and the other actions that already named their fields, were already yes on both.

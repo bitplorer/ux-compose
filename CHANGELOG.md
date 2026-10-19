@@ -7,10 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-- Trust now comes from `dispatch_verified(name, payload)` (one wire call after Channel accepts a Cap) or `app.trust()`, and the `_trusted` keyword is gone. `async_dispatch_verified` is the async twin. Developer-authored server code uses `app.trust()`. A bool no longer grants trust (ux-behavior #20, pin `ad86d4c`).
+- Trust now comes from `dispatch_verified(name, payload)` (one wire call after Channel accepts a Cap) or `app.trust()`, and the `_trusted` keyword is gone. `async_dispatch_verified` is the async twin. Developer-authored server code uses `app.trust()`. A bool no longer grants trust (ux-behavior #20, pin `09a9a65`).
 - Outside dev, a live FastAPI attach failure fails the boot. `wire/boot.py` sets `strict_attach=True`. `use_channel` raises when attach returns no channel, and a `TypeError` from attach is not retried. A missing secret, a 13-character secret, a `REDIS_URL` that `Channel.boot` refuses, or anything else `attach` raises stops the process instead of continuing without Caps. Atelier shop and studio fail at boot the same way.
 - `App.dispatch` takes the action name positionally (`dispatch(self, action, /, **kwargs)`). A payload key named `action` passes through as a normal keyword.
-- A posted key a named signature does not declare is a validation error (ux-behavior pin `ad86d4c`), including a payload key named `self` and a host field such as `csrf`. The action does not run. The result is the ordinary validation result, never a 500. The component instance stays the component. A `**kwargs` signature does not receive that key either.
+- A posted key a named signature does not declare is a validation error (ux-behavior pin `09a9a65`), including a payload key named `self` and a host field such as `csrf`. The action does not run. The result is the ordinary validation result, never a 500. The component instance stays the component. A `**kwargs` signature does not receive that key either.
 - Kit `set_field` stays on `**kwargs`, matching main. The posted control name is not stored. Restoring those fields waits on a per-visitor state decision.
 - `FilterBar.choose` names `q` and does not store it, so a chip inside the query form still applies.
 - `Otp.verify` clears the posted code after a successful check. The page says the secret is cleared. A posted password, a posted OTP code, and PasswordField's secret (the lede and the type=text input, including after Reveal) are not painted back into the page.

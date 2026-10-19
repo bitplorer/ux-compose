@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 UX_DOM_SHA = "0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4"
 UX_CHANNEL_SHA = "f1a93fcf298c97a59fa6538697731e19aac8586d"
-UX_BEHAVIOR_SHA = "ad86d4cc7cf2390f8d1200cdb7d2cc68f6508b82"
+UX_BEHAVIOR_SHA = "09a9a658e7dbd06f51acf6104a85c3ba608dfe7a"
 UX_MOTION_SHA = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
 COMPOSE_SHA = "24a182f35e3d0743a2faafddb5ba0396324b2d9a"
 
@@ -36,6 +36,7 @@ def test_pyproject_requires_314_and_pins_specialists():
     assert "d0412c6" not in text
     assert "793f120" not in text
     assert "67ff3f0" not in text
+    assert "ad86d4c" not in text
 
 
 def test_pin_ssot_lockstep_makefile_scaffold_ci():
@@ -76,6 +77,10 @@ def test_pin_ssot_lockstep_makefile_scaffold_ci():
     assert "67ff3f0" not in makefile
     assert "67ff3f0" not in scaffold
     assert "67ff3f0" not in nook
+    assert "ad86d4c" not in makefile
+    assert "ad86d4c" not in scaffold
+    assert "ad86d4c" not in nook
+    assert "ad86d4c" not in pulseboard
     assert 'python-version: "3.14"' in ci
     assert "3.12" not in ci
     assert "offline-shim" not in ci

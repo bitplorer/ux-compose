@@ -11,9 +11,11 @@ import os
 import shutil
 import socket
 import subprocess
+import sys
 import tempfile
 import threading
 import time
+from pathlib import Path
 
 import pytest
 import uvicorn
@@ -31,17 +33,29 @@ _STORED = "stored-secret-99"
 
 
 def _chrome_bin() -> str:
-    """Real Chrome. A missing browser fails the test.
+    """Real Chrome at major 155 or newer.
 
-    ``UX_KEEP_VALUE_REQUIRE_BROWSER=1`` only changes the failure message.
-    The tests fail either way. They do not skip.
+    ``scripts/chrome_floor.py`` is the same check CI runs. A missing
+    browser fails the test. ``UX_KEEP_VALUE_REQUIRE_BROWSER=1`` only
+    changes that failure message. The tests fail either way. They do
+    not skip.
     """
     found = shutil.which("google-chrome") or shutil.which("google-chrome-stable")
-    if found:
-        return found
-    required = os.environ.get("UX_KEEP_VALUE_REQUIRE_BROWSER") == "1"
-    prefix = "UX_KEEP_VALUE_REQUIRE_BROWSER=1 and " if required else ""
-    pytest.fail(f"{prefix}Chrome is not on PATH")
+    if not found:
+        required = os.environ.get("UX_KEEP_VALUE_REQUIRE_BROWSER") == "1"
+        prefix = "UX_KEEP_VALUE_REQUIRE_BROWSER=1 and " if required else ""
+        pytest.fail(f"{prefix}Chrome is not on PATH")
+    script = Path(__file__).resolve().parents[2] / "scripts" / "chrome_floor.py"
+    result = subprocess.run(
+        [sys.executable, str(script), found],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "Chrome is below 155").strip()
+        pytest.fail(detail)
+    return found
 
 
 def _free_port() -> int:

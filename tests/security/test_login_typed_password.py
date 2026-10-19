@@ -252,6 +252,10 @@ def _sign_in_after(chrome: _Chrome, page: dict, steps: list[str]) -> str:
                 "document.querySelector('[data-channel-action=\"login.toggle_password\"]').textContent.includes('Show')",
             )
         elif step == "sign":
+            # Show stored the typed password. Put a different secret back
+            # so sign-in has to post the typed one.
+            inst.password = _STORED
+            inst.signed_in_with = []
             chrome.evaluate(
                 "document.querySelector('[data-channel-action=\"login.submit\"]').click()"
             )

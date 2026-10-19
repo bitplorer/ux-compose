@@ -2600,3 +2600,146 @@ def test_detached_loads_keep_distinct_module_keys(tmp_path):
     finally:
         sys.modules.pop(first.__name__, None)
         sys.modules.pop(second.__name__, None)
+
+
+def _lock_inversion_once(
+    tmp_path, monkeypatch, *, tag: str, lock_timeout, env: str | None
+) -> tuple[float, BaseException | None]:
+    """Thread B's main.py calls build(). Thread A builds the other folder.
+
+    A must not keep the name lock while it waits for that import. The
+    hard limit is 2s even when the wait is ``None`` or the default 60s.
+    """
+    from ux_compose.build import build
+    from ux_compose.routing.core import PackageImportConflict
+
+    if env is None:
+        monkeypatch.delenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", raising=False)
+    else:
+        monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", env)
+    gate_name = f"invgate_{tag}"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\nIN = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    name = f"invapp_{tag}"
+    folder_b = tmp_path / "b" / name
+    folder_a = tmp_path / "a" / name
+    _write(
+        folder_b,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    id = 'hello'\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'FROM_B'\n"
+            ),
+        },
+    )
+    (folder_b / "main.py").write_text(
+        f"import {gate_name}\n"
+        "import time\n"
+        "from pathlib import Path\n"
+        "from ux_compose.build import build\n"
+        f"{gate_name}.IN.set()\n"
+        "time.sleep(0.2)\n"
+        "build(\n"
+        "    Path(__file__).resolve().parent,\n"
+        "    name='B',\n"
+        "    host='asgi',\n"
+        "    live='null',\n"
+        "    level=1,\n"
+        ")\n",
+        encoding="utf-8",
+    )
+    _write(
+        folder_a,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    id = 'hello'\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'FROM_A'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(folder_b.parent))
+    gate = importlib.import_module(gate_name)
+    out: dict[str, object] = {}
+    # None waits without a bound. The sentinel omits the argument so the
+    # environment, or the default 60s, is what build() uses.
+    build_kwargs: dict[str, object] = {}
+    if lock_timeout is not _UNSET_LOCK:
+        build_kwargs["lock_timeout"] = lock_timeout
+
+    def loader() -> None:
+        try:
+            importlib.import_module(f"{name}.main")
+        except BaseException as exc:
+            out["loader"] = exc
+
+    def builder() -> None:
+        assert gate.IN.wait(2)
+        try:
+            built = build(
+                folder_a,
+                name="A",
+                host="asgi",
+                live="null",
+                level=1,
+                **build_kwargs,
+            )
+            out["served"] = asgi_get(built[1], "/hello").text
+        except BaseException as exc:
+            out["err"] = exc
+
+    left = threading.Thread(target=loader, daemon=True)
+    right = threading.Thread(target=builder, daemon=True)
+    limit = 2.0
+    started = time.monotonic()
+    deadline = started + limit
+    try:
+        left.start()
+        right.start()
+        left.join(max(0.0, deadline - time.monotonic()))
+        right.join(max(0.0, deadline - time.monotonic()))
+        elapsed = time.monotonic() - started
+        assert elapsed < limit, f"still running after {elapsed:.2f}s"
+        assert not left.is_alive() and not right.is_alive()
+        err = out.get("err")
+        assert isinstance(err, PackageImportConflict), out.get("served")
+        assert err.loaded_from == folder_b.resolve()
+        assert err.building == folder_a.resolve()
+        assert out.get("served") != "FROM_B"
+        return elapsed, err
+    finally:
+        _purge_package(name)
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)
+
+
+_UNSET_LOCK = object()
+
+
+def test_lock_inversion_with_lock_timeout_none(tmp_path, monkeypatch):
+    elapsed, _err = _lock_inversion_once(
+        tmp_path, monkeypatch, tag="kw", lock_timeout=None, env=None
+    )
+    assert elapsed < 2.0
+
+
+def test_lock_inversion_with_env_none(tmp_path, monkeypatch):
+    elapsed, _err = _lock_inversion_once(
+        tmp_path, monkeypatch, tag="env", lock_timeout=_UNSET_LOCK, env="none"
+    )
+    assert elapsed < 2.0
+
+
+def test_lock_inversion_with_default_timeout(tmp_path, monkeypatch):
+    elapsed, _err = _lock_inversion_once(
+        tmp_path, monkeypatch, tag="def", lock_timeout=_UNSET_LOCK, env=None
+    )
+    assert elapsed < 2.0

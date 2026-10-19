@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Kit `set_field` stays on `**kwargs`, matching main. The posted control name is not stored. Restoring those fields waits on a per-visitor state decision.
 - `FilterBar.choose` names `q` and does not store it, so a chip inside the query form still applies.
 - `Otp.verify` clears the posted code after a successful check and on every refusal, including a code rejected for its length. The page says the secret is cleared. The refused code is not left on the shared instance. The input stays `value=""`.
-- `Login.submit` uses only the password posted in that request. An empty password is refused, and it does not keep a previous visitor's password. A posted password, a posted OTP code, and PasswordField's secret (the lede and the type=text input, including after Reveal) are not painted back into the page. The lede is eight bullets when a secret is stored, and `empty` when it is not, so the length is not painted.
+- `Login.submit` uses only the password posted in that request. An empty password is refused with "Enter your password." and does not keep a previous visitor's password. A short password still gets the length error. A posted password, a posted OTP code, and PasswordField's secret (the lede and the type=text input, including after Reveal) are not painted back into the page. The lede is eight bullets when a secret is stored, and `empty` when it is not, so the length is not painted.
 - `App.control` and `App.mint_cap` take the action name positionally. A payload key named `action` passes through, as it does for `App.dispatch`.
 
 ## 0.2.0 — remove deprecations and bloat cleanup

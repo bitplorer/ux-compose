@@ -469,7 +469,10 @@ class Login(Component):
         if not _email_ok(email):
             self.err_email = "Enter a valid email address."
             ok = False
-        if not _password_ok(password, signup=is_signup):
+        if not password:
+            self.err_password = "Enter your password."
+            ok = False
+        elif not _password_ok(password, signup=is_signup):
             self.err_password = (
                 "Use 8+ characters with at least one number."
                 if is_signup else "Password must be at least 8 characters."

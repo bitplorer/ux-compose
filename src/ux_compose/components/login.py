@@ -470,7 +470,9 @@ class Login(Component):
         if not _email_ok(email):
             self.err_email = "Enter a valid email address."
             ok = False
-        if not password:
+        if not password.strip():
+            # Spaces are empty. Keeping them would be a short password.
+            self.password = ""
             self.err_password = "Enter your password."
             ok = False
         elif not _password_ok(password, signup=is_signup):

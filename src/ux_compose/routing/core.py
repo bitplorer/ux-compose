@@ -307,14 +307,39 @@ def _html_chunk_bytes(chunk: Any) -> bytes:
     return to_html_bytes(chunk)
 
 
-def _is_empty_chunk(chunk: Any) -> bool:
-    """True when this yield must not flush and must not emit.
+def _coerce_chunk(chunk: Any) -> Any:
+    """Copy str and bytes-like yields through the base type.
 
-    Length is the base type's: ``str.__len__``, ``bytes.__len__``,
-    ``bytearray.__len__``, or ``memoryview.__len__``. A subclass
-    ``__len__``, ``__bool__``, or ``__eq__`` is not consulted.
-    ``Markup('')`` is an empty ``str``. ``raw('')`` and an escaped
-    ``dom_text('')`` are empty when ``str.__len__`` of their text is 0.
+    This runs before the empty check and before sanitizing. ``Markup``
+    stays a ``Markup``. A subclass ``__len__`` that raises still aborts;
+    its return value is ignored. A 0-dim ``memoryview`` is read with
+    ``tobytes()`` and is never asked for a length.
+    """
+    if isinstance(chunk, Markup):
+        chunk.__len__()
+        return chunk
+    if isinstance(chunk, str):
+        chunk.__len__()
+        return str.__str__(chunk)
+    if isinstance(chunk, bytes):
+        chunk.__len__()
+        return bytes.__bytes__(chunk)
+    if isinstance(chunk, bytearray):
+        chunk.__len__()
+        return memoryview.tobytes(memoryview(chunk))
+    if isinstance(chunk, memoryview):
+        return memoryview.tobytes(chunk)
+    if isinstance(chunk, dom_text) and isinstance(chunk.text, str):
+        chunk.text.__len__()
+        return dom_text(str.__str__(chunk.text), escape=False)
+    return chunk
+
+
+def _is_empty_chunk(chunk: Any) -> bool:
+    """True when this already-copied yield must not flush and must not emit.
+
+    Length is the base type's. ``Markup('')`` is an empty ``str``.
+    ``raw('')`` and an escaped ``dom_text('')`` have empty text.
     """
     if chunk is None:
         return True
@@ -325,15 +350,16 @@ def _is_empty_chunk(chunk: Any) -> bool:
     if isinstance(chunk, bytearray):
         return bytearray.__len__(chunk) == 0
     if isinstance(chunk, memoryview):
-        return memoryview.__len__(chunk) == 0
+        return bytes.__len__(memoryview.tobytes(chunk)) == 0
     if isinstance(chunk, dom_text) and isinstance(chunk.text, str):
         return str.__len__(chunk.text) == 0
     return False
 
 
 def _decode_chunk(decoder: _Utf8Stream, chunk: Any) -> bytes:
-    # None, '', b'', bytearray(), memoryview(b''), Markup(''), raw(''),
-    # and an escaped empty text node emit nothing and do not flush.
+    # Copy first. None, '', b'', bytearray(), memoryview(b''), Markup(''),
+    # raw(''), and an escaped empty text node then emit nothing and do not flush.
+    chunk = _coerce_chunk(chunk)
     if _is_empty_chunk(chunk):
         return b""
     if isinstance(chunk, (bytes, bytearray, memoryview)):

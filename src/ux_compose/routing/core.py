@@ -308,6 +308,11 @@ def _html_chunk_bytes(chunk: Any) -> bytes:
 
 
 def _decode_chunk(decoder: _Utf8Stream, chunk: Any) -> bytes:
+    # Empty str/bytes emit nothing and do not flush, so a character can span them.
+    if chunk is None or chunk == "" or (
+        isinstance(chunk, (bytes, bytearray, memoryview)) and len(chunk) == 0
+    ):
+        return b""
     if isinstance(chunk, (bytes, bytearray, memoryview)):
         text = decoder.decode(bytes(chunk))
         if text == "":

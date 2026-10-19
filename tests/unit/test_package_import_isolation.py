@@ -1315,6 +1315,7 @@ def test_default_timeout_serves_a_nine_second_route(tmp_path, monkeypatch):
             ),
         },
     )
+    monkeypatch.syspath_prepend(str(pkg.parent))
     errors: list[str] = []
     bodies: list[str] = []
 

@@ -1816,6 +1816,8 @@ def test_blocked_foreign_import_times_out_as_build_lock_timeout(tmp_path, monkey
         err = out.get("err")
         assert isinstance(err, BuildLockTimeout), err
         assert err.package == "myapp"
+        assert err.timeout == 0.2
+        assert "timed out waiting to build 'myapp' after 0.2s" in str(err)
         assert "served" not in out
     finally:
         gate.OUT.set()
@@ -2743,3 +2745,814 @@ def test_lock_inversion_with_default_timeout(tmp_path, monkeypatch):
         tmp_path, monkeypatch, tag="def", lock_timeout=_UNSET_LOCK, env=None
     )
     assert elapsed < 2.0
+
+
+def test_zero_lock_timeout_raises_before_the_import_wait(tmp_path, monkeypatch):
+    """lock_timeout=0 is BuildLockTimeout, and the error's timeout is 0.
+
+    The foreign import is still running. Returning from the deadline
+    check would continue and serve a page. The configured timeout is 0,
+    not a leftover 0.0 from the unset branch.
+    """
+    from ux_compose.build import BuildLockTimeout, build
+
+    gate_name = "gate_zero_timeout"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\nIN = threading.Event()\nOUT = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    held = tmp_path / "held" / "myapp"
+    other = tmp_path / "other" / "myapp"
+    held.mkdir(parents=True)
+    (held / "__init__.py").write_text("", encoding="utf-8")
+    (held / "main.py").write_text(
+        f"import {gate_name}\n"
+        f"{gate_name}.IN.set()\n"
+        f"{gate_name}.OUT.wait(5)\n"
+        "VALUE = 'HELD'\n",
+        encoding="utf-8",
+    )
+    _write(
+        other,
+        {
+            "routes/a.py": (
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'OTHER'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(held.parent))
+    gate = importlib.import_module(gate_name)
+    out: dict[str, object] = {}
+
+    def loader() -> None:
+        try:
+            importlib.import_module("myapp.main")
+        except BaseException as exc:
+            out["loader"] = exc
+
+    def builder() -> None:
+        assert gate.IN.wait(2)
+        try:
+            built = build(
+                other, name="X", host="asgi", live="null", level=1, lock_timeout=0
+            )
+            out["served"] = asgi_get(built[1], "/a").text
+        except BaseException as exc:
+            out["err"] = exc
+        finally:
+            gate.OUT.set()
+
+    left = threading.Thread(target=loader, daemon=True)
+    right = threading.Thread(target=builder, daemon=True)
+    try:
+        left.start()
+        right.start()
+        left.join(3)
+        right.join(3)
+        assert not left.is_alive() and not right.is_alive()
+        err = out.get("err")
+        assert isinstance(err, BuildLockTimeout), out.get("served")
+        assert err.package == "myapp"
+        assert err.timeout == 0
+        assert "served" not in out
+    finally:
+        gate.OUT.set()
+        _purge_package("myapp")
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)
+
+
+def _thread_in_function(name: str) -> bool:
+    for frame in sys._current_frames().values():
+        while frame is not None:
+            if frame.f_code.co_name == name:
+                return True
+            frame = frame.f_back
+    return False
+
+
+def test_second_import_past_the_budget_raises_build_lock_timeout(
+    tmp_path, monkeypatch
+):
+    """The next foreign import starts as the first one releases, past the budget.
+
+    That deadline check has to raise BuildLockTimeout. Returning from it
+    continues, and a page can be served from the folder that is still importing.
+    """
+    import ux_compose.routing.core as routing_core
+    from ux_compose.build import BuildLockTimeout, build
+
+    class _Clock:
+        now = 0.0
+
+        def __call__(self) -> float:
+            return self.now
+
+    clock = _Clock()
+    monkeypatch.setattr(routing_core.time, "monotonic", clock)
+    real_wait = routing_core._wait_for_import_or_name_lock
+    gate_name = "gate_second_import"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\n"
+        "IN = threading.Event()\n"
+        "RELEASE = threading.Event()\n"
+        "START_SECOND = threading.Event()\n"
+        "SECOND_HELD = threading.Event()\n"
+        "OUT = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    gate = importlib.import_module(gate_name)
+
+    def _wait_then_second_import(names, lock, timeout):
+        result = real_wait(names, lock, timeout)
+        if result is None and not gate.START_SECOND.is_set():
+            gate.START_SECOND.set()
+            assert gate.SECOND_HELD.wait(2)
+            clock.now += 10
+        return result
+
+    monkeypatch.setattr(
+        routing_core, "_wait_for_import_or_name_lock", _wait_then_second_import
+    )
+    held = tmp_path / "held" / "myapp"
+    other = tmp_path / "other" / "myapp"
+    held.mkdir(parents=True)
+    (held / "__init__.py").write_text("", encoding="utf-8")
+    (held / "first.py").write_text(
+        f"import {gate_name}\n"
+        f"{gate_name}.IN.set()\n"
+        f"{gate_name}.RELEASE.wait(5)\n",
+        encoding="utf-8",
+    )
+    (held / "second.py").write_text(
+        f"import {gate_name}\n"
+        f"{gate_name}.SECOND_HELD.set()\n"
+        f"{gate_name}.OUT.wait(5)\n"
+        "VALUE = 'SECOND'\n",
+        encoding="utf-8",
+    )
+    _write(
+        other,
+        {
+            "routes/a.py": (
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'OTHER'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(held.parent))
+    out: dict[str, object] = {}
+
+    def loader() -> None:
+        try:
+            importlib.import_module("myapp.first")
+        except BaseException as exc:
+            out["loader"] = exc
+
+    def second() -> None:
+        assert gate.START_SECOND.wait(5)
+        try:
+            importlib.import_module("myapp.second")
+        except BaseException as exc:
+            out["second"] = exc
+            gate.SECOND_HELD.set()
+
+    def builder() -> None:
+        assert gate.IN.wait(2)
+        try:
+            built = build(
+                other, name="X", host="asgi", live="null", level=1, lock_timeout=0.2
+            )
+            out["served"] = asgi_get(built[1], "/a").text
+        except BaseException as exc:
+            out["err"] = exc
+
+    left = threading.Thread(target=loader, daemon=True)
+    mid = threading.Thread(target=second, daemon=True)
+    right = threading.Thread(target=builder, daemon=True)
+    try:
+        mid.start()
+        left.start()
+        right.start()
+        assert gate.IN.wait(2)
+        found = False
+        for _ in range(200):
+            if _thread_in_function("_wait_for_import_or_name_lock"):
+                found = True
+                break
+            time.sleep(0.01)
+        assert found, "build never waited for the first import"
+        gate.RELEASE.set()
+        right.join(3)
+        left.join(3)
+        assert not right.is_alive()
+        err = out.get("err")
+        assert isinstance(err, BuildLockTimeout), out.get("served") or out.get("second")
+        assert err.package == "myapp"
+        assert "served" not in out
+        assert "second" not in out
+    finally:
+        gate.OUT.set()
+        gate.RELEASE.set()
+        gate.START_SECOND.set()
+        _purge_package("myapp")
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)
+
+
+def test_build_does_not_wait_for_this_threads_import_lock(tmp_path, monkeypatch):
+    """A lock this thread holds is not another importer.
+
+    The foreign helper is already in sys.modules and this thread holds
+    its import lock. build() serves this folder. Counting that owner
+    waits for a lock this thread will not release, and the short timeout
+    becomes BuildLockTimeout instead of this folder's page.
+    """
+    import importlib._bootstrap as bootstrap
+
+    from ux_compose.build import build
+
+    name = "ownlockapp"
+    folder_b = tmp_path / "b" / name
+    folder_a = tmp_path / "a" / name
+    for folder, mark in ((folder_b, "FROM_B"), (folder_a, "FROM_A")):
+        (folder / "routes").mkdir(parents=True)
+        (folder / "__init__.py").write_text("", encoding="utf-8")
+        (folder / "routes" / "__init__.py").write_text("", encoding="utf-8")
+        (folder / "helpers.py").write_text(f"MARK = {mark!r}\n", encoding="utf-8")
+        (folder / "routes" / "home.py").write_text(
+            f"from {name}.helpers import MARK\n"
+            "class Home:\n"
+            "    routes = ('get',)\n"
+            "    def render(self):\n"
+            "        return MARK\n",
+            encoding="utf-8",
+        )
+    monkeypatch.syspath_prepend(str(folder_b.parent))
+    lock = None
+    try:
+        _purge_package(name)
+        importlib.invalidate_caches()
+        importlib.import_module(f"{name}.helpers")
+        lock = bootstrap._get_module_lock(f"{name}.helpers")
+        lock.acquire()
+        built = build(
+            folder_a, name="X", host="asgi", live="null", level=1, lock_timeout=0.4
+        )
+        assert asgi_get(built[1], "/home").text == "FROM_A"
+    finally:
+        if lock is not None and getattr(lock, "owner", None) is not None:
+            lock.release()
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_snapshot_package_modules_waits_for_the_import_lock():
+    """snapshot_package_modules does not read sys.modules unlocked.
+
+    Another thread holding package_import_lock blocks the snapshot until
+    that thread releases it.
+    """
+    from ux_compose.routing.core import package_import_lock, snapshot_package_modules
+
+    release = threading.Event()
+    held = threading.Event()
+    done = threading.Event()
+
+    def holder() -> None:
+        package_import_lock.acquire()
+        try:
+            held.set()
+            release.wait(5)
+        finally:
+            package_import_lock.release()
+
+    def worker() -> None:
+        snapshot_package_modules(Path("/tmp/ux-compose-snapshot-probe"))
+        done.set()
+
+    owner = threading.Thread(target=holder, daemon=True)
+    other = threading.Thread(target=worker, daemon=True)
+    owner.start()
+    assert held.wait(2)
+    other.start()
+    try:
+        assert not done.wait(0.3)
+        release.set()
+        assert done.wait(2)
+        owner.join(2)
+        other.join(2)
+        assert not owner.is_alive() and not other.is_alive()
+    finally:
+        release.set()
+
+
+def test_behavior_and_registry_are_one_dotted_instance(tmp_path):
+    """The behavior map and the unit registry hold the same instance.
+
+    Main keeps one object, and its class is the dotted route module.
+    Leaving the scan instance in the behavior map splits them.
+    """
+    from ux_compose.build import build
+
+    name = "sameobj"
+    pkg = _plain_off_path(tmp_path, name)
+    try:
+        app, _asgi, bundle = build(pkg, name="X", host="asgi", live="null", level=1)
+        behavior = app._behavior.get("hello")
+        registered = bundle.unit_registry["hello"]
+        assert behavior is registered
+        assert type(behavior).__module__ == f"{name}.routes.hello"
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_plain_page_keeps_the_app_behavior(tmp_path):
+    """A page class with no bind_behavior still points at the app behavior.
+
+    Rebind builds a new instance. That instance's behavior is the app's.
+    """
+    from ux_compose.build import build
+
+    name = "plainbeh"
+    pkg = _plain_off_path(tmp_path, name)
+    try:
+        app, _asgi, _bundle = build(pkg, name="X", host="asgi", live="null", level=1)
+        page = app._behavior._components["hello"]
+        assert page._behavior is app._behavior
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+@pytest.mark.parametrize("env", [None, "none", "inf", "2"])
+@pytest.mark.parametrize("entry", ["mount", "discover"])
+def test_mount_and_discover_wait_out_a_short_foreign_import(
+    tmp_path, monkeypatch, env: str | None, entry: str
+):
+    """App.mount and DirectoryRoutes.discover wait out a short import.
+
+    Neither call is build(), so the wait is the environment. Unset, none,
+    inf, and a real number of seconds all let a short import finish.
+    """
+    from ux_compose.app import App
+    from ux_compose.routing.core import DirectoryRoutes
+
+    if env is None:
+        monkeypatch.delenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", raising=False)
+        label = "unset"
+    else:
+        monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", env)
+        label = "neg" if env == "-1" else env.replace(".", "p")
+    gate_name = f"gate_{entry}_{label}"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\nIN = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    name = f"w{entry[:1]}{label}"
+    folder_b = tmp_path / "b" / name
+    folder_a = tmp_path / "a" / name
+    folder_b.mkdir(parents=True)
+    (folder_b / "__init__.py").write_text("", encoding="utf-8")
+    (folder_b / "main.py").write_text(
+        f"import {gate_name}\n"
+        "import time\n"
+        f"{gate_name}.IN.set()\n"
+        "time.sleep(0.2)\n"
+        "VALUE = 'B'\n",
+        encoding="utf-8",
+    )
+    _write(
+        folder_a,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    id = 'hello'\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'OURS'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(folder_b.parent))
+    gate = importlib.import_module(gate_name)
+    out: dict[str, object] = {}
+
+    def loader() -> None:
+        try:
+            importlib.import_module(f"{name}.main")
+        except BaseException as exc:
+            out["loader"] = exc
+
+    left = threading.Thread(target=loader, daemon=True)
+    try:
+        left.start()
+        assert gate.IN.wait(2)
+        if entry == "mount":
+            bundle = App().mount(folder_a)
+            assert bundle.unit_registry["hello"].render() == "OURS"
+        elif entry == "discover":
+            records = DirectoryRoutes(folder_a).discover()
+            assert records[0].page_cls().render() == "OURS"
+        else:
+            raise AssertionError(entry)
+        left.join(2)
+        assert not left.is_alive()
+        assert out.get("loader") is None
+    finally:
+        left.join(2)
+        _purge_package(name)
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)
+
+
+@pytest.mark.parametrize("entry", ["mount", "discover"])
+def test_mount_and_discover_timeout_names_the_env_budget(
+    tmp_path, monkeypatch, entry: str
+):
+    """A short environment budget is the BuildLockTimeout value.
+
+    App.mount and DirectoryRoutes.discover read the environment, not a
+    build() argument. The import is still held. The error names 0.05s.
+    """
+    from ux_compose.app import App
+    from ux_compose.routing.core import BuildLockTimeout, DirectoryRoutes
+
+    monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "0.05")
+    gate_name = f"gate_budget_{entry}"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\nIN = threading.Event()\nOUT = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    name = f"budget{entry[:1]}"
+    folder_b = tmp_path / "b" / name
+    folder_a = tmp_path / "a" / name
+    folder_b.mkdir(parents=True)
+    (folder_b / "__init__.py").write_text("", encoding="utf-8")
+    (folder_b / "main.py").write_text(
+        f"import {gate_name}\n"
+        f"{gate_name}.IN.set()\n"
+        f"{gate_name}.OUT.wait(5)\n"
+        "VALUE = 'B'\n",
+        encoding="utf-8",
+    )
+    _write(
+        folder_a,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    id = 'hello'\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'OURS'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(folder_b.parent))
+    gate = importlib.import_module(gate_name)
+    out: dict[str, object] = {}
+
+    def loader() -> None:
+        try:
+            importlib.import_module(f"{name}.main")
+        except BaseException as exc:
+            out["loader"] = exc
+
+    left = threading.Thread(target=loader, daemon=True)
+    try:
+        left.start()
+        assert gate.IN.wait(2)
+        with pytest.raises(BuildLockTimeout) as caught:
+            if entry == "mount":
+                App().mount(folder_a)
+            elif entry == "discover":
+                DirectoryRoutes(folder_a).discover()
+            else:
+                raise AssertionError(entry)
+        assert caught.value.package == name
+        assert caught.value.timeout == 0.05
+        assert out.get("loader") is None
+    finally:
+        gate.OUT.set()
+        left.join(2)
+        _purge_package(name)
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)
+
+
+@pytest.mark.parametrize("entry", ["mount", "discover"])
+def test_direct_call_default_wait_exceeds_one_second(tmp_path, monkeypatch, entry: str):
+    """Unset UX_COMPOSE_BUILD_LOCK_TIMEOUT waits longer than one second.
+
+    App.mount and DirectoryRoutes.discover are not build(), so they use
+    that default. An import that holds for just over a second still
+    finishes. A one-second default raises BuildLockTimeout instead.
+    """
+    from ux_compose.app import App
+    from ux_compose.routing.core import DirectoryRoutes
+
+    monkeypatch.delenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", raising=False)
+    gate_name = f"gate_long_{entry}"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\nIN = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    name = f"long{entry[:1]}"
+    folder_b = tmp_path / "b" / name
+    folder_a = tmp_path / "a" / name
+    folder_b.mkdir(parents=True)
+    (folder_b / "__init__.py").write_text("", encoding="utf-8")
+    (folder_b / "main.py").write_text(
+        f"import {gate_name}\n"
+        "import time\n"
+        f"{gate_name}.IN.set()\n"
+        "time.sleep(1.3)\n"
+        "VALUE = 'B'\n",
+        encoding="utf-8",
+    )
+    _write(
+        folder_a,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    id = 'hello'\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'OURS'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(folder_b.parent))
+    gate = importlib.import_module(gate_name)
+    out: dict[str, object] = {}
+
+    def loader() -> None:
+        try:
+            importlib.import_module(f"{name}.main")
+        except BaseException as exc:
+            out["loader"] = exc
+
+    left = threading.Thread(target=loader, daemon=True)
+    try:
+        left.start()
+        assert gate.IN.wait(2)
+        if entry == "mount":
+            bundle = App().mount(folder_a)
+            assert bundle.unit_registry["hello"].render() == "OURS"
+        elif entry == "discover":
+            records = DirectoryRoutes(folder_a).discover()
+            assert records[0].page_cls().render() == "OURS"
+        else:
+            raise AssertionError(entry)
+        left.join(3)
+        assert not left.is_alive()
+        assert out.get("loader") is None
+    finally:
+        left.join(3)
+        _purge_package(name)
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)
+
+
+def test_build_timeout_does_not_stick_for_a_later_mount(tmp_path, monkeypatch):
+    """A finished build() does not leave its timeout on this thread.
+
+    The next App.mount is not build(), so a leaked lock_timeout would
+    bound that mount. A short import after build(lock_timeout=0.05)
+    still finishes.
+    """
+    from ux_compose.app import App
+    from ux_compose.build import build
+
+    monkeypatch.delenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", raising=False)
+    name = "stickapp"
+    quiet = _plain_off_path(tmp_path / "quiet", name)
+    try:
+        build(quiet, name="X", host="asgi", live="null", level=1, lock_timeout=0.05)
+    finally:
+        _purge_package(name)
+    gate_name = "gate_stick"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\nIN = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    folder_b = tmp_path / "b" / name
+    folder_a = tmp_path / "a" / name
+    folder_b.mkdir(parents=True)
+    (folder_b / "__init__.py").write_text("", encoding="utf-8")
+    (folder_b / "main.py").write_text(
+        f"import {gate_name}\n"
+        "import time\n"
+        f"{gate_name}.IN.set()\n"
+        "time.sleep(0.4)\n"
+        "VALUE = 'B'\n",
+        encoding="utf-8",
+    )
+    _write(
+        folder_a,
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    id = 'hello'\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'OURS'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(folder_b.parent))
+    gate = importlib.import_module(gate_name)
+    out: dict[str, object] = {}
+
+    def loader() -> None:
+        try:
+            importlib.import_module(f"{name}.main")
+        except BaseException as exc:
+            out["loader"] = exc
+
+    left = threading.Thread(target=loader, daemon=True)
+    try:
+        left.start()
+        assert gate.IN.wait(2)
+        bundle = App().mount(folder_a)
+        assert bundle.unit_registry["hello"].render() == "OURS"
+        left.join(2)
+        assert not left.is_alive()
+        assert out.get("loader") is None
+    finally:
+        left.join(2)
+        _purge_package(name)
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)
+
+
+def test_in_use_package_both_folders_ship_is_a_conflict(tmp_path, monkeypatch):
+    """A package both folders ship is PackageImportConflict while it is importing.
+
+    ``plugins/__init__.py`` is that module. A check that only sees
+    ``plugins.py`` misses it and can serve the other folder's copy.
+    """
+    from ux_compose.build import build
+    from ux_compose.routing.core import PackageImportConflict
+
+    gate_name = "gate_plugins"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\nIN = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    name = "plugapp"
+    p1 = tmp_path / "p1" / name
+    p2 = tmp_path / "p2" / name
+    for folder, mark in ((p1, "FROM_P1"), (p2, "FROM_P2")):
+        (folder / "plugins").mkdir(parents=True)
+        (folder / "__init__.py").write_text("", encoding="utf-8")
+        (folder / "routes").mkdir()
+        (folder / "routes" / "__init__.py").write_text("", encoding="utf-8")
+    (p1 / "plugins" / "__init__.py").write_text(
+        f"import {gate_name}\n"
+        "import time\n"
+        "MARK = 'FROM_P1'\n"
+        f"{gate_name}.IN.set()\n"
+        "time.sleep(0.2)\n",
+        encoding="utf-8",
+    )
+    (p2 / "plugins" / "__init__.py").write_text(
+        "MARK = 'FROM_P2'\n",
+        encoding="utf-8",
+    )
+    (p2 / "routes" / "home.py").write_text(
+        f"from {name}.plugins import MARK\n"
+        "class Home:\n"
+        "    routes = ('get',)\n"
+        "    def render(self):\n"
+        "        return MARK\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(p1.parent))
+    gate = importlib.import_module(gate_name)
+    out: dict[str, object] = {}
+
+    def loader() -> None:
+        try:
+            importlib.import_module(f"{name}.plugins")
+        except BaseException as exc:
+            out["loader"] = exc
+
+    def builder() -> None:
+        assert gate.IN.wait(2)
+        try:
+            built = build(p2, name="X", host="asgi", live="null", level=1)
+            out["served"] = asgi_get(built[1], "/home").text
+        except BaseException as exc:
+            out["err"] = exc
+
+    left = threading.Thread(target=loader, daemon=True)
+    right = threading.Thread(target=builder, daemon=True)
+    try:
+        left.start()
+        right.start()
+        left.join(4)
+        right.join(4)
+        assert not left.is_alive() and not right.is_alive()
+        err = out.get("err")
+        assert isinstance(err, PackageImportConflict), out.get("served")
+        assert err.loaded_from == p1.resolve()
+        assert err.building == p2.resolve()
+        assert out.get("served") != "FROM_P1"
+    finally:
+        _purge_package(name)
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)
+
+
+def test_deep_module_only_the_other_folder_ships_is_not_a_conflict(
+    tmp_path, monkeypatch
+):
+    """A deep module this folder does not ship is not a conflict.
+
+    This folder has the top package ``extra`` and not ``extra/nested/leaf.py``.
+    The other folder is importing that leaf. build() serves this folder.
+    Treating the top segment as the whole module raises PackageImportConflict.
+    """
+    from ux_compose.build import build
+
+    gate_name = "gate_leaf"
+    (tmp_path / f"{gate_name}.py").write_text(
+        "import threading\nIN = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    name = "leafapp"
+    p1 = tmp_path / "p1" / name
+    p2 = tmp_path / "p2" / name
+    leaf = p1 / "extra" / "nested"
+    leaf.mkdir(parents=True)
+    (p1 / "__init__.py").write_text("", encoding="utf-8")
+    (p1 / "extra" / "__init__.py").write_text("", encoding="utf-8")
+    (p1 / "extra" / "nested" / "__init__.py").write_text("", encoding="utf-8")
+    (leaf / "leaf.py").write_text(
+        f"import {gate_name}\n"
+        "import time\n"
+        f"{gate_name}.IN.set()\n"
+        "time.sleep(0.2)\n"
+        "MARK = 'LEAF'\n",
+        encoding="utf-8",
+    )
+    (p2 / "extra").mkdir(parents=True)
+    (p2 / "__init__.py").write_text("", encoding="utf-8")
+    (p2 / "extra" / "__init__.py").write_text("MARK = 'TOP'\n", encoding="utf-8")
+    (p2 / "routes").mkdir()
+    (p2 / "routes" / "__init__.py").write_text("", encoding="utf-8")
+    (p2 / "routes" / "home.py").write_text(
+        "class Home:\n"
+        "    routes = ('get',)\n"
+        "    def render(self):\n"
+        "        return 'OURS'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(p1.parent))
+    gate = importlib.import_module(gate_name)
+    out: dict[str, object] = {}
+
+    def loader() -> None:
+        try:
+            importlib.import_module(f"{name}.extra.nested.leaf")
+        except BaseException as exc:
+            out["loader"] = exc
+
+    def builder() -> None:
+        assert gate.IN.wait(2)
+        try:
+            built = build(p2, name="X", host="asgi", live="null", level=1)
+            out["served"] = asgi_get(built[1], "/home").text
+        except BaseException as exc:
+            out["err"] = exc
+
+    left = threading.Thread(target=loader, daemon=True)
+    right = threading.Thread(target=builder, daemon=True)
+    try:
+        left.start()
+        right.start()
+        left.join(4)
+        right.join(4)
+        assert not left.is_alive() and not right.is_alive()
+        assert out.get("loader") is None, out.get("loader")
+        assert "err" not in out, out.get("err")
+        assert out.get("served") == "OURS"
+    finally:
+        _purge_package(name)
+        sys.modules.pop(gate_name, None)
+        _drop_tree(tmp_path)

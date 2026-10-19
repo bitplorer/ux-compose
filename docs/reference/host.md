@@ -283,7 +283,8 @@ not imported: `build()` raises `ModuleNotFoundError` for that name.
 A second thread that is still waiting when the timeout elapses gets
 `BuildLockTimeout` from `ux_compose.build`. The message names the package
 and the setting. The default wait is 60 seconds, so a slow route still
-finishes and a deadlock still ends in that error. `build(lock_timeout=...)`
+finishes. `lock_timeout=None` does not turn a deadlock into that error.
+`build(lock_timeout=...)`
 overrides it. `UX_COMPOSE_BUILD_LOCK_TIMEOUT` overrides it when the
 argument is omitted. A blank environment value keeps that default.
 `lock_timeout=None`, `none`, or `inf` (argument or environment) waits

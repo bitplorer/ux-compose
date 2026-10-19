@@ -53,20 +53,24 @@ def test_child_pythonpath_keeps_the_parent_entries(monkeypatch):
     assert marker in parts
 
 
+def _assert_boot_failed(proc: subprocess.CompletedProcess[str], *needles: str) -> None:
+    blob = proc.stdout + proc.stderr
+    assert proc.returncode != 0, blob
+    for needle in needles:
+        assert needle in blob, blob
+
+
 def test_live_asgi_fails_loudly_when_channel_secret_missing():
     """build() on the live FastAPI path must not continue without Caps."""
     proc = _run([PY, "examples/live_asgi.py"])
-    blob = proc.stdout + proc.stderr
-    assert proc.returncode != 0, blob
-    assert "UX_CHANNEL_SECRET" in blob
+    _assert_boot_failed(proc, "ATTACH_SECRET_REQUIRED", "UX_CHANNEL_SECRET")
 
 
 def test_live_asgi_fails_on_13_char_secret():
     """A short secret is an attach failure. The process must not stay up."""
     assert len(SHORT_SECRET) == 13
     proc = _run([PY, "examples/live_asgi.py"], {"UX_CHANNEL_SECRET": SHORT_SECRET})
-    blob = proc.stdout + proc.stderr
-    assert proc.returncode != 0, blob
+    _assert_boot_failed(proc, "ATTACH_BOOT_FAILED", "at least 16 characters")
 
 
 def test_build_fails_on_13_char_secret():
@@ -77,8 +81,17 @@ def test_build_fails_on_13_char_secret():
         "build(Path('examples/live_asgi_app'), name='LiveDemo', host='fastapi', live='auto')\n"
     )
     proc = _run([PY, "-c", code], {"UX_CHANNEL_SECRET": SHORT_SECRET})
-    blob = proc.stdout + proc.stderr
-    assert proc.returncode != 0, blob
+    _assert_boot_failed(proc, "ATTACH_BOOT_FAILED", "at least 16 characters")
+
+
+def test_atelier_shop_boot_fails_without_channel_secret():
+    proc = _run([PY, "-c", "import apps.atelier_shop.server"])
+    _assert_boot_failed(proc, "ATTACH_SECRET_REQUIRED", "UX_CHANNEL_SECRET")
+
+
+def test_atelier_studio_boot_fails_without_channel_secret():
+    proc = _run([PY, "-c", "import apps.atelier_studio.server"])
+    _assert_boot_failed(proc, "ATTACH_SECRET_REQUIRED", "UX_CHANNEL_SECRET")
 
 
 def test_atelier_shop_boot_fails_on_13_char_secret():
@@ -86,8 +99,7 @@ def test_atelier_shop_boot_fails_on_13_char_secret():
         [PY, "-c", "import apps.atelier_shop.server"],
         {"UX_CHANNEL_SECRET": SHORT_SECRET},
     )
-    blob = proc.stdout + proc.stderr
-    assert proc.returncode != 0, blob
+    _assert_boot_failed(proc, "ATTACH_BOOT_FAILED", "at least 16 characters")
 
 
 def test_atelier_studio_boot_fails_on_13_char_secret():
@@ -95,5 +107,4 @@ def test_atelier_studio_boot_fails_on_13_char_secret():
         [PY, "-c", "import apps.atelier_studio.server"],
         {"UX_CHANNEL_SECRET": SHORT_SECRET},
     )
-    blob = proc.stdout + proc.stderr
-    assert proc.returncode != 0, blob
+    _assert_boot_failed(proc, "ATTACH_BOOT_FAILED", "at least 16 characters")

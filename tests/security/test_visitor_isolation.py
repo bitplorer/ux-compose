@@ -189,6 +189,28 @@ def test_refused_otp_digits_are_absent_from_the_next_visitor():
     assert all(node.get("value", "") == "" for node in inputs)
 
 
+def test_short_otp_is_not_stored_for_either_visitor():
+    """A code refused for its length must not stay stored.
+
+    Client A posts a short code and sees ``Enter all six digits``. A's
+    repaint and client B's page show none of those digits, and the shared
+    code is empty.
+    """
+    digits = "83921"
+    asgi, inst = _boot(Otp, None)
+    _page(asgi, inst)
+    verify = next(item for item in _controls(_get(asgi, _CLIENT_A).text) if item["action"] == "otp.verify")
+    posted = _post(asgi, verify, {"code": digits}, _CLIENT_A)
+    assert posted.status_code == 200, posted.text
+    assert not bool(inst.ok)
+    assert "Enter all six digits" in str(inst.err)
+    for client in (_CLIENT_A, _CLIENT_B):
+        html = _get(asgi, client).text
+        assert digits not in html
+        assert "Enter all six digits" in html
+    assert str(inst.code or "") == ""
+
+
 def _otp_page_for(code):
     asgi, inst = _boot(Otp, None)
     _page(asgi, inst)

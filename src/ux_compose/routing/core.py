@@ -316,10 +316,7 @@ def _coerce_chunk(chunk: Any) -> Any:
     ``bytearray.copy`` reads the buffer and does not call ``__buffer__``.
     """
     if isinstance(chunk, Markup):
-        plain = str.__str__(chunk)
-        if str.__len__(plain) == 0:
-            return plain
-        return Markup(plain)
+        return Markup(str.__str__(chunk))
     if isinstance(chunk, str):
         return str.__str__(chunk)
     if isinstance(chunk, bytes):
@@ -337,14 +334,13 @@ def _is_empty_chunk(chunk: Any) -> bool:
     """True when this already-copied yield must not flush and must not emit.
 
     Length is taken from the plain copy only. ``Markup('')`` is an empty
-    ``str``. ``raw('')`` and an escaped ``dom_text('')`` have empty text.
+    ``str``. Only an exact ``dom_text('')`` is empty. A subclass renders
+    through its own ``_render`` even when its text is empty.
     """
     if chunk is None:
         return True
     if isinstance(chunk, str):
         return str.__len__(chunk) == 0
-    if type(chunk) is bytes:
-        return bytes.__len__(chunk) == 0
     if type(chunk) is dom_text and type(chunk.text) is str:
         return str.__len__(chunk.text) == 0
     return False
@@ -352,7 +348,8 @@ def _is_empty_chunk(chunk: Any) -> bool:
 
 def _decode_chunk(decoder: _Utf8Stream, chunk: Any) -> bytes:
     # Copy first. None, '', b'', bytearray(), memoryview(b''), Markup(''),
-    # raw(''), and an escaped empty text node then emit nothing and do not flush.
+    # and an exact raw('') / dom_text('') emit nothing and do not flush.
+    # A dom_text subclass still renders through its own _render.
     chunk = _coerce_chunk(chunk)
     if _is_empty_chunk(chunk):
         return b""

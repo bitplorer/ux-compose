@@ -3556,3 +3556,33 @@ def test_deep_module_only_the_other_folder_ships_is_not_a_conflict(
         _purge_package(name)
         sys.modules.pop(gate_name, None)
         _drop_tree(tmp_path)
+
+
+@pytest.mark.parametrize("entry", ["mount", "discover"])
+@pytest.mark.parametrize("env", ["nope", "-1", "nan"])
+def test_direct_mount_and_discover_reject_a_bad_timeout_env(
+    tmp_path, monkeypatch, entry: str, env: str
+):
+    """App.mount and DirectoryRoutes.discover reject a bad timeout env.
+
+    build() already raises ValueError. These direct callers read the same
+    variable. An invalid value must not mean "wait forever", and a negative
+    number must not be used as the budget.
+    """
+    from ux_compose.app import App
+    from ux_compose.routing.core import DirectoryRoutes
+
+    monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", env)
+    name = f"bad{entry[:1]}{env.replace('-', 'n')}"
+    pkg = _plain_off_path(tmp_path, name)
+    try:
+        with pytest.raises(ValueError, match="UX_COMPOSE_BUILD_LOCK_TIMEOUT"):
+            if entry == "mount":
+                App().mount(pkg)
+            elif entry == "discover":
+                DirectoryRoutes(pkg).discover()
+            else:
+                raise AssertionError(entry)
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)

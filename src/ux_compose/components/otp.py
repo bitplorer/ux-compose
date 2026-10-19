@@ -105,7 +105,7 @@ class Otp(Component):
                 div(
                     span("Ok", className=self.class_mark),
                     h2("Code accepted", className=self.class_title),
-                    p("The Cap was spent.", className=self.class_lede),
+                    p("The Cap was spent. The secret is cleared.", className=self.class_lede),
                     button(
                         "Try another",
                         type="button",
@@ -179,6 +179,7 @@ class Otp(Component):
             self._mark_dirty()
             return update_with(self, extra_ops=[notify(refused)])
         self.ok = True
+        self.code = ""
         self.err = ""
         self._mark_dirty()
         return update_with(self, extra_ops=[notify("Code accepted")])

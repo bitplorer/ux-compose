@@ -2956,6 +2956,8 @@ def test_second_import_past_the_budget_raises_build_lock_timeout(
         err = out.get("err")
         assert isinstance(err, BuildLockTimeout), out.get("served") or out.get("second")
         assert err.package == "myapp"
+        assert err.timeout == 0.2
+        assert "after 0.2s" in str(err)
         assert "served" not in out
         assert "second" not in out
     finally:

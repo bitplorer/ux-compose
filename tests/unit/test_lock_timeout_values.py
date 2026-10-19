@@ -27,20 +27,51 @@ _ENV = "UX_COMPOSE_BUILD_LOCK_TIMEOUT"
 
 
 def _cases() -> list[tuple[str, str, str]]:
-    values = ["unset", "", "0", "inf", "INF", "none", "None", "abc", "-1", "nan"]
+    values = [
+        "unset",
+        "",
+        "0",
+        "inf",
+        "INF",
+        " none",
+        " INF",
+        "none",
+        "None",
+        "NONE",
+        "infinite",
+        "Infinity",
+        "abc",
+        "-1",
+        "nan",
+    ]
     cases = [("env", entry, value) for entry in ("build", "mount", "discover") for value in values]
     cases.extend(("argument", "build", value) for value in values if value != "unset")
     return cases
 
 
 def _kind(value: str) -> str:
-    if value in {"unset", ""}:
+    if value == "unset":
         return "default"
-    if value == "0":
+    token = value.strip().lower()
+    if token == "":
+        return "default"
+    if token == "0":
         return "zero"
-    if value.lower() in {"inf", "none", "infinite"}:
+    if token in {"inf", "none", "infinite", "infinity"}:
         return "open"
     return "bad"
+
+
+def _label(value: str) -> str:
+    parts: list[str] = []
+    for char in value:
+        if char == " ":
+            parts.append("sp")
+        elif char.isalnum():
+            parts.append(char)
+        else:
+            parts.append("x")
+    return "".join(parts) or "blank"
 
 
 def _purge(name: str) -> None:
@@ -95,8 +126,7 @@ _OMIT = object()
 @pytest.mark.parametrize(("source", "entry", "value"), _cases())
 def test_lock_timeout_value_on_every_entry(tmp_path, monkeypatch, source: str, entry: str, value: str):
     kind = _kind(value)
-    label = {"unset": "u", "": "empty", "0": "z", "inf": "inf", "INF": "INF", "none": "none", "None": "None", "abc": "abc", "-1": "neg", "nan": "nan"}[value]
-    name = f"tv{source[:1]}{entry[:1]}{label}"
+    name = f"tv{source[:1]}{entry[:1]}{_label(value)}"
     if source == "env":
         if value == "unset":
             monkeypatch.delenv(_ENV, raising=False)

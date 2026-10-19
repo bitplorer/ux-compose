@@ -5,17 +5,18 @@
 name and value. Each field carries a marker. After ``POST /ux-channel/action``
 the marker has to be in the component's public state.
 
-FormLayout names its fields from ``_fields()``. Each of those rows is
-``xfail(strict=True)`` until ux-behavior grows ``fields=``. Login
-``set_field`` writes only the sealed field, and ``submit`` clears the
-password. Those rows pass.
+Posted names follow main ``c22e419``. A ``set_field`` that takes the
+control name only through ``**kwargs`` does not store it. Login ``submit``
+keeps the email and clears the password. ``Otp.verify`` clears the code.
+``FilterBar.choose`` accepts ``q`` and does not store it. FormLayout does
+not store its dynamic names. Restoring those fields waits on per-visitor
+state.
 """
 from __future__ import annotations
 
 import json
 from html.parser import HTMLParser
 
-import pytest
 from fastapi import FastAPI
 
 from tests.asgi_http import asgi_post_json
@@ -53,18 +54,19 @@ _KITS = (
     ("colorpicker", ColorPicker, None),
     ("typeahead", Typeahead, None),
 )
-# FormLayout's names come from ``_fields()``. They wait on a behavior allowlist.
-_ALLOWLIST = {
-    ("formlayout", "set_field"),
-    ("formlayout", "submit"),
+# Form fields main's action writes into public state. Anything else is not stored.
+_MAIN_KEEPS = {
+    ("login", "toggle_password"): frozenset({"email", "password"}),
+    ("login", "submit"): frozenset({"email"}),
+    ("newsletter", "subscribe"): frozenset({"email"}),
+    ("combobox", "type_query"): frozenset({"q"}),
+    ("command", "type_query"): frozenset({"q"}),
+    ("chat", "send"): frozenset({"text"}),
+    ("tagsinput", "add"): frozenset({"tag"}),
+    ("searchbar", "search"): frozenset({"q"}),
+    ("spinbutton", "set_value"): frozenset({"value"}),
+    ("typeahead", "query_hits"): frozenset({"q"}),
 }
-# Login writes the sealed field only, and submit clears the password.
-_DESIGNED = {
-    ("login", "set_field"),
-    ("login", "submit"),
-}
-# A used secret is cleared, the way Login.submit clears the password.
-_CLEARED = {("otp", "verify")}
 _CHANNEL = "application/ux-channel+json"
 
 
@@ -254,6 +256,7 @@ def _post_row(kit, component, prelude):
                 "missing": missing,
                 "chip": chip,
                 "body": response.text[:240],
+                "fields": sorted(markers),
                 "email": str(getattr(inst, "email", "") or ""),
                 "authed": bool(getattr(inst, "authed", False)),
             }
@@ -274,14 +277,20 @@ def _line(row):
     return f"{row['action']} {row['sealed']} lost={lost}{chip} status={row['status']}"
 
 
-def test_rendered_control_keeps_every_posted_field():
-    lost = [
-        _line(row)
-        for row in _all_rows()
-        if (row["kit"], row["method"]) not in _ALLOWLIST | _DESIGNED | _CLEARED
-        and (row["missing"] or row["chip"] or row["status"] != 200)
-    ]
-    assert lost == [], "\n".join(lost)
+def test_posted_fields_match_main():
+    """A posted name is stored only when main's action already writes it."""
+    bad = []
+    for row in _all_rows():
+        kept = _MAIN_KEEPS.get((row["kit"], row["method"]), frozenset())
+        fields = set(row["fields"])
+        missing = set(row["missing"])
+        extra = sorted(name for name in fields if name not in kept and name not in missing)
+        absent = sorted(name for name in kept if name in fields and name in missing)
+        if row["status"] != 200 or extra or absent or row["chip"]:
+            bad.append(
+                f"{_line(row)} extra={extra} absent={absent}"
+            )
+    assert bad == [], "\n".join(bad)
 
 
 def test_login_set_mode_does_not_inherit_another_controls_email():
@@ -312,20 +321,13 @@ def _kit_row(kit, method, **sealed):
     return rows[0]
 
 
-def test_login_set_field_email_stores_only_the_sealed_field():
-    row = _kit_row("login", "set_field", field="email")
-    assert row["status"] == 200, row["body"]
-    assert "email" not in row["missing"]
-    assert "password" in row["missing"]
-    assert row["authed"] is False
-
-
-def test_login_set_field_password_stores_only_the_sealed_field():
-    row = _kit_row("login", "set_field", field="password")
-    assert row["status"] == 200, row["body"]
-    assert "password" not in row["missing"]
-    assert "email" in row["missing"]
-    assert row["authed"] is False
+def test_login_set_field_does_not_store_posted_names():
+    for field in ("email", "password"):
+        row = _kit_row("login", "set_field", field=field)
+        assert row["status"] == 200, row["body"]
+        assert "email" in row["missing"], row
+        assert "password" in row["missing"], row
+        assert row["authed"] is False
 
 
 def test_login_submit_keeps_email_and_clears_password():
@@ -336,27 +338,12 @@ def test_login_submit_keeps_email_and_clears_password():
     assert row["authed"] is True
 
 
-def _formlayout_keeps(method, **sealed):
-    row = _kit_row("formlayout", method, **sealed)
-    assert row["status"] == 200, row["body"]
-    assert row["missing"] == []
-
-
-@pytest.mark.xfail(strict=True, reason="needs ux-behavior fields= allowlist")
-def test_formlayout_set_field_name_waits_on_fields_allowlist():
-    _formlayout_keeps("set_field", field="name")
-
-
-@pytest.mark.xfail(strict=True, reason="needs ux-behavior fields= allowlist")
-def test_formlayout_set_field_email_waits_on_fields_allowlist():
-    _formlayout_keeps("set_field", field="email")
-
-
-@pytest.mark.xfail(strict=True, reason="needs ux-behavior fields= allowlist")
-def test_formlayout_set_field_note_waits_on_fields_allowlist():
-    _formlayout_keeps("set_field", field="note")
-
-
-@pytest.mark.xfail(strict=True, reason="needs ux-behavior fields= allowlist")
-def test_formlayout_submit_waits_on_fields_allowlist():
-    _formlayout_keeps("submit")
+def test_formlayout_posted_names_are_not_stored():
+    """Dynamic names stay unstored. Restoring them waits on per-visitor state."""
+    for field in ("name", "email", "note"):
+        row = _kit_row("formlayout", "set_field", field=field)
+        assert row["status"] == 200, row["body"]
+        assert row["missing"], row
+    submit = _kit_row("formlayout", "submit")
+    assert submit["status"] == 200, submit["body"]
+    assert submit["missing"], submit

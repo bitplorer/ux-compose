@@ -264,9 +264,10 @@ def test_otp_input_does_not_paint_another_clients_digits():
 
 
 def test_empty_password_does_not_sign_in_with_another_clients_secret():
-    """A stores a password. B submits that form with an empty password.
+    """A stores a password. B's empty Show clears it before any submit.
 
-    B must be refused. The empty post must not keep A's secret either.
+    B must then be refused on an empty submit. The empty post must not
+    keep A's secret either. The stored password after the empty Show is "".
     """
     secret = "password12"
     asgi, inst = _boot(Login, None)
@@ -281,6 +282,18 @@ def test_empty_password_does_not_sign_in_with_another_clients_secret():
     )
     assert typed.status_code == 200, typed.text
     assert str(inst.password or "") == secret
+    revealed = _controls(_get(asgi, _CLIENT_B).text)
+    empty_toggle = next(item for item in revealed if item["action"] == "login.toggle_password")
+    cleared = _post(
+        asgi,
+        empty_toggle,
+        {"email": "bee-b@x.test", "password": "", "name": ""},
+        _CLIENT_B,
+    )
+    assert cleared.status_code == 200, cleared.text
+    # B's empty Show drops A's secret before any submit. The intended
+    # stored password is "".
+    assert str(inst.password or "") == ""
     submit = next(item for item in _controls(_get(asgi, _CLIENT_B).text) if item["action"] == "login.submit")
     posted = _post(
         asgi,

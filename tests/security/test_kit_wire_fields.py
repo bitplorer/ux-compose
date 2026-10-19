@@ -5,8 +5,10 @@
 name and value. Each field carries a marker. After ``POST /ux-channel/action``
 the marker has to be in the component's public state.
 
-FormLayout, and login ``set_field`` / ``submit``, name their fields from the
-form. They stay ``xfail(strict=True)`` until ux-behavior grows ``fields=``.
+FormLayout names its fields from ``_fields()``. Each of those rows is
+``xfail(strict=True)`` until ux-behavior grows ``fields=``. Login
+``set_field`` writes only the sealed field, and ``submit`` clears the
+password. Those rows pass.
 """
 from __future__ import annotations
 
@@ -51,10 +53,13 @@ _KITS = (
     ("colorpicker", ColorPicker, None),
     ("typeahead", Typeahead, None),
 )
-# These rows name fields from the form. The allowlist is a later behavior change.
+# FormLayout's names come from ``_fields()``. They wait on a behavior allowlist.
 _ALLOWLIST = {
     ("formlayout", "set_field"),
     ("formlayout", "submit"),
+}
+# Login writes the sealed field only, and submit clears the password.
+_DESIGNED = {
     ("login", "set_field"),
     ("login", "submit"),
 }
@@ -250,6 +255,7 @@ def _post_row(kit, component, prelude):
                 "chip": chip,
                 "body": response.text[:240],
                 "email": str(getattr(inst, "email", "") or ""),
+                "authed": bool(getattr(inst, "authed", False)),
             }
         )
     return rows
@@ -272,8 +278,7 @@ def test_rendered_control_keeps_every_posted_field():
     lost = [
         _line(row)
         for row in _all_rows()
-        if (row["kit"], row["method"]) not in _ALLOWLIST
-        and (row["kit"], row["method"]) not in _CLEARED
+        if (row["kit"], row["method"]) not in _ALLOWLIST | _DESIGNED | _CLEARED
         and (row["missing"] or row["chip"] or row["status"] != 200)
     ]
     assert lost == [], "\n".join(lost)
@@ -294,12 +299,64 @@ def test_used_otp_code_is_cleared():
     assert "code" in rows[0]["missing"], rows[0]
 
 
-@pytest.mark.xfail(strict=True, reason="needs ux-behavior fields= allowlist")
-def test_formlayout_and_login_rows_wait_on_fields_allowlist():
-    lost = [
-        _line(row)
-        for row in _all_rows()
-        if (row["kit"], row["method"]) in _ALLOWLIST
-        and (row["missing"] or row["status"] != 200)
+def _kit_row(kit, method, **sealed):
+    component = next(component for name, component, _prelude in _KITS if name == kit)
+    prelude = next(prelude for name, _component, prelude in _KITS if name == kit)
+    rows = [
+        row
+        for row in _post_row(kit, component, prelude)
+        if row["method"] == method
+        and all(row["sealed"].get(key) == value for key, value in sealed.items())
     ]
-    assert lost == []
+    assert len(rows) == 1, rows
+    return rows[0]
+
+
+def test_login_set_field_email_stores_only_the_sealed_field():
+    row = _kit_row("login", "set_field", field="email")
+    assert row["status"] == 200, row["body"]
+    assert "email" not in row["missing"]
+    assert "password" in row["missing"]
+    assert row["authed"] is False
+
+
+def test_login_set_field_password_stores_only_the_sealed_field():
+    row = _kit_row("login", "set_field", field="password")
+    assert row["status"] == 200, row["body"]
+    assert "password" not in row["missing"]
+    assert "email" in row["missing"]
+    assert row["authed"] is False
+
+
+def test_login_submit_keeps_email_and_clears_password():
+    row = _kit_row("login", "submit")
+    assert row["status"] == 200, row["body"]
+    assert "email" not in row["missing"]
+    assert "password" in row["missing"]
+    assert row["authed"] is True
+
+
+def _formlayout_keeps(method, **sealed):
+    row = _kit_row("formlayout", method, **sealed)
+    assert row["status"] == 200, row["body"]
+    assert row["missing"] == []
+
+
+@pytest.mark.xfail(strict=True, reason="needs ux-behavior fields= allowlist")
+def test_formlayout_set_field_name_waits_on_fields_allowlist():
+    _formlayout_keeps("set_field", field="name")
+
+
+@pytest.mark.xfail(strict=True, reason="needs ux-behavior fields= allowlist")
+def test_formlayout_set_field_email_waits_on_fields_allowlist():
+    _formlayout_keeps("set_field", field="email")
+
+
+@pytest.mark.xfail(strict=True, reason="needs ux-behavior fields= allowlist")
+def test_formlayout_set_field_note_waits_on_fields_allowlist():
+    _formlayout_keeps("set_field", field="note")
+
+
+@pytest.mark.xfail(strict=True, reason="needs ux-behavior fields= allowlist")
+def test_formlayout_submit_waits_on_fields_allowlist():
+    _formlayout_keeps("submit")

@@ -190,6 +190,29 @@ def test_stream_ending_mid_character_flushes_replacement(
     assert _stream_body(tmp_path, host, mode, MID) == MID_BODY
 
 
+# A str chunk must not let the next bytes chunk finish the held character.
+ORDER = (b"caf\xc3", "<i>S</i>", b"\xa9")
+ORDER_BODY = b"caf\xef\xbf\xbd\n<i>\n  S\n</i>\xef\xbf\xbd\n"
+ORDER_MARKUP = (b"caf\xc3", Markup("<i>S</i>"), b"\xa9")
+ORDER_MARKUP_BODY = b"caf\xef\xbf\xbd\n<i>S</i>\xef\xbf\xbd\n"
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_str_chunk_flushes_pending_bytes_in_order(tmp_path: Path, host: str, mode: str):
+    """b'caf\\xc3', '<i>S</i>', b'\\xa9' stays in that order, with U+FFFD."""
+    assert _stream_body(tmp_path, host, mode, ORDER) == ORDER_BODY
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_markup_chunk_flushes_pending_bytes_in_order(
+    tmp_path: Path, host: str, mode: str
+):
+    """A Markup chunk flushes the same way, and stays verbatim."""
+    assert _stream_body(tmp_path, host, mode, ORDER_MARKUP) == ORDER_MARKUP_BODY
+
+
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])
 @pytest.mark.parametrize("mode", ["sync", "async"])
 def test_invalid_bytes_are_replaced_with_one_warning(

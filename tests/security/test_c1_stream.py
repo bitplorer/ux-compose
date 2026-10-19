@@ -17,8 +17,8 @@ from markupsafe import Markup
 
 from ux_compose import div, raw
 from ux_dom import Fragment
-from ux_dom.dom.src.htmltags import comment
 from ux_dom.dom.src.utils.dom_util import dom_text
+from ux_dom.response.serialize import to_html_bytes
 from ux_compose.routing.asgi import DirectoryASGI
 from ux_compose.routing.core import DirectoryRoutes, RouteRecord
 from ux_compose.routing.fastapi import _as_http_response, bind, create
@@ -393,7 +393,9 @@ class _EscapingText(dom_text):
         return sb
 
 
-class _Note(comment):
+class _Note(dom_text):
+    """A dom_text subclass. Rebuilding it as raw text drops <!--note-->."""
+
     def _render(self, sb, *a, **kw):
         sb.append("<!--note-->")
         return sb
@@ -422,8 +424,53 @@ def test_dom_text_subclass_render_escapes_markup(
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])
 @pytest.mark.parametrize("mode", ["sync", "async"])
 def test_comment_subclass_keeps_its_render(tmp_path: Path, host: str, mode: str):
-    """A comment subclass renders through its own _render."""
+    """A dom_text subclass renders through its own _render."""
     assert _stream_body(tmp_path, host, mode, (_Note("ignored"),)) == b"<!--note-->"
+
+
+class _Wrap(dom_text):
+    """Empty text, non-empty _render. An empty check must not drop it."""
+
+    def _render(self, sb, *a, **kw):
+        sb.append("<span class=w></span>")
+        return sb
+
+
+class _Cmt(dom_text):
+    def _render(self, sb, *a, **kw):
+        sb.append("<!---->")
+        return sb
+
+
+class _LiesStr(str):
+    """The buffer is the markup. __str__ returns something else."""
+
+    def __str__(self) -> str:
+        return "SWAPPED"
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+@pytest.mark.parametrize("node", [_Wrap(""), _Cmt("")], ids=["wrap", "cmt"])
+def test_empty_dom_text_subclass_renders_beside_split_char(
+    tmp_path: Path, host: str, mode: str, node: dom_text
+):
+    """A subclass with empty text still renders. The stream matches that render."""
+    rendered = to_html_bytes(node)
+    assert _stream_body(tmp_path, host, mode, (node,)) == rendered
+    beside = (b"a\xc3", node, b"\xa9")
+    assert _stream_body(tmp_path, host, mode, beside) == (
+        b"a\n\xef\xbf\xbd\n" + rendered + b"\xef\xbf\xbd\n"
+    )
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_str_subclass_whose_str_lies_is_copied(tmp_path: Path, host: str, mode: str):
+    """str.__str__ keeps <b>Q</b>. str() would emit the lying __str__."""
+    assert _stream_body(tmp_path, host, mode, (_LiesStr("<b>Q</b>"),)) == (
+        b"<b>\n  Q\n</b>"
+    )
 
 
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])

@@ -41,7 +41,26 @@ dependencies = [
 #   websockets public process forwards HMR + Channel sockets
 #   watchfiles uvicorn reloader that honors --reload-exclude *.css
 serve = ["uvicorn", "watchfiles", "httpx", "starlette", "websockets"]
-dev = ["pytest", "ruff", "pytest-asyncio", "pytest-cov", "httpx", "fastapi", "uvicorn", "watchfiles", "starlette", "websockets"]
+dev = [
+    "pytest",
+    "ruff",
+    "pytest-asyncio",
+    "pytest-cov",
+    "httpx",
+    "fastapi",
+    "uvicorn",
+    "watchfiles",
+    "starlette",
+    "websockets",
+    # Dependency intake
+    # name: pytest-randomly
+    # version: 5.0.0
+    # licence: MIT
+    # maintenance: pytest-dev (https://github.com/pytest-dev/pytest-randomly)
+    # why: dev/test only. Shuffles test order so the host import-cache leak
+    #      between temporary packages fails in CI, not only on a reviewer machine.
+    "pytest-randomly==5.0.0",
+]
 
 [project.scripts]
 uxcompose = "ux_compose.cli:main"

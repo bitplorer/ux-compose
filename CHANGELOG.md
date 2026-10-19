@@ -64,7 +64,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `inf` wait until the other build finishes. A blank environment value
   keeps the default. A negative number, `nan`, or other bad value raises
   `ValueError` naming `UX_COMPOSE_BUILD_LOCK_TIMEOUT` (`-1` does not wait
-  forever). `BuildLockTimeout` names the
+  forever). `App.mount` and `DirectoryRoutes.discover` use that same
+  parser when `build()` has not set a timeout; a bad environment value
+  is `ValueError`, not a silent 60 seconds. `BuildLockTimeout` names the
   package and the setting.
 - `build()` does not pop a package out of `sys.modules` while another
   thread is importing a child of that package, so that import does not

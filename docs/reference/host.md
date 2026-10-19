@@ -291,7 +291,10 @@ argument is omitted. A blank environment value keeps that default.
 until the other build finishes. `inf` is not passed to the lock, so it
 does not raise `OverflowError`. A negative number, including `-1`, and
 any other bad value raises `ValueError` before the wait. The message
-names `UX_COMPOSE_BUILD_LOCK_TIMEOUT`. That build does not continue
+names `UX_COMPOSE_BUILD_LOCK_TIMEOUT`. `App.mount` and
+`DirectoryRoutes.discover` read that same environment when `build()` has
+not set a timeout, and a bad value is the same `ValueError` rather than
+a silent 60 seconds. That build does not continue
 after a timeout, so it cannot bind the other thread's modules.
 
 The wait for another folder's import does not hold the package-name

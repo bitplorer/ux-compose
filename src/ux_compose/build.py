@@ -24,7 +24,6 @@ and HTML wrap live elsewhere.
 from __future__ import annotations
 
 import ast
-import math
 import os
 from pathlib import Path
 from typing import Any
@@ -33,6 +32,7 @@ from ux_compose.routing.core import (
     BuildLockTimeout,
     begin_build_import_wait,
     end_build_import_wait,
+    parse_lock_timeout,
 )
 
 __all__ = ["BuildLockTimeout", "build", "BuildResult"]
@@ -86,23 +86,10 @@ def _checked_lock_timeout(value: Any, *, where: str) -> float | None:
 
     ``inf`` is None so the lock is taken without a timeout. Passing
     ``float('inf')`` through to ``RLock.acquire`` raises OverflowError,
-    and ``-1`` waits forever once the lock is held.
+    and ``-1`` waits forever once the lock is held. Direct mount and
+    discover use the same parser.
     """
-    try:
-        number = float(value)
-    except (TypeError, ValueError) as exc:
-        raise ValueError(
-            f"invalid {where} value {value!r}; expected seconds, inf, or none"
-            " (UX_COMPOSE_BUILD_LOCK_TIMEOUT)"
-        ) from exc
-    if math.isnan(number) or number < 0:
-        raise ValueError(
-            f"invalid {where} value {value!r}; expected a non-negative number of seconds"
-            " (UX_COMPOSE_BUILD_LOCK_TIMEOUT)"
-        )
-    if math.isinf(number):
-        return None
-    return number
+    return parse_lock_timeout(value, where=where)
 
 
 def _resolve_lock_timeout(lock_timeout: Any) -> float | None:

@@ -556,12 +556,45 @@ def end_build_import_wait(token: contextvars.Token[Any]) -> None:
     _build_wait_timeout.reset(token)
 
 
+def parse_lock_timeout(value: Any, *, where: str) -> float | None:
+    """Seconds, or None to wait until done. Rejects negatives and NaN.
+
+    ``none``, ``inf``, and ``infinite`` wait until the other import ends.
+    ``build()`` and a direct ``App.mount`` or ``DirectoryRoutes.discover``
+    share this parser, so a bad ``UX_COMPOSE_BUILD_LOCK_TIMEOUT`` is the
+    same ``ValueError`` on every path.
+    """
+    if isinstance(value, str):
+        token = value.strip().lower()
+        if token in {"none", "inf", "infinite"}:
+            return None
+        text: Any = value.strip()
+    else:
+        text = value
+    try:
+        number = float(text)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"invalid {where} value {value!r}; expected seconds, inf, or none"
+            " (UX_COMPOSE_BUILD_LOCK_TIMEOUT)"
+        ) from exc
+    if number != number or number < 0:
+        raise ValueError(
+            f"invalid {where} value {value!r}; expected a non-negative number of seconds"
+            " (UX_COMPOSE_BUILD_LOCK_TIMEOUT)"
+        )
+    if number == float("inf"):
+        return None
+    return number
+
+
 def _import_wait_seconds() -> float | None:
     """Seconds to wait for another thread's import. ``None`` waits until it ends.
 
     ``build()`` sets the value from ``lock_timeout`` or
     ``UX_COMPOSE_BUILD_LOCK_TIMEOUT``. A direct call uses that environment
-    variable, otherwise 60.
+    variable, otherwise 60. A bad value is ``ValueError``, the same as
+    ``build()``.
     """
     current = _build_wait_timeout.get()
     if current is not _WAIT_UNSET:
@@ -569,18 +602,7 @@ def _import_wait_seconds() -> float | None:
     raw = os.environ.get("UX_COMPOSE_BUILD_LOCK_TIMEOUT")
     if raw is None or not raw.strip():
         return 60.0
-    token = raw.strip().lower()
-    if token in {"none", "inf", "infinite"}:
-        return None
-    try:
-        number = float(raw.strip())
-    except ValueError:
-        return 60.0
-    if number != number or number < 0:
-        return 60.0
-    if number == float("inf"):
-        return None
-    return number
+    return parse_lock_timeout(raw, where="UX_COMPOSE_BUILD_LOCK_TIMEOUT")
 
 
 def _exact_other_owner(name: str) -> bool:

@@ -257,7 +257,8 @@ to load it.
 Isolation and eviction run only when a different directory with the same
 package name is built. Rebuilding one folder does not add another copy of
 its modules. The first build of a new folder may add that folder's modules
-once.
+once. Each distinct app adds three `sys.modules` keys, and a rebuild adds
+none, so the growth is bounded by the number of distinct apps.
 
 Known limitation: during a same-name build, a shared `sys.modules['myapp']`
 means a thread that isn't building can see the building folder's helpers.

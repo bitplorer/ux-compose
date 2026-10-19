@@ -38,11 +38,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A folder's route module stays in `sys.modules` after `build()`, so
   `import` returns the served module and `typing.get_type_hints` can read
   it. The file runs again only when its bytes change. A different directory
-  with the same package name is what replaces it. If a module under that
-  name is already loaded from a different folder while another thread is
-  still importing it, `build()` raises `PackageImportConflict` and names
-  both folders. Main silently served that other folder's code. This is a
-  security fix.
+  with the same package name is what replaces it. If another thread is
+  still importing that name, `build()` waits for the import to release,
+  bounded by the same timeout as the build lock, then loads this folder.
+  It raises `PackageImportConflict` only when a module this folder also
+  has is still the other folder's copy, and the exception names both
+  folders. If that wait runs out, `build()` raises `BuildLockTimeout`
+  and does not serve the other folder. Main silently served that other
+  folder's code. This is a security fix.
 - The import pin does not make an off-path package importable. When
   that name is not on `sys.path`, `build()` raises `ModuleNotFoundError`,
   the same as an ordinary import.

@@ -14,6 +14,7 @@ Locked model:
 """
 from __future__ import annotations
 
+import contextvars
 import hashlib
 import importlib
 import importlib._bootstrap as _import_bootstrap
@@ -21,10 +22,12 @@ import importlib.util
 import inspect
 import linecache
 import logging
+import os
 import re
 import sys
 import sysconfig
 import threading
+import time
 import weakref
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -374,8 +377,9 @@ def _other_thread_importing(name: str) -> bool:
     ``importlib._bootstrap._find_and_load_unlocked`` reads
     ``sys.modules[parent]`` while it still holds the child lock (the
     lookups are at lines 1319 and 1348). Popping the parent there raises
-    ``KeyError``. This only reads the lock owner. Waiting on the lock
-    would deadlock a module that calls ``build()``.
+    ``KeyError``. This only reads the lock owner. The same thread is
+    skipped: a module that calls ``build()`` already holds its own import
+    lock, and ``_ModuleLock.acquire`` takes no timeout.
     """
     locks = getattr(_import_bootstrap, "_module_locks", None)
     if not isinstance(locks, dict):
@@ -469,6 +473,87 @@ def package_build_lock(package: str) -> threading.RLock:
             lock = threading.RLock()
             _package_build_locks[package] = lock
         return lock
+
+
+_WAIT_UNSET = object()
+_build_wait_timeout: contextvars.ContextVar[Any] = contextvars.ContextVar(
+    "ux_compose_build_wait",
+    default=_WAIT_UNSET,
+)
+
+
+def begin_build_import_wait(timeout: float | None) -> contextvars.Token[Any]:
+    """Remember this build's import wait. ``None`` waits until the import ends."""
+    return _build_wait_timeout.set(timeout)
+
+
+def end_build_import_wait(token: contextvars.Token[Any]) -> None:
+    _build_wait_timeout.reset(token)
+
+
+def _import_wait_seconds() -> float | None:
+    """Seconds to wait for another thread's import. ``None`` waits until it ends.
+
+    ``build()`` sets the value from ``lock_timeout`` or
+    ``UX_COMPOSE_BUILD_LOCK_TIMEOUT``. A direct call uses that environment
+    variable, otherwise 60.
+    """
+    current = _build_wait_timeout.get()
+    if current is not _WAIT_UNSET:
+        return current
+    raw = os.environ.get("UX_COMPOSE_BUILD_LOCK_TIMEOUT")
+    if raw is None or not raw.strip():
+        return 60.0
+    token = raw.strip().lower()
+    if token in {"none", "inf", "infinite"}:
+        return None
+    try:
+        number = float(raw.strip())
+    except ValueError:
+        return 60.0
+    if number != number or number < 0:
+        return 60.0
+    if number == float("inf"):
+        return None
+    return number
+
+
+def _exact_other_owner(name: str) -> bool:
+    """True when another thread holds the import lock for this exact module."""
+    locks = getattr(_import_bootstrap, "_module_locks", None)
+    if not isinstance(locks, dict):
+        return False
+    ref = locks.get(name)
+    lock = ref() if callable(ref) else None
+    owner = getattr(lock, "owner", None) if lock is not None else None
+    return isinstance(owner, int) and owner != threading.get_ident()
+
+
+def _module_file_in_tree(root: Path, package: str, module: str) -> bool:
+    """True when this folder has a file for ``module``."""
+    if module != package and not module.startswith(package + "."):
+        return False
+    rel = module[len(package) :].lstrip(".")
+    base = root.joinpath(*rel.split(".")) if rel else root
+    return (base / "__init__.py").is_file() or base.with_suffix(".py").is_file()
+
+
+def _wait_for_other_importers(names: list[str], timeout: float | None) -> bool:
+    """Poll until those imports release. Do not acquire the import lock.
+
+    ``_ModuleLock.acquire`` has no timeout. Taking it would also deadlock
+    a module that calls ``build()`` on this thread. ``False`` means the
+    budget ran out while another thread still held a lock.
+    """
+    deadline = None if timeout is None else time.monotonic() + timeout
+    pending = list(names)
+    while pending:
+        if deadline is not None and time.monotonic() >= deadline:
+            return False
+        pending = [name for name in pending if _other_thread_importing(name)]
+        if pending:
+            time.sleep(0.01)
+    return True
 
 
 def _package_name_on_sys_path(package: str) -> bool:
@@ -731,32 +816,61 @@ def isolate_package_imports(package_dir: str | Path) -> None:
     A cached ``sys.modules`` entry under the package name stays when its
     file resolves inside ``package_dir``. An idle entry from another
     directory is dropped so this build can load its own file. An entry
-    another thread is still importing from a different directory is not
-    usable: that is :class:`PackageImportConflict`, and the message names
-    both directories. Stdlib and site-packages modules are left in place.
+    another thread is still importing is left alone until that import
+    releases. The wait is bounded by the build lock timeout and does not
+    hold ``package_import_lock``. After the release, a module this folder
+    also has, still loaded from the other directory, is
+    :class:`PackageImportConflict`. A module this folder does not ship is
+    dropped with the rest. Running out of time is :class:`BuildLockTimeout`.
+    The other directory is not served. Stdlib and site-packages stay.
     """
-    with package_import_lock:
-        root = Path(package_dir).resolve()
-        name = root.name
-        doomed: list[str] = []
-        for key in list(sys.modules):
-            if key != name and not key.startswith(name + "."):
-                continue
-            mod = sys.modules.get(key)
-            if mod is None or not _should_replace(mod, root):
-                continue
-            if _other_thread_importing(key):
-                loaded = _top_package_dir(mod, key)
-                raise PackageImportConflict(
-                    key, loaded if loaded is not None else Path("."), root
-                )
-            doomed.append(key)
-        forgotten: list[Path] = []
-        for key in sorted(doomed, key=lambda item: item.count("."), reverse=True):
-            forgotten.extend(_forget_module(key))
-        if doomed:
-            importlib.invalidate_caches()
-            _clear_linecache(forgotten)
+    root = Path(package_dir).resolve()
+    name = root.name
+    timeout = _import_wait_seconds()
+    deadline = None if timeout is None else time.monotonic() + timeout
+    waited_exact: set[str] = set()
+    while True:
+        with package_import_lock:
+            foreign: list[str] = []
+            in_use: list[str] = []
+            for key in list(sys.modules):
+                if key != name and not key.startswith(name + "."):
+                    continue
+                mod = sys.modules.get(key)
+                if mod is None or not _should_replace(mod, root):
+                    continue
+                foreign.append(key)
+                if _other_thread_importing(key):
+                    in_use.append(key)
+                    if _exact_other_owner(key):
+                        waited_exact.add(key)
+            if not in_use:
+                for key in foreign:
+                    if key not in waited_exact or not _module_file_in_tree(
+                        root, name, key
+                    ):
+                        continue
+                    mod = sys.modules.get(key)
+                    loaded = _top_package_dir(mod, key) if mod is not None else None
+                    raise PackageImportConflict(
+                        key,
+                        loaded if loaded is not None else Path("."),
+                        root,
+                    )
+                forgotten: list[Path] = []
+                for key in sorted(
+                    foreign, key=lambda item: item.count("."), reverse=True
+                ):
+                    forgotten.extend(_forget_module(key))
+                if foreign:
+                    importlib.invalidate_caches()
+                    _clear_linecache(forgotten)
+                return
+        if deadline is not None and time.monotonic() >= deadline:
+            raise BuildLockTimeout(name, 0.0 if timeout is None else timeout)
+        remaining = None if deadline is None else deadline - time.monotonic()
+        if not _wait_for_other_importers(in_use, remaining):
+            raise BuildLockTimeout(name, 0.0 if timeout is None else timeout)
 
 
 def _remember_source(mod: Any, path: Path) -> None:

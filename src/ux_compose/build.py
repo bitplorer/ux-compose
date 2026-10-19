@@ -29,7 +29,11 @@ import os
 from pathlib import Path
 from typing import Any
 
-from ux_compose.routing.core import BuildLockTimeout
+from ux_compose.routing.core import (
+    BuildLockTimeout,
+    begin_build_import_wait,
+    end_build_import_wait,
+)
 
 __all__ = ["BuildLockTimeout", "build", "BuildResult"]
 
@@ -325,11 +329,16 @@ def build(
     # the route body.
     name_lock = package_build_lock(package_dir.name)
     timeout = _resolve_lock_timeout(lock_timeout)
-    if timeout is None:
-        name_lock.acquire()
-    elif not name_lock.acquire(timeout=timeout):
-        raise BuildLockTimeout(package_dir.name, timeout)
+    wait_token = begin_build_import_wait(timeout)
+    acquired = False
     try:
+        if timeout is None:
+            name_lock.acquire()
+            acquired = True
+        elif name_lock.acquire(timeout=timeout):
+            acquired = True
+        else:
+            raise BuildLockTimeout(package_dir.name, timeout)
         finder = pin_package_finder(package_dir)
         try:
             before = snapshot_package_modules(package_dir)
@@ -386,6 +395,8 @@ def build(
         finally:
             unpin_package_finder(finder)
     finally:
-        name_lock.release()
+        if acquired:
+            name_lock.release()
+        end_build_import_wait(wait_token)
 
     return BuildResult((app, asgi, bundle))

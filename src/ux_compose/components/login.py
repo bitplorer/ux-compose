@@ -471,7 +471,7 @@ class Login(Component):
             self.err_email = "Enter a valid email address."
             ok = False
         if not password:
-            # Only a missing password. Whitespace is a password and keeps its bytes.
+            # Only a missing password. Whitespace keeps its bytes. _take_fields already stored ""; this clear stays as defence in depth.
             self.password = ""
             self.err_password = "Enter your password."
             ok = False

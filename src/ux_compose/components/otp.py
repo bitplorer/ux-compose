@@ -175,6 +175,7 @@ class Otp(Component):
         refused = self.on_verify(digits)
         if refused:
             self.err = refused
+            self.code = ""
             self._mark_dirty()
             return update_with(self, extra_ops=[notify(refused)])
         self.ok = True

@@ -1707,13 +1707,13 @@ def test_negative_lock_timeout_is_rejected(tmp_path):
 def test_inf_lock_timeout_kwarg_waits_without_overflow(tmp_path):
     from ux_compose.build import _resolve_lock_timeout, build
 
-    assert _resolve_lock_timeout(float("inf")) is None
     pkg = _lock_timeout_package(tmp_path, "infkw", "inf-kw")
     try:
         built = build(
             pkg, name="X", host="asgi", live="null", level=1, lock_timeout=float("inf")
         )
         assert asgi_get(built[1], "/a").text == "inf-kw"
+        assert _resolve_lock_timeout(float("inf")) is None
     finally:
         _purge_package("infkw")
         _drop_tree(tmp_path)
@@ -1723,9 +1723,11 @@ def test_inf_lock_timeout_env_waits_without_overflow(tmp_path, monkeypatch):
     from ux_compose.build import _UNSET, _resolve_lock_timeout, build
 
     monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "inf")
-    assert _resolve_lock_timeout(_UNSET) is None
     pkg = _lock_timeout_package(tmp_path, "infenv", "inf-env")
     try:
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/a").text == "inf-env"
+        assert _resolve_lock_timeout(_UNSET) is None
         monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "infinite")
         built = build(pkg, name="X", host="asgi", live="null", level=1)
         assert asgi_get(built[1], "/a").text == "inf-env"

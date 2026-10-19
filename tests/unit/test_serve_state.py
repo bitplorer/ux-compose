@@ -43,6 +43,7 @@ def test_lifecycle_exports_env_and_clears_kv(tmp_path, monkeypatch):
     conn.close()
     drop_shared_state(tmp_path)
     assert not path.exists()
+    assert _state_store_will_be_undone(monkeypatch)
 
 
 def test_prepare_does_not_export_file_store_when_redis_url_set(tmp_path, monkeypatch):
@@ -70,6 +71,19 @@ def test_drop_unlinks_wal_sidecars(tmp_path, monkeypatch):
     assert not path.exists()
     assert not wal.exists()
     assert not shm.exists()
+    assert _state_store_will_be_undone(monkeypatch)
+
+
+def _state_store_will_be_undone(monkeypatch):
+    """prepare_shared_state writes os.environ directly.
+
+    delenv on a missing name records nothing, so the write survives the
+    test and the next test inherits the sqlite path.
+    """
+    return any(
+        mapping is os.environ and key == STATE_STORE_ENV
+        for mapping, key, _old in monkeypatch._setitem
+    )
 
 
 def test_clear_without_env_is_noop(monkeypatch):

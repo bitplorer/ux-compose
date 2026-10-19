@@ -9,6 +9,7 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote
 
 import pytest
 from markupsafe import Markup
@@ -368,3 +369,49 @@ def test_utf8_warning_names_the_route_and_not_the_body(tmp_path: Path, caplog):
         assert "\\xff" not in message
     assert token.encode() in asgi_body
     assert token.encode() in fast_body
+
+
+# HTTP request target. The server decodes it before routing, so the scope
+# path contains a newline and a forged WARNING line.
+INJECTED_GET = "/reset/tok_ABC123%0AWARNING%20admin%20login%20ok"
+ROUTE_TEMPLATE = "/reset/{token}"
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+def test_utf8_warning_logs_the_route_template(tmp_path: Path, caplog, host: str):
+    """GET the injected path. The log is one line and names the template."""
+
+    def gen():
+        yield b"\xff"
+
+    class Page:
+        def render(self):
+            return gen()
+
+    core = DirectoryRoutes(tmp_path)
+    core.records = [
+        RouteRecord(
+            method="GET",
+            path=ROUTE_TEMPLATE,
+            name="Page",
+            page_cls=Page,
+            kind="page",
+        )
+    ]
+    if host == "fastapi":
+        app = create("warn")
+        bind(app, core)
+    else:
+        app = DirectoryASGI(core)
+    with caplog.at_level(logging.WARNING, logger="ux_compose.routing.core"):
+        status, _headers, _body = asgi_http(app, unquote(INJECTED_GET))
+    assert status == 200
+    notes = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(notes) == 1
+    message = notes[0].getMessage()
+    assert message.count("\n") == 0
+    assert "\r" not in message
+    assert len(caplog.text.splitlines()) == 1
+    assert "tok_ABC123" not in caplog.text
+    assert "admin login" not in caplog.text
+    assert ROUTE_TEMPLATE in message

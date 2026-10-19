@@ -38,7 +38,8 @@ def test_toggle_attaches_password_on_morph():
     assert isinstance(ops, list)
     html = _html(app)
     assert 'id="login"' in html
-    assert "password12" in html
+    assert "password12" not in html
+    assert str(app.behavior.get("login").password or "") == "password12"
     assert 'type="text"' in html
     assert "Hide" in html
 
@@ -48,7 +49,8 @@ def test_toggle_hide_keeps_value():
     app.dispatch("login.toggle_password", password="password12", email="a@b.co")
     app.dispatch("login.toggle_password", password="password12", email="a@b.co")
     html = _html(app)
-    assert "password12" in html
+    assert "password12" not in html
+    assert str(app.behavior.get("login").password or "") == "password12"
     assert 'type="password"' in html
     assert "Show" in html
 
@@ -73,7 +75,8 @@ def test_set_mode_keeps_typed_values():
     html = _html(app)
     assert "Create account" in html
     assert "you@atelier.test" in html
-    assert "password12" in html
+    assert "password12" not in html
+    assert str(app.behavior.get("login").password or "") == "password12"
     assert 'name="name"' in html
     assert 'aria-selected="true"' in html
     assert 'id="login-p-signup"' in html

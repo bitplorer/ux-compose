@@ -1,8 +1,8 @@
 """Drop-in login card — MorphState presence, RefState secrets, Cap on submit.
 
 Show/Hide and tab switches attach live form values onto RefState *before*
-the morph, so the new input paints with ``value=``. The secret never lives
-on MorphState.
+the morph, so email and name paint with ``value=``. The password stays on
+RefState and is never painted back. It does not live on MorphState.
 
 MorphState: ``mode``, ``show_password``, ``submitting``, ``authed``, ``error_dirty``.
 RefState: ``email``, ``password``, ``name``, field/form errors.
@@ -282,7 +282,7 @@ class Login(Component):
             placeholder="you@company.com", autocomplete="email",
         ))
         fields.append(self._password_field(
-            str(self.password or ""), str(self.err_password or ""),
+            "", str(self.err_password or ""),
             show_pw,
         ))
 

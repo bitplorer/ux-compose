@@ -48,7 +48,11 @@ def _on_stream_replace(exc: UnicodeError) -> tuple[str, int]:
     decoder = _stream_decoder.get()
     if decoder is not None and not decoder.warned:
         decoder.warned = True
-        logger.warning("streamed bytes were not valid UTF-8; replaced with U+FFFD")
+        # Path only. The exception text contains the bad bytes.
+        logger.warning(
+            "streamed bytes were not valid UTF-8; replaced with U+FFFD; path=%s",
+            decoder.path,
+        )
     # Same replacement as errors='replace': one U+FFFD, then resume.
     return codecs.replace_errors(exc)
 
@@ -272,8 +276,9 @@ class _Utf8Stream:
     truncation. The replaced text is still sanitized.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, path: str = "") -> None:
         self.warned = False
+        self.path = path
         self._dec = codecs.getincrementaldecoder("utf-8")(_STREAM_REPLACE)
 
     def decode(self, data: bytes, *, final: bool = False) -> str:
@@ -329,13 +334,14 @@ def _flush_decoder(decoder: _Utf8Stream) -> bytes:
     return _html_chunk_bytes(text)
 
 
-def _sanitized_stream(payload: Any) -> Any:
+def _sanitized_stream(payload: Any, *, path: str = "") -> Any:
     """Sanitize a sync or async stream with one UTF-8 decoder for the response.
 
     Each decoded piece is its own fragment. The decoder is flushed with
-    ``final=True`` when the stream ends.
+    ``final=True`` when the stream ends. ``path`` is the route path for
+    the replacement warning; the chunk text is not logged.
     """
-    decoder = _Utf8Stream()
+    decoder = _Utf8Stream(path)
     if inspect.isasyncgen(payload) or hasattr(payload, "__aiter__"):
 
         async def _agen():

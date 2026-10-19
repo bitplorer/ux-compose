@@ -126,7 +126,9 @@ def _encode(result: Any) -> tuple[bytes, bytes]:
     return _body_bytes(result), b"text/html; charset=utf-8"
 
 
-async def _send_stream(send: Callable, iterable: Any, *, content_type: bytes) -> None:
+async def _send_stream(
+    send: Callable, iterable: Any, *, content_type: bytes, path: str = ""
+) -> None:
     await send(
         {
             "type": "http.response.start",
@@ -135,7 +137,7 @@ async def _send_stream(send: Callable, iterable: Any, *, content_type: bytes) ->
         }
     )
     try:
-        sanitized = _sanitized_stream(iterable)
+        sanitized = _sanitized_stream(iterable, path=path)
         if hasattr(sanitized, "__aiter__"):
             async for data in sanitized:
                 if data:
@@ -225,7 +227,10 @@ class DirectoryASGI:
                     )
                     return
                 await _send_stream(
-                    send, result, content_type=b"text/html; charset=utf-8"
+                    send,
+                    result,
+                    content_type=b"text/html; charset=utf-8",
+                    path=path,
                 )
                 return
             if not is_json_payload(result):

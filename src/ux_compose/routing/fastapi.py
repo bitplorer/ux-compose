@@ -82,11 +82,11 @@ def _as_html_response(tree: Any) -> Any:
     return HTMLResponse(tree)
 
 
-def _as_stream_response(payload: Any) -> Any:
+def _as_stream_response(payload: Any, *, path: str = "") -> Any:
     from starlette.responses import StreamingResponse
     from ux_dom.response.starlette import StreamingResponse as DomStreamingResponse
 
-    body = _sanitized_stream(payload)
+    body = _sanitized_stream(payload, path=path)
     try:
         return DomStreamingResponse(body)
     except TypeError:
@@ -94,12 +94,12 @@ def _as_stream_response(payload: Any) -> Any:
         return StreamingResponse(body, media_type="text/html; charset=utf-8")
 
 
-def _as_http_response(payload: Any, *, document: Any = None) -> Any:
+def _as_http_response(payload: Any, *, document: Any = None, path: str = "") -> Any:
     """Payload type picks media type. Same spirit as ux-dom html_response."""
     if _is_response(payload) or is_json_payload(payload):
         return payload
     if is_stream_payload(payload):
-        return _as_stream_response(payload)
+        return _as_stream_response(payload, path=path)
     tree = apply_html_document(document, payload)
     return _as_html_response(tree)
 
@@ -129,7 +129,11 @@ def page_endpoint(
             tree = _call_render(inst, path_params)
         if inspect.isawaitable(tree):
             tree = await tree
-        return _as_http_response(tree, document=document)
+        path = ""
+        if request is not None:
+            url = getattr(request, "url", None)
+            path = str(getattr(url, "path", None) or getattr(request, "path", None) or "")
+        return _as_http_response(tree, document=document, path=path)
 
     # from __future__ import annotations stringifies types. FastAPI must see
     # the Request class object or it treats `request` as a body field (422).

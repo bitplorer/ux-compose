@@ -200,7 +200,12 @@ class App:
         from ux_compose.wire.caps import mint_cap
         payload = dict(args or {})
         if "action" in kwargs:
-            payload["action"] = kwargs.pop("action")
+            posted = kwargs.pop("action")
+            if "action" in payload and payload["action"] != posted:
+                raise ValueError(
+                    "mint_cap action conflicts with args['action']"
+                )
+            payload["action"] = posted
         return mint_cap(self._channel, action, payload, **kwargs)
 
     def submit_intent(self, action: str, *, cap: Optional[str] = None, mint: bool = False, args: Optional[dict] = None, **kwargs):

@@ -11,6 +11,7 @@ import importlib.util
 import json
 
 import pytest
+from itsdangerous import URLSafeTimedSerializer
 
 from ux_behavior import AuthorityError
 from ux_compose import App, Component, action
@@ -204,3 +205,41 @@ def test_control_and_mint_cap_take_the_action_name_positionally():
     assert json.loads(attrs["data-channel-args"])["action"] == "x"
     cap = app.mint_cap("box.save", action="x")
     assert isinstance(cap, str) and len(cap) > 8
+    claims = _cap_claims(app, cap)
+    assert claims["action"] == "box.save"
+    assert claims["args_hash"] == app._channel.registry._caps.hash_args({"action": "x"})
+
+
+def test_control_without_a_channel_keeps_the_payload_action():
+    """Offline control still renders a payload key named action.
+
+    Behavior.control names that parameter. The guard keeps this call off
+    that signature and on the offline attrs.
+    """
+    app = App.boot("Box", level=1, strict_caps=False)
+    assert app._channel is None
+    attrs = app.control("box.open", action="x")
+    assert json.loads(attrs["data-channel-args"])["action"] == "x"
+
+
+def test_control_without_a_payload_action_delegates():
+    """With no payload key named action, the no-channel path still renders."""
+    app = App.boot("Box", level=1, strict_caps=False)
+    assert app._channel is None
+    attrs = app.control("box.open", note="kept")
+    assert "kept" in json.dumps(attrs)
+    assert "box.open" in json.dumps(attrs)
+
+
+def _cap_claims(app, token: str) -> dict:
+    """HMAC-check the minted token and return its claims.
+
+    A live channel seals with the Cap host (hex body, HMAC). ``cek=off``
+    seals with itsdangerous. Either way the claims are the token's own.
+    """
+    caps = app._channel.registry._caps
+    host = getattr(caps, "host", None)
+    decoder = getattr(getattr(host, "caps", None), "decode", None)
+    if callable(decoder):
+        return decoder(token)
+    return URLSafeTimedSerializer(caps._secret, salt=caps._salt).loads(token)

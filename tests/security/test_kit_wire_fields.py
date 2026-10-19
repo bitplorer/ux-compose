@@ -249,6 +249,7 @@ def _post_row(kit, component, prelude):
                 "missing": missing,
                 "chip": chip,
                 "body": response.text[:240],
+                "email": str(getattr(inst, "email", "") or ""),
             }
         )
     return rows
@@ -276,6 +277,13 @@ def test_rendered_control_keeps_every_posted_field():
         and (row["missing"] or row["chip"] or row["status"] != 200)
     ]
     assert lost == [], "\n".join(lost)
+
+
+def test_login_set_mode_does_not_inherit_another_controls_email():
+    """Each control is a fresh instance. A shared one would keep a prior email."""
+    rows = [row for row in _post_row("login", Login, None) if row["method"] == "set_mode"]
+    assert rows
+    assert all(row["email"] == "" for row in rows), rows
 
 
 def test_used_otp_code_is_cleared():

@@ -88,6 +88,24 @@ def test_filterbar_posted_query_arrives():
     assert app.behavior.get("filterbar").query == "wool"
 
 
+def test_choose_keeps_an_existing_query_when_q_is_empty():
+    """An empty posted q must not wipe the query. The chip still applies."""
+    app = _boot(FilterBar)
+    app.dispatch("filterbar.set_field", field="q", q="wool")
+    app.dispatch("filterbar.choose", key="linen", q="")
+    inst = app.behavior.get("filterbar")
+    assert str(inst.query) == "wool"
+    assert str(inst.which) == "linen"
+
+
+def test_choose_stores_a_nonempty_posted_query():
+    app = _boot(FilterBar)
+    app.dispatch("filterbar.choose", key="oak", q="board")
+    inst = app.behavior.get("filterbar")
+    assert str(inst.query) == "board"
+    assert str(inst.which) == "oak"
+
+
 def test_colorpicker_posted_hex_arrives():
     app = _boot(ColorPicker)
     app.dispatch("colorpicker.set_field", field="hex", hex="#112233")

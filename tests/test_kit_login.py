@@ -91,23 +91,69 @@ def test_submit_validates():
     assert not bool(inst.authed)
 
 
-def test_empty_password_asks_for_a_password():
-    """An empty posted password is its own error, not the length error.
+def _authenticate_saw(password: str) -> list[str]:
+    app = _boot(strict_caps=False)
+    inst = app.behavior.get("login")
+    seen: list[str] = []
+    real = inst.authenticate
 
-    Spaces are empty too. The intended message for ``""``, ``"   "``, and
-    eight spaces is ``Enter your password.`` Nothing is stored.
+    def spy(*, email: str, password: str, name: str, signup: bool):
+        seen.append(password)
+        return real(email=email, password=password, name=name, signup=signup)
+
+    inst.authenticate = spy
+    app.dispatch("login.submit", email="you@atelier.test", password=password)
+    return seen
+
+
+def test_empty_password_asks_for_a_password():
+    """Only a missing password says ``Enter your password.``
+
+    The intended message for ``""`` is ``Enter your password.`` A password
+    of spaces is not missing.
     """
     app = _boot(strict_caps=False)
-    for blank in ("", "   ", "        "):
-        app.dispatch("login.submit", email="you@atelier.test", password=blank)
-        inst = app.behavior.get("login")
-        assert not bool(inst.authed)
-        assert str(inst.err_password) == "Enter your password."
-        assert str(inst.password or "") == ""
-        assert "8" not in str(inst.err_password)
-    app.dispatch("login.submit", email="you@atelier.test", password="short")
+    app.dispatch("login.submit", email="you@atelier.test", password="")
     inst = app.behavior.get("login")
+    assert not bool(inst.authed)
+    assert str(inst.err_password) == "Enter your password."
+    assert str(inst.password or "") == ""
+    assert "8" not in str(inst.err_password)
+
+
+def test_short_whitespace_password_gets_the_length_error():
+    """Three spaces are a short password, not a missing one.
+
+    The intended message is ``Password must be at least 8 characters.``
+    """
+    app = _boot(strict_caps=False)
+    app.dispatch("login.submit", email="you@atelier.test", password="   ")
+    inst = app.behavior.get("login")
+    assert not bool(inst.authed)
     assert str(inst.err_password) == "Password must be at least 8 characters."
+    assert _authenticate_saw("   ") == []
+
+
+def test_blank_passwords_reach_authenticate_byte_for_byte():
+    """Eight of each blank character is the password ``authenticate`` receives.
+
+    Spaces, tabs, NBSP, ZWSP, and U+FEFF are not trimmed.
+    """
+    blanks = (
+        " " * 8,
+        "\t" * 8,
+        "\u00a0" * 8,
+        "\u200b" * 8,
+        "\ufeff" * 8,
+    )
+    for secret in blanks:
+        assert _authenticate_saw(secret) == [secret]
+
+
+def test_password_with_edge_spaces_is_not_trimmed():
+    """Leading and trailing spaces stay on the password ``authenticate`` receives."""
+    for secret in (" password12", "password12 ", "  password12  "):
+        assert _authenticate_saw(secret) == [secret]
 
 
 def test_blocked_account_fail_closed():

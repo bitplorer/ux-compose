@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   verbatim. The same parse is used when that string is serialized for a morph
   (`html=` included). If the Document shell raises, the return is that
   sanitized fragment, not the original source string.
+- Trusted HTML returned as a plain `str` now gets its handlers and scripts stripped. Authors who want it verbatim must wrap it in `Markup()` or `raw()`.
 - Pin ux-dom to `67176c9`, the head of ux-dom
   [#32](https://github.com/bitplorer/ux-dom/pull/32), so `defHTML` is the
   sanitizer. Replace this pin with the final ux-dom tip when #32 lands.

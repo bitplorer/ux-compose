@@ -344,6 +344,13 @@ is how the handler records the acceptance, for one call.
 `App.trust` delegates to `Behavior.trust`. It is not a substitute for a Cap
 on a request a client sent.
 
+A payload key named `self` reaches the action only when that parameter is
+positional-only (`def save(self, /, ...)`). A normal method already binds
+`self` to the instance, so the key is not that instance and does not arrive
+as an argument. The wire then returns the validation message (`unexpected
+keyword argument 'self'`) on a successful result. That is not an internal
+error and not HTTP 500.
+
 ## Attach secret
 
 Outside dev, `Behavior.attach` requires `UX_CHANNEL_SECRET` (or

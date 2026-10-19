@@ -85,3 +85,47 @@ def test_payload_keys_named_action_and_self_reach_the_action():
     accepted = app.submit_intent("box.save", cap=cap, args=payload)
     assert getattr(accepted, "ok", None) is True, repr(accepted)
     assert got == {"action": "keep", "self": "me"}, repr(accepted)
+
+
+def test_payload_self_on_a_normal_method_is_not_a_500():
+    """A normal method already binds self. The payload key must not 500.
+
+    It reaches the action only when self is positional-only. Otherwise the
+    wire returns the validation message and the action does not run.
+    """
+    from fastapi import FastAPI
+
+    from tests.asgi_http import asgi_post_json
+
+    ran = {"n": 0}
+
+    class Box(Component):
+        id = "box"
+
+        def render(self):
+            return '<div id="box"></div>'
+
+        @action(caps=("box.save",))
+        def save(self, action: str = ""):
+            ran["n"] += 1
+            return []
+
+    app = App.boot("Box", strict_caps=True)
+    app.add(Box)
+    asgi = FastAPI()
+    app.use_channel(asgi_app=asgi)
+    payload = {"action": "keep", "self": "me"}
+    cap = app.mint_cap("box.save", payload)
+    response = asgi_post_json(
+        asgi,
+        "/ux-channel/action",
+        {"v": "1", "action": "box.save", "args": payload, "cap": cap},
+    )
+    assert response.status_code != 500, response.text
+    assert response.status_code < 500, response.text
+    body = response.json()
+    error = body.get("error") or {}
+    assert error.get("code") != "internal"
+    assert "unexpected keyword argument 'self'" in response.text
+    assert "Traceback" not in response.text
+    assert ran["n"] == 0

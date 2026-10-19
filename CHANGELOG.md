@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `App.dispatch` takes the action name positionally (`dispatch(self, action, /, **kwargs)`). A payload key named `action` passes through as a normal keyword.
 - A posted key the action does not name is dropped (ux-behavior pin `ad86d4c`), including a payload key named `self`. The component instance stays the component. A key the signature rejects still returns the ordinary validation result, never a 500.
 - Static kit `set_field` actions name the control they post (`email`, `password`, `name`, `code`, `q`, `query`, `text`, `tag`, `hex`). ux-behavior drops any other posted key, so those fields are parameters instead of `**kwargs`. FormLayout's field list stays form-defined and is unchanged.
+- `FilterBar.choose` names `q`. The chips sit in the form that posts the query, so a chip click applies and the posted query stays.
+- `Otp.verify` keeps the posted code. A successful check used to clear it, which dropped the only field that control sends.
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

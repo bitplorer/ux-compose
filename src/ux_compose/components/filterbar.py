@@ -183,7 +183,10 @@ class FilterBar(Component):
         return update_with(self)
 
     @action(caps=())
-    def choose(self, key: str = ""):
+    def choose(self, key: str = "", q: str = ""):
+        # The chips sit in the same form as the query input, so a click posts q.
+        if q != "":
+            self.query = str(q)
         keys = {row[0] for row in self._filters()}
         self.which = key if key in keys else self._filters()[0][0]
         self._mark()

@@ -168,7 +168,7 @@ def test_otp_attach_and_verify():
     app.dispatch("otp.verify", code="123456")
     inst = app.behavior.get("otp")
     assert bool(inst.ok)
-    assert str(inst.code or "") == ""
+    assert str(inst.code or "") == "123456"
     html = _html(app, "otp")
     assert "Code accepted" in html
 

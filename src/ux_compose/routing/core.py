@@ -310,23 +310,30 @@ def _html_chunk_bytes(chunk: Any) -> bytes:
 def _is_empty_chunk(chunk: Any) -> bool:
     """True when this yield must not flush and must not emit.
 
-    Emptiness is a type check. ``Markup('')`` is an empty ``str``.
-    ``raw('')`` is a ``dom_text`` whose ``text`` is empty; the node
-    itself is truthy, so it is not tested with ``not chunk``.
+    Length is the base type's: ``str.__len__``, ``bytes.__len__``,
+    ``bytearray.__len__``, or ``memoryview.__len__``. A subclass
+    ``__len__``, ``__bool__``, or ``__eq__`` is not consulted.
+    ``Markup('')`` is an empty ``str``. ``raw('')`` and an escaped
+    ``dom_text('')`` are empty when ``str.__len__`` of their text is 0.
     """
     if chunk is None:
         return True
-    if isinstance(chunk, (str, bytes, bytearray, memoryview)) and not chunk:
-        return True
-    return (
-        isinstance(chunk, dom_text)
-        and isinstance(chunk.text, str)
-        and not chunk.text
-    )
+    if isinstance(chunk, str):
+        return str.__len__(chunk) == 0
+    if isinstance(chunk, bytes):
+        return bytes.__len__(chunk) == 0
+    if isinstance(chunk, bytearray):
+        return bytearray.__len__(chunk) == 0
+    if isinstance(chunk, memoryview):
+        return memoryview.__len__(chunk) == 0
+    if isinstance(chunk, dom_text) and isinstance(chunk.text, str):
+        return str.__len__(chunk.text) == 0
+    return False
 
 
 def _decode_chunk(decoder: _Utf8Stream, chunk: Any) -> bytes:
-    # None, '', b'', Markup(''), and raw('') emit nothing and do not flush.
+    # None, '', b'', bytearray(), memoryview(b''), Markup(''), raw(''),
+    # and an escaped empty text node emit nothing and do not flush.
     if _is_empty_chunk(chunk):
         return b""
     if isinstance(chunk, (bytes, bytearray, memoryview)):

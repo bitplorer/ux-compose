@@ -14,7 +14,9 @@ from urllib.parse import unquote
 import pytest
 from markupsafe import Markup
 
-from ux_compose import raw
+from ux_compose import div, raw
+from ux_dom import Fragment
+from ux_dom.dom.src.utils.dom_util import dom_text
 from ux_compose.routing.asgi import DirectoryASGI
 from ux_compose.routing.core import DirectoryRoutes, RouteRecord
 from ux_compose.routing.fastapi import _as_http_response, bind, create
@@ -267,9 +269,111 @@ class _LiesEmpty(str):
 def test_str_subclass_that_lies_about_being_empty_flushes(
     tmp_path: Path, host: str, mode: str
 ):
-    """Base str length decides. A liar between b'a\\xc3' and b'\\xa9' does not join aé."""
-    chunks = (b"a\xc3", _LiesEmpty("x"), b"\xa9")
-    assert _stream_body(tmp_path, host, mode, chunks) == b"a\n\xef\xbf\xbd\n\xef\xbf\xbd\n"
+    """'<b>X</b>' is copied with str.__str__ and sanitized. It does not vanish."""
+    chunks = (b"a\xc3", _LiesEmpty("<b>X</b>"), b"\xa9")
+    assert _stream_body(tmp_path, host, mode, chunks) == (
+        b"a\n\xef\xbf\xbd\n<b>\n  X\n</b>\xef\xbf\xbd\n"
+    )
+
+
+class _LenRaises(str):
+    """__len__ raises. The stream aborts, as it did before the base-length check."""
+
+    def __len__(self) -> int:
+        raise RuntimeError("len")
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_str_subclass_whose_len_raises_aborts_the_stream(
+    tmp_path: Path, host: str, mode: str, caplog
+):
+    """A raising __len__ is not swallowed. ASGI logs it and ends the body."""
+    if host == "asgi":
+        with caplog.at_level(logging.ERROR, logger="ux_compose.routing.asgi"):
+            body = _stream_body(tmp_path, host, mode, (_LenRaises("x"),))
+        assert body == b""
+        assert any(
+            record.exc_info is not None
+            and isinstance(record.exc_info[1], RuntimeError)
+            and "len" in str(record.exc_info[1])
+            for record in caplog.records
+        )
+        return
+    with pytest.raises(RuntimeError, match="len"):
+        _stream_body(tmp_path, host, mode, (_LenRaises("x"),))
+
+
+class _LiesLenBytes(bytes):
+    def __len__(self) -> int:
+        return 0
+
+    def __bool__(self) -> bool:
+        return False
+
+
+class _LiesLenBytearray(bytearray):
+    def __len__(self) -> int:
+        return 0
+
+    def __bool__(self) -> bool:
+        return False
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_bytes_subclass_that_lies_about_length_is_sanitized(
+    tmp_path: Path, host: str, mode: str
+):
+    """bytes.__len__ / bytes.__bytes__, not the subclass length, keeps <b>X</b>."""
+    body = _stream_body(tmp_path, host, mode, (_LiesLenBytes(b"<b>X</b>"),))
+    assert body == b"<b>\n  X\n</b>"
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_bytearray_subclass_that_lies_about_length_is_sanitized(
+    tmp_path: Path, host: str, mode: str
+):
+    """The bytearray buffer is copied. A lying __len__ does not drop <b>Y</b>."""
+    body = _stream_body(tmp_path, host, mode, (_LiesLenBytearray(b"<b>Y</b>"),))
+    assert body == b"<b>\n  Y\n</b>"
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_dom_text_whose_text_lies_about_length_is_kept(
+    tmp_path: Path, host: str, mode: str
+):
+    """str.__len__ of dom_text.text, not the override, keeps the text."""
+    node = dom_text("IGNORED", escape=False)
+    node.text = _LiesEmpty("<b>Z</b>")
+    assert _stream_body(tmp_path, host, mode, (node,)) == b"<b>Z</b>"
+
+
+def _zero_dim_byte() -> memoryview:
+    return memoryview(b"Z").cast("B", shape=[])
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_zero_dim_memoryview_is_read_with_tobytes(
+    tmp_path: Path, host: str, mode: str
+):
+    """A 0-dim memoryview has no len(). tobytes() supplies the byte."""
+    assert _stream_body(tmp_path, host, mode, (_zero_dim_byte(),)) == b"Z\n"
+
+
+@pytest.mark.parametrize("host", ["fastapi", "asgi"])
+@pytest.mark.parametrize("mode", ["sync", "async"])
+def test_streamed_div_and_fragment_keep_exact_bytes(
+    tmp_path: Path, host: str, mode: str
+):
+    """A tag and a Fragment are not empty. Exact bytes kill a default-True check."""
+    chunks = (div("Hi"), Fragment(div("A"), div("B")))
+    assert _stream_body(tmp_path, host, mode, chunks) == (
+        b"<div>\n  Hi\n</div><div>\n  A\n</div>\n<div>\n  B\n</div>"
+    )
 
 
 @pytest.mark.parametrize("host", ["fastapi", "asgi"])

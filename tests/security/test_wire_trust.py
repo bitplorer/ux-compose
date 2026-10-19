@@ -8,6 +8,7 @@ This test fails while the handler still passes a bool.
 from __future__ import annotations
 
 import importlib.util
+import json
 
 import pytest
 
@@ -57,7 +58,7 @@ def test_cap_verified_wire_call_runs_and_unverified_does_not():
     assert ran["n"] == 1, repr(accepted)
 
 
-def test_posted_self_stays_absent_and_declared_action_arrives():
+def test_payload_action_binds_and_self_is_not_passed_on():
     """A posted self stays absent. A declared field named action arrives.
 
     The component instance is bound positionally and stays the component.
@@ -187,5 +188,19 @@ def test_payload_self_matches_any_other_validation_error():
     assert self_key.status_code != 500, self_key.text
     assert _validation_shape(self_key, "self") == _validation_shape(other, "note")
     assert "unexpected keyword argument 'self'" in self_key.text
+
+
+def test_control_and_mint_cap_take_the_action_name_positionally():
+    """A payload key named action is caller data, same as App.dispatch.
+
+    ``control('box.open', action='x')`` and ``mint_cap('box.save', action='x')``
+    pass the key through. The action name itself stays the positional argument.
+    """
+    app = App.boot("Box", level=1, strict_caps=False)
+    app.use_channel()
+    attrs = app.control("box.open", action="x")
+    assert json.loads(attrs["data-channel-args"])["action"] == "x"
+    cap = app.mint_cap("box.save", action="x")
+    assert isinstance(cap, str) and len(cap) > 8
     assert "unexpected keyword argument 'note'" in other.text
     assert ran["n"] == 0

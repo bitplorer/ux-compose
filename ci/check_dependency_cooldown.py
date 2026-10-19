@@ -164,19 +164,19 @@ def _reject_upload_time(name: str, version: str, raw: object, reason: str) -> Co
 def _parse_upload_time(raw: object, *, name: str, version: str) -> datetime:
     text = str(raw).strip()
     suffix = _timezone_suffix(text)
-    if suffix is None:
-        raise _reject_upload_time(name, version, raw, "with no timezone offset")
     if suffix in {"Z", "z"}:
         normalized = text[:-1] + "+00:00"
-    elif _OFFSET_WITH_MINUTES.fullmatch(suffix):
+    elif suffix is not None and _OFFSET_WITH_MINUTES.fullmatch(suffix):
         normalized = text
-    else:
+    elif suffix is not None:
         raise _reject_upload_time(
             name,
             version,
             raw,
             "whose timezone offset must include minutes",
         )
+    else:
+        normalized = text
     try:
         parsed = datetime.fromisoformat(normalized)
     except ValueError as exc:

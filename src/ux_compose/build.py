@@ -24,15 +24,39 @@ and HTML wrap live elsewhere.
 from __future__ import annotations
 
 import ast
+import math
 import os
 from pathlib import Path
 from typing import Any
 
-from ux_compose.routing.core import PACKAGE_BUILD_LOCK_TIMEOUT, BuildLockTimeout
+from ux_compose.routing.core import BuildLockTimeout
 
 __all__ = ["BuildLockTimeout", "build", "BuildResult"]
 
 _UNSET = object()
+_DEFAULT_LOCK_TIMEOUT = 60.0
+
+
+def _checked_lock_timeout(value: Any, *, where: str) -> float | None:
+    """Seconds, or None for "wait until done". Rejects negatives and NaN.
+
+    ``inf`` is None so the lock is taken without a timeout. Passing
+    ``float('inf')`` through to ``RLock.acquire`` raises OverflowError,
+    and ``-1`` waits forever once the lock is held.
+    """
+    try:
+        number = float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"invalid {where} value {value!r}; expected seconds, inf, or none"
+        ) from exc
+    if math.isnan(number) or number < 0:
+        raise ValueError(
+            f"invalid {where} value {value!r}; expected a non-negative number of seconds"
+        )
+    if math.isinf(number):
+        return None
+    return number
 
 
 def _resolve_lock_timeout(lock_timeout: Any) -> float | None:
@@ -40,14 +64,14 @@ def _resolve_lock_timeout(lock_timeout: Any) -> float | None:
     if lock_timeout is None:
         return None
     if lock_timeout is not _UNSET:
-        return float(lock_timeout)
+        return _checked_lock_timeout(lock_timeout, where="build(lock_timeout=...)")
     raw = os.environ.get("UX_COMPOSE_BUILD_LOCK_TIMEOUT")
     if raw is None or not raw.strip():
-        return float(PACKAGE_BUILD_LOCK_TIMEOUT)
+        return float(_DEFAULT_LOCK_TIMEOUT)
     token = raw.strip().lower()
     if token in {"none", "inf", "infinite"}:
         return None
-    return float(raw)
+    return _checked_lock_timeout(raw.strip(), where="UX_COMPOSE_BUILD_LOCK_TIMEOUT")
 
 
 def _const_bool(node: ast.AST) -> bool | None:
@@ -180,8 +204,11 @@ def build(
     lock_timeout:
       Seconds another thread waits while this package name is importing.
       ``None`` waits until that build finishes. When omitted, the value is
-      ``UX_COMPOSE_BUILD_LOCK_TIMEOUT`` if set, otherwise 60. ``none`` in
-      the environment also waits until done.
+      ``UX_COMPOSE_BUILD_LOCK_TIMEOUT`` if set, otherwise 60. ``none`` or
+      ``inf`` waits until done. A blank environment value keeps the
+      default. A negative number, ``nan``, or any other bad value raises
+      ``ValueError`` (the environment error names
+      ``UX_COMPOSE_BUILD_LOCK_TIMEOUT``). ``-1`` does not wait forever.
     """
     from ux_compose import App
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks

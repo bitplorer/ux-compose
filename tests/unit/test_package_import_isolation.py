@@ -585,7 +585,13 @@ def test_path_keyerror_does_not_abort_build(tmp_path):
 
 
 def test_repeated_builds_do_not_grow_sys_modules(tmp_path):
-    """One folder stays flat. A new folder may add its modules once."""
+    """Rebuilding one folder adds nothing.
+
+    A different package name adds exactly that package, its ``routes``
+    package, and the route module. Those three stay so the served module
+    remains importable (``release_build_package_modules`` keeps the route
+    and anchors its parents). Nothing else is added.
+    """
     from ux_compose.build import build
 
     def hello(name: str) -> dict[str, str]:
@@ -611,11 +617,14 @@ def test_repeated_builds_do_not_grow_sys_modules(tmp_path):
             name = f"pkg{index}"
             names.append(name)
             pkg = _write(tmp_path / f"d{index}" / name, hello(f"n{index}"))
+            before = set(sys.modules)
             built = build(pkg, name="N", host="asgi", live="null", level=1)
             assert asgi_get(built[1], "/hello").text == f"n{index}"
-            after = len(sys.modules)
+            added = set(sys.modules) - before
+            assert added == {name, f"{name}.routes", f"{name}.routes.hello"}
+            again = set(sys.modules)
             built = build(pkg, name="N", host="asgi", live="null", level=1)
-            assert len(sys.modules) == after
+            assert set(sys.modules) == again
             assert asgi_get(built[1], "/hello").text == f"n{index}"
     finally:
         for name in names:
@@ -1727,4 +1736,180 @@ def test_popping_parent_during_child_import_does_not_raise_keyerror(tmp_path, mo
         original.update(snapshot)
         other_done.set()
         _purge_package("myapp")
+        _drop_tree(tmp_path)
+
+
+def test_release_drops_a_module_that_is_not_this_folder(tmp_path):
+    """Something outside this tree is removed. A no-op release would keep it."""
+    from ux_compose.build import build
+
+    name = "dropapp"
+    outside = tmp_path / "outside.py"
+    outside.write_text("GHOST = 1\n", encoding="utf-8")
+    pkg = _write(
+        tmp_path / name,
+        {
+            "routes/a.py": (
+                "import sys\n"
+                "import types\n"
+                f"ghost = types.ModuleType({name + '.ghost'!r})\n"
+                f"ghost.__file__ = {str(outside)!r}\n"
+                f"sys.modules[{name + '.ghost'!r}] = ghost\n"
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'dropped'\n"
+            ),
+        },
+    )
+    try:
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/a").text == "dropped"
+        assert f"{name}.ghost" not in sys.modules
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_routes_package_init_is_not_kept_as_a_route(tmp_path):
+    """A routes subpackage is not a route file just because its directory sits under routes."""
+    from ux_compose.build import build
+
+    name = "nestapp"
+    pkg = tmp_path / name
+    (pkg / "routes" / "nest").mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "routes" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "routes" / "nest" / "__init__.py").write_text(
+        "VALUE = 1\n",
+        encoding="utf-8",
+    )
+    (pkg / "routes" / "home.py").write_text(
+        f"from {name}.routes.nest import VALUE\n"
+        "class Home:\n"
+        "    routes = ('get',)\n"
+        "    def render(self):\n"
+        "        return str(VALUE)\n",
+        encoding="utf-8",
+    )
+    try:
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/home").text == "1"
+        assert f"{name}.routes.nest" not in sys.modules
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_module_without_origins_is_not_a_route(tmp_path):
+    from ux_compose.routing.core import _is_this_folder_route
+
+    mod = types.ModuleType("plain.mod")
+    assert _is_this_folder_route(mod, tmp_path) is False
+
+
+def test_none_lock_timeout_ignores_a_short_default(tmp_path, monkeypatch):
+    """None waits the other build out even when the default wait is tiny."""
+    from ux_compose.build import build
+
+    build_mod = sys.modules["ux_compose.build"]
+
+    (tmp_path / "holdgate.py").write_text(
+        "import threading\n"
+        "ENTERED = threading.Event()\n"
+        "RELEASE = threading.Event()\n",
+        encoding="utf-8",
+    )
+    monkeypatch.syspath_prepend(str(tmp_path))
+    monkeypatch.delenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", raising=False)
+    monkeypatch.setattr(build_mod, "_DEFAULT_LOCK_TIMEOUT", 0.2)
+    name = "noneapp"
+    pkg = _hold_package(tmp_path, name)
+    gate = importlib.import_module("holdgate")
+    seen: list[object] = []
+
+    def hold() -> None:
+        build(pkg, name="H", host="asgi", live="null", level=1, lock_timeout=None)
+
+    def waiter() -> None:
+        try:
+            build(pkg, name="W", host="asgi", live="null", level=1, lock_timeout=None)
+            seen.append(None)
+        except BaseException as exc:
+            seen.append(exc)
+
+    holder = threading.Thread(target=hold, daemon=True)
+    follower = threading.Thread(target=waiter, daemon=True)
+    try:
+        holder.start()
+        assert gate.ENTERED.wait(5)
+        follower.start()
+        follower.join(0.4)
+        assert follower.is_alive()
+        gate.RELEASE.set()
+        follower.join(5)
+        holder.join(5)
+        assert not follower.is_alive() and not holder.is_alive()
+        assert seen == [None]
+    finally:
+        gate.RELEASE.set()
+        _purge_package(name)
+        sys.modules.pop("holdgate", None)
+        _drop_tree(tmp_path)
+
+
+def test_blank_lock_timeout_env_uses_the_default(tmp_path, monkeypatch):
+    from ux_compose.build import build
+
+    monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "   ")
+    name = "blankapp"
+    pkg = _write(
+        tmp_path / name,
+        {
+            "routes/a.py": (
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'blank-ok'\n"
+            ),
+        },
+    )
+    try:
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/a").text == "blank-ok"
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_detached_module_is_not_left_in_sys_modules(tmp_path):
+    """A path-unique module registered for this build is gone when build returns."""
+    from ux_compose.build import build
+
+    pkg = _write(
+        tmp_path / "left" / "demo",
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'ALPHA'\n"
+            ),
+        },
+    )
+    for part in ("demo", "demo.routes", "demo.routes.hello"):
+        sys.modules[part] = types.ModuleType(part)
+    try:
+        before = {key for key in sys.modules if key.startswith("ux_surface_")}
+        built = build(pkg, name="D", host="asgi", live="null", level=1)
+        assert asgi_get(built[1], "/hello").text == "ALPHA"
+        leaked = [
+            key for key in sys.modules if key.startswith("ux_surface_") and key not in before
+        ]
+        assert leaked == []
+    finally:
+        _purge_package("demo")
+        for key in list(sys.modules):
+            if key.startswith("ux_surface_") or key.startswith("demo"):
+                sys.modules.pop(key, None)
         _drop_tree(tmp_path)

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib
+import importlib._bootstrap as _import_bootstrap
 import importlib.util
 import inspect
 import linecache
@@ -367,7 +368,33 @@ def _clear_linecache(paths: list[Path], root: Path | None = None) -> None:
     linecache.checkcache()
 
 
+def _other_thread_importing(name: str) -> bool:
+    """True when another thread holds the import lock for ``name`` or a child.
+
+    ``importlib._bootstrap._find_and_load_unlocked`` reads
+    ``sys.modules[parent]`` while it still holds the child lock (the
+    lookups are at lines 1319 and 1348). Popping the parent there raises
+    ``KeyError``. This only reads the lock owner. Waiting on the lock
+    would deadlock a module that calls ``build()``.
+    """
+    locks = getattr(_import_bootstrap, "_module_locks", None)
+    if not isinstance(locks, dict):
+        return False
+    me = threading.get_ident()
+    prefix = name + "."
+    for key, ref in list(locks.items()):
+        if key != name and not (isinstance(key, str) and key.startswith(prefix)):
+            continue
+        lock = ref() if callable(ref) else None
+        owner = getattr(lock, "owner", None) if lock is not None else None
+        if isinstance(owner, int) and owner != me:
+            return True
+    return False
+
+
 def _forget_module(name: str) -> list[Path]:
+    if _other_thread_importing(name):
+        return []
     mod = sys.modules.pop(name, None)
     if mod is None:
         return []
@@ -385,7 +412,6 @@ package_import_lock = threading.RLock()
 # One reentrant lock per package folder name. Held across that name's
 # import phase so two directories cannot share sys.modules keys at once.
 # Different names stay parallel. A cross-thread wait is bounded.
-PACKAGE_BUILD_LOCK_TIMEOUT = 60.0
 _package_build_locks: dict[str, threading.RLock] = {}
 _package_build_locks_guard = threading.Lock()
 
@@ -484,15 +510,28 @@ def _is_this_folder_route(mod: Any, root: Path) -> bool:
     return all(_is_route_file(path, root) for path in origins)
 
 
+def _is_package_shell(path: Path, root: Path) -> bool:
+    """The app ``__init__.py`` and route-package ``__init__.py`` files.
+
+    ``models/__init__.py`` is a helper package, not a shell.
+    """
+    if path.name != "__init__.py" or not path.is_relative_to(root):
+        return False
+    rel = path.relative_to(root)
+    if rel == Path("__init__.py"):
+        return True
+    return bool(rel.parts) and rel.parts[0] == "routes"
+
+
 def _keep_helper(mod: Any, root: Path) -> bool:
     """Helpers stay for the next rebuild. Route files and package shells do not."""
     origins = _resolved_origins(mod)
     if not origins:
         return True
     for path in origins:
-        if not path.is_relative_to(root) or path.name == "__init__.py":
+        if not path.is_relative_to(root):
             return False
-        if _is_route_file(path, root):
+        if _is_package_shell(path, root) or _is_route_file(path, root):
             return False
     return True
 

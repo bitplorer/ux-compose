@@ -236,8 +236,9 @@ def _author_html(value: str) -> Any:
 
 
 def _html_chunk_bytes(chunk: Any) -> bytes:
-    """One streamed chunk. A plain str is sanitized as its own fragment.
+    """One streamed chunk. A plain str or bytes is sanitized as its own fragment.
 
+    ``bytes`` are decoded as strict UTF-8, then sanitized like ``str``.
     ``Markup`` is encoded unchanged. A ``raw()`` node is its verbatim HTML.
     A tag split across plain-str chunks is not reassembled; authors who
     need that chunk verbatim yield ``Markup`` or ``raw()``.
@@ -245,7 +246,7 @@ def _html_chunk_bytes(chunk: Any) -> bytes:
     if chunk is None:
         return b""
     if isinstance(chunk, (bytes, bytearray, memoryview)):
-        return bytes(chunk)
+        chunk = bytes(chunk).decode("utf-8", errors="strict")
     if isinstance(chunk, Markup):
         return str(chunk).encode("utf-8")
     if isinstance(chunk, str):

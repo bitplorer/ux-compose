@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`html=` included). If the Document shell raises, the return is that
   sanitized fragment, not the original source string.
 - Trusted HTML returned as a plain `str` now gets its handlers and scripts stripped. Authors who want it verbatim must wrap it in `Markup()` or `raw()`.
-- A streamed plain `str` chunk is sanitized as its own fragment (`<script>` and `onclick` dropped). `Markup` and `raw()` chunks stay verbatim. A tag split across two plain-str chunks is not reassembled; use `Markup()` or `raw()` for that.
+- A streamed plain `str` chunk is sanitized as its own fragment (`<script>` and `onclick` dropped). A streamed `bytes` chunk is decoded as strict UTF-8 and sanitized the same way. `Markup` and `raw()` chunks stay verbatim. A tag split across two plain-str chunks is not reassembled; use `Markup()` or `raw()` for that.
 - A nonce is never stamped onto a plain `str` or `Markup`. Trusted inline scripts are `script()` nodes.
 - A string starting with `<!DOCTYPE` or `<html` is sanitized as a whole document: doctype, head and body, title, meta (minus refresh), safe link and style are kept, and scripts and handlers are stripped. Text is not reflowed, so no whitespace is added.
 - Pin ux-dom to `67176c9`, the head of ux-dom

@@ -21,6 +21,9 @@ CLICK = '<div onclick="alert(1)">x</div>'
 # What defHTML keeps of CLICK. The script chunk contributes nothing.
 SANITIZED = b"<div>\n  x\n</div>"
 MARKED = Markup(SCRIPT)
+# Live bytes chunk: onclick and script must not survive either host.
+BYTES = b'<u onclick="b()">B</u><script>b()</script>'
+BYTES_SANITIZED = b"<u>\n  B\n</u>"
 
 
 def _page(tmp_path: Path, render):
@@ -65,6 +68,24 @@ def test_asgi_stream_str_chunks_drop_script_and_onclick(tmp_path: Path):
         yield CLICK
 
     assert _asgi_body(tmp_path, gen) == SANITIZED
+
+
+def test_fastapi_stream_bytes_chunks_drop_script_and_onclick():
+    """A bytes chunk is strict-UTF-8 HTML, same door as a str chunk."""
+
+    def gen():
+        yield BYTES
+
+    assert _fastapi_body(gen) == BYTES_SANITIZED
+
+
+def test_asgi_stream_bytes_chunks_drop_script_and_onclick(tmp_path: Path):
+    """A bytes chunk is strict-UTF-8 HTML, same door as a str chunk."""
+
+    def gen():
+        yield BYTES
+
+    assert _asgi_body(tmp_path, gen) == BYTES_SANITIZED
 
 
 def test_fastapi_stream_markup_chunk_is_byte_identical():

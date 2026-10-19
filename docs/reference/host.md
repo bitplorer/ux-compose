@@ -295,6 +295,10 @@ and it is the only input `App.mount` and `DirectoryRoutes.discover` read.
 | `inf`, `none` (any case; `infinite` too) | no limit |
 | `abc`, `-1`, `nan` | `ValueError` naming `UX_COMPOSE_BUILD_LOCK_TIMEOUT` |
 
+`UX_COMPOSE_BUILD_LOCK_TIMEOUT` and `build(lock_timeout=...)` are new in
+this release. A value that is not a timeout raises `ValueError`. The
+message names `UX_COMPOSE_BUILD_LOCK_TIMEOUT`.
+
 `lock_timeout=None` is the same as `none`. `inf` is not passed to the
 lock, so it does not raise `OverflowError`. `-1` does not wait forever.
 That build does not continue after a timeout, so it cannot bind the

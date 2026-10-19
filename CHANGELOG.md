@@ -59,13 +59,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Helper packages stay imported. `models/__init__.py` is not dropped after
   `build()`, so `typing.get_type_hints` can still see its names and a later
   import is the module the route captured.
-- The same-name build wait defaults to 60 seconds. `build()`, `App.mount`,
-  and `DirectoryRoutes.discover` share one parser for
-  `UX_COMPOSE_BUILD_LOCK_TIMEOUT` and for `build(lock_timeout=...)`.
-  Unset or blank is 60 seconds. `0` tries once and raises
-  `BuildLockTimeout` with no wait. `none` and `inf`, any case, wait
-  until the other import ends (`infinite` is `inf`). `abc`, `-1`, and
-  `nan` raise `ValueError` naming `UX_COMPOSE_BUILD_LOCK_TIMEOUT`
+- `UX_COMPOSE_BUILD_LOCK_TIMEOUT` and `build(lock_timeout=...)` are new
+  in this release. `build()`, `App.mount`, and `DirectoryRoutes.discover`
+  share one parser. Unset or blank is 60 seconds. `0` tries once and
+  raises `BuildLockTimeout` with no wait. `none` and `inf`, any case,
+  wait until the other import ends (`infinite` is `inf`). `abc`, `-1`,
+  and `nan` raise `ValueError` naming `UX_COMPOSE_BUILD_LOCK_TIMEOUT`
   (`-1` does not wait forever). `BuildLockTimeout` names the package
   and the setting.
 - Security: two folders with the same package name keep their own

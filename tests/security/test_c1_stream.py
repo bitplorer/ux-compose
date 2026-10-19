@@ -114,3 +114,23 @@ def test_asgi_stream_raw_chunk_stays_verbatim(tmp_path: Path):
         yield raw(SCRIPT)
 
     assert _asgi_body(tmp_path, gen) == SCRIPT.encode("utf-8")
+
+
+class _AsyncChunks:
+    """Async iterable that is not an async generator."""
+
+    def __init__(self, chunks):
+        self._chunks = tuple(chunks)
+
+    def __aiter__(self):
+        return self._iterate()
+
+    async def _iterate(self):
+        for chunk in self._chunks:
+            yield chunk
+
+
+def test_fastapi_stream_aiter_that_is_not_a_generator_is_sanitized():
+    """``_sanitized_stream`` must follow ``__aiter__``, not only async gens."""
+    body = _fastapi_body(lambda: _AsyncChunks((SCRIPT, CLICK)))
+    assert body == SANITIZED

@@ -333,7 +333,7 @@ Two doors, and they are not interchangeable:
 | Door | Who | What it means |
 |------|-----|----------------|
 | `with app.trust():` | Developer-authored server code (demos, tests, admin tools) | This task may run capped actions. Trust stays on a task started inside the block, so do not start a long-lived worker, queue consumer, or background task there. |
-| `dispatch_verified(name, payload)` | `wire/caps.bridge_actions`, after Channel accepts the Cap | Trust for that one call. A task started inside it does not inherit the trust. `async_dispatch_verified` is the async twin. A bool does not grant trust (ux-behavior #20, pin `e975275`). |
+| `dispatch_verified(name, payload)` | `wire/caps.bridge_actions`, after Channel accepts the Cap | Trust for that one call. A task started inside it does not inherit the trust. `async_dispatch_verified` is the async twin. A bool does not grant trust (ux-behavior #20, pin `ad86d4c`). |
 
 Channel verifies the Cap at the edge. `bridge_actions` was added so product
 action names mint against the author name, and the handler then host-dispatches

@@ -103,7 +103,7 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     assert any("f1a93fc" in ln for ln in active), "Channel VCS pin must require cek-host 0.2.0"
     assert any("ux-dom" in ln and "0440ccb" in ln for ln in active)
     assert any("ux-motion" in ln and "bbe7d73" in ln for ln in active)
-    assert any("ux-behavior" in ln and "e975275" in ln for ln in active)
+    assert any("ux-behavior" in ln and "ad86d4c" in ln for ln in active)
     assert "subdirectory=python" in req
     assert not any(
         ln in {"ux-dom", "ux-behavior", "ux-channel", "ux-motion", "ux-compose"}
@@ -179,7 +179,7 @@ def test_create_app_requirements_boot_cap_require(tmp_path):
     assert any(ln.startswith("cek-surface") and ">=0.2.0" in ln for ln in active)
     assert any("ux-channel" in ln and "f1a93fc" in ln for ln in active)
     assert any("ux-dom" in ln and "0440ccb" in ln for ln in active)
-    assert any("ux-behavior" in ln and "e975275" in ln for ln in active)
+    assert any("ux-behavior" in ln and "ad86d4c" in ln for ln in active)
     assert any("ux-motion" in ln and "bbe7d73" in ln for ln in active)
     assert "subdirectory=python" in req
     assert any(ln.startswith("fastapi") for ln in active)

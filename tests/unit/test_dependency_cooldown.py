@@ -369,6 +369,29 @@ def test_offset_without_minutes_fails_closed(monkeypatch, capsys):
     assert expected in capsys.readouterr().err
 
 
+@pytest.mark.parametrize(
+    ("payload", "detail"),
+    [
+        ({}, "urls is missing"),
+        ({"urls": None}, "urls is null"),
+        ({"urls": []}, "urls is empty"),
+    ],
+)
+def test_urls_missing_null_or_empty_fails_closed(monkeypatch, capsys, payload, detail):
+    _pin_fastapi(monkeypatch)
+    monkeypatch.setattr(cooldown, "fetch_pypi_json", lambda name, version: payload)
+    expected = f"dependency cooldown check failed closed: fastapi 0.142.2 {detail}"
+    with pytest.raises(cooldown.CooldownCheckError) as caught:
+        cooldown.check_installed(
+            [cooldown.Installed("fastapi", "0.142.2")],
+            now=RUN,
+            fetch=_fetch_returning(payload),
+        )
+    assert str(caught.value) == expected
+    assert cooldown.main([]) == 1
+    assert expected in capsys.readouterr().err
+
+
 def test_main_fails_closed_when_no_pypi_distribution_was_checked(monkeypatch, capsys):
     monkeypatch.setattr(cooldown, "utc_now", lambda: RUN)
     monkeypatch.setattr(

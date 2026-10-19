@@ -16,7 +16,7 @@ from markupsafe import Markup
 from ux_compose import raw
 from ux_compose.routing.asgi import DirectoryASGI
 from ux_compose.routing.core import DirectoryRoutes, RouteRecord
-from ux_compose.routing.fastapi import _as_http_response
+from ux_compose.routing.fastapi import _as_http_response, bind, create
 
 from tests.asgi_http import asgi_http
 
@@ -328,3 +328,43 @@ async def _collect_asgi(app: Any, path: str) -> bytes:
     }
     await app(scope, receive, send)
     return b"".join(chunks)
+
+
+def test_utf8_warning_names_the_route_and_not_the_body(tmp_path: Path, caplog):
+    """The warning carries the route path and none of the chunk text."""
+    token = "SECRETBODY"
+    chunk = b"<p>SECRETBODY\xff</p>"
+
+    def gen():
+        yield chunk
+
+    asgi_app = _page(tmp_path / "warn-asgi", gen)
+    core = DirectoryRoutes(tmp_path / "warn-fastapi")
+
+    class Page:
+        def render(self):
+            return gen()
+
+    core.records = [
+        RouteRecord(
+            method="GET",
+            path="/g",
+            name="Page",
+            page_cls=Page,
+            kind="page",
+        )
+    ]
+    fastapi_app = create("warn")
+    bind(fastapi_app, core)
+    with caplog.at_level(logging.WARNING, logger="ux_compose.routing.core"):
+        _status, _headers, asgi_body = asgi_http(asgi_app, "/g")
+        _status, _headers, fast_body = asgi_http(fastapi_app, "/g")
+    notes = [r for r in caplog.records if r.levelno == logging.WARNING]
+    assert len(notes) == 2
+    for record in notes:
+        message = record.getMessage()
+        assert "/g" in message
+        assert token not in message
+        assert "\\xff" not in message
+    assert token.encode() in asgi_body
+    assert token.encode() in fast_body

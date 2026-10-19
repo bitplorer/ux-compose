@@ -271,10 +271,9 @@ class _Utf8Stream:
     """One incremental UTF-8 decoder for a single response.
 
     Invalid bytes use ``errors='replace'`` and log one warning for the
-    response, not one per chunk. Synchronous ``to_fragment(bytes)`` is
-    strict from ux-dom #55 on, because that caller can see the error.
-    Mid-stream the status is already 200, so U+FFFD beats a silent
-    truncation. The replaced text is still sanitized.
+    response, not one per chunk. This stream path replaces invalid bytes
+    because the status has already been sent. The replaced text is still
+    sanitized.
     """
 
     def __init__(self, path: str = "") -> None:
@@ -288,10 +287,6 @@ class _Utf8Stream:
             return self._dec.decode(data, final)
         finally:
             _stream_decoder.reset(token)
-
-    def reset(self) -> None:
-        """Drop buffered bytes. ``final=True`` must not be followed by more input."""
-        self._dec = codecs.getincrementaldecoder("utf-8")(_STREAM_REPLACE)
 
 
 def _html_chunk_bytes(chunk: Any) -> bytes:
@@ -318,14 +313,10 @@ def _decode_chunk(decoder: _Utf8Stream, chunk: Any) -> bytes:
         if text == "":
             return b""
         return _html_chunk_bytes(text)
-    # str and Markup. Flush before them so a held lead byte cannot finish
-    # after this chunk and the pieces stay in yield order.
-    if isinstance(chunk, str):
-        head = _flush_decoder(decoder)
-        decoder.reset()
-        body = _html_chunk_bytes(chunk)
-        return head + body
-    return _html_chunk_bytes(chunk)
+    # Every other chunk, including raw(). final=True clears the held bytes.
+    head = _flush_decoder(decoder)
+    body = _html_chunk_bytes(chunk)
+    return head + body
 
 
 def _flush_decoder(decoder: _Utf8Stream) -> bytes:

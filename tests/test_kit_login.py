@@ -134,28 +134,41 @@ def test_short_whitespace_password_gets_the_length_error():
     assert _authenticate_saw("   ") == []
 
 
-def test_blank_passwords_reach_authenticate_byte_for_byte():
-    """Eight of each blank character is the password ``authenticate`` receives.
+def _password_characters():
+    """Every character ``str.strip`` treats as space, plus ZWSP and U+FEFF.
 
-    Spaces, tabs, newlines, NBSP, ZWSP, and U+FEFF are not trimmed.
+    ``str.isspace`` is that class: tab, LF, VT, FF, CR, the C1 separators,
+    space, NEL, NBSP, Ogham space, the U+2000–U+200A spaces, line and
+    paragraph separators, narrow NBSP, medium mathematical space, and
+    ideographic space. ZWSP and U+FEFF are not in it, and they are not trimmed.
     """
-    blanks = (
-        " " * 8,
-        "\t" * 8,
-        "\n" * 8,
-        "\r\n" * 4,
-        "\u00a0" * 8,
-        "\u200b" * 8,
-        "\ufeff" * 8,
-    )
-    for secret in blanks:
-        assert _authenticate_saw(secret) == [secret]
+    chars = [chr(i) for i in range(0x110000) if chr(i).isspace()]
+    for extra in ("\u200b", "\ufeff"):
+        if extra not in chars:
+            chars.append(extra)
+    return chars
+
+
+def test_blank_passwords_reach_authenticate_byte_for_byte():
+    """Eight of each whitespace character reaches ``authenticate`` unchanged.
+
+    A run of CR, LF, or CRLF is a password, not a missing one.
+    """
+    secrets = [char * 8 for char in _password_characters()]
+    secrets.append("\r\n" * 4)
+    for secret in secrets:
+        assert _authenticate_saw(secret) == [secret], repr(secret)
 
 
 def test_password_with_edge_spaces_is_not_trimmed():
-    """Leading and trailing spaces, and a trailing newline, stay on the password."""
-    for secret in (" password12", "password12 ", "  password12  ", "password12\n", "password12\r\n"):
-        assert _authenticate_saw(secret) == [secret]
+    """A whitespace, ZWSP, or U+FEFF on either edge stays on the password."""
+    secrets = []
+    for char in _password_characters():
+        secrets.append(char + "password12")
+        secrets.append("password12" + char)
+    secrets.extend(("  password12  ", "password12\r\n"))
+    for secret in secrets:
+        assert _authenticate_saw(secret) == [secret], repr(secret)
 
 
 def test_blocked_account_fail_closed():

@@ -1653,63 +1653,84 @@ def test_package_init_helper_keeps_state_across_import(tmp_path, monkeypatch):
         _drop_tree(tmp_path)
 
 
-def test_bad_env_lock_timeout_names_the_setting(monkeypatch):
+def _lock_timeout_package(tmp_path: Path, name: str, body: str) -> Path:
+    return _write(
+        tmp_path / name,
+        {
+            "routes/a.py": (
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                f"        return {body!r}\n"
+            ),
+        },
+    )
+
+
+def test_env_lock_timeout_abc_names_the_setting(monkeypatch):
     from ux_compose.build import _UNSET, _resolve_lock_timeout
 
-    for raw in ("abc", "nan", "-2"):
-        monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", raw)
-        with pytest.raises(ValueError, match="UX_COMPOSE_BUILD_LOCK_TIMEOUT"):
-            _resolve_lock_timeout(_UNSET)
+    monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "abc")
+    with pytest.raises(ValueError, match="UX_COMPOSE_BUILD_LOCK_TIMEOUT"):
+        _resolve_lock_timeout(_UNSET)
+
+
+def test_env_lock_timeout_nan_names_the_setting(monkeypatch):
+    from ux_compose.build import _UNSET, _resolve_lock_timeout
+
+    monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "nan")
+    with pytest.raises(ValueError, match="UX_COMPOSE_BUILD_LOCK_TIMEOUT"):
+        _resolve_lock_timeout(_UNSET)
+
+
+def test_env_lock_timeout_negative_names_the_setting(monkeypatch):
+    from ux_compose.build import _UNSET, _resolve_lock_timeout
+
+    monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "-2")
+    with pytest.raises(ValueError, match="UX_COMPOSE_BUILD_LOCK_TIMEOUT"):
+        _resolve_lock_timeout(_UNSET)
 
 
 def test_negative_lock_timeout_is_rejected(tmp_path):
     """-1 must not reach the lock. That value waits forever once the lock is held."""
     from ux_compose.build import build
 
-    pkg = _write(
-        tmp_path / "negapp",
-        {
-            "routes/a.py": (
-                "class A:\n"
-                "    routes = ('get',)\n"
-                "    def render(self):\n"
-                "        return 'neg'\n"
-            ),
-        },
-    )
+    pkg = _lock_timeout_package(tmp_path, "negapp", "neg")
     try:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="UX_COMPOSE_BUILD_LOCK_TIMEOUT"):
             build(pkg, name="X", host="asgi", live="null", level=1, lock_timeout=-1)
     finally:
         _purge_package("negapp")
         _drop_tree(tmp_path)
 
 
-def test_inf_lock_timeout_waits_without_overflow(tmp_path, monkeypatch):
-    from ux_compose.build import _UNSET, _resolve_lock_timeout, build
+def test_inf_lock_timeout_kwarg_waits_without_overflow(tmp_path):
+    from ux_compose.build import _resolve_lock_timeout, build
 
     assert _resolve_lock_timeout(float("inf")) is None
+    pkg = _lock_timeout_package(tmp_path, "infkw", "inf-kw")
+    try:
+        built = build(
+            pkg, name="X", host="asgi", live="null", level=1, lock_timeout=float("inf")
+        )
+        assert asgi_get(built[1], "/a").text == "inf-kw"
+    finally:
+        _purge_package("infkw")
+        _drop_tree(tmp_path)
+
+
+def test_inf_lock_timeout_env_waits_without_overflow(tmp_path, monkeypatch):
+    from ux_compose.build import _UNSET, _resolve_lock_timeout, build
+
     monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "inf")
     assert _resolve_lock_timeout(_UNSET) is None
-    pkg = _write(
-        tmp_path / "infapp",
-        {
-            "routes/a.py": (
-                "class A:\n"
-                "    routes = ('get',)\n"
-                "    def render(self):\n"
-                "        return 'inf-ok'\n"
-            ),
-        },
-    )
+    pkg = _lock_timeout_package(tmp_path, "infenv", "inf-env")
     try:
-        built = build(pkg, name="X", host="asgi", live="null", level=1, lock_timeout=float("inf"))
-        assert asgi_get(built[1], "/a").text == "inf-ok"
         monkeypatch.setenv("UX_COMPOSE_BUILD_LOCK_TIMEOUT", "infinite")
         built = build(pkg, name="X", host="asgi", live="null", level=1)
-        assert asgi_get(built[1], "/a").text == "inf-ok"
+        assert asgi_get(built[1], "/a").text == "inf-env"
     finally:
-        _purge_package("infapp")
+        _purge_package("infenv")
         _drop_tree(tmp_path)
 
 

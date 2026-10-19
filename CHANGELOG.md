@@ -35,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   directory, so one app cannot serve another app's helper. A second thread
   that waits too long gets `BuildLockTimeout` naming the package instead of
   blocking on the import lock.
+- A folder's route module stays in `sys.modules` after `build()`, so
+  `import` returns the served module and `typing.get_type_hints` can read
+  it. The file runs again only when its bytes change. A different directory
+  with the same package name is what replaces it. The pin applies to the
+  building thread only.
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

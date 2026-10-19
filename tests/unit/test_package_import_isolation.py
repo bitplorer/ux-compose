@@ -561,6 +561,7 @@ def test_path_keyerror_does_not_abort_build(tmp_path):
 
 
 def test_repeated_builds_do_not_grow_sys_modules(tmp_path):
+    """One folder stays flat. A new folder may add its modules once."""
     from ux_compose.build import build
 
     def hello(name: str) -> dict[str, str]:
@@ -574,15 +575,27 @@ def test_repeated_builds_do_not_grow_sys_modules(tmp_path):
         }
 
     warm = _write(tmp_path / "warm" / "warmpkg", hello("warm"))
+    names = ["warmpkg"]
     try:
         build(warm, name="W", host="asgi", live="null", level=1)
         base = len(sys.modules)
+        for _ in range(30):
+            built = build(warm, name="W", host="asgi", live="null", level=1)
+            assert asgi_get(built[1], "/hello").text == "warm"
+        assert len(sys.modules) == base
         for index in range(30):
-            pkg = _write(tmp_path / f"d{index}" / f"pkg{index}", hello(f"n{index}"))
+            name = f"pkg{index}"
+            names.append(name)
+            pkg = _write(tmp_path / f"d{index}" / name, hello(f"n{index}"))
             built = build(pkg, name="N", host="asgi", live="null", level=1)
             assert asgi_get(built[1], "/hello").text == f"n{index}"
-        assert len(sys.modules) == base
+            after = len(sys.modules)
+            built = build(pkg, name="N", host="asgi", live="null", level=1)
+            assert len(sys.modules) == after
+            assert asgi_get(built[1], "/hello").text == f"n{index}"
     finally:
+        for name in names:
+            _purge_package(name)
         _drop_tree(tmp_path)
 
 

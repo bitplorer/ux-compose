@@ -416,8 +416,13 @@ class _PinnedPackageFinder:
     def __init__(self, package: str, root: Path) -> None:
         self.package = package
         self.root = root.resolve()
+        self.owner = threading.get_ident()
 
     def find_spec(self, fullname: str, path: object = None, target: object = None):
+        # Only the building thread is pinned. Another thread importing this
+        # name is not redirected onto the directory being built.
+        if threading.get_ident() != self.owner:
+            return None
         if fullname != self.package and not fullname.startswith(self.package + "."):
             return None
         rel = fullname[len(self.package) :].lstrip(".")
@@ -470,6 +475,14 @@ def _is_route_file(path: Path, root: Path) -> bool:
     return not any(part.startswith("_") for part in rel.parts)
 
 
+def _is_this_folder_route(mod: Any, root: Path) -> bool:
+    """True when every origin of ``mod`` is a route file inside ``root``."""
+    origins = _resolved_origins(mod)
+    if not origins:
+        return False
+    return all(_is_route_file(path, root) for path in origins)
+
+
 def _keep_helper(mod: Any, root: Path) -> bool:
     """Helpers stay for the next rebuild. Route files and package shells do not."""
     origins = _resolved_origins(mod)
@@ -486,13 +499,15 @@ def _keep_helper(mod: Any, root: Path) -> bool:
 def release_build_package_modules(
     package_dir: str | Path, before: dict[str, int]
 ) -> None:
-    """Drop route modules this build introduced. Keep helpers and prior imports.
+    """Drop another folder's modules. Keep this folder's routes and helpers.
 
-    The pinned finder lets ``importlib`` load the package by name. Those
-    route entries would otherwise stay in ``sys.modules`` after ``build()``.
-    A helper imported for the first time stays, which is what a later rebuild
-    of the same directory reuses. A module that was already present keeps
-    its identity.
+    A route module that lives in ``package_dir`` stays in ``sys.modules``,
+    so ``import pkg.routes.a`` is the module that served the page and
+    ``typing.get_type_hints`` can still see its globals. The file runs
+    again only when its bytes change. Eviction of that name happens when
+    a different directory is isolated, not at the end of every build.
+    Helpers and modules that were already imported stay. Package shells
+    stay when a kept child or the pre-build snapshot anchors them.
     """
     root = Path(package_dir).resolve()
     name = root.name
@@ -512,7 +527,7 @@ def release_build_package_modules(
             ):
                 keep.add(key)
                 continue
-            if _keep_helper(mod, root):
+            if _is_this_folder_route(mod, root) or _keep_helper(mod, root):
                 keep.add(key)
                 continue
             drop.append(key)
@@ -736,11 +751,14 @@ def _exec_registered(name: str, mod: Any, resolved: Path) -> Any:
 
 
 def refresh_cached_module(mod: Any, file: str | Path) -> Any:
-    """Return ``mod`` when it already came from ``file``.
+    """Return the same module object. Re-exec only when ``file`` changed.
 
-    Re-exec only when the file bytes changed, so an edit shows up on
-    rebuild and an untouched module keeps its identity. The re-exec
-    does not hold ``package_import_lock``.
+    ``build()`` leaves a route module in ``sys.modules``. The next build
+    of that same folder reuses it, so the file runs once until its bytes
+    change. A different folder with the same package name is removed by
+    ``isolate_package_imports`` before this runs. Helper modules are not
+    passed here and are not reloaded. The re-exec does not hold
+    ``package_import_lock``.
     """
     resolved = Path(file).resolve()
     if _is_on_stack(mod):

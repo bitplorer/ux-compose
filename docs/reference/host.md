@@ -244,11 +244,22 @@ OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
 
 ### Helper modules are not reloaded
 
-`build()` reads a `routes/*.py` file again when that file's bytes changed,
-so a route edit shows up on the next `build()` in the same process. Helper
-modules those routes import — `models.py`, and any other module that is not
-the route file — keep the module object from the first import. Editing a
-helper is not picked up on rebuild. Restart the process to load it.
+`build()` leaves the route module in `sys.modules`. After `build()`,
+`import pkg.routes.a` is the module that served the page, and
+`typing.get_type_hints` can still read that module's globals. The route
+file runs once. It runs again only when that file's bytes changed, on a
+later `build()` of the same folder. Helper modules those routes import —
+`models.py`, and any other module that is not the route file — keep the
+module object from the first import. Editing a helper is not picked up on
+rebuild. Restart the process to load it.
+
+Isolation and eviction run only when a different directory with the same
+package name is built. Rebuilding one folder does not add another copy of
+its modules. The first build of a new folder may add that folder's modules
+once.
+
+A thread that is not inside the build is not redirected at that package
+name. The pin applies to the building thread only.
 
 ### Same-name builds take turns importing
 

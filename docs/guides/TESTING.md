@@ -50,6 +50,8 @@ Also: `apps/atelier_shop`, `apps/atelier_studio` (Makefile `shop` / `studio`),
 
 ## Commands
 
+The full suite needs Chrome 155 or newer on `PATH` as `google-chrome`. The Login and PasswordField browser tests drive that binary. CI logs `google-chrome --version` and fails when the major version is below 155. `UX_KEEP_VALUE_REQUIRE_BROWSER=1` only changes the failure message when the binary is missing. A missing browser fails the run either way. The tests do not skip.
+
 ```bash
 # default (includes nested-shell fragment-law)
 PYTHONPATH=src:. pytest tests/ -q

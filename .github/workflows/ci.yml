@@ -26,6 +26,21 @@ jobs:
           wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
           sudo apt-get update
           sudo apt-get install -y /tmp/chrome.deb
+      - name: Chrome version
+        run: |
+          google-chrome --version
+          python << 'PY'
+          import re
+          import subprocess
+          import sys
+          text = subprocess.check_output(["google-chrome", "--version"], text=True).strip()
+          print(text)
+          match = re.search(r"(\d+)\.", text)
+          major = int(match.group(1)) if match else 0
+          print(f"Chrome major: {major}")
+          if major < 155:
+              sys.exit(f"Chrome {major} is below 155")
+          PY
       - name: Full suite
         env:
           UX_KEEP_VALUE_REQUIRE_BROWSER: "1"

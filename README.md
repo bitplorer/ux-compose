@@ -194,6 +194,8 @@ Public names are `ux_compose.__all__` (re-exported specialists + compose’s own
 make test314
 ```
 
+The full suite needs Chrome 155 or newer on `PATH` as `google-chrome`. CI installs `google-chrome-stable` and fails the job when the major version is below 155. `UX_KEEP_VALUE_REQUIRE_BROWSER=1` only changes the message when Chrome is missing; the Chrome tests fail either way and do not skip.
+
 ## Security
 
 Compose’s security is the union of the levels you enabled. Do not import `ux_channel` from product code. Reporting: [SECURITY.md](SECURITY.md).

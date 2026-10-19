@@ -33,7 +33,8 @@ _STORED = "stored-secret-99"
 def _chrome_bin() -> str:
     """Real Chrome. A missing browser fails the test.
 
-    ``UX_KEEP_VALUE_REQUIRE_BROWSER=1`` is the CI switch. It does not skip.
+    ``UX_KEEP_VALUE_REQUIRE_BROWSER=1`` only changes the failure message.
+    The tests fail either way. They do not skip.
     """
     found = shutil.which("google-chrome") or shutil.which("google-chrome-stable")
     if found:

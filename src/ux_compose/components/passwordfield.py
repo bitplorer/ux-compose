@@ -50,7 +50,6 @@ class PasswordField(Component):
                     placeholder="Passphrase",
                     className="field",
                     autocomplete="off",
-                    data_ux_keep_value="1",
                 ),
                 button("Hold", type="submit", className="btn-secondary", **control("password.set")),
                 method="post",

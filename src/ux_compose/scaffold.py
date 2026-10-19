@@ -265,7 +265,7 @@ INPUT_CSS = dedent('''\
 
 # Pins match Makefile / pyproject.toml (SSOT). CI installs via pip install -e ".[dev]".
 CHANNEL_VCS_PIN = "f1a93fcf298c97a59fa6538697731e19aac8586d"
-BEHAVIOR_VCS_PIN = "d95c104ce3594413efc47144b2b1f15893906b42"
+BEHAVIOR_VCS_PIN = "e975275169d9ce2e2c7b0cb81b97fdde06961989"
 MOTION_VCS_PIN = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
 DOM_VCS_PIN = "0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4"
 COMPOSE_VCS_PIN = "24a182f35e3d0743a2faafddb5ba0396324b2d9a"

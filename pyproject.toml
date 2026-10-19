@@ -74,6 +74,9 @@ ux_compose = ["py.typed"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src", "."]
+# pytest-randomly is installed with the dev extra and would shuffle the
+# suite. The host-isolation CI step opts back in with ``-p randomly``.
+addopts = "-p no:randomly"
 markers = [
     "slow: longer stress tests",
     "live: needs fastapi / specialists",

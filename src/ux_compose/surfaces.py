@@ -23,11 +23,14 @@ Page unit + host bind (when asgi_app is provided):
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import logging
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Optional, Sequence
+
+from ux_compose.routing.core import load_cached_route_module, release_package_import_state
 
 logger = logging.getLogger("ux_compose.surfaces")
 
@@ -164,22 +167,31 @@ def _file_url(prefix: str, stem: str) -> str:
     return http_path(*segs)
 
 
-def _import_module(module: str, file: Path) -> Any:
-    try:
-        return importlib.import_module(module)
-    except Exception:
-        import importlib.util as ilu
+def _load_from_file(module: str, file: Path) -> Any:
+    safe = module.replace("/", "_").replace(".", "_").replace("-", "_")
+    if not safe.isidentifier():
+        safe = "ux_surface_" + str(abs(hash(str(file))))
+    spec = importlib.util.spec_from_file_location(safe, file)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load {file}")
+    loaded = importlib.util.module_from_spec(spec)
+    sys.modules[safe] = loaded
+    spec.loader.exec_module(loaded)
+    return loaded
 
-        safe = module.replace("/", "_").replace(".", "_").replace("-", "_")
-        if not safe.isidentifier():
-            safe = "ux_surface_" + str(abs(hash(str(file))))
-        spec = ilu.spec_from_file_location(safe, file)
-        if spec is None or spec.loader is None:
-            raise ImportError(f"cannot load {file}")
-        mod = ilu.module_from_spec(spec)
-        sys.modules[safe] = mod
-        spec.loader.exec_module(mod)
-        return mod
+
+def _import_module(module: str, file: Path) -> Any:
+    cached = load_cached_route_module(module, file)
+    if cached is not None:
+        return cached
+    try:
+        importlib.import_module(module)
+    except Exception:
+        return _load_from_file(module, file)
+    matched = load_cached_route_module(module, file)
+    if matched is not None:
+        return matched
+    return _load_from_file(module, file)
 
 
 def scan_surfaces(
@@ -191,6 +203,7 @@ def scan_surfaces(
 ) -> list[Surface]:
     """Discover units under package_dir/base_directory (define-in-module only)."""
     root = Path(package_dir).resolve()
+    release_package_import_state(root)
     base = root / base_directory
     if not base.exists():
         return []

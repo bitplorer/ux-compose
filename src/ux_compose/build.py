@@ -160,6 +160,7 @@ def build(
     """
     from ux_compose import App
     from ux_compose.routing.core import DirectoryRoutes, RouterHooks
+    from ux_compose.routing.core import release_package_import_state
     from ux_compose.routing.host import KIND_FASTAPI, bind as host_bind
     from ux_compose.routing.host import open as host_open
 
@@ -224,6 +225,9 @@ def build(
         except Exception:
             if pinned is not None and pinned >= 3:
                 raise
+
+    # Folder name is the import key. Drop the previous directory first.
+    release_package_import_state(package_dir)
 
     bundle = app.mount(
         package_dir,

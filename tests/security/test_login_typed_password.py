@@ -27,6 +27,7 @@ from ux_compose.wire.caps import register_live_channel
 
 _EMAIL = "you@atelier.test"
 _PASSWORD = "password12"
+_STORED = "stored-secret-99"
 
 
 def _chrome_bin() -> str:
@@ -59,9 +60,9 @@ def _page(inst) -> str:
     )
 
 
-@pytest.fixture(scope="module")
-def login_origin():
-    app = App.boot("LoginTyped", strict_caps=False)
+@pytest.fixture(scope="module", params=(False, True), ids=("strict-caps-off", "strict-caps-on"))
+def login_origin(request):
+    app = App.boot(f"LoginTyped{int(request.param)}", strict_caps=request.param)
     app.add(Login)
     asgi = FastAPI()
     app.use_channel(asgi_app=asgi)
@@ -203,14 +204,30 @@ def _reset(inst) -> None:
     inst.show_password = False
     inst.submitting = False
     inst.mode = "login"
-    inst.password = ""
+    inst.password = _STORED
     inst.email = ""
     inst.name = ""
     inst.err_password = inst.err_email = inst.err_name = inst.err_form = ""
+    inst.signed_in_with = []
+
+
+def _watch_authenticate(inst) -> None:
+    if getattr(inst, "_auth_watched", False):
+        return
+    real = inst.authenticate
+
+    def spy(*, email: str, password: str, name: str, signup: bool):
+        inst.signed_in_with.append(password)
+        return real(email=email, password=password, name=name, signup=signup)
+
+    inst.authenticate = spy
+    inst._auth_watched = True
 
 
 def _sign_in_after(chrome: _Chrome, page: dict, steps: list[str]) -> str:
-    _reset(page["inst"])
+    inst = page["inst"]
+    _watch_authenticate(inst)
+    _reset(inst)
     chrome.goto(page["origin"])
     chrome.evaluate(
         f"""
@@ -277,11 +294,18 @@ def _click_until(chrome: _Chrome, selector: str, predicate: str):
     _wait(chrome, predicate)
 
 
+def _assert_typed_password(page: dict, text: str) -> None:
+    assert "You're in" in text
+    signed = list(page["inst"].signed_in_with)
+    assert signed == [_PASSWORD]
+    assert _STORED not in signed
+
+
 def test_typed_password_survives_show_then_sign_in(chrome, login_origin):
     text = _sign_in_after(chrome, login_origin, ["show", "sign"])
-    assert "You're in" in text
+    _assert_typed_password(login_origin, text)
 
 
 def test_typed_password_survives_show_hide_then_sign_in(chrome, login_origin):
     text = _sign_in_after(chrome, login_origin, ["show", "hide", "sign"])
-    assert "You're in" in text
+    _assert_typed_password(login_origin, text)

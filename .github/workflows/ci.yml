@@ -47,7 +47,7 @@ jobs:
               errors += int(suite.get("errors", "0"))
           passed = tests - skipped - failures - errors
           print(f"X1 Chrome: {passed} passed, {skipped} skipped")
-          raise SystemExit(0 if skipped == 0 and failures == 0 and errors == 0 and passed == 2 else 1)
+          raise SystemExit(0 if skipped == 0 and failures == 0 and errors == 0 and passed == 4 else 1)
           PY
       - name: Nested-shell fragment-law
         run: python -m pytest tests/feature -q -m cto_red --tb=short

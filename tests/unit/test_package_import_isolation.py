@@ -1525,6 +1525,41 @@ def test_route_import_does_not_keep_another_threads_helper(tmp_path, monkeypatch
         _drop_tree(tmp_path)
 
 
+def test_off_path_package_import_raises_module_not_found(tmp_path):
+    """A package that is not on sys.path is not imported for the build.
+
+    Main raises ModuleNotFoundError for that name. The pin must not
+    invent a successful import.
+    """
+    from ux_compose.build import build
+    from ux_compose.surfaces import SurfaceError
+
+    name = "myapp"
+    pkg = tmp_path / "off" / name
+    (pkg / "routes").mkdir(parents=True)
+    (pkg / "models").mkdir()
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "routes" / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "models" / "__init__.py").write_text("class M:\n    pass\n", encoding="utf-8")
+    (pkg / "routes" / "h.py").write_text(
+        "from myapp.models import M\n"
+        "class H:\n"
+        "    routes = ('get',)\n"
+        "    def render(self):\n"
+        "        return M.__name__\n",
+        encoding="utf-8",
+    )
+    try:
+        with pytest.raises(SurfaceError) as caught:
+            build(pkg, name="X", host="asgi", live="null", level=1)
+        cause = caught.value.__cause__
+        assert isinstance(cause, ModuleNotFoundError)
+        assert cause.name == "myapp"
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
 def test_package_init_helper_survives_three_builds(tmp_path, monkeypatch):
     """A helper package's __init__ stays imported, so hints keep resolving."""
     from starlette.testclient import TestClient

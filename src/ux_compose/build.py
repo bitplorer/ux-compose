@@ -316,7 +316,18 @@ def build(
 
                 def _resolve(cls, path, name):
                     sid = str(getattr(cls, "id", None) or cls.__name__.lower())
-                    return registry.get(sid)
+                    inst = registry.get(sid)
+                    if inst is None:
+                        return None
+                    # Scan may have loaded a path-unique copy. The route
+                    # record's class is the one left in sys.modules, and
+                    # that is the class whose globals type hints read.
+                    inst_mod = getattr(type(inst), "__module__", None)
+                    if inst_mod != getattr(cls, "__module__", None) and str(
+                        inst_mod
+                    ).startswith("ux_surface_"):
+                        return None
+                    return inst
 
                 core = DirectoryRoutes(
                     package_dir,

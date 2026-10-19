@@ -757,7 +757,15 @@ def begin_build_module_notes() -> None:
 
 
 def end_build_module_notes() -> None:
-    """Drop modules this build registered, once their code has finished."""
+    """Drop path-unique modules this build registered.
+
+    The dotted route module stays in ``sys.modules``. A folder that is
+    not on ``sys.path`` is loaded under that name by
+    ``import_route_module`` and must still be there for the next build,
+    which is what keeps the file from running again. The ``ux_surface_``
+    name used for the scan is build-local and is dropped here. Whether
+    the package name itself can be imported is a separate check.
+    """
     stack = getattr(_build_notes, "stack", None)
     if not stack:
         return
@@ -767,6 +775,8 @@ def end_build_module_notes() -> None:
             if sys.modules.get(key) is not mod:
                 continue
             if _is_on_stack(mod):
+                continue
+            if not key.startswith("ux_surface_"):
                 continue
             _forget_module(key)
 

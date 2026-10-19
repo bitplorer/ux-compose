@@ -955,7 +955,7 @@ def test_import_after_build_is_the_served_module(tmp_path, monkeypatch):
         _drop_tree(tmp_path)
 
 
-def test_same_folder_thirty_builds_do_not_grow_sys_modules(tmp_path, monkeypatch):
+def test_same_folder_thirty_builds_do_not_grow_sys_modules(tmp_path):
     from ux_compose.build import build
 
     name = "flatapp"
@@ -970,7 +970,6 @@ def test_same_folder_thirty_builds_do_not_grow_sys_modules(tmp_path, monkeypatch
             ),
         },
     )
-    monkeypatch.syspath_prepend(str(pkg.parent))
     try:
         build(pkg, name="X", host="asgi", live="null", level=1)
         base = len(sys.modules)
@@ -983,7 +982,7 @@ def test_same_folder_thirty_builds_do_not_grow_sys_modules(tmp_path, monkeypatch
         _drop_tree(tmp_path)
 
 
-def test_distinct_folders_grow_sys_modules_at_most_once(tmp_path, monkeypatch):
+def test_distinct_folders_grow_sys_modules_at_most_once(tmp_path):
     from ux_compose.build import build
 
     names: list[str] = []
@@ -1002,7 +1001,6 @@ def test_distinct_folders_grow_sys_modules_at_most_once(tmp_path, monkeypatch):
                     ),
                 },
             )
-            monkeypatch.syspath_prepend(str(pkg.parent))
             before = len(sys.modules)
             built = build(pkg, name="X", host="asgi", live="null", level=1)
             assert asgi_get(built[1], "/a").text == name
@@ -1315,7 +1313,6 @@ def test_default_timeout_serves_a_nine_second_route(tmp_path, monkeypatch):
             ),
         },
     )
-    monkeypatch.syspath_prepend(str(pkg.parent))
     errors: list[str] = []
     bodies: list[str] = []
 

@@ -246,9 +246,10 @@ OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
 
 `build()` leaves the route module in `sys.modules`. After `build()`,
 `import pkg.routes.a` is the module that served the page, and
-`typing.get_type_hints` can still read that module's globals. The route
-file runs once. It runs again only when that file's bytes changed, on a
-later `build()` of the same folder. Helper modules those routes import —
+`typing.get_type_hints` can still read that module's globals, including
+when the package is not on `sys.path`. A folder on `sys.path` runs the
+route file once. A folder that is not runs it twice on the first build,
+then not again unless the file's bytes changed. Helper modules those routes import —
 `models.py`, a helper package such as `models/__init__.py`, and any other
 module that is not the route file — keep the module object from the first
 import. Editing a helper is not picked up on rebuild. Restart the process

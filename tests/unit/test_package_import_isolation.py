@@ -451,6 +451,104 @@ def test_reentrant_build_same_package_name_keeps_both_routes(tmp_path, monkeypat
                 sys.modules.pop(key, None)
 
 
+def test_reentrant_build_of_another_package_serves_both(tmp_path, monkeypatch):
+    inner = _write(
+        tmp_path / "right" / "other",
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'INNER'\n"
+            ),
+        },
+    )
+    outer = _write(
+        tmp_path / "left" / "demo",
+        {
+            "routes/hello.py": (
+                "from pathlib import Path\n"
+                "from ux_compose.build import build\n"
+                f"BUILT = build(Path({str(inner)!r}), name='I', host='asgi', live='null', level=1)\n"
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'OUTER'\n"
+            ),
+        },
+    )
+    monkeypatch.syspath_prepend(str(outer.parent))
+    holder: dict[str, object] = {}
+
+    def load() -> None:
+        holder["mod"] = importlib.import_module("demo.routes.hello")
+
+    try:
+        _run_daemon(load, 10)
+        mod = holder["mod"]
+        assert asgi_get(mod.BUILT[1], "/hello").text == "INNER"
+        assert _serve(outer) == "OUTER"
+    finally:
+        _drop_tree(tmp_path)
+        for key in list(sys.modules):
+            if key in {"demo", "other"} or key.startswith(("demo.", "other.")):
+                sys.modules.pop(key, None)
+
+
+def test_sixteen_threads_three_builds_serve_their_own_routes(tmp_path):
+    left = _write(
+        tmp_path / "left" / "demo",
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'THREAD-ALPHA'\n"
+            ),
+        },
+    )
+    right = _write(
+        tmp_path / "right" / "demo",
+        {
+            "routes/hello.py": (
+                "class Hello:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'THREAD-BETA'\n"
+            ),
+        },
+    )
+    barrier = threading.Barrier(16)
+    errors: list[BaseException] = []
+    guard = threading.Lock()
+
+    def work(index: int) -> None:
+        try:
+            barrier.wait(timeout=10)
+            for round_index in range(3):
+                pkg = left if (index + round_index) % 2 == 0 else right
+                expected = "THREAD-ALPHA" if pkg is left else "THREAD-BETA"
+                body = _serve(pkg)
+                if body != expected:
+                    raise AssertionError(body)
+        except BaseException as exc:
+            with guard:
+                errors.append(exc)
+
+    threads = [
+        threading.Thread(target=work, args=(index,), daemon=True) for index in range(16)
+    ]
+    try:
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(30)
+        assert not any(thread.is_alive() for thread in threads)
+        assert errors == []
+    finally:
+        _drop_tree(tmp_path)
+
+
 def _free_port() -> int:
     import socket
 

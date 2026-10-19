@@ -14,6 +14,7 @@ Locked model:
 """
 from __future__ import annotations
 
+import hashlib
 import importlib
 import importlib.util
 import inspect
@@ -377,8 +378,8 @@ def _forget_module(name: str) -> list[Path]:
     return _module_paths(mod)
 
 
-# One lock for isolate + route import. build() holds it across mount and
-# discover so two same-named packages cannot swap sys.modules mid-load.
+# Sys.modules bookkeeping only. Do not hold this while route or module
+# code runs: that deadlocks with the import lock when a module calls build().
 package_import_lock = threading.RLock()
 
 _source_tokens: weakref.WeakKeyDictionary[Any, bytes] = weakref.WeakKeyDictionary()
@@ -433,14 +434,28 @@ def _is_installed_module(mod: Any) -> bool:
 
 
 def _is_on_stack(mod: Any) -> bool:
-    """True when ``mod`` is the module currently executing an import/build."""
+    """True when ``mod`` is executing, or is a package of a module that is.
+
+    Evicting the package out from under the module that is importing raises
+    KeyError inside importlib. The frame walk is the import stack, not a
+    directory-name match.
+    """
     mod_dict = getattr(mod, "__dict__", None)
-    if mod_dict is None:
-        return False
+    name = getattr(mod, "__name__", None)
     frame = sys._getframe(1)
     while frame is not None:
-        if frame.f_globals is mod_dict:
+        globs = frame.f_globals
+        if mod_dict is not None and globs is mod_dict:
             return True
+        child = globs.get("__name__")
+        if (
+            isinstance(name, str)
+            and isinstance(child, str)
+            and child.startswith(name + ".")
+        ):
+            child_mod = sys.modules.get(child)
+            if child_mod is not None and getattr(child_mod, "__dict__", None) is globs:
+                return True
         frame = frame.f_back
     return False
 
@@ -504,54 +519,125 @@ def _reload_module(mod: Any, path: Path) -> Any:
     return mod
 
 
+def _detached_module_name(resolved: Path) -> str:
+    digest = hashlib.sha256(str(resolved).encode()).hexdigest()[:32]
+    return "ux_surface_" + digest
+
+
+def _register_module(name: str, resolved: Path) -> Any:
+    """Insert a new module object. Caller holds ``package_import_lock``."""
+    spec = importlib.util.spec_from_file_location(name, resolved)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot load {resolved}")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[name] = mod
+    return mod
+
+
+def _exec_registered(name: str, mod: Any, resolved: Path) -> Any:
+    """Run module code without holding ``package_import_lock``."""
+    try:
+        spec = getattr(mod, "__spec__", None)
+        loader = getattr(spec, "loader", None) if spec is not None else None
+        if loader is None:
+            code = compile(resolved.read_bytes(), str(resolved), "exec")
+            exec(code, mod.__dict__)
+        else:
+            loader.exec_module(mod)
+    except Exception:
+        with package_import_lock:
+            if sys.modules.get(name) is mod:
+                sys.modules.pop(name, None)
+        raise
+    _remember_source(mod, resolved)
+    return mod
+
+
 def refresh_cached_module(mod: Any, file: str | Path) -> Any:
     """Return ``mod`` when it already came from ``file``.
 
     Re-exec only when the file bytes changed, so an edit shows up on
-    rebuild and an untouched module keeps its identity.
+    rebuild and an untouched module keeps its identity. The re-exec
+    does not hold ``package_import_lock``.
     """
+    resolved = Path(file).resolve()
+    if _is_on_stack(mod):
+        return mod
+    try:
+        current = resolved.read_bytes()
+    except OSError:
+        return mod
     with package_import_lock:
-        resolved = Path(file).resolve()
-        if _is_on_stack(mod):
-            return mod
-        try:
-            current = resolved.read_bytes()
-        except OSError:
-            return mod
         previous = _source_tokens.get(mod)
         if previous is None:
             _source_tokens[mod] = current
             return mod
         if previous == current:
             return mod
-        return _reload_module(mod, resolved)
+    return _reload_module(mod, resolved)
+
+
+def _load_named_or_detached(module: str, resolved: Path) -> tuple[str, Any, str]:
+    """Choose a module object. Caller holds ``package_import_lock``.
+
+    Returns ``(kind, module, sys.modules key)`` where kind is
+    ``refresh`` or ``exec``. An on-stack or installed module whose file
+    is a different directory stays in ``sys.modules``; the other file
+    is loaded under a path-unique name.
+    """
+    cached = sys.modules.get(module)
+    if cached is not None and _is_installed_module(cached):
+        if _module_matches_file(cached, resolved):
+            return "refresh", cached, module
+        cached = None
+    if cached is not None and _module_matches_file(cached, resolved):
+        return "refresh", cached, module
+    if cached is not None and _is_on_stack(cached):
+        cached = None
+    if cached is None and sys.modules.get(module) is not None and (
+        _is_on_stack(sys.modules[module]) or _is_installed_module(sys.modules[module])
+    ):
+        key = _detached_module_name(resolved)
+        existing = sys.modules.get(key)
+        if existing is not None and _module_matches_file(existing, resolved):
+            return "refresh", existing, key
+        if existing is not None:
+            _forget_module(key)
+        return "exec", _register_module(key, resolved), key
+    if cached is not None:
+        forgotten = _forget_module(module)
+        importlib.invalidate_caches()
+        _clear_linecache(forgotten)
+    return "exec", _register_module(module, resolved), module
 
 
 def import_route_module(module: str, file: Path) -> Any:
+    resolved = Path(file).resolve()
     with package_import_lock:
-        resolved = Path(file).resolve()
-        cached = sys.modules.get(module)
-        if cached is not None and _module_matches_file(cached, resolved):
-            return refresh_cached_module(cached, resolved)
-        if cached is not None and (_is_on_stack(cached) or _is_installed_module(cached)):
-            return cached
-        if cached is not None:
-            forgotten = _forget_module(module)
-            importlib.invalidate_caches()
-            _clear_linecache(forgotten)
-        spec = importlib.util.spec_from_file_location(module, resolved)
-        if spec is None or spec.loader is None:
-            raise ImportError(f"Cannot load {resolved}")
-        mod = importlib.util.module_from_spec(spec)
-        sys.modules[module] = mod
-        try:
-            spec.loader.exec_module(mod)
-        except Exception:
-            if sys.modules.get(module) is mod:
-                sys.modules.pop(module, None)
-            raise
-        _remember_source(mod, resolved)
-        return mod
+        kind, chosen, key = _load_named_or_detached(module, resolved)
+    if kind == "refresh":
+        if _is_installed_module(chosen):
+            return chosen
+        return refresh_cached_module(chosen, resolved)
+    return _exec_registered(key, chosen, resolved)
+
+
+def load_detached_module(file: str | Path) -> Any:
+    """Load ``file`` under a name unique to its resolved path."""
+    resolved = Path(file).resolve()
+    key = _detached_module_name(resolved)
+    with package_import_lock:
+        existing = sys.modules.get(key)
+        if existing is not None and _module_matches_file(existing, resolved):
+            kind, chosen = "refresh", existing
+        else:
+            if existing is not None:
+                _forget_module(key)
+            chosen = _register_module(key, resolved)
+            kind = "exec"
+    if kind == "refresh":
+        return refresh_cached_module(chosen, resolved)
+    return _exec_registered(key, chosen, resolved)
 
 
 @dataclass

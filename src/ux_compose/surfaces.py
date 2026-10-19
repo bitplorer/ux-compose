@@ -22,9 +22,7 @@ Page unit + host bind (when asgi_app is provided):
 
 from __future__ import annotations
 
-import hashlib
 import importlib
-import importlib.util
 import logging
 import sys
 from dataclasses import dataclass, field
@@ -34,8 +32,7 @@ from typing import Any, Callable, Optional, Sequence
 from ux_compose.routing.core import (
     import_route_module,
     isolate_package_imports,
-    package_import_lock,
-    refresh_cached_module,
+    load_detached_module,
 )
 
 logger = logging.getLogger("ux_compose.surfaces")
@@ -187,22 +184,11 @@ def _load_from_file(module: str, file: Path) -> Any:
     """Load ``file`` under a name that is unique to its resolved path.
 
     A name derived only from the dotted module would be shared by two
-    directories that use the same folder name.
+    directories that use the same folder name. Module code runs outside
+    ``package_import_lock``.
     """
     del module
-    resolved = Path(file).resolve()
-    key = "ux_surface_" + hashlib.sha256(str(resolved).encode()).hexdigest()[:32]
-    with package_import_lock:
-        existing = sys.modules.get(key)
-        if existing is not None and _same_resolved_file(existing, resolved):
-            return refresh_cached_module(existing, resolved)
-        spec = importlib.util.spec_from_file_location(key, resolved)
-        if spec is None or spec.loader is None:
-            raise ImportError(f"cannot load {resolved}")
-        loaded = importlib.util.module_from_spec(spec)
-        sys.modules[key] = loaded
-        spec.loader.exec_module(loaded)
-        return refresh_cached_module(loaded, resolved)
+    return load_detached_module(file)
 
 
 def _import_module(module: str, file: Path) -> Any:

@@ -242,6 +242,14 @@ OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
   stays offline Behavior. Complete documents and `/css` are not
   double-wrapped.
 
+### Helper modules are not reloaded
+
+`build()` reads a `routes/*.py` file again when that file's bytes changed,
+so a route edit shows up on the next `build()` in the same process. Helper
+modules those routes import — `models.py`, and any other module that is not
+the route file — keep the module object from the first import. Editing a
+helper is not picked up on rebuild. Restart the process to load it.
+
 ---
 
 ## 9. CSP on FastAPI (two layers, one nonce)

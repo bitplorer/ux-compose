@@ -1566,6 +1566,72 @@ def test_off_path_package_import_raises_module_not_found(tmp_path):
         _drop_tree(tmp_path)
 
 
+def test_off_path_route_runs_twice_across_three_builds(tmp_path):
+    """Main runs an off-path route file twice, then keeps the module.
+
+    Three builds of a folder that is not on sys.path execute the file
+    twice in total. The dotted route module is still in sys.modules.
+    """
+    from ux_compose.build import build
+
+    name = "runapp"
+    counter = tmp_path / "runs.txt"
+    counter.write_text("", encoding="utf-8")
+    pkg = _write(
+        tmp_path / name,
+        {
+            "routes/a.py": (
+                f"open({str(counter)!r}, 'a', encoding='utf-8').write('x')\n"
+                "class A:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return 'ran'\n"
+            ),
+        },
+    )
+    try:
+        for _ in range(3):
+            built = build(pkg, name="X", host="asgi", live="null", level=1)
+            assert asgi_get(built[1], "/a").text == "ran"
+        assert counter.read_text(encoding="utf-8") == "xx"
+        assert f"{name}.routes.a" in sys.modules
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
+def test_off_path_type_hints_survive_build(tmp_path):
+    """Type hints in an off-path route still resolve after build."""
+    from ux_compose.build import build
+
+    name = "hintoff"
+    pkg = _write(
+        tmp_path / name,
+        {
+            "routes/h.py": (
+                "from __future__ import annotations\n"
+                "import typing\n"
+                "class M:\n"
+                "    pass\n"
+                "class D:\n"
+                "    m: M | None = None\n"
+                "class H:\n"
+                "    routes = ('get',)\n"
+                "    def render(self):\n"
+                "        return str(typing.get_type_hints(D))\n"
+            ),
+        },
+    )
+    try:
+        built = build(pkg, name="X", host="asgi", live="null", level=1)
+        text = asgi_get(built[1], "/h").text
+        assert "M" in text
+        assert f"{name}.routes.h" in sys.modules
+    finally:
+        _purge_package(name)
+        _drop_tree(tmp_path)
+
+
 def test_package_init_helper_survives_three_builds(tmp_path, monkeypatch):
     """A helper package's __init__ stays imported, so hints keep resolving."""
     from starlette.testclient import TestClient

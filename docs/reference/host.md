@@ -347,9 +347,10 @@ on a request a client sent.
 A payload key named `self` reaches the action only when that parameter is
 positional-only (`def save(self, /, ...)`). A normal method already binds
 `self` to the instance, so the key is not that instance and does not arrive
-as an argument. The wire then returns the validation message (`unexpected
-keyword argument 'self'`) on a successful result. That is not an internal
-error and not HTTP 500.
+as an argument. That comes back the same way as every other action
+validation error: the message (`unexpected keyword argument 'self'`) on
+the result, the same HTTP status, the same result shape, never a 500.
+There is no separate status for this key.
 
 ## Attach secret
 

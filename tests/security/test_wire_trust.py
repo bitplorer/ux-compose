@@ -88,10 +88,11 @@ def test_payload_keys_named_action_and_self_reach_the_action():
 
 
 def test_payload_self_on_a_normal_method_is_not_a_500():
-    """A normal method already binds self. The payload key must not 500.
+    """A normal method already binds self. That key is a validation error.
 
     It reaches the action only when self is positional-only. Otherwise the
-    wire returns the validation message and the action does not run.
+    wire returns the validation message, the same way as any other bad
+    argument, and the action does not run. That result is never a 500.
     """
     from fastapi import FastAPI
 
@@ -122,10 +123,69 @@ def test_payload_self_on_a_normal_method_is_not_a_500():
         {"v": "1", "action": "box.save", "args": payload, "cap": cap},
     )
     assert response.status_code != 500, response.text
-    assert response.status_code < 500, response.text
     body = response.json()
     error = body.get("error") or {}
     assert error.get("code") != "internal"
     assert "unexpected keyword argument 'self'" in response.text
     assert "Traceback" not in response.text
+    assert ran["n"] == 0
+
+
+def _validation_shape(response, keyword: str) -> tuple[int, dict]:
+    """Status plus body, with the keyword name and per-request meta removed."""
+    body = response.json()
+    meta = dict(body.get("meta") or {})
+    meta.pop("request_id", None)
+    meta.pop("duration_ms", None)
+    body["meta"] = meta
+    for op in body.get("ops") or []:
+        html = op.get("html")
+        if isinstance(html, str):
+            op["html"] = html.replace(f"'{keyword}'", "'KEY'")
+    return response.status_code, body
+
+
+def test_payload_self_matches_any_other_validation_error():
+    """A payload key named self uses the ordinary validation result.
+
+    Same HTTP status and same result shape as another unexpected keyword.
+    There is no separate status for this key, and neither response is a 500.
+    """
+    from fastapi import FastAPI
+
+    from tests.asgi_http import asgi_post_json
+
+    ran = {"n": 0}
+
+    class Box(Component):
+        id = "box"
+
+        def render(self):
+            return '<div id="box"></div>'
+
+        @action(caps=("box.save",))
+        def save(self, action: str = ""):
+            ran["n"] += 1
+            return []
+
+    app = App.boot("Box", strict_caps=True)
+    app.add(Box)
+    asgi = FastAPI()
+    app.use_channel(asgi_app=asgi)
+
+    def post(payload: dict):
+        cap = app.mint_cap("box.save", payload)
+        return asgi_post_json(
+            asgi,
+            "/ux-channel/action",
+            {"v": "1", "action": "box.save", "args": payload, "cap": cap},
+        )
+
+    self_key = post({"action": "keep", "self": "me"})
+    other = post({"action": "keep", "note": "x"})
+    assert self_key.status_code == other.status_code
+    assert self_key.status_code != 500, self_key.text
+    assert _validation_shape(self_key, "self") == _validation_shape(other, "note")
+    assert "unexpected keyword argument 'self'" in self_key.text
+    assert "unexpected keyword argument 'note'" in other.text
     assert ran["n"] == 0

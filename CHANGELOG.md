@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `uxcompose serve prod` imports `app:asgi` from the current directory
+  without `PYTHONPATH=.`. It passes the cwd as uvicorn's `app_dir`, the
+  same default the `uvicorn` CLI uses. Before, the installed console script
+  failed with `Could not import module "app"`.
 - Same-name `build()` calls import one package at a time, pinned to that
   directory, so one app cannot serve another app's helper. A second thread
   that waits too long gets `BuildLockTimeout` naming the package instead of

@@ -80,8 +80,7 @@ def test_create_app_docs_page_get_is_document_not_swagger(tmp_path):
     assert any("/docs" in d and "/about" in d for d in report.diagnostics)
 
     pytest.importorskip("ux_dom")
-    from ux_dom import Document
-    from ux_dom import Csp
+    from ux_dom import Csp, Document
     from ux_dom.dom import title
 
     document = Document(

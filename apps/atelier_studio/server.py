@@ -35,8 +35,7 @@ from examples.catalog import PATTERNS, all_components, by_slug
 from apps.atelier_shop.shop import catalog_grid
 from apps.pulseboard.app import register_board
 from apps.pulseboard.surround import compose as pulseboard_compose
-from ux_dom import Document
-from ux_dom import XElement, Htmx
+from ux_dom import Document, Htmx, XElement
 
 try:
     from fastapi import FastAPI, Request

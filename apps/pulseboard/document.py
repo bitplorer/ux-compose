@@ -5,9 +5,8 @@ shell. Channel is the ux_dom Document-plugin alias — never ux_channel.Channel.
 """
 from __future__ import annotations
 
-from ux_dom import Document
+from ux_dom import Channel, Csp, Document, XElement
 from ux_dom.dom import link, meta, script, title
-from ux_dom import Channel, Csp, XElement
 
 from .settings import OUTPUT_CSS
 

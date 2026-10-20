@@ -148,8 +148,7 @@ def _attach_document(app: Any, document: Any, *, use_htmx: bool) -> Any:
                 document.use(Htmx())
             app.use_dom(document)
             return document
-        from ux_dom import Document
-        from ux_dom import XElement, Csp
+        from ux_dom import Csp, Document, XElement
 
         runtimes: list[Any] = [XElement(), Csp.auto()]
         if use_htmx:

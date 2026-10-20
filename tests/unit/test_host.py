@@ -239,8 +239,7 @@ def test_csp_header_on_html_get(tmp_path: Path):
     """Clock A GET carries Content-Security-Policy from document.mount (Csp)."""
     pytest.importorskip("ux_dom")
     pytest.importorskip("fastapi")
-    from ux_dom import Document
-    from ux_dom import Csp
+    from ux_dom import Csp, Document
 
     from ux_compose.build import build
 

@@ -10,8 +10,7 @@ inside render(). Missing ux-dom fails loud (Python ≥3.14).
 """
 from __future__ import annotations
 
-from ux_dom import Document
-from ux_dom import XElement, Csp, Channel
+from ux_dom import Channel, Csp, Document, XElement
 from ux_dom.dom import link, meta, title
 
 from .settings import OUTPUT_CSS

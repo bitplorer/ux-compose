@@ -13,7 +13,7 @@ import pytest
 
 from ux_compose.cli.deploy import prepare_deploy
 from ux_compose.doctor import main, scan_product_readiness, secret_readiness
-from ux_compose.scaffold import create_app, requirements_problem
+from ux_compose.scaffold import create_app
 
 # ``ux_compose.doctor`` the attribute is the function; this is the module.
 doctor_mod = importlib.import_module("ux_compose.doctor")
@@ -108,25 +108,40 @@ def test_requirements_specialist_beside_ux_compose_fails(app):
     req = app / "requirements.txt"
     req.write_text(req.read_text(encoding="utf-8") + UC1_CONFLICT, encoding="utf-8")
     assert _row(scan_product_readiness(app, env=PROD), "requirements") == (
-        "[FAIL] requirements: requirements.txt pins ux-dom beside ux-compose; "
+        "[FAIL] requirements: ux-dom (requirements.txt:6) pinned beside ux-compose; "
         "specialists come with the ux-compose line"
     )
 
 
-@pytest.mark.parametrize(
-    "text, problem",
-    [
-        ("ux-compose @ git+https://x/ux-compose.git@abc#subdirectory=py  # pinned\n", None),
-        ("# header\n\nUX_Compose==0.2.0\nuvicorn[standard]>=0.30 ; python_version>='3.14'\n", None),
-        ("ux-compose\nfastapi\nFastAPI>=0.115\n", "lists fastapi twice (lines 2 and 3); one line per distribution"),
-        ("ux-compose\nux_compose @ https://x/a.zip\n", "lists ux-compose twice (lines 1 and 2); one line per distribution"),
-        ("ux-compose\nux-motion\nux-channel\n", "pins ux-channel, ux-motion beside ux-compose; specialists come with the ux-compose line"),
-        ("ux-compose\n-e .\n", "line 2 is not a requirement: '-e .'"),
-        ("fastapi\n", "does not name ux-compose"),
-    ],
+def test_requirements_remote_include_warns(app):
+    req = app / "requirements.txt"
+    req.write_text(req.read_text(encoding="utf-8") + "-r https://example.com/extra.txt\n", encoding="utf-8")
+    assert _row(scan_product_readiness(app, env=PROD), "requirements") == (
+        "[WARN] requirements: not checked: requirements.txt:6 includes https://example.com/extra.txt"
+    )
+
+
+# The review's repros: valid pip syntax around the scaffold's lines.
+PIP_SYNTAX = (
+    "--extra-index-url https://pypi.org/simple\n"
+    "-r extra.txt\n"
+    "-c constraints.txt\n"
+    "-e .\n"
+    "httpx==0.27.0 \\\n"
+    "    --hash=sha256:7ba3b98e4ae9a9b9e2a4b1c1f0e6d1d2a4b3c4d5e6f708192a3b4c5d6e7f8091 \\\n"
+    "    --hash=sha256:0f1e2d3c4b5a69788796a5b4c3d2e1f00f1e2d3c4b5a69788796a5b4c3d2e1f0\n"
+    "    # via -r requirements.in\n"
 )
-def test_requirements_problem(text, problem):
-    assert requirements_problem(text) == problem
+
+
+def test_requirements_pip_syntax_ok(app):
+    req = app / "requirements.txt"
+    req.write_text(req.read_text(encoding="utf-8") + PIP_SYNTAX, encoding="utf-8")
+    (app / "extra.txt").write_text("idna==3.10\n", encoding="utf-8")
+    (app / "constraints.txt").write_text("idna==3.10\n", encoding="utf-8")
+    assert _row(scan_product_readiness(app, env=PROD), "requirements") == (
+        "[OK  ] requirements: one line per distribution; names ux-compose"
+    )
 
 
 # secret (UC4 secret_readiness)
@@ -159,20 +174,41 @@ def test_short_secret_reported_by_doctor_and_build_and_refused_at_boot(app, monk
     assert f"[ATTACH_SECRET_REQUIRED] ux_channel refuses the channel secret: {reason}" in boot.stderr
 
     assert main(["--prod"]) == 1
-    assert f"[FAIL] secret: Channel secret refused: ux_channel refuses the channel secret: {reason}" in (
-        capsys.readouterr().out
-    )
+    doctor_out = capsys.readouterr().out
+    assert (
+        f"[FAIL] secret: Channel secret refused: ux_channel refuses the channel secret: {reason} "
+        "(use secrets.token_urlsafe(32) in production) — set UX_CHANNEL_SECRET on the host\n"
+    ) in doctor_out
 
     assert cli_main(["build", "--skip-tailwind"]) == 1
     out = capsys.readouterr().out
-    assert f"[FAIL] import:app:asgi: Channel secret refused: ux_channel refuses the channel secret: {reason}" in out
+    assert (
+        f"[FAIL] import:app:asgi: Channel secret refused: ux_channel refuses the channel secret: {reason} "
+        "(use secrets.token_urlsafe(32) in production)\n"
+    ) in out  # DEBUG=1 would not help a short secret, so build gives no local-build advice
     assert "Traceback" not in out
 
 
 def test_secret_missing_fails_with_uc4_line(app):
     assert _row(scan_product_readiness(app, env={}), "secret") == (
-        f"[FAIL] secret: {secret_readiness({})}"
+        f"[FAIL] secret: {secret_readiness({})} — set UX_CHANNEL_SECRET on the host"
     )
+
+
+@pytest.mark.parametrize(
+    "env",
+    [
+        {},
+        {"UX_CHANNEL_SECRET": SHORT_15},
+        {"UX_CHANNEL_SECRET": "dev-secret-key-32chars-minimum!!!!"},
+        {"REDIS_URL": "redis://127.0.0.1:1"},
+    ],
+)
+def test_doctor_prod_never_suggests_debug(app, env):
+    """A prod gate: its DEBUG row FAILs DEBUG=1, so the secret advice is the host secret."""
+    rows = scan_product_readiness(app, env=env)
+    assert _row(rows, "secret").endswith(" — set UX_CHANNEL_SECRET on the host")
+    assert "DEBUG=1" not in "\n".join(rows)
 
 
 @pytest.mark.parametrize("key", ["UX_CHANNEL_SECRET", "UX_BEHAVIOR_SECRET"])
@@ -365,6 +401,12 @@ def test_port_probes_the_given_host(app):
     assert _row(rows, f"port:{port}") == f"[OK  ] port:{port}: free on 127.0.0.1:{port}"
 
 
+def test_port_unresolvable_host_says_so(app):
+    port = _free_port()
+    rows = scan_product_readiness(app, env=PROD, port=port, host="nosuch.invalid")
+    assert _row(rows, f"port:{port}") == f"[WARN] port:{port}: cannot resolve host nosuch.invalid"
+
+
 def _free_port() -> int:
     with socket.socket() as s:
         s.bind(("0.0.0.0", 0))
@@ -381,7 +423,7 @@ def test_no_port_row_without_port(app):
 def test_cli_prod_fresh_scaffold_fails_on_secret(app, capsys):
     assert main([str(app), "--prod"]) == 1
     out = capsys.readouterr().out
-    assert f"  [FAIL] secret: {secret_readiness({})}\n" in out
+    assert f"  [FAIL] secret: {secret_readiness({})} — set UX_CHANNEL_SECRET on the host\n" in out
     assert "Product readiness:" in out
 
 

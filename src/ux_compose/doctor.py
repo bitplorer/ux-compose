@@ -384,15 +384,17 @@ def _lines(path: Path) -> list[str]:
     return [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines()]
 
 
-def _port_in_use(host: str, port: int) -> bool:
+def _port_row(host: str, port: int) -> str:
     """The bind uvicorn makes: SO_REUSEADDR, so TIME_WAIT does not count."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             s.bind((host, port))
+        except socket.gaierror:
+            return _row("WARN", f"port:{port}", f"cannot resolve host {host}")
         except OSError:
-            return True
-    return False
+            return _row("WARN", f"port:{port}", f"in use on {host}:{port}")
+    return _row("OK", f"port:{port}", f"free on {host}:{port}")
 
 
 def _docker_regex(pattern: str) -> re.Pattern[str]:
@@ -480,7 +482,7 @@ def scan_product_readiness(
     """
     from ux_behavior.wire import debug_requests_dev
 
-    from ux_compose.scaffold import requirements_problem
+    from ux_compose.scaffold import scan_requirements
 
     root = Path(root)
     source = os.environ if env is None else env
@@ -507,14 +509,16 @@ def scan_product_readiness(
     req = root / "requirements.txt"
     if not req.is_file():
         rows.append(_row("FAIL", "requirements", "requirements.txt missing — deploys install from it"))
-    elif problem := requirements_problem(req.read_text(encoding="utf-8")):
-        rows.append(_row("FAIL", "requirements", f"requirements.txt {problem}"))
+    elif (scan := scan_requirements(req)).problem:
+        rows.append(_row("FAIL", "requirements", scan.problem))
+    elif scan.unchecked:
+        rows.append(_row("WARN", "requirements", "not checked: " + "; ".join(scan.unchecked)))
     else:
         rows.append(_row("OK", "requirements", "one line per distribution; names ux-compose"))
-    refused = secret_readiness(source)
-    rows.append(
-        _row("FAIL", "secret", refused) if refused else _row("OK", "secret", "Channel attach can boot")
-    )
+    if refused := secret_readiness(source):
+        rows.append(_row("FAIL", "secret", f"{refused} — set UX_CHANNEL_SECRET on the host"))
+    else:
+        rows.append(_row("OK", "secret", "Channel attach can boot"))
     if debug_requests_dev(source):
         rows.append(
             _row("FAIL", "DEBUG", f"DEBUG={source.get('DEBUG')!r} is dev mode — unset it for prod")
@@ -540,10 +544,7 @@ def scan_product_readiness(
             detail = f"{rel} sets neither EnvironmentFile nor Environment=UX_CHANNEL_SECRET"
         rows.append(_row("OK" if ok else "FAIL", "deploy:vps", detail))
     if port is not None:
-        if _port_in_use(host, port):
-            rows.append(_row("WARN", f"port:{port}", f"in use on {host}:{port}"))
-        else:
-            rows.append(_row("OK", f"port:{port}", f"free on {host}:{port}"))
+        rows.append(_port_row(host, port))
     return rows
 
 

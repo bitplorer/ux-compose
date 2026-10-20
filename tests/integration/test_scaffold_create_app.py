@@ -12,7 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ux_compose.scaffold import create_app, requirements_problem
+from ux_compose.scaffold import create_app, scan_requirements
 from ux_compose.doctor import scan_isolation, scan_dual_document, scan_render_chrome
 
 
@@ -226,7 +226,7 @@ def _requirements(root):
 def test_scaffold_requirements_have_one_line_per_distribution(tmp_path):
     """One line per distribution, and no specialist beside ux-compose (D2)."""
     root = create_app(tmp_path / "one")
-    assert requirements_problem((root / "requirements.txt").read_text(encoding="utf-8")) is None
+    assert scan_requirements(root / "requirements.txt").problem is None
 
 
 class _Dist:

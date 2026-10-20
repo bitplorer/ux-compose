@@ -12,9 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `uxcompose doctor --prod` checks product readiness after the law scans:
   `product` (`app.py` at the root; an empty dir fails), `dep:uvicorn` and
   `dep:fastapi` (importable in the running interpreter), `requirements`
-  (`requirements.txt` parses as PEP 508, one line per distribution, names
-  ux-compose and pins no specialist beside it:
-  `scaffold.requirements_problem`), `secret`
+  (`scaffold.scan_requirements` reads the file as pip does: continuations,
+  comments, option lines, `-e`, local `-r` includes; one line per
+  distribution, ux-compose named, no specialist beside it; a remote `-r`
+  is WARN), `secret`
   (`secret_readiness`), `DEBUG` (ux-behavior's `debug_requests_dev`),
   `.env` (WARN when present; FAIL when a Dockerfile exists and
   `.dockerignore`, read the way Docker reads it, does not exclude it), `deploy:render` and `deploy:vps` (the
@@ -108,7 +109,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `UXCOMPOSE_TAILWIND` is an error.
 - A secret config that attach would refuse (missing outside dev, under 16
   characters, the published dev secret, or `REDIS_URL` without one) gets
-  one line, not a traceback: `Channel secret refused: <reason>`.
+  one line, not a traceback: `Channel secret refused: <reason>`. `build`
+  adds "for a local build, set DEBUG=1 or set UX_CHANNEL_SECRET" only when
+  dev mode would be accepted; `doctor --prod` adds "set UX_CHANNEL_SECRET
+  on the host" and never suggests DEBUG=1.
   `uxcompose build` exits 1 and `uxcompose serve prod` exits 2.
   `ux_compose.doctor.secret_readiness` calls ux-behavior's
   `attach_secret_problem` (pin `f12321f`, #22), the check `attach()` runs,

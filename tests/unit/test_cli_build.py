@@ -70,7 +70,7 @@ def test_build_without_secret_is_one_clear_line(tmp_path, monkeypatch, capsys):
     assert (
         "[FAIL] import:app:asgi: Channel secret refused: attach() requires "
         "UX_CHANNEL_SECRET or UX_BEHAVIOR_SECRET outside dev; the public dev "
-        "secret is not accepted\n"
+        "secret is not accepted — for a local build, set DEBUG=1 or set UX_CHANNEL_SECRET\n"
     ) in out
     assert "Traceback" not in out
     assert "RuntimeError" not in out
@@ -102,5 +102,5 @@ def test_build_keeps_ux_behaviors_own_refusal(tmp_path, monkeypatch, capsys, env
     rc = main(["build", "--skip-tailwind"])
     out = capsys.readouterr().out
     assert rc == 1
-    assert f"[FAIL] import:app:asgi: Channel secret refused: {reason}" in out
+    assert f"[FAIL] import:app:asgi: Channel secret refused: {reason}" in out  # no DEBUG=1 advice
     assert "Traceback" not in out

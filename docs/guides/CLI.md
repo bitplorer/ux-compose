@@ -66,7 +66,10 @@ Outside dev, Channel attach needs `UX_CHANNEL_SECRET` (or
 - `uxcompose build` and `uxcompose serve prod` without a secret print one
   line, no traceback: `Channel secret missing: set UX_CHANNEL_SECRET (≥16
   chars) for prod, or DEBUG=1 for a local build`. build exits 1, serve prod
-  exits 2. `ux_compose.doctor.secret_readiness(env)` is that check.
+  exits 2. `ux_compose.doctor.secret_readiness(env)` is that check. When a
+  secret is set but refused (the published dev secret), or `REDIS_URL` is
+  set without one, build shows ux-behavior's own `[ATTACH_SECRET_REQUIRED]`
+  line instead, still without a traceback.
 - `uxcompose deploy` declares `UX_CHANNEL_SECRET` for every target and
   never writes a value: render `generateValue: true`; fly `fly secrets set`;
   docker `docker run -e UX_CHANNEL_SECRET`; railway `railway variables

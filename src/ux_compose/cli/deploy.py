@@ -223,8 +223,9 @@ def prepare_deploy(
         result.instructions = [
             f"rsync to /var/www/{name}",
             "python -m venv .venv && pip install -r requirements.txt",
-            f"echo \"UX_CHANNEL_SECRET={_MAKE_SECRET}\" | sudo tee /etc/{name}.env "
-            f"&& sudo chmod 600 /etc/{name}.env",
+            f"sudo install -m 600 /dev/null /etc/{name}.env",
+            f"echo \"UX_CHANNEL_SECRET={_MAKE_SECRET}\" "
+            f"| sudo tee /etc/{name}.env >/dev/null",
             f"sudo cp {unit} /etc/systemd/system/ && systemctl enable --now {name}",
         ]
     else:

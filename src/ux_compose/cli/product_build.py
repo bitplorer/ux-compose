@@ -248,18 +248,26 @@ def run_product_build(
                 f"assert obj is not None, 'attr missing'\n"
                 f"print(type(obj).__name__)\n"
             )
+            env = {**os.environ, "PYTHONPATH": str(root)}
             proc = subprocess.run(
                 [sys.executable, "-c", code],
                 cwd=str(root),
                 capture_output=True,
                 text=True,
                 timeout=30,
-                env={**os.environ, "PYTHONPATH": str(root)},
+                env=env,
             )
-            if "ATTACH_SECRET_REQUIRED" in (proc.stderr or ""):
-                from ux_compose.doctor import SECRET_MISSING
+            refusal = [
+                line
+                for line in (proc.stderr or "").splitlines()
+                if line.startswith("[ATTACH_SECRET_REQUIRED]")
+            ]
+            if refusal:
+                # One line, no traceback. "Missing" only when it is missing;
+                # a refused or unshared secret keeps ux-behavior's reason.
+                from ux_compose.doctor import secret_readiness
 
-                detail = SECRET_MISSING
+                detail = secret_readiness(env) or refusal[0]
             else:
                 detail = (proc.stdout or proc.stderr or "").strip()[:200]
             report.steps.append(

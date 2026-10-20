@@ -75,7 +75,8 @@ def test_vps_unit_reads_an_environment_file(tmp_path, monkeypatch):
     result = prepare_deploy("vps", app_name="demo")
     unit = (tmp_path / "deploy" / "demo.service").read_text(encoding="utf-8")
     assert "EnvironmentFile=/etc/demo.env\n" in unit
-    assert any("/etc/demo.env" in step for step in result.instructions)
+    assert "sudo install -m 600 /dev/null /etc/demo.env" in result.instructions
+    assert any(step.endswith("| sudo tee /etc/demo.env >/dev/null") for step in result.instructions)
 
 
 def test_checklist_names_the_secret(tmp_path, monkeypatch):

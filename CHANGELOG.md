@@ -54,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   traceback: `Channel secret missing: set UX_CHANNEL_SECRET (≥16 chars) for
   prod, or DEBUG=1 for a local build`. `uxcompose build` exits 1 and
   `uxcompose serve prod` exits 2 (`ux_compose.doctor.secret_readiness`).
+  A refused secret (the published dev secret, or `REDIS_URL` without one)
+  keeps ux-behavior's own one-line `[ATTACH_SECRET_REQUIRED]` reason.
   `serve dev` gives its ui and channel workers `DEBUG=1` and one secret per
   session (minted when the env has none, never written or printed), so it
   serves `/` without `DEBUG` set. Scaffold `settings.py` and the apps read

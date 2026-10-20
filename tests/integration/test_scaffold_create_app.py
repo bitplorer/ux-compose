@@ -199,3 +199,29 @@ def test_create_app_requirements_boot_cap_require(tmp_path):
     assert "3.13" not in readme
     assert "3.14" in readme
     assert 'cek="require"' in readme
+
+
+def test_create_app_settings_debug_matches_ux_behavior(tmp_path):
+    """settings.DEBUG reads env the way ux-behavior does: unset is prod."""
+    import os
+    import subprocess
+
+    root = create_app(tmp_path / "demo", name="demo")
+    settings = (root / "settings.py").read_text(encoding="utf-8")
+    assert "from ux_behavior.wire import debug_requests_dev" in settings
+    assert "DEBUG = debug_requests_dev()" in settings
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "`uxcompose serve dev` sets dev mode" in readme
+    assert "UX_CHANNEL_SECRET" in readme
+
+    base = {k: v for k, v in os.environ.items() if k != "DEBUG"}
+    base["PYTHONPATH"] = os.pathsep.join([str(root), str(ROOT / "src")])
+    seen = {}
+    for value in (None, "0", "false", "1", "on"):
+        env = dict(base) if value is None else {**base, "DEBUG": value}
+        out = subprocess.run(
+            [sys.executable, "-c", "import settings; print(settings.DEBUG)"],
+            cwd=root, env=env, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        seen[value] = out
+    assert seen == {None: "False", "0": "False", "false": "False", "1": "True", "on": "True"}

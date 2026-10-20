@@ -54,3 +54,20 @@ def test_cli_build_cwd_error_is_clear(tmp_path, monkeypatch, capsys):
     err = capsys.readouterr().err
     assert "app.py" in err
     assert str(tmp_path.resolve()) in err
+
+
+def test_build_without_secret_is_one_clear_line(tmp_path, monkeypatch, capsys):
+    """Fresh scaffold, DEBUG and secret unset: rc 1, no traceback."""
+    root = create_app(tmp_path / "demo", name="demo")
+    for name in ("DEBUG", "UX_CHANNEL_SECRET", "UX_BEHAVIOR_SECRET", "REDIS_URL"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.chdir(root)
+    rc = main(["build", "--skip-tailwind"])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert (
+        "[FAIL] import:app:asgi: Channel secret missing: set UX_CHANNEL_SECRET "
+        "(≥16 chars) for prod, or DEBUG=1 for a local build\n"
+    ) in out
+    assert "Traceback" not in out
+    assert "RuntimeError" not in out

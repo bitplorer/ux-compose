@@ -116,6 +116,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   thread is importing a child of that package, so that import does not
   raise `KeyError`.
 
+### Changed
+
+- ux-dom pin `0440ccb` → `8422b9a` (ux-dom main) in `pyproject.toml`,
+  `Makefile`, `scaffold.py` (`DOM_VCS_PIN`, so create-app's
+  `requirements.txt`), `apps/nook` and `apps/pulseboard`. No compose code
+  changed: every ux-dom import compose uses works at that commit.
+  `test_pins_agree_in_all_four_places` fails when `pyproject.toml`,
+  `Makefile`, `scaffold.py` and `test_hard_deps.py` disagree on any
+  specialist SHA.
+
 ## 0.2.0 — remove deprecations and bloat cleanup
 
 ux-compose and its ux-* specialists are not on PyPI, so these are removed

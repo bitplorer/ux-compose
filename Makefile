@@ -8,7 +8,7 @@ VENV  ?= /tmp/ux314venv
 UX_BEHAVIOR_SHA = 938832d1ced364361f8a13522b63420cab45f3c5
 UX_MOTION_SHA = bbe7d73466a6c1eccb47e711568c80ce3b4d5487
 UX_CHANNEL_SHA = 0ffe8e9907cd1a0701ffc8cb2e5414d6b39d2996
-UX_DOM_SHA = 0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4
+UX_DOM_SHA = 8422b9ae1091417c8431ca28a479fb920ad48195
 
 .PHONY: test test-matrix coverage test314 venv314 specialists examples doctor shop studio pulse pulseboard nook test-cto test-cto-fragment-law cek-repro-morph-shell
 

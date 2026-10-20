@@ -159,7 +159,7 @@ Level 1 page units stay correct at L2/L3. Zero rewrite. Not an optional-package 
 
 Full law: [docs/OWNERSHIP.md](docs/OWNERSHIP.md). Examples: [examples/README.md](examples/README.md).
 
-**Notes:** Product floor is Python ≥3.14 with the pinned specialist stack. Product Cap: `build(cek="require")` / `app.use_cek()` (default `require` — cek-runtime Host via Channel). Scaffold `requirements.txt` pins the same SHAs as CI. `mode="adapt"` is compare-only lab. Headless `use_channel()` boots Channel without HTTP for mint/submit tests. `mint_cap(action, {}, once=True)` is single-use; default remains `once=False`. Isolation: product modules never import `ux_channel`.
+**Notes:** Product floor is Python ≥3.14 with the pinned specialist stack. Product Cap: `build(cek="require")` / `app.use_cek()` (default `require` — cek-runtime Host via Channel). Scaffold `requirements.txt` pins the running ux-compose commit; the specialists come with that commit's pins. `mode="adapt"` is compare-only lab. Headless `use_channel()` boots Channel without HTTP for mint/submit tests. `mint_cap(action, {}, once=True)` is single-use; default remains `once=False`. Isolation: product modules never import `ux_channel`.
 
 ## Documentation
 

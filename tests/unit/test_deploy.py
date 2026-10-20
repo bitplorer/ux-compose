@@ -30,9 +30,16 @@ def test_checklist_with_app_py(tmp_path, monkeypatch):
 
 def test_dockerfile_relies_on_honest_requirements_txt():
     """Image install is pip -r only — no bare PyPI ux-* names."""
-    assert "pip install --no-cache-dir -r requirements.txt" in _DOCKERFILE
     assert "ux-compose ux-dom ux-behavior" not in _DOCKERFILE
-    assert "FROM python:3.14-slim" in _DOCKERFILE
+    assert "apt-get" not in _DOCKERFILE
+    froms = [ln for ln in _DOCKERFILE.splitlines() if ln.startswith("FROM ")]
+    assert froms == ["FROM python:3.14 AS build", "FROM python:3.14-slim"]
+    build, runtime = _DOCKERFILE.split("FROM python:3.14-slim")
+    assert "/opt/venv/bin/pip install --no-cache-dir -r requirements.txt" in build
+    assert "pip install" not in runtime
+    assert "COPY --from=build /opt/venv /opt/venv" in runtime
+    assert "PATH=/opt/venv/bin:$PATH" in runtime
+    assert "COPY . ." in runtime
 
 
 _PROVIDERS = ("docker", "fly", "render", "railway", "vps")

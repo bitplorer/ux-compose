@@ -1,6 +1,8 @@
 """Hard-deps floor: pins, extras, fail-loud doors. Isolation: no ux_channel."""
 from __future__ import annotations
 
+import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -13,7 +15,6 @@ UX_DOM_SHA = "8422b9ae1091417c8431ca28a479fb920ad48195"
 UX_CHANNEL_SHA = "0ffe8e9907cd1a0701ffc8cb2e5414d6b39d2996"
 UX_BEHAVIOR_SHA = "938832d1ced364361f8a13522b63420cab45f3c5"
 UX_MOTION_SHA = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
-COMPOSE_SHA = "24a182f35e3d0743a2faafddb5ba0396324b2d9a"
 
 
 def test_pyproject_requires_314_and_pins_specialists():
@@ -44,43 +45,22 @@ def test_pin_ssot_lockstep_makefile_scaffold_ci():
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     scaffold = (ROOT / "src" / "ux_compose" / "scaffold.py").read_text(encoding="utf-8")
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
-    nook = (ROOT / "apps" / "nook" / "requirements.txt").read_text(encoding="utf-8")
-    pulseboard = (ROOT / "apps" / "pulseboard" / "requirements.txt").read_text(encoding="utf-8")
     for sha in (UX_DOM_SHA, UX_CHANNEL_SHA, UX_BEHAVIOR_SHA, UX_MOTION_SHA):
         assert sha in makefile
-        assert sha in scaffold
-        assert sha in nook
-        assert sha in pulseboard
-    for leaf in (makefile, scaffold, nook, pulseboard):
+    for leaf in (makefile, scaffold):
         assert "cek-host>=0.2.0" in leaf
         assert "cek-surface>=0.2.0" in leaf
         assert "0626a10" not in leaf
-    assert "git+https://github.com/bitplorer/ux-compose.git@" in scaffold
-    assert "git+https://github.com/bitplorer/ux-compose.git@" in nook
-    assert COMPOSE_SHA in scaffold
-    assert COMPOSE_SHA in nook
-    assert "e6b5ea4" not in scaffold
-    assert "e6b5ea4" not in nook
+    assert 'COMPOSE_GIT = "https://github.com/bitplorer/ux-compose.git"' in scaffold
+    assert "_VCS_PIN" not in scaffold
+    assert not list((ROOT / "apps").glob("*/requirements.txt"))
     assert "25338a6" not in makefile
     assert "76adc72" not in makefile
-    assert "25338a6" not in scaffold
-    assert "76adc72" not in scaffold
     assert "e8be99a" not in makefile
-    assert "e8be99a" not in scaffold
-    assert "e8be99a" not in nook
     assert "d0412c6" not in makefile
-    assert "d0412c6" not in scaffold
-    assert "d0412c6" not in nook
     assert "793f120" not in makefile
-    assert "793f120" not in scaffold
-    assert "793f120" not in nook
     assert "67ff3f0" not in makefile
-    assert "67ff3f0" not in scaffold
-    assert "67ff3f0" not in nook
     assert "ad86d4c" not in makefile
-    assert "ad86d4c" not in scaffold
-    assert "ad86d4c" not in nook
-    assert "ad86d4c" not in pulseboard
     assert 'python-version: "3.14"' in ci
     assert "3.12" not in ci
     assert "offline-shim" not in ci
@@ -91,25 +71,44 @@ def test_pin_ssot_lockstep_makefile_scaffold_ci():
     assert "PYTHONPATH=src:. $(PY314) -m uvicorn apps.pulse.server:app" in makefile
 
 
-def test_pins_agree_in_all_four_places():
-    """Each specialist SHA is the same in pyproject, Makefile, scaffold and this file."""
-    import re
+def _specialist_pins(pyproject: str, dist: str) -> list[str]:
+    return re.findall(
+        rf'"{dist} @ git\+https://github\.com/bitplorer/{dist}\.git@([0-9a-f]{{40}})', pyproject
+    )
+
+
+def test_pins_agree_in_all_four_places(tmp_path):
+    """Each specialist SHA is the same in pyproject, Makefile, this file, and
+    the pyproject of the ux-compose commit that create-app's requirements.txt
+    pins (the specialists a scaffolded app installs)."""
+    from ux_compose.scaffold import create_app
 
     pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-    scaffold = (ROOT / "src" / "ux_compose" / "scaffold.py").read_text(encoding="utf-8")
+    req = (create_app(tmp_path / "app") / "requirements.txt").read_text(encoding="utf-8")
+    compose = [ln for ln in req.splitlines() if ln.startswith("ux-compose")]
+    assert len(compose) == 1, req
+    pinned = re.fullmatch(
+        r"ux-compose @ git\+https://github\.com/bitplorer/ux-compose\.git@([0-9a-f]{40})",
+        compose[0],
+    )
+    assert pinned, compose
+    scaffold_pyproject = subprocess.run(
+        ["git", "-C", str(ROOT), "show", f"{pinned.group(1)}:pyproject.toml"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout
     expected = {
-        "ux-dom": ("UX_DOM_SHA", "DOM_VCS_PIN", UX_DOM_SHA),
-        "ux-channel": ("UX_CHANNEL_SHA", "CHANNEL_VCS_PIN", UX_CHANNEL_SHA),
-        "ux-behavior": ("UX_BEHAVIOR_SHA", "BEHAVIOR_VCS_PIN", UX_BEHAVIOR_SHA),
-        "ux-motion": ("UX_MOTION_SHA", "MOTION_VCS_PIN", UX_MOTION_SHA),
+        "ux-dom": ("UX_DOM_SHA", UX_DOM_SHA),
+        "ux-channel": ("UX_CHANNEL_SHA", UX_CHANNEL_SHA),
+        "ux-behavior": ("UX_BEHAVIOR_SHA", UX_BEHAVIOR_SHA),
+        "ux-motion": ("UX_MOTION_SHA", UX_MOTION_SHA),
     }
-    for dist, (make_var, scaffold_var, test_sha) in expected.items():
-        from_pyproject = re.findall(
-            rf'"{dist} @ git\+https://github\.com/bitplorer/{dist}\.git@([0-9a-f]{{40}})', pyproject
-        )
+    for dist, (make_var, test_sha) in expected.items():
+        from_pyproject = _specialist_pins(pyproject, dist)
         from_makefile = re.findall(rf"^{make_var} = ([0-9a-f]{{40}})$", makefile, re.M)
-        from_scaffold = re.findall(rf'^{scaffold_var} = "([0-9a-f]{{40}})"$', scaffold, re.M)
+        from_scaffold = _specialist_pins(scaffold_pyproject, dist)
         assert from_pyproject == from_makefile == from_scaffold == [test_sha], (
             dist,
             from_pyproject,

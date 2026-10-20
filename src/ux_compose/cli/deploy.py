@@ -55,17 +55,24 @@ def _write(path: Path, content: str, *, force: bool) -> bool:
 
 _DOCKERFILE = """\
 # ux-compose product ASGI image
+# Build stage: python:3.14 has git, which the git-pinned ux-compose line in
+# requirements.txt needs. The runtime stage copies the venv; both stages use
+# Python 3.14 at /usr/local/bin, so the venv's interpreter path and ABI match.
+FROM python:3.14 AS build
+RUN python -m venv /opt/venv
+COPY requirements.txt .
+RUN /opt/venv/bin/pip install --no-cache-dir -U pip \\
+    && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
 FROM python:3.14-slim
 
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \\
     PYTHONUNBUFFERED=1 \\
-    PORT=8080
+    PORT=8080 \\
+    PATH=/opt/venv/bin:$PATH
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -U pip \\
-    && pip install --no-cache-dir -r requirements.txt
-
+COPY --from=build /opt/venv /opt/venv
 COPY . .
 
 # CSS: run `uxcompose build` before `docker build` so output.css is in COPY.

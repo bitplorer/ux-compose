@@ -50,6 +50,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   open HMR or Channel socket held the origin's shutdown forever.
   `tests/feature/test_hmr_browser_reload.py` (Chrome 155+) locks the
   save → morph path: the text changes with no navigation.
+- create-app's `requirements.txt` resolves. It listed ux-compose at
+  `24a182f` (which pins ux-dom `e8be99a`) and ux-dom `8422b9a` beside it,
+  so `uv pip install -r` failed with conflicting URLs and `pip install -r`
+  with ResolutionImpossible, the Dockerfile too. It now has one
+  ux-compose line and no specialist lines; the specialists come with that
+  commit's pins. The line is the running ux-compose: the git commit from
+  `direct_url.json`, the `HEAD` of an editable checkout (with a note, and a `WARNING` when
+  HEAD is on no remote branch), or a remote archive URL. Any other
+  install (no `direct_url.json`, such as `PYTHONPATH=src` with a stale
+  egg-info, or a local wheel) makes create-app exit 1 with
+  `ComposeRefError` and write nothing; ux-compose is on no index. `COMPOSE_VCS_PIN`
+  and the specialist `*_VCS_PIN` constants are gone.
+  `test_pins_agree_in_all_four_places` reads the specialist pins from the
+  `pyproject.toml` of the commit create-app pins. `apps/nook` and
+  `apps/pulseboard` lose their `requirements.txt` (same conflict; the apps
+  run from the repo on `pip install -e ".[dev]"`). CI resolves the
+  scaffold's file with `uv pip compile`.
+- The `uxcompose deploy` Dockerfile is two stages. `python:3.14` (has
+  git) builds a venv from `requirements.txt`; `python:3.14-slim` copies the
+  venv and the app. The one-stage slim image had no git, so the git-pinned
+  ux-compose line failed with "Cannot find command 'git'".
 - The standalone Tailwind CLI runs only after its SHA256 matches
   `TAILWIND_STANDALONE_SHA256` (v4.1.12, from the release's
   `sha256sums.txt`). A download that does not match is deleted and the build

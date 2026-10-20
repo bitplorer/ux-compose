@@ -9,7 +9,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-UX_DOM_SHA = "0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4"
+UX_DOM_SHA = "8422b9ae1091417c8431ca28a479fb920ad48195"
 UX_CHANNEL_SHA = "0ffe8e9907cd1a0701ffc8cb2e5414d6b39d2996"
 UX_BEHAVIOR_SHA = "938832d1ced364361f8a13522b63420cab45f3c5"
 UX_MOTION_SHA = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
@@ -89,6 +89,34 @@ def test_pin_ssot_lockstep_makefile_scaffold_ci():
     assert "25338a6" not in ci
     assert "76adc72" not in ci
     assert "PYTHONPATH=src:. $(PY314) -m uvicorn apps.pulse.server:app" in makefile
+
+
+def test_pins_agree_in_all_four_places():
+    """Each specialist SHA is the same in pyproject, Makefile, scaffold and this file."""
+    import re
+
+    pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    scaffold = (ROOT / "src" / "ux_compose" / "scaffold.py").read_text(encoding="utf-8")
+    expected = {
+        "ux-dom": ("UX_DOM_SHA", "DOM_VCS_PIN", UX_DOM_SHA),
+        "ux-channel": ("UX_CHANNEL_SHA", "CHANNEL_VCS_PIN", UX_CHANNEL_SHA),
+        "ux-behavior": ("UX_BEHAVIOR_SHA", "BEHAVIOR_VCS_PIN", UX_BEHAVIOR_SHA),
+        "ux-motion": ("UX_MOTION_SHA", "MOTION_VCS_PIN", UX_MOTION_SHA),
+    }
+    for dist, (make_var, scaffold_var, test_sha) in expected.items():
+        from_pyproject = re.findall(
+            rf'"{dist} @ git\+https://github\.com/bitplorer/{dist}\.git@([0-9a-f]{{40}})', pyproject
+        )
+        from_makefile = re.findall(rf"^{make_var} = ([0-9a-f]{{40}})$", makefile, re.M)
+        from_scaffold = re.findall(rf'^{scaffold_var} = "([0-9a-f]{{40}})"$', scaffold, re.M)
+        assert from_pyproject == from_makefile == from_scaffold == [test_sha], (
+            dist,
+            from_pyproject,
+            from_makefile,
+            from_scaffold,
+            test_sha,
+        )
 
 
 def test_probe_exposes_incomplete_stack_messages():

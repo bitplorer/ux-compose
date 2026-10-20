@@ -8,7 +8,7 @@ Emits the locked product path:
 - routes/index.py      GET / alias so the app root is not 404
 - routes/hello.py      page unit (module stem == class name)
 - assets/css/input.css Tailwind tokens + @source
-- requirements.txt     so ``uxcompose deploy`` is not a lie
+- requirements.txt     the running ux-compose commit; specialists come with it
 
 Laws: Isolation (no ux_channel in product files). Progressive Superpower
 (complete install first; Level 1 page units stay correct when Channel or
@@ -16,9 +16,14 @@ Motion attach).
 """
 from __future__ import annotations
 
+from importlib import metadata
 from pathlib import Path
 from textwrap import dedent
+from urllib.parse import urlparse
+from urllib.request import url2pathname
+import json
 import keyword
+import subprocess
 import sys
 
 
@@ -264,25 +269,86 @@ INPUT_CSS = dedent('''\
 ''')
 
 
-# Pins match Makefile / pyproject.toml (SSOT).
-# CI installs with: uv pip install --exclude-newer … -e ".[dev]".
-CHANNEL_VCS_PIN = "0ffe8e9907cd1a0701ffc8cb2e5414d6b39d2996"
-BEHAVIOR_VCS_PIN = "938832d1ced364361f8a13522b63420cab45f3c5"
-MOTION_VCS_PIN = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
-DOM_VCS_PIN = "8422b9ae1091417c8431ca28a479fb920ad48195"
-COMPOSE_VCS_PIN = "24a182f35e3d0743a2faafddb5ba0396324b2d9a"
+# One ux-compose line and no specialist lines: ux-dom, ux-channel,
+# ux-behavior and ux-motion arrive with the pins that ux-compose commit
+# declares in its pyproject.toml, so the file cannot pin a specialist twice.
+COMPOSE_GIT = "https://github.com/bitplorer/ux-compose.git"
 
-REQUIREMENTS = dedent(f'''\
-    ux-compose @ git+https://github.com/bitplorer/ux-compose.git@{COMPOSE_VCS_PIN}
-    ux-dom @ git+https://github.com/bitplorer/ux-dom.git@{DOM_VCS_PIN}
-    ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@{BEHAVIOR_VCS_PIN}
-    ux-motion @ git+https://github.com/bitplorer/ux-motion.git@{MOTION_VCS_PIN}
-    ux-channel @ git+https://github.com/bitplorer/ux-channel.git@{CHANNEL_VCS_PIN}#subdirectory=python
+REQUIREMENTS = dedent('''\
+    {compose}
     cek-host>=0.2.0
     cek-surface>=0.2.0
     fastapi
     uvicorn[standard]
 ''')
+
+
+class ComposeRefError(RuntimeError):
+    """create-app cannot tell which ux-compose the requirements should pin."""
+
+
+def _git(checkout: Path, *args: str) -> str | None:
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(checkout), *args],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return out.stdout.strip()
+
+
+def compose_requirement() -> tuple[str, str | None]:
+    """The requirement line for the running ux-compose, and a note to print.
+
+    - VCS install: the ``direct_url.json`` commit (PEP 610).
+    - Editable or local-directory install: that checkout's ``HEAD``.
+    - Index install (no ``direct_url.json``): ``ux-compose==<version>``.
+    - Remote archive: its URL. Anything else raises ``ComposeRefError``.
+    """
+    # PYTHONPATH=src also finds the checkout's egg-info, which has no
+    # direct_url.json; the installed record is the one that says where from.
+    dists = list(metadata.distributions(name="ux-compose"))
+    if not dists:
+        raise ComposeRefError(
+            "create-app: ux-compose is not installed, so the commit to pin in "
+            "requirements.txt is unknown. Install it from git or as an editable "
+            "checkout, then rerun."
+        )
+    dist = next((d for d in dists if d.read_text("direct_url.json")), dists[0])
+    raw = dist.read_text("direct_url.json")
+    if raw is None:
+        return f"ux-compose=={dist.version}", None
+    info = json.loads(raw)
+    url = info.get("url", "")
+    vcs = info.get("vcs_info") or {}
+    if vcs.get("commit_id"):
+        line = f"ux-compose @ {vcs['vcs']}+{url}@{vcs['commit_id']}"
+        if info.get("subdirectory"):
+            line += f"#subdirectory={info['subdirectory']}"
+        return line, None
+    if "dir_info" in info and url.startswith("file:"):
+        checkout = Path(url2pathname(urlparse(url).path))
+        sha = _git(checkout, "rev-parse", "HEAD")
+        if sha:
+            dirty = bool(_git(checkout, "status", "--porcelain", "--untracked-files=no"))
+            note = (
+                f"create-app: ux-compose is a local checkout ({checkout}); "
+                f"requirements.txt pins its HEAD {sha}"
+                + (" (uncommitted changes are not in it)" if dirty else "")
+                + ". Push that commit before you install from requirements.txt."
+            )
+            return f"ux-compose @ git+{COMPOSE_GIT}@{sha}", note
+    if "archive_info" in info and not url.startswith("file:"):
+        return f"ux-compose @ {url}", None
+    raise ComposeRefError(
+        f"create-app: ux-compose was installed from {url} with no commit, so "
+        "requirements.txt has nothing to pin. Install ux-compose from git at a "
+        f"commit (pip install 'ux-compose @ git+{COMPOSE_GIT}@<sha>') or as an "
+        "editable git checkout, then rerun."
+    )
 
 
 README = dedent('''\
@@ -406,6 +472,10 @@ def create_app(
     if reason:
         raise ReservedDestError(reason)
 
+    compose, note = compose_requirement()
+    if note:
+        print(note, file=sys.stderr)
+
     root = Path(dest)
     root.mkdir(parents=True, exist_ok=True)
 
@@ -457,7 +527,9 @@ def create_app(
         ),
         encoding="utf-8",
     )
-    (root / "requirements.txt").write_text(REQUIREMENTS, encoding="utf-8")
+    (root / "requirements.txt").write_text(
+        REQUIREMENTS.format(compose=compose), encoding="utf-8"
+    )
 
     routes = root / "routes"
     routes.mkdir(exist_ok=True)
@@ -475,4 +547,10 @@ def create_app(
     return root
 
 
-__all__ = ["create_app", "ReservedDestError", "reserved_dest_reason"]
+__all__ = [
+    "ComposeRefError",
+    "ReservedDestError",
+    "compose_requirement",
+    "create_app",
+    "reserved_dest_reason",
+]

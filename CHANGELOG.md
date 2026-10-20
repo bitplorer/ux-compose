@@ -50,6 +50,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   open HMR or Channel socket held the origin's shutdown forever.
   `tests/feature/test_hmr_browser_reload.py` (Chrome 155+) locks the
   save → morph path: the text changes with no navigation.
+- create-app's `requirements.txt` resolves. It listed ux-compose at
+  `24a182f` (which pins ux-dom `e8be99a`) and ux-dom `8422b9a` beside it,
+  so `uv pip install -r` failed with conflicting URLs and `pip install -r`
+  with ResolutionImpossible, the Dockerfile too. It now has one
+  ux-compose line and no specialist lines; the specialists come with that
+  commit's pins. The line is the running ux-compose: the git commit from
+  `direct_url.json`, the `HEAD` of an editable checkout (with a note),
+  `==<version>` from an index, or a remote archive URL. A local wheel
+  install makes create-app exit 1 (`ComposeRefError`). `COMPOSE_VCS_PIN`
+  and the specialist `*_VCS_PIN` constants are gone.
+  `test_pins_agree_in_all_four_places` reads the specialist pins from the
+  `pyproject.toml` of the commit create-app pins. `apps/nook` and
+  `apps/pulseboard` lose their `requirements.txt` (same conflict; the apps
+  run from the repo on `pip install -e ".[dev]"`). CI resolves the
+  scaffold's file with `uv pip compile`.
 - The standalone Tailwind CLI runs only after its SHA256 matches
   `TAILWIND_STANDALONE_SHA256` (v4.1.12, from the release's
   `sha256sums.txt`). A download that does not match is deleted and the build

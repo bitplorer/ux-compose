@@ -27,6 +27,24 @@ uxcompose doctor .
 `assets/css/input.css`, the Document `<link href="/css/output.css">`,
 and the `/css` mount.
 
+### `requirements.txt` from create-app
+
+create-app writes one ux-compose line and no ux-dom, ux-channel,
+ux-behavior or ux-motion lines. The specialists install with the pins in
+that ux-compose commit's `pyproject.toml`, so the file cannot name a
+specialist twice. The ux-compose line comes from how the running
+`uxcompose` was installed (`direct_url.json`, PEP 610):
+
+| Install | Line |
+|---------|------|
+| git (`pip install "ux-compose @ git+…@<sha>"`) | `ux-compose @ git+<url>@<commit_id>` |
+| editable or local git checkout (`pip install -e .`) | `ux-compose @ git+https://github.com/bitplorer/ux-compose.git@<HEAD>`, plus one stderr note: push that commit; uncommitted changes are not in it |
+| package index | `ux-compose==<version>` |
+| remote archive URL | `ux-compose @ <url>` |
+| local wheel or sdist file, or not installed | create-app exits 1 and writes nothing |
+
+There is no compose SHA constant to bump after a pin change.
+
 ## Pure-dom tooling
 
 ```bash

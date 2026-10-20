@@ -2,8 +2,12 @@
 from __future__ import annotations
 
 import ast
+import json
+import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
@@ -81,8 +85,6 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     assert '@import "tailwindcss"' in css
     assert "@source" in css
 
-    assert "ux-compose" in req
-    assert "ux-behavior" in req
     assert "fastapi" in req
     assert "uvicorn" in req
     active = [
@@ -91,21 +93,13 @@ def test_create_app_teaches_document_and_settings(tmp_path):
         if ln.strip() and not ln.strip().startswith("#")
     ]
     assert any(
-        "ux-compose" in ln and "git+https://github.com/bitplorer/ux-compose.git@" in ln
-        and "24a182f" in ln
+        ln.startswith("ux-compose @ git+https://github.com/bitplorer/ux-compose.git@")
         for ln in active
     )
-    assert any("ux-behavior" in ln for ln in active)
     assert any("fastapi" in ln for ln in active)
     assert any(ln.startswith("uvicorn") for ln in active)
     assert any(ln.startswith("cek-host") and ">=0.2.0" in ln for ln in active)
     assert any(ln.startswith("cek-surface") and ">=0.2.0" in ln for ln in active)
-    assert any("ux-channel" in ln for ln in active)
-    assert any("0ffe8e9" in ln for ln in active), "Channel VCS pin must require cek-host 0.2.0"
-    assert any("ux-dom" in ln and "8422b9a" in ln for ln in active)
-    assert any("ux-motion" in ln and "bbe7d73" in ln for ln in active)
-    assert any("ux-behavior" in ln and "938832d" in ln for ln in active)
-    assert "subdirectory=python" in req
     assert not any(
         ln in {"ux-dom", "ux-behavior", "ux-channel", "ux-motion", "ux-compose"}
         for ln in active
@@ -168,7 +162,7 @@ def _active_requirement_lines(text: str) -> list[str]:
 
 
 def test_create_app_requirements_boot_cap_require(tmp_path):
-    """pip install -r requirements.txt must name the full pinned stack."""
+    """pip install -r requirements.txt names ux-compose; it brings the pinned stack."""
     root = create_app(tmp_path / "caps", name="caps")
     req = (root / "requirements.txt").read_text(encoding="utf-8")
     app_py = (root / "app.py").read_text(encoding="utf-8")
@@ -178,16 +172,10 @@ def test_create_app_requirements_boot_cap_require(tmp_path):
     assert "wrap=document" in app_py
     assert any(ln.startswith("cek-host") and ">=0.2.0" in ln for ln in active)
     assert any(ln.startswith("cek-surface") and ">=0.2.0" in ln for ln in active)
-    assert any("ux-channel" in ln and "0ffe8e9" in ln for ln in active)
-    assert any("ux-dom" in ln and "8422b9a" in ln for ln in active)
-    assert any("ux-behavior" in ln and "938832d" in ln for ln in active)
-    assert any("ux-motion" in ln and "bbe7d73" in ln for ln in active)
-    assert "subdirectory=python" in req
     assert any(ln.startswith("fastapi") for ln in active)
     assert any(ln.startswith("uvicorn") for ln in active)
     assert any(
-        "ux-compose" in ln and "git+https://github.com/bitplorer/ux-compose.git@" in ln
-        and "24a182f" in ln
+        ln.startswith("ux-compose @ git+https://github.com/bitplorer/ux-compose.git@")
         for ln in active
     )
     assert not any(
@@ -204,7 +192,6 @@ def test_create_app_requirements_boot_cap_require(tmp_path):
 def test_create_app_settings_debug_matches_ux_behavior(tmp_path):
     """settings.DEBUG reads env the way ux-behavior does: unset is prod."""
     import os
-    import subprocess
 
     root = create_app(tmp_path / "demo", name="demo")
     settings = (root / "settings.py").read_text(encoding="utf-8")
@@ -225,3 +212,96 @@ def test_create_app_settings_debug_matches_ux_behavior(tmp_path):
         ).stdout.strip()
         seen[value] = out
     assert seen == {None: "False", "0": "False", "false": "False", "1": "True", "on": "True"}
+
+
+SPECIALISTS = {"ux-dom", "ux-channel", "ux-behavior", "ux-motion"}
+
+
+def _requirements(root):
+    from packaging.requirements import Requirement
+    from packaging.utils import canonicalize_name
+
+    text = (root / "requirements.txt").read_text(encoding="utf-8")
+    reqs = [Requirement(ln) for ln in _active_requirement_lines(text)]
+    return [(canonicalize_name(r.name), r) for r in reqs]
+
+
+def test_scaffold_requirements_have_one_line_per_distribution(tmp_path):
+    """One line per distribution, and no specialist beside ux-compose (D2)."""
+    names = [name for name, _ in _requirements(create_app(tmp_path / "one"))]
+    assert len(names) == len(set(names)), names
+    assert "ux-compose" in names
+    assert not SPECIALISTS & set(names), names
+
+
+class _Dist:
+    def __init__(self, direct_url, version="0.2.0"):
+        self._direct_url = direct_url
+        self.version = version
+
+    def read_text(self, name):
+        assert name == "direct_url.json"
+        return None if self._direct_url is None else json.dumps(self._direct_url)
+
+
+def _installed(monkeypatch, direct_url, version="0.2.0"):
+    """The checkout's egg-info (PYTHONPATH=src) comes first, as it does in this repo."""
+    from ux_compose import scaffold
+
+    found = [_Dist(direct_url, version)]
+    if direct_url is not None:
+        found.insert(0, _Dist(None, version))
+    monkeypatch.setattr(scaffold.metadata, "distributions", lambda name: found)
+
+
+def _compose_line(root):
+    return dict(_requirements(root))["ux-compose"]
+
+
+def test_create_app_pins_running_commit(tmp_path, monkeypatch, capsys):
+    sha = "0123456789abcdef0123456789abcdef01234567"
+    _installed(monkeypatch, {
+        "url": "https://github.com/bitplorer/ux-compose.git",
+        "vcs_info": {"vcs": "git", "commit_id": sha, "requested_revision": sha},
+    })
+    req = _compose_line(create_app(tmp_path / "vcs"))
+    assert req.url == f"git+https://github.com/bitplorer/ux-compose.git@{sha}"
+    assert capsys.readouterr().err == ""
+
+
+def test_create_app_pins_local_checkout_head(tmp_path, monkeypatch, capsys):
+    checkout = tmp_path / "checkout"
+    checkout.mkdir()
+    git = ["git", "-C", str(checkout), "-c", "user.name=t", "-c", "user.email=t@t"]
+    subprocess.run([*git, "init", "-q"], check=True)
+    (checkout / "f").write_text("1", encoding="utf-8")
+    subprocess.run([*git, "add", "f"], check=True)
+    subprocess.run([*git, "commit", "-qm", "c"], check=True)
+    head = subprocess.run(
+        [*git, "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    _installed(monkeypatch, {"url": checkout.as_uri(), "dir_info": {"editable": True}})
+
+    req = _compose_line(create_app(tmp_path / "clean"))
+    assert req.url == f"git+https://github.com/bitplorer/ux-compose.git@{head}"
+    err = capsys.readouterr().err
+    assert f"pins its HEAD {head}" in err and "uncommitted" not in err
+
+    (checkout / "f").write_text("2", encoding="utf-8")
+    create_app(tmp_path / "dirty")
+    assert "uncommitted changes are not in it" in capsys.readouterr().err
+
+
+def test_create_app_index_install_pins_version(tmp_path, monkeypatch):
+    _installed(monkeypatch, None, version="0.2.0")
+    assert str(_compose_line(create_app(tmp_path / "idx"))) == "ux-compose==0.2.0"
+
+
+def test_create_app_refuses_unknown_ref(tmp_path, monkeypatch):
+    from ux_compose.scaffold import ComposeRefError
+
+    wheel = (tmp_path / "ux_compose-0.2.0-py3-none-any.whl").as_uri()
+    _installed(monkeypatch, {"url": wheel, "archive_info": {}})
+    with pytest.raises(ComposeRefError, match="has nothing to pin"):
+        create_app(tmp_path / "wheel")
+    assert not (tmp_path / "wheel").exists()

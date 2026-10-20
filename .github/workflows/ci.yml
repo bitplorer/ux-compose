@@ -45,6 +45,10 @@ jobs:
             -e ".[dev]"
           echo "$RUNNER_TEMP/cooldown-venv/bin" >> "$GITHUB_PATH"
           "$venv" -c "from importlib.metadata import version; print('resolved fastapi', version('fastapi'))"
+      - name: Scaffold requirements resolve
+        env:
+          UV_EXCLUDE_NEWER: ${{ steps.cooldown.outputs.cutoff }}
+        run: python -m pytest tests/integration/test_scaffold_requirements_resolve.py -q -p no:randomly
       # Sibling live repro is optional and not required here:
       # make cek-repro-morph-shell → ../cek-auto-suite/repro_morph_shell.py
       # (do not import ux_channel from product).

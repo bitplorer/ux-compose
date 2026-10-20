@@ -6,7 +6,7 @@ import sys
 
 
 def main(argv: list[str]) -> int:
-    from ux_compose.scaffold import ReservedDestError, create_app
+    from ux_compose.scaffold import ComposeRefError, ReservedDestError, create_app
 
     p = argparse.ArgumentParser(prog="uxcompose create-app")
     p.add_argument("dest", help="Destination directory")
@@ -24,7 +24,7 @@ def main(argv: list[str]) -> int:
         root = create_app(
             args.dest, name=args.name, level=level, host=args.host, brand=args.brand
         )
-    except ReservedDestError as e:
+    except (ReservedDestError, ComposeRefError) as e:
         print(str(e), file=sys.stderr)
         return 1
     print(f"Created {root.resolve()} (level={args.level}, host={args.host})")

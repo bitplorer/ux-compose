@@ -56,7 +56,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   with ResolutionImpossible, the Dockerfile too. It now has one
   ux-compose line and no specialist lines; the specialists come with that
   commit's pins. The line is the running ux-compose: the git commit from
-  `direct_url.json`, the `HEAD` of an editable checkout (with a note),
+  `direct_url.json`, the `HEAD` of an editable checkout (with a note, and a `WARNING` when
+  HEAD is on no remote branch),
   `==<version>` from an index, or a remote archive URL. A local wheel
   install makes create-app exit 1 (`ComposeRefError`). `COMPOSE_VCS_PIN`
   and the specialist `*_VCS_PIN` constants are gone.
@@ -65,9 +66,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `apps/pulseboard` lose their `requirements.txt` (same conflict; the apps
   run from the repo on `pip install -e ".[dev]"`). CI resolves the
   scaffold's file with `uv pip compile`.
-- The `uxcompose deploy` Dockerfile installs `git` before
-  `pip install -r requirements.txt`. `python:3.14-slim` has no git, so the
-  git-pinned ux-compose line failed with "Cannot find command 'git'".
+- The `uxcompose deploy` Dockerfile is two stages. `python:3.14` (has
+  git) builds a venv from `requirements.txt`; `python:3.14-slim` copies the
+  venv and the app. The one-stage slim image had no git, so the git-pinned
+  ux-compose line failed with "Cannot find command 'git'".
 - The standalone Tailwind CLI runs only after its SHA256 matches
   `TAILWIND_STANDALONE_SHA256` (v4.1.12, from the release's
   `sha256sums.txt`). A download that does not match is deleted and the build

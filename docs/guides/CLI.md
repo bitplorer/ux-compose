@@ -38,7 +38,7 @@ specialist twice. The ux-compose line comes from how the running
 | Install | Line |
 |---------|------|
 | git (`pip install "ux-compose @ git+…@<sha>"`) | `ux-compose @ git+<url>@<commit_id>` |
-| editable or local git checkout (`pip install -e .`) | `ux-compose @ git+https://github.com/bitplorer/ux-compose.git@<HEAD>`, plus one stderr note: push that commit; uncommitted changes are not in it |
+| editable or local git checkout (`pip install -e .`) | `ux-compose @ git+https://github.com/bitplorer/ux-compose.git@<HEAD>`, plus one stderr note: push that commit; uncommitted changes are not in it. A `WARNING` line comes first when HEAD is on no remote branch (`git branch -r --contains`) |
 | package index | `ux-compose==<version>` |
 | remote archive URL | `ux-compose @ <url>` |
 | local wheel or sdist file, or not installed | create-app exits 1 and writes nothing |

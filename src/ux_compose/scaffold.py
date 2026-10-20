@@ -340,6 +340,14 @@ def compose_requirement() -> tuple[str, str | None]:
                 + (" (uncommitted changes are not in it)" if dirty else "")
                 + ". Push that commit before you install from requirements.txt."
             )
+            # Warn, not refuse: scaffolding from an unpushed checkout is the
+            # normal dev and CI loop, and the file resolves once HEAD is pushed.
+            if not _git(checkout, "branch", "-r", "--contains", sha):
+                note = (
+                    f"WARNING: create-app: {sha} is on no remote branch, so "
+                    "requirements.txt will not resolve anywhere until you push it.\n"
+                    + note
+                )
             return f"ux-compose @ git+{COMPOSE_GIT}@{sha}", note
     if "archive_info" in info and not url.startswith("file:"):
         return f"ux-compose @ {url}", None

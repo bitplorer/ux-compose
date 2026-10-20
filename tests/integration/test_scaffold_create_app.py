@@ -282,10 +282,16 @@ def test_create_app_pins_local_checkout_head(tmp_path, monkeypatch, capsys):
     ).stdout.strip()
     _installed(monkeypatch, {"url": checkout.as_uri(), "dir_info": {"editable": True}})
 
-    req = _compose_line(create_app(tmp_path / "clean"))
+    req = _compose_line(create_app(tmp_path / "unpushed"))
     assert req.url == f"git+https://github.com/bitplorer/ux-compose.git@{head}"
     err = capsys.readouterr().err
+    assert f"WARNING: create-app: {head} is on no remote branch" in err
     assert f"pins its HEAD {head}" in err and "uncommitted" not in err
+
+    subprocess.run([*git, "update-ref", "refs/remotes/origin/main", head], check=True)
+    create_app(tmp_path / "clean")
+    err = capsys.readouterr().err
+    assert f"pins its HEAD {head}" in err and "WARNING" not in err
 
     (checkout / "f").write_text("2", encoding="utf-8")
     create_app(tmp_path / "dirty")

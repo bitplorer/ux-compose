@@ -57,6 +57,14 @@ jobs:
         run: python scripts/chrome_floor.py "$(command -v google-chrome)"
       - name: Dependency cooldown check
         run: python ci/check_dependency_cooldown.py
+      - name: UC3 proof (scratch only, annotations)
+        if: always()
+        env:
+          UX_KEEP_VALUE_REQUIRE_BROWSER: "1"
+        run: |
+          python -m pytest tests/feature/test_hmr_browser_reload.py tests/integration/test_serve_dev_sigterm.py tests/integration/test_serve_dev_ws_proxy.py -p no:randomly -rA --tb=line -q > /tmp/uc3.txt 2>&1 || true
+          echo "::notice title=UC3 chrome::$(python scripts/chrome_floor.py "$(command -v google-chrome)" | head -1)"
+          grep -E '^(PASSED|FAILED|SKIPPED|ERROR) |^/.*(Error|assert)|[0-9]+ (passed|failed)' /tmp/uc3.txt | cut -c1-400 | while IFS= read -r l; do echo "::notice title=UC3::$l"; done
       - name: Full suite
         env:
           UX_KEEP_VALUE_REQUIRE_BROWSER: "1"

@@ -111,13 +111,15 @@ SETTINGS_PY = dedent('''\
     """
     from __future__ import annotations
 
-    import os
     from pathlib import Path
 
+    from ux_behavior.wire import debug_requests_dev
     from ux_compose import WebAssets
 
     BASE_DIR = Path(__file__).resolve().parent
-    DEBUG = os.environ.get("DEBUG", "1") not in ("0", "false", "False")
+    # Same switch as Channel attach: DEBUG=1/true/yes/on is dev, unset is prod.
+    # uxcompose serve dev sets DEBUG=1 for its workers.
+    DEBUG = debug_requests_dev()
 
     # FastAPI Swagger / ReDoc / OpenAPI JSON. Off so routes/docs.py can own GET /docs.
     # Opt in: OPENAPI = True, or build(openapi=True).
@@ -265,7 +267,7 @@ INPUT_CSS = dedent('''\
 # Pins match Makefile / pyproject.toml (SSOT).
 # CI installs with: uv pip install --exclude-newer … -e ".[dev]".
 CHANNEL_VCS_PIN = "0ffe8e9907cd1a0701ffc8cb2e5414d6b39d2996"
-BEHAVIOR_VCS_PIN = "09a9a658e7dbd06f51acf6104a85c3ba608dfe7a"
+BEHAVIOR_VCS_PIN = "938832d1ced364361f8a13522b63420cab45f3c5"
 MOTION_VCS_PIN = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"
 DOM_VCS_PIN = "0440ccbf9b9a53a0ba11ae43b3d04b6079b330f4"
 COMPOSE_VCS_PIN = "24a182f35e3d0743a2faafddb5ba0396324b2d9a"
@@ -334,6 +336,11 @@ README = dedent('''\
     uxcompose deploy --provider docker
     uxcompose doctor .
     ```
+
+    `uxcompose serve dev` sets dev mode (`DEBUG=1`) and one channel secret
+    for its workers. Unset `DEBUG` is prod: `uxcompose build`, `serve prod`
+    and deploys need `UX_CHANNEL_SECRET` (≥16 chars, never commit it), or
+    `DEBUG=1` for a local build.
 
     `uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`).
     Output: `assets/static/file/css/output.css`, linked as `/css/output.css`.

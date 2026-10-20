@@ -154,6 +154,12 @@ def main(argv: list[str]) -> int:
             health_timeout=health_timeout,
         )
 
+    from ux_compose.doctor import secret_readiness
+
+    missing = secret_readiness()
+    if missing:
+        print(missing, file=sys.stderr)
+        return 2
     print(
         f"uxcompose serve prod {args.app} http://{args.host}:{args.port} "
         f"clocks=off"

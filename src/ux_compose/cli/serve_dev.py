@@ -33,12 +33,14 @@ run in ``serve prod`` or deploy.
 from __future__ import annotations
 
 import os
+import secrets
 import signal
 import socket
 import subprocess
 import sys
 import threading
 import time
+from collections.abc import Mapping
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -99,6 +101,21 @@ CHANNEL_URL_ENV = "UXCOMPOSE_CHANNEL_URL"
 
 RELOAD_INCLUDES = ["*.py"]
 RELOAD_EXCLUDES = ["*.css", "assets/*", "**/assets/*"]
+
+
+def dev_session_env(environ: Mapping[str, str]) -> dict[str, str]:
+    """Env both workers get for one serve dev session.
+
+    serve dev is dev by verb, so ``DEBUG=1``. ui and channel are separate
+    processes, and a Cap minted in one is checked in the other, so they
+    need one secret. Without ``UX_CHANNEL_SECRET`` / ``UX_BEHAVIOR_SECRET``
+    this mints one for the session. It is never written or printed. An
+    explicit secret always wins.
+    """
+    env = {"DEBUG": "1"}
+    if not (environ.get("UX_CHANNEL_SECRET") or environ.get("UX_BEHAVIOR_SECRET")):
+        env["UX_CHANNEL_SECRET"] = secrets.token_urlsafe(32)
+    return env
 
 
 def worker_for(path: str) -> Worker:
@@ -337,6 +354,7 @@ def run(
     os.environ["UXCOMPOSE_APP"] = app_ref
     prepare_shared_state(root)
 
+    session_env = dev_session_env(os.environ)
     py = sys.executable
     provider = parse_provider(tunnel)
     css_watcher = start_tailwind_watch(cwd=root) if css_watch else None
@@ -400,7 +418,10 @@ def run(
 
         def spawn() -> None:
             channel_holder[0] = _spawn(
-                channel_cmd, cwd=root, pass_fds=(channel_sock.fileno(),)
+                channel_cmd,
+                cwd=root,
+                extra_env=session_env,
+                pass_fds=(channel_sock.fileno(),),
             )
             deadline = time.time() + 8
             while time.time() < deadline:
@@ -448,12 +469,15 @@ def run(
 
     try:
         channel_holder[0] = _spawn(
-            channel_cmd, cwd=root, pass_fds=(channel_sock.fileno(),)
+            channel_cmd,
+            cwd=root,
+            extra_env=session_env,
+            pass_fds=(channel_sock.fileno(),),
         )
         ui_proc = _spawn(
             ui_cmd,
             cwd=root,
-            extra_env={"UXCOMPOSE_APP": app_ref},
+            extra_env={**session_env, "UXCOMPOSE_APP": app_ref},
             pass_fds=(ui_sock.fileno(),),
         )
         ui_sock.close()

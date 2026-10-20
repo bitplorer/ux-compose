@@ -5,6 +5,8 @@ Residuals (kit import, leftover aliases) are teaching, not kill.
 from __future__ import annotations
 
 import ast
+import os
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, List, Optional
@@ -21,6 +23,8 @@ __all__ = [
     "scan_fastapi_docs_collision",
     "scan_store_clone",
     "scan_store_precedence",
+    "secret_readiness",
+    "SECRET_MISSING",
 ]
 
 
@@ -343,8 +347,6 @@ def scan_store_precedence() -> list[str]:
     Channel prefers ``REDIS_URL`` and ignores ``UXCOMPOSE_STATE_STORE``.
     Exporting both is a lie (sqlite looks like the session; it is not).
     """
-    import os
-
     file_path = (os.environ.get("UXCOMPOSE_STATE_STORE") or "").strip()
     redis = (os.environ.get("REDIS_URL") or "").strip()
     if not file_path or not redis:
@@ -353,6 +355,29 @@ def scan_store_precedence() -> list[str]:
         "Store precedence violation: both UXCOMPOSE_STATE_STORE and REDIS_URL "
         "are set; Channel prefers Redis and ignores the sqlite path. Unset one."
     ]
+
+
+SECRET_MISSING = (
+    "Channel secret missing: set UX_CHANNEL_SECRET (≥16 chars) for prod, "
+    "or DEBUG=1 for a local build"
+)
+
+
+def secret_readiness(env: Mapping[str, str] | None = None) -> str | None:
+    """``SECRET_MISSING`` when Channel attach would refuse to boot, else None.
+
+    Attach needs ``UX_CHANNEL_SECRET`` or ``UX_BEHAVIOR_SECRET`` unless
+    ``DEBUG`` asks for dev. Dev is ux-behavior's ``debug_requests_dev`` —
+    one truthy set, owned there.
+    """
+    from ux_behavior.wire import debug_requests_dev
+
+    source = os.environ if env is None else env
+    if source.get("UX_CHANNEL_SECRET") or source.get("UX_BEHAVIOR_SECRET"):
+        return None
+    if debug_requests_dev(source):
+        return None
+    return SECRET_MISSING
 
 
 def scan_cek_host(app: Any) -> list[str]:

@@ -104,7 +104,7 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     assert any("0ffe8e9" in ln for ln in active), "Channel VCS pin must require cek-host 0.2.0"
     assert any("ux-dom" in ln and "0440ccb" in ln for ln in active)
     assert any("ux-motion" in ln and "bbe7d73" in ln for ln in active)
-    assert any("ux-behavior" in ln and "09a9a65" in ln for ln in active)
+    assert any("ux-behavior" in ln and "938832d" in ln for ln in active)
     assert "subdirectory=python" in req
     assert not any(
         ln in {"ux-dom", "ux-behavior", "ux-channel", "ux-motion", "ux-compose"}
@@ -180,7 +180,7 @@ def test_create_app_requirements_boot_cap_require(tmp_path):
     assert any(ln.startswith("cek-surface") and ">=0.2.0" in ln for ln in active)
     assert any("ux-channel" in ln and "0ffe8e9" in ln for ln in active)
     assert any("ux-dom" in ln and "0440ccb" in ln for ln in active)
-    assert any("ux-behavior" in ln and "09a9a65" in ln for ln in active)
+    assert any("ux-behavior" in ln and "938832d" in ln for ln in active)
     assert any("ux-motion" in ln and "bbe7d73" in ln for ln in active)
     assert "subdirectory=python" in req
     assert any(ln.startswith("fastapi") for ln in active)
@@ -199,3 +199,29 @@ def test_create_app_requirements_boot_cap_require(tmp_path):
     assert "3.13" not in readme
     assert "3.14" in readme
     assert 'cek="require"' in readme
+
+
+def test_create_app_settings_debug_matches_ux_behavior(tmp_path):
+    """settings.DEBUG reads env the way ux-behavior does: unset is prod."""
+    import os
+    import subprocess
+
+    root = create_app(tmp_path / "demo", name="demo")
+    settings = (root / "settings.py").read_text(encoding="utf-8")
+    assert "from ux_behavior.wire import debug_requests_dev" in settings
+    assert "DEBUG = debug_requests_dev()" in settings
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    assert "`uxcompose serve dev` sets dev mode" in readme
+    assert "UX_CHANNEL_SECRET" in readme
+
+    base = {k: v for k, v in os.environ.items() if k != "DEBUG"}
+    base["PYTHONPATH"] = os.pathsep.join([str(root), str(ROOT / "src")])
+    seen = {}
+    for value in (None, "0", "false", "1", "on"):
+        env = dict(base) if value is None else {**base, "DEBUG": value}
+        out = subprocess.run(
+            [sys.executable, "-c", "import settings; print(settings.DEBUG)"],
+            cwd=root, env=env, capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        seen[value] = out
+    assert seen == {None: "False", "0": "False", "false": "False", "1": "True", "on": "True"}

@@ -7,6 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
+import pytest
+
 from ux_compose.cli import main
 from ux_compose.cli.product_build import find_product_root
 from ux_compose.scaffold import create_app
@@ -54,3 +56,51 @@ def test_cli_build_cwd_error_is_clear(tmp_path, monkeypatch, capsys):
     err = capsys.readouterr().err
     assert "app.py" in err
     assert str(tmp_path.resolve()) in err
+
+
+def test_build_without_secret_is_one_clear_line(tmp_path, monkeypatch, capsys):
+    """Fresh scaffold, DEBUG and secret unset: rc 1, no traceback."""
+    root = create_app(tmp_path / "demo", name="demo")
+    for name in ("DEBUG", "UX_CHANNEL_SECRET", "UX_BEHAVIOR_SECRET", "REDIS_URL"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.chdir(root)
+    rc = main(["build", "--skip-tailwind"])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert (
+        "[FAIL] import:app:asgi: Channel secret missing: set UX_CHANNEL_SECRET "
+        "(≥16 chars) for prod, or DEBUG=1 for a local build\n"
+    ) in out
+    assert "Traceback" not in out
+    assert "RuntimeError" not in out
+
+
+@pytest.mark.parametrize(
+    "env, reason",
+    [
+        (
+            {"UX_CHANNEL_SECRET": "dev-secret-key-32chars-minimum!!!!"},
+            "[ATTACH_SECRET_REQUIRED] the public dev secret is not accepted\n",
+        ),
+        (
+            {"DEBUG": "1", "REDIS_URL": "redis://127.0.0.1:1"},
+            "[ATTACH_SECRET_REQUIRED] attach() requires UX_CHANNEL_SECRET or "
+            "UX_BEHAVIOR_SECRET when REDIS_URL is set; a per-process dev secret "
+            "is not shared across processes\n",
+        ),
+    ],
+)
+def test_build_keeps_ux_behaviors_own_refusal(tmp_path, monkeypatch, capsys, env, reason):
+    """A secret that is set but refused, or REDIS_URL with DEBUG=1, is not 'missing'."""
+    root = create_app(tmp_path / "demo", name="demo")
+    for name in ("DEBUG", "UX_CHANNEL_SECRET", "UX_BEHAVIOR_SECRET", "REDIS_URL"):
+        monkeypatch.delenv(name, raising=False)
+    for name, value in env.items():
+        monkeypatch.setenv(name, value)
+    monkeypatch.chdir(root)
+    rc = main(["build", "--skip-tailwind"])
+    out = capsys.readouterr().out
+    assert rc == 1
+    assert f"[FAIL] import:app:asgi: {reason}" in out
+    assert "Channel secret missing" not in out
+    assert "Traceback" not in out

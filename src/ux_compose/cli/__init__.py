@@ -83,7 +83,7 @@ def _help() -> None:
     print("  uxcompose serve restart-channel   # one-shot Channel RAM drop (running serve dev)")
     print("  uxcompose build [--no-minify] [--skip-tailwind] [--skip-import] [--app app:asgi]")
     print("  uxcompose deploy [--provider docker|fly|render|railway|vps|checklist] [--force] [--name NAME]")
-    print("  uxcompose doctor [paths...] [--no-fail]")
+    print("  uxcompose doctor [paths...] [--no-fail] [--prod [--port N]]")
     print("  uxcompose add [name] [--force] [--page]   # ownable kit copy (shadcn-style)")
     print("  uxcompose add --list")
     print("")

@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `uxcompose doctor --prod` checks product readiness after the law scans:
+  `product` (`app.py` at the root; an empty dir fails), `dep:uvicorn` and
+  `dep:fastapi` (importable in the running interpreter), `requirements`
+  (`requirements.txt` exists and names ux-compose), `secret`
+  (`secret_readiness`), `DEBUG` (ux-behavior's `debug_requests_dev`),
+  `.env` (WARN when present; FAIL when a Dockerfile exists and
+  `.dockerignore` misses it), `deploy:render` and `deploy:vps` (the
+  generated file declares `UX_CHANNEL_SECRET`), and with `--port N` a
+  127.0.0.1 bind test (WARN). A FAIL row exits 1 unless `--no-fail`. The
+  check is static: no app import, no network. `doctor` without `--prod`
+  prints the same report and exit code as before. Library:
+  `ux_compose.doctor.scan_product_readiness(root, *, env=None, port=None)`.
+
 - CI PyPI installs use `uv pip install --exclude-newer`, set to 14 days
   before the run. `ci/check_dependency_cooldown.py` fails the job when a
   resolved distribution is younger than that. Git SHA siblings stay pinned;

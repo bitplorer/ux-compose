@@ -94,6 +94,34 @@ Outside dev, Channel attach needs `UX_CHANNEL_SECRET` (or
   docker `docker run -e UX_CHANNEL_SECRET`; railway `railway variables
   --set`; vps `EnvironmentFile=/etc/<name>.env`; checklist step 3.
 
+### `uxcompose doctor --prod`
+
+`uxcompose doctor [paths...]` checks the isolation laws. `--prod` adds
+product readiness rows for the app root (the first path, default `.`).
+Each row is `[OK  |WARN|FAIL] name: detail`. Any FAIL exits 1;
+`--no-fail` exits 0. Readiness is static: it reads files and the
+environment, never imports the app and never opens the network.
+
+```bash
+uxcompose doctor --prod                # in the app root
+uxcompose doctor --prod --port 8080    # also warn if 127.0.0.1:8080 is taken
+```
+
+| Row | FAIL / WARN when |
+|-----|------------------|
+| `product` | FAIL: no `app.py` in the root (an empty dir fails; no other row is printed) |
+| `dep:uvicorn`, `dep:fastapi` | FAIL: not importable in the interpreter running `uxcompose` |
+| `requirements` | FAIL: `requirements.txt` missing, or no line names ux-compose (uvicorn and fastapi come with it) |
+| `secret` | FAIL: `secret_readiness()` returns the "Channel secret missing" line |
+| `DEBUG` | FAIL: `DEBUG` is dev (`debug_requests_dev`: `1` / `true` / `yes` / `on`) |
+| `.env` | WARN: present ("do not ship; set secrets on the host"). FAIL: present, a `Dockerfile` exists, and `.dockerignore` has no `.env` line |
+| `deploy:render` | FAIL: `render.yaml` exists and does not declare `UX_CHANNEL_SECRET` |
+| `deploy:vps` | FAIL: a `deploy/*.service` unit has neither `EnvironmentFile=` nor `Environment=UX_CHANNEL_SECRET=` |
+| `port:N` | WARN: only with `--port N`, when 127.0.0.1:N cannot be bound |
+
+`--port` without `--prod` exits 2. `doctor` without `--prod` prints the
+same report and exit code as before.
+
 Architecture: [../internals/hmr.md](../internals/hmr.md).
 Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md).
 CSS how-to: [TAILWIND.md](TAILWIND.md).

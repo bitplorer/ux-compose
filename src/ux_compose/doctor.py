@@ -6,8 +6,12 @@ from __future__ import annotations
 
 import ast
 import os
+import re
+import socket
+import sys
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any, Iterable, List, Optional
 
@@ -25,6 +29,7 @@ __all__ = [
     "scan_store_precedence",
     "secret_readiness",
     "SECRET_MISSING",
+    "scan_product_readiness",
 ]
 
 
@@ -380,6 +385,110 @@ def secret_readiness(env: Mapping[str, str] | None = None) -> str | None:
     return SECRET_MISSING
 
 
+def _row(mark: str, name: str, detail: str) -> str:
+    return f"[{mark:4}] {name}: {detail}"
+
+
+def _lines(path: Path) -> list[str]:
+    if not path.is_file():
+        return []
+    return [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines()]
+
+
+def _port_in_use(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(("127.0.0.1", port))
+        except OSError:
+            return True
+    return False
+
+
+def scan_product_readiness(
+    root: str | Path,
+    *,
+    env: Mapping[str, str] | None = None,
+    port: int | None = None,
+) -> list[str]:
+    """``doctor --prod`` rows: ``[OK  |WARN|FAIL] name: detail``.
+
+    Static: reads files under ``root`` and ``env``; never imports the app.
+    Separate from the ``scan_*`` laws, which stay the same with or without it.
+    """
+    from ux_behavior.wire import debug_requests_dev
+
+    root = Path(root)
+    source = os.environ if env is None else env
+    if not (root / "app.py").is_file():
+        return [
+            _row(
+                "FAIL",
+                "product",
+                f"no app.py in {root} — run uxcompose create-app, or pass the app root",
+            )
+        ]
+    rows = [_row("OK", "product", "app.py")]
+    for module in ("uvicorn", "fastapi"):
+        if find_spec(module) is None:
+            rows.append(
+                _row(
+                    "FAIL",
+                    f"dep:{module}",
+                    f"not importable in {sys.executable} — pip install -r requirements.txt",
+                )
+            )
+        else:
+            rows.append(_row("OK", f"dep:{module}", "importable"))
+    req = root / "requirements.txt"
+    if not req.is_file():
+        rows.append(_row("FAIL", "requirements", "requirements.txt missing — deploys install from it"))
+    elif not re.search(r"^\s*ux[-_.]compose\b", req.read_text(encoding="utf-8"), re.I | re.M):
+        rows.append(_row("FAIL", "requirements", "requirements.txt does not name ux-compose"))
+    else:
+        rows.append(_row("OK", "requirements", "names ux-compose"))
+    missing = secret_readiness(source)
+    rows.append(
+        _row("FAIL", "secret", missing) if missing else _row("OK", "secret", "Channel attach can boot")
+    )
+    if debug_requests_dev(source):
+        rows.append(
+            _row("FAIL", "DEBUG", f"DEBUG={source.get('DEBUG')!r} is dev mode — unset it for prod")
+        )
+    else:
+        rows.append(_row("OK", "DEBUG", "prod mode"))
+    if not (root / ".env").exists():
+        rows.append(_row("OK", ".env", "absent"))
+    elif (root / "Dockerfile").is_file() and ".env" not in _lines(root / ".dockerignore"):
+        rows.append(
+            _row("FAIL", ".env", "present and not in .dockerignore — docker build would copy it")
+        )
+    else:
+        rows.append(_row("WARN", ".env", "present — do not ship; set secrets on the host"))
+    render = root / "render.yaml"
+    if render.is_file():
+        if "UX_CHANNEL_SECRET" in render.read_text(encoding="utf-8"):
+            rows.append(_row("OK", "deploy:render", "render.yaml declares UX_CHANNEL_SECRET"))
+        else:
+            rows.append(_row("FAIL", "deploy:render", "render.yaml does not declare UX_CHANNEL_SECRET"))
+    for unit in sorted((root / "deploy").glob("*.service")):
+        rel = unit.relative_to(root).as_posix()
+        ok = any(
+            ln.startswith(("EnvironmentFile=", "Environment=UX_CHANNEL_SECRET="))
+            for ln in _lines(unit)
+        )
+        if ok:
+            detail = f"{rel} sets EnvironmentFile or Environment=UX_CHANNEL_SECRET"
+        else:
+            detail = f"{rel} sets neither EnvironmentFile nor Environment=UX_CHANNEL_SECRET"
+        rows.append(_row("OK" if ok else "FAIL", "deploy:vps", detail))
+    if port is not None:
+        if _port_in_use(port):
+            rows.append(_row("WARN", f"port:{port}", f"in use on 127.0.0.1:{port}"))
+        else:
+            rows.append(_row("OK", f"port:{port}", f"free on 127.0.0.1:{port}"))
+    return rows
+
+
 def scan_cek_host(app: Any) -> list[str]:
     """Fail-loud when cek=require and Channel is live but Cap identity is not cek-runtime.
 
@@ -567,12 +676,19 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="ux-compose doctor")
     parser.add_argument("paths", nargs="*")
     parser.add_argument("--no-fail", action="store_true")
+    parser.add_argument(
+        "--prod", action="store_true", help="also check product readiness (first path is the app root)"
+    )
+    parser.add_argument("--port", type=int, help="with --prod: warn when 127.0.0.1:PORT is taken")
     args = parser.parse_args(argv)
+    if args.port is not None and not args.prod:
+        parser.error("--port needs --prod")
     res = doctor(args.paths or ["."], fail=False)
     print("ux-compose doctor — protective coach")
     print(f"  Progressive level available: L{res.level_available}")
+    failed = False
     if res.diagnostics:
-        hard = any(
+        failed = any(
             "violation" in d.lower()
             or "dual-document risk" in d.lower()
             or "incomplete stack" in d.lower()
@@ -580,9 +696,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         )
         for d in res.diagnostics:
             print(f"    - {d}")
-        return 0 if args.no_fail or not hard else 1
-    print("  Isolation: OK — product autonomy and additive levels on a complete install.")
-    return 0
+    else:
+        print("  Isolation: OK — product autonomy and additive levels on a complete install.")
+    if args.prod:
+        rows = scan_product_readiness((args.paths or ["."])[0], port=args.port)
+        print("  Product readiness:")
+        for row in rows:
+            print(f"  {row}")
+        failed = failed or any(row.startswith("[FAIL]") for row in rows)
+    return 0 if args.no_fail or not failed else 1
 
 
 if __name__ == "__main__":

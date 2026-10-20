@@ -45,7 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the other side gets the same close code and reason. Before, a ui
   reload's 1012 never reached the browser through origin, so the HMR
   clock did not fire. A closed tab also kept its upstream socket. An
-  open HMR or Channel socket held the origin's shutdown forever.
+  open HMR or Channel socket held the origin's shutdown forever. `tests/feature/test_hmr_browser_reload.py`
+  (Chrome 155+) locks the save → morph path: the text changes with no
+  navigation.
 - The standalone Tailwind CLI runs only after its SHA256 matches
   `TAILWIND_STANDALONE_SHA256` (v4.1.12, from the release's
   `sha256sums.txt`). A download that does not match is deleted and the build

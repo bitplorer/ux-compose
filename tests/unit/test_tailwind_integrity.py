@@ -221,3 +221,123 @@ def test_product_build_reports_integrity_failure(tmp_path, only_download, monkey
     assert "sha256" in step.detail and _sha(BAD) in step.detail
     assert not only_download.exists()
     assert not (root / "assets" / "static" / "file" / "css" / "output.css").exists()
+
+
+class SlowBody:
+    """A response body that trickles out, so parallel downloads overlap."""
+
+    def __init__(self, payload: bytes):
+        self.chunks = [payload[i : i + 4] for i in range(0, len(payload), 4)]
+
+    def read(self, size=-1):
+        import time
+
+        time.sleep(0.002)
+        return self.chunks.pop(0) if self.chunks else b""
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_parallel_cold_cache_downloads_all_succeed(only_download, monkeypatch):
+    """CI matrices / make -j share one cache: every build gets a verified CLI."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    _trust(monkeypatch, GOOD)
+    monkeypatch.setattr(tw.urllib.request, "urlopen", lambda req, timeout=None: SlowBody(GOOD))
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        results = list(pool.map(lambda _: tw.resolve_tailwind(ensure=True), range(6)))
+    assert all(hit is not None and hit.argv == [str(only_download)] for hit in results)
+    assert only_download.read_bytes() == GOOD
+    assert os.access(only_download, os.X_OK)
+    assert [p.name for p in only_download.parent.iterdir()] == [only_download.name]
+
+
+def test_download_error_keeps_cause_and_requested_version(only_download, monkeypatch):
+    import urllib.error
+
+    monkeypatch.setenv("UXCOMPOSE_TAILWIND_VERSION", "v9.9.9")
+    monkeypatch.setenv("UXCOMPOSE_TAILWIND_SHA256", _sha(GOOD))
+    cause = urllib.error.URLError("connection refused")
+
+    def fail(req, timeout=None):
+        raise cause
+
+    monkeypatch.setattr(tw.urllib.request, "urlopen", fail)
+    with pytest.raises(FileNotFoundError) as exc:
+        tw.resolve_tailwind(ensure=True)
+    msg = str(exc.value)
+    assert "v9.9.9" in msg and tw.TAILWIND_STANDALONE_VERSION not in msg
+    assert "connection refused" in msg
+    assert f"{tw.TAILWIND_RELEASES_URL}/v9.9.9/{tw.standalone_asset_name()}" in msg
+    assert exc.value.__cause__ is cause
+    assert list(only_download.parent.iterdir()) == []
+
+
+def test_tailwindcss_alias_is_not_read(tmp_path, monkeypatch):
+    """One knob: UXCOMPOSE_TAILWIND. TAILWINDCSS is not an alias for it."""
+    fake = tmp_path / "tw"
+    fake.write_text("#!/bin/sh\n")
+    fake.chmod(0o755)
+    monkeypatch.delenv("UXCOMPOSE_TAILWIND", raising=False)
+    monkeypatch.setenv("TAILWINDCSS", str(fake))
+    assert tw._from_env() is None
+    src = Path(tw.__file__).read_text(encoding="utf-8")
+    assert "TAILWINDCSS" not in src.replace("TAILWINDCSS_", "")
+
+
+def test_unusable_uxcompose_tailwind_is_an_error(monkeypatch):
+    """A set knob that points nowhere must not silently fall through to a download."""
+    monkeypatch.setenv("UXCOMPOSE_TAILWIND", "/nonexistent/tailwindcss")
+    with pytest.raises(FileNotFoundError, match="/nonexistent/tailwindcss"):
+        tw.resolve_tailwind(ensure=True)
+
+
+@pytest.mark.parametrize("machine, arch", [("x86_64", "x64"), ("aarch64", "arm64")])
+def test_musl_linux_gets_the_musl_asset(monkeypatch, machine, arch):
+    monkeypatch.setattr(tw.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(tw.platform, "machine", lambda: machine)
+    monkeypatch.setattr(tw, "_is_musl", lambda: True)
+    name = tw.standalone_asset_name()
+    assert name == f"tailwindcss-linux-{arch}-musl"
+    assert len(tw.TAILWIND_STANDALONE_SHA256[name]) == 64
+    monkeypatch.setattr(tw, "_is_musl", lambda: False)
+    assert tw.standalone_asset_name() == f"tailwindcss-linux-{arch}"
+
+
+def test_is_musl_detects_the_loader(tmp_path, monkeypatch):
+    monkeypatch.setattr(tw.platform, "libc_ver", lambda: ("", ""))
+    assert tw._is_musl(lib=tmp_path) is False
+    (tmp_path / "ld-musl-x86_64.so.1").write_bytes(b"")
+    assert tw._is_musl(lib=tmp_path) is True
+    monkeypatch.setattr(tw.platform, "libc_ver", lambda: ("glibc", "2.39"))
+    assert tw._is_musl(lib=tmp_path) is False
+
+
+def test_pytailwindcss_does_not_preempt_node_modules(tmp_path, monkeypatch):
+    """pytailwindcss without its binary must not raise before node_modules is tried."""
+    import sys
+    import types
+
+    monkeypatch.setenv("UXCOMPOSE_TAILWIND_VERSION", "latest")
+    fake = types.ModuleType("pytailwindcss")
+    fake.get_bin_path = lambda version="latest": tmp_path / "none" / version / "tailwindcss"
+    monkeypatch.setitem(sys.modules, "pytailwindcss", fake)
+    assert tw._from_pytailwindcss() is None
+
+
+def test_product_build_reports_a_binary_that_cannot_run(tmp_path, monkeypatch):
+    from ux_compose.cli.product_build import run_product_build
+    from ux_compose.scaffold import create_app
+
+    root = create_app(tmp_path / "app", name="app")
+    monkeypatch.setattr(
+        tw, "resolve_tailwind",
+        lambda **k: tw.TailwindResolution([str(tmp_path / "missing-tw")], "cache"),
+    )
+    report = run_product_build(cwd=root, skip_import=True)
+    step = next(s for s in report.steps if s.name == "tailwind")
+    assert not step.ok and "missing-tw" in step.detail

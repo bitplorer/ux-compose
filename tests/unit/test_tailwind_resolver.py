@@ -27,7 +27,6 @@ def test_env_wins(tmp_path, monkeypatch):
     fake.write_text("#!/bin/sh\n")
     fake.chmod(0o755)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND", str(fake))
-    monkeypatch.delenv("TAILWINDCSS", raising=False)
     hit = resolve_tailwind(ensure=False)
     assert hit is not None
     assert hit.source == "env"
@@ -176,7 +175,6 @@ def test_product_build_runs_fake_compiler(tmp_path, monkeypatch):
     )
     fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND", str(fake))
-    monkeypatch.delenv("TAILWINDCSS", raising=False)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND_DOWNLOAD", "0")
     monkeypatch.chdir(root)
     report = run_product_build(cwd=root, skip_import=True)

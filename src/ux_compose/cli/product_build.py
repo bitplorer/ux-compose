@@ -134,7 +134,12 @@ def run_product_build(
 
     ``minify`` and ``watch`` are XOR (same as argv_with_io: minify wins).
     """
-    from ux_compose.tailwind import argv_with_io, discover_css_io, resolve_tailwind
+    from ux_compose.tailwind import (
+        TailwindIntegrityError,
+        argv_with_io,
+        discover_css_io,
+        resolve_tailwind,
+    )
 
     root = find_product_root(cwd, app_ref=app_ref)
     report = ProductBuildReport(root=root)
@@ -164,18 +169,10 @@ def run_product_build(
         else:
             input_css, output_css = io
             output_css.parent.mkdir(parents=True, exist_ok=True)
-            hit = resolve_tailwind(cwd=root, ensure=True)
-            if hit is None:
-                report.steps.append(
-                    BuildStep(
-                        "tailwind",
-                        False,
-                        "Tailwind CLI not found. Install one of: "
-                        "pip install pytailwindcss · "
-                        "npm i -D @tailwindcss/cli · "
-                        "or put tailwindcss on PATH.",
-                    )
-                )
+            try:
+                hit = resolve_tailwind(cwd=root, ensure=True)
+            except (TailwindIntegrityError, FileNotFoundError) as exc:
+                report.steps.append(BuildStep("tailwind", False, str(exc)))
             else:
                 use_minify = bool(minify) and not watch
                 cmd = argv_with_io(
@@ -206,23 +203,29 @@ def run_product_build(
                         )
                     )
                 else:
-                    proc = subprocess.run(
-                        cmd,
-                        cwd=str(root),
-                        capture_output=True,
-                        text=True,
-                        timeout=180,
-                        env=env,
-                    )
-                    out = ((proc.stdout or "") + (proc.stderr or "")).strip()
-                    ok = proc.returncode == 0
-                    detail = f"{hit.source} exit {proc.returncode}"
-                    if out:
-                        detail += f" · {out[:200]}"
-                    if ok and output_css.is_file():
-                        detail += f" · wrote {output_css.relative_to(root)}"
-                        report.output_css = output_css
-                    report.steps.append(BuildStep("tailwind", ok, detail))
+                    try:
+                        proc = subprocess.run(
+                            cmd,
+                            cwd=str(root),
+                            capture_output=True,
+                            text=True,
+                            timeout=180,
+                            env=env,
+                        )
+                    except OSError as exc:
+                        report.steps.append(
+                            BuildStep("tailwind", False, f"{hit.source}: cannot run {exc}")
+                        )
+                    else:
+                        out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+                        ok = proc.returncode == 0
+                        detail = f"{hit.source} exit {proc.returncode}"
+                        if out:
+                            detail += f" · {out[:200]}"
+                        if ok and output_css.is_file():
+                            detail += f" · wrote {output_css.relative_to(root)}"
+                            report.output_css = output_css
+                        report.steps.append(BuildStep("tailwind", ok, detail))
 
     if skip_import:
         report.steps.append(BuildStep("import", True, "skipped"))

@@ -156,10 +156,10 @@ Runs `ux_compose.tailwind` (`discover_css_io` / `resolve_tailwind` /
 `argv_with_io`). Output is always `assets/static/file/css/output.css`.
 create-app already emits `assets/css/input.css`.
 
-Same argv, if you want the raw CLI:
+Same argv, if you want the raw CLI (any verified `tailwindcss` binary):
 
 ```bash
-python -m pytailwindcss \
+tailwindcss \
   -i assets/css/input.css \
   -o assets/static/file/css/output.css \
   --minify
@@ -169,16 +169,47 @@ python -m pytailwindcss \
 
 `ux_compose.tailwind.resolve_tailwind` (first hit wins):
 
-1. `UXCOMPOSE_TAILWIND` or `TAILWINDCSS`
-2. `tailwindcss` on PATH
-3. `pytailwindcss` (`pip install pytailwindcss`)
-4. local `node_modules/.bin` / `@tailwindcss/cli` (never implicit npx here)
-5. cached official standalone under `$XDG_CACHE_HOME/ux-compose/` (v4.1.12)
+1. `UXCOMPOSE_TAILWIND` (not checked: your trust). Set but not a file or a
+   command on PATH is an error, not a silent fall-through.
+2. `tailwindcss` on PATH (not checked: your trust)
+3. `pytailwindcss`'s binary for v4.1.12, only if its SHA256 matches
+   (never `python -m pytailwindcss`, which downloads `latest` unverified)
+4. local `node_modules/.bin` / `@tailwindcss/cli` (not checked: your trust)
+5. cached official standalone under `$XDG_CACHE_HOME/ux-compose/` (v4.1.12),
+   SHA256 checked on every use. A mismatch is deleted and downloaded again.
 6. download that standalone (`ensure=True`; `UXCOMPOSE_TAILWIND_DOWNLOAD=0` disables)
-7. last resort: `npx --yes @tailwindcss/cli`
+
+There is no npx step. When none of these yields a CLI (downloads off, the
+download failed, or a platform with no pinned digest), `uxcompose build`
+fails with one error naming the platform (and, for a failed download, the
+URL, the requested version and the cause). Point `UXCOMPOSE_TAILWIND` at a
+`tailwindcss` binary you trust, or put one on PATH.
 
 `uxcompose build` uses `ensure=True`. A missing CLI is a real error, not a skip.
 Product compile is here.
+
+### Verified download
+
+`ux_compose.tailwind.TAILWIND_STANDALONE_SHA256` holds the SHA256 of each
+standalone asset of v4.1.12 (linux x64/arm64 for glibc and musl, macOS
+x64/arm64, windows x64), copied from the release's
+[`sha256sums.txt`](https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.12/sha256sums.txt).
+Linux counts as musl when `platform.libc_ver()` is not glibc and
+`/lib/ld-musl-*.so.1` exists.
+Each build streams the download into its own temp file next to the cache
+entry, hashes it, fsyncs it, and only a match is made executable and moved
+into place with `os.replace`. The installed file is hashed again before it
+runs, so parallel builds on a cold cache each get a verified binary. A mismatch deletes the file, runs
+nothing, and fails the build with `TailwindIntegrityError` (expected digest,
+actual digest, URL). Nothing else is tried after that.
+
+| Variable | Effect |
+|----------|--------|
+| `UXCOMPOSE_TAILWIND=/path/to/tailwindcss` | use that binary (your trust, not checked) |
+| `UXCOMPOSE_TAILWIND_DOWNLOAD=0` | no download; with an empty cache the build fails and says so |
+| `UXCOMPOSE_TAILWIND_VERSION=vX.Y.Z` | another release; refused unless `UXCOMPOSE_TAILWIND_SHA256` is set |
+| `UXCOMPOSE_TAILWIND_SHA256=<hex>` | expected digest of that release's asset for this platform |
+| `UXCOMPOSE_TAILWIND_VERSION=latest` | refused |
 
 Dev watch is the sibling process inside `uxcompose serve dev`, not a second
 `uxcompose build` invocation:
@@ -290,16 +321,11 @@ Add a build step **after** `COPY . .` so `@source` / content globs still see
 `routes/*.py`:
 
 ```dockerfile
-RUN pip install --no-cache-dir pytailwindcss \
- && python -m pytailwindcss \
-      -i assets/css/input.css \
-      -o assets/static/file/css/output.css \
-      --minify
+RUN uxcompose build --skip-import
 ```
 
-Do not run `--watch` in the image. Do not install Node only to compile CSS;
-`pytailwindcss` is the Python-native binary the resolver already prefers
-after PATH.
+That downloads the pinned standalone CLI and checks its SHA256 before it runs.
+Do not run `--watch` in the image. Do not install Node only to compile CSS.
 
 ### C. CI artifact
 

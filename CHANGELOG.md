@@ -31,6 +31,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The standalone Tailwind CLI runs only after its SHA256 matches
+  `TAILWIND_STANDALONE_SHA256` (v4.1.12, from the release's
+  `sha256sums.txt`). A download that does not match is deleted and the build
+  fails with `TailwindIntegrityError`. The cached binary is checked on
+  every use and downloaded again when it does not match. Another
+  `UXCOMPOSE_TAILWIND_VERSION` needs `UXCOMPOSE_TAILWIND_SHA256`; `latest`
+  is refused. pytailwindcss counts only when its v4.1.12 binary matches;
+  `python -m pytailwindcss` (which downloads `latest`) is no longer run.
+- The npx last resort is removed: it never compiled `@import "tailwindcss"`
+  and could not be verified. With no CLI (downloads off, a failed download,
+  or a platform outside the digest table) `uxcompose build` fails with one
+  error naming the platform and `UXCOMPOSE_TAILWIND`. `ensure_tailwind` is
+  removed; `resolve_tailwind(ensure=True)` raises instead. A failed
+  download names the URL, the requested version and the cause. Parallel
+  cold-cache builds each download into their own temp file and
+  `os.replace` a verified binary into the cache. musl Linux gets the
+  upstream `-musl` assets. `TAILWINDCSS` is no longer read
+  (`UXCOMPOSE_TAILWIND` is the one knob), and an unusable
+  `UXCOMPOSE_TAILWIND` is an error.
 - `uxcompose serve prod` imports `app:asgi` from the current directory
   without `PYTHONPATH=.`. It passes the cwd as uvicorn's `app_dir`, the
   same default the `uvicorn` CLI uses. Before, the installed console script

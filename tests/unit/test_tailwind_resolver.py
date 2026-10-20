@@ -27,7 +27,6 @@ def test_env_wins(tmp_path, monkeypatch):
     fake.write_text("#!/bin/sh\n")
     fake.chmod(0o755)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND", str(fake))
-    monkeypatch.delenv("TAILWINDCSS", raising=False)
     hit = resolve_tailwind(ensure=False)
     assert hit is not None
     assert hit.source == "env"
@@ -81,22 +80,6 @@ def test_no_uxdom_reads_or_legacy_cache_in_tailwind_source():
     assert "UXDOM_" not in (src / "cli/product_build.py").read_text(encoding="utf-8")
 
 
-def test_no_npx_without_ensure(monkeypatch):
-    monkeypatch.setenv("UXCOMPOSE_TAILWIND_DOWNLOAD", "0")
-    with patch("ux_compose.tailwind._from_env", return_value=None), patch(
-        "ux_compose.tailwind._from_path", return_value=None
-    ), patch("ux_compose.tailwind._from_pytailwindcss", return_value=None), patch(
-        "ux_compose.tailwind._from_node_modules", return_value=None
-    ), patch(
-        "ux_compose.tailwind._cached_binary", return_value=None
-    ):
-        assert resolve_tailwind(ensure=False) is None
-        hit = resolve_tailwind(ensure=True)
-        if hit is not None:
-            assert hit.source == "npx"
-            assert "npx" in hit.argv[0]
-
-
 def test_download_disabled(monkeypatch):
     monkeypatch.setenv("UXCOMPOSE_TAILWIND_DOWNLOAD", "0")
     with patch("ux_compose.tailwind._from_env", return_value=None), patch(
@@ -106,11 +89,11 @@ def test_download_disabled(monkeypatch):
     ), patch(
         "ux_compose.tailwind._cached_binary", return_value=None
     ), patch(
-        "ux_compose.tailwind._from_npx", return_value=None
-    ), patch(
         "ux_compose.tailwind.urllib.request.urlopen"
     ) as urlopen:
-        assert resolve_tailwind_argv(ensure=True) is None
+        assert resolve_tailwind_argv(ensure=False) is None
+        with pytest.raises(FileNotFoundError, match="UXCOMPOSE_TAILWIND_DOWNLOAD=0"):
+            resolve_tailwind_argv(ensure=True)
         urlopen.assert_not_called()
 
 
@@ -192,7 +175,6 @@ def test_product_build_runs_fake_compiler(tmp_path, monkeypatch):
     )
     fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND", str(fake))
-    monkeypatch.delenv("TAILWINDCSS", raising=False)
     monkeypatch.setenv("UXCOMPOSE_TAILWIND_DOWNLOAD", "0")
     monkeypatch.chdir(root)
     report = run_product_build(cwd=root, skip_import=True)

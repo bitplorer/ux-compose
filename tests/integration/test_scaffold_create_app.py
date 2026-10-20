@@ -64,7 +64,8 @@ def test_create_app_teaches_document_and_settings(tmp_path):
     assert "XElement" in document
     assert "Csp" in document
     assert "Channel.optional()" in document
-    assert "from ux_dom.runtime import" in document
+    assert "from ux_dom import Channel, Csp, Document, XElement" in document
+    assert "ux_dom.runtime" not in document
     assert "Channel" in document
     assert "import ux_channel" not in document
     assert "from ux_channel" not in document

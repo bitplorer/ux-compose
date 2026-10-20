@@ -9,7 +9,7 @@ public URLs Channel already serves:
     body data-channel-endpoint="/ux-channel/action"
 
 Product path is ``Document.use(XElement(), Csp.auto(), Channel.optional())``
-(the ``ux_dom.runtime`` alias). This helper is **not** the Document-absent
+(the ``ux_dom`` Document-plugin alias). This helper is **not** the Document-absent
 primary: ``build()`` does not auto-attach it when ``document=None``.
 
 Never wrap HTML-string fragments with a synthesized Document — not a

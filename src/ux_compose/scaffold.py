@@ -135,7 +135,7 @@ DOCUMENT_PY = dedent('''\
     """Document SSoT — one HTML shell for every GET.
 
     Document.use(XElement(), Csp.auto(), Channel.optional()) is the full
-    shell (CSP + Channel client tags). Channel is the ux_dom.runtime
+    shell (CSP + Channel client tags). Channel is the ux_dom Document-plugin
     alias — never ux_channel.Channel. Isolation: this module never imports
     ux_channel.
 
@@ -144,8 +144,7 @@ DOCUMENT_PY = dedent('''\
     """
     from __future__ import annotations
 
-    from ux_dom import Document
-    from ux_dom.runtime import XElement, Csp, Channel
+    from ux_dom import Channel, Csp, Document, XElement
     from ux_dom.dom import link, meta, title
 
     from settings import OUTPUT_CSS

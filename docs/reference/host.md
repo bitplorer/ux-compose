@@ -234,7 +234,7 @@ OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
   doctor reports CSP middleware is not attached.
 - HTMX is opt-in (`build(use_htmx=True)` / `Document.use(Htmx())`).
 - `Document.use(XElement(), Csp.auto(), Channel.optional())` (the
-  `ux_dom.runtime` alias, not `ux_channel.Channel`) is the full shell.
+  `ux_dom` Document-plugin alias, not `ux_channel.Channel`) is the full shell.
   Product path is `build(document=, wrap=document)`. There is no
   Document-absent live-client / `wrap_get_chrome` primary. GET brand bar
   is `wrap=brand_wrap(document, brand=…)` on the Document path.

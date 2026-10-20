@@ -40,14 +40,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   SIGKILL to what is left. The exit status is unchanged: Ctrl-C exits 0,
   and SIGTERM or SIGHUP end the origin by that signal. A channel respawn
   from `serve restart-channel` that races the stop is stopped too, or it
-  does not start. POSIX only; `serve dev` already needs `--fd`.
+  does not start. A stop signal the parent ignores (SIGHUP under `nohup`)
+  stays ignored. POSIX only; `serve dev` already needs `--fd`. SIGKILL to
+  the origin still leaves its children running.
 - The `serve dev` WebSocket proxy ends the pair when either side closes,
   and the other side gets the same close code and reason. Before, a ui
   reload's 1012 never reached the browser through origin, so the HMR
   clock did not fire. A closed tab also kept its upstream socket. An
-  open HMR or Channel socket held the origin's shutdown forever. `tests/feature/test_hmr_browser_reload.py`
-  (Chrome 155+) locks the save → morph path: the text changes with no
-  navigation.
+  open HMR or Channel socket held the origin's shutdown forever.
+  `tests/feature/test_hmr_browser_reload.py` (Chrome 155+) locks the
+  save → morph path: the text changes with no navigation.
 - The standalone Tailwind CLI runs only after its SHA256 matches
   `TAILWIND_STANDALONE_SHA256` (v4.1.12, from the release's
   `sha256sums.txt`). A download that does not match is deleted and the build

@@ -145,11 +145,15 @@ def _url_from_env(name: str) -> str:
 
 
 def _sendable_close(code: int | None) -> int:
-    """A close code that may go in a close frame. 1005 / 1006 never do."""
-    if code is None or code == 1006:
-        return 1011
+    """A close code that may go in a close frame (RFC 6455 §7.4.1).
+
+    1005 (no code) becomes 1000. A peer that vanished (1006, 1015, or
+    no close at all) becomes 1001, going away.
+    """
     if code == 1005:
         return 1000
+    if code is None or code in (1006, 1015):
+        return 1001
     return code
 
 
@@ -297,16 +301,17 @@ class _StopSignals:
         self._saved: dict[int, object] = {}
 
     def install(self) -> None:
+        """Take each stop signal, except one the parent ignores (``nohup``)."""
         for name in self.NAMES:
             sig = getattr(signal, name, None)
-            if sig is not None:
+            if sig is not None and signal.getsignal(sig) is not signal.SIG_IGN:
                 self._saved[sig] = signal.signal(sig, self._on_signal)
 
     def _on_signal(self, signum, frame) -> None:
         self.signum = self.signum or signum
         if self._held:
             return
-        if signum == getattr(signal, "SIGHUP", None):
+        if signum == getattr(signal, "SIGHUP", None) and signal.SIGTERM in self._saved:
             signal.raise_signal(signal.SIGTERM)
             return
         raise _Stopped
@@ -484,7 +489,6 @@ def run(
     py = sys.executable
     provider = parse_provider(tunnel)
     stop = _StopSignals()
-    stop.install()
     css_watcher = None
     tunnel_holder: list = [None]
 
@@ -602,6 +606,7 @@ def run(
             release_channel_restart(restarting, restart_lock)
             raise
 
+    stop.install()
     try:
         if css_watch:
             with stop.held():

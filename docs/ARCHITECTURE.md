@@ -57,7 +57,7 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Product host | `routing/host.py`, `routing/fastapi.py`, `routing/asgi.py`, `routing/core.py` | fold FastAPI into DirectoryASGI |
 | Composition | `app.py`, `component.py`, `helpers.py` | clone MorphState / Cap |
 | Surfaces / scan | `surfaces.py`, `surfaces_host.py`, `build.py` | second HTTP pipeline; fold `scan_surfaces` into `DirectoryRoutes.discover` |
-| Doctor | `doctor.py` | leftover scan as kill |
+| Doctor | `doctor.py` (laws: `scan_*`; `--prod`: `scan_product_readiness`) | leftover scan as kill; importing the app for readiness |
 | Component catalog / copy | `cli/registry.py`, `cli/copy_component.py` | overlay in CATALOG |
 | Author helpers on copies | `arrange.py` (outside `components/`) | move under `components/` |
 | HMR | `hmr.py` | `Document.use` HMR |

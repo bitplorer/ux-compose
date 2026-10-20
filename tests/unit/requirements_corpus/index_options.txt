@@ -1,0 +1,9 @@
+# Private-index deploy shape: options are not requirements.
+--index-url https://pypi.org/simple
+--extra-index-url https://pypi.org/simple
+--trusted-host pypi.org
+--prefer-binary
+--only-binary=:all:
+idna==3.10 ; python_version >= "3.8"  # inline comment
+certifi>=2024.8.30 \
+    ; python_version >= "3.8"

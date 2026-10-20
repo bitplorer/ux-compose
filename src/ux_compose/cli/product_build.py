@@ -263,11 +263,13 @@ def run_product_build(
                 if line.startswith("[ATTACH_SECRET_REQUIRED]")
             ]
             if refusal:
-                # One line, no traceback. "Missing" only when it is missing;
-                # a refused or unshared secret keeps ux-behavior's reason.
+                # One line, no traceback: ux-behavior's reason for refusing,
+                # plus the local-build advice when dev mode would be accepted.
                 from ux_compose.doctor import secret_readiness
 
                 detail = secret_readiness(env) or refusal[0]
+                if secret_readiness({**env, "DEBUG": "1"}) is None:
+                    detail += " — for a local build, set DEBUG=1 or set UX_CHANNEL_SECRET"
             else:
                 detail = (proc.stdout or proc.stderr or "").strip()[:200]
             report.steps.append(

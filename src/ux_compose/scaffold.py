@@ -19,10 +19,13 @@ from __future__ import annotations
 from importlib import metadata
 from pathlib import Path
 from textwrap import dedent
+from typing import NamedTuple
 from urllib.parse import urlparse
 from urllib.request import url2pathname
 import json
 import keyword
+import re
+import shlex
 import subprocess
 import sys
 
@@ -281,6 +284,141 @@ REQUIREMENTS = dedent('''\
     fastapi
     uvicorn[standard]
 ''')
+
+
+SPECIALISTS = ("ux-dom", "ux-channel", "ux-behavior", "ux-motion")
+# pip's requirements-file syntax (pip/_internal/req/req_file.py): comments are
+# '#' at line start or after whitespace (not a URL fragment), a trailing '\\'
+# continues the line, and a line's options start at its first '-' token.
+_COMMENT = re.compile(r"(^|\s+)#.*$")
+_EGG = re.compile(r"#egg=([A-Za-z0-9][A-Za-z0-9._-]*)")
+_FLAGS = {"-r": "-r", "--requirement": "-r", "-e": "-e", "--editable": "-e"}
+
+
+class RequirementsScan(NamedTuple):
+    """``problem``: why pip or create-app's one-line rule refuses the file.
+
+    ``unchecked``: ``-r`` includes doctor cannot read (remote URLs).
+    ``names``: canonical distribution name -> ``file:line``.
+    """
+
+    problem: str | None
+    unchecked: list[str]
+    names: dict[str, str]
+
+
+def _logical_lines(text: str):
+    start, parts = 0, []
+    for number, line in enumerate(text.splitlines(), 1):
+        if line.endswith("\\") and not _COMMENT.match(line):
+            start = start if parts else number
+            parts.append(line.strip("\\"))
+            continue
+        if parts:
+            yield start, "".join([*parts, line])
+            parts = []
+        else:
+            yield number, line
+    if parts:
+        yield start, "".join(parts)
+
+
+def _option_values(options: str) -> list[tuple[str, str]]:
+    """(``-r``|``-e``, value) pairs from a pip option line; other options are skipped."""
+    tokens = shlex.split(options)
+    found = []
+    for i, token in enumerate(tokens):
+        flag, eq, value = token.partition("=")
+        if token.startswith("--") and eq and flag in _FLAGS:
+            found.append((_FLAGS[flag], value))
+        elif token in _FLAGS and i + 1 < len(tokens):
+            found.append((_FLAGS[token], tokens[i + 1]))
+        elif token[:2] in ("-r", "-e") and len(token) > 2 and not token.startswith("--"):
+            found.append((token[:2], token[2:]))
+    return found
+
+
+def _distribution(spec: str) -> tuple[str | None, bool]:
+    """(canonical name or None, parses). A bare URL or path has no name to check."""
+    from packaging.requirements import InvalidRequirement, Requirement
+    from packaging.utils import canonicalize_name
+
+    try:
+        return canonicalize_name(Requirement(spec).name), True
+    except InvalidRequirement:
+        pass
+    if egg := _EGG.search(spec):
+        return canonicalize_name(egg.group(1)), True
+    if "://" in spec or "/" in spec or spec.startswith(".") or spec.endswith((".whl", ".zip", ".tar.gz")):
+        return None, True
+    return None, False
+
+
+def scan_requirements(path: Path) -> RequirementsScan:
+    """Read ``requirements.txt`` the way pip does and check create-app's rule.
+
+    Rule: one line per distribution, ux-compose named, no specialist pinned
+    beside it (a second ux-dom line is the file pip and uv refuse). Options
+    (``--index-url``, ``--hash``, ``-c``…) are not requirements; ``-e`` lines
+    are; local ``-r`` includes are followed relative to the including file,
+    and an include cycle fails as it does in pip.
+    """
+    names: dict[str, str] = {}
+    unchecked: list[str] = []
+    base = path.parent
+
+    def scan(file: Path, chain: tuple[Path, ...]) -> str | None:
+        chain = (*chain, file.resolve())
+        rel = file.relative_to(base) if file.is_relative_to(base) else file
+        for number, raw in _logical_lines(file.read_text(encoding="utf-8")):
+            line = _COMMENT.sub("", raw).strip()
+            if not line:
+                continue
+            loc = f"{rel}:{number}"
+            tokens = line.split(" ")
+            first_option = next((k for k, t in enumerate(tokens) if t.startswith("-")), len(tokens))
+            spec, options = " ".join(tokens[:first_option]), " ".join(tokens[first_option:])
+            specs = [spec] if spec else []
+            if not spec:
+                try:
+                    pairs = _option_values(options)
+                except ValueError as exc:
+                    return f"{loc}: cannot read options ({exc})"
+                for flag, value in pairs:
+                    if flag == "-e":
+                        specs.append(value)
+                        continue
+                    if "://" in value:
+                        unchecked.append(f"{loc} includes {value}")
+                        continue
+                    target = file.parent / value
+                    if not target.is_file():
+                        return f"{loc}: includes {value}, which does not exist"
+                    if target.resolve() in chain:
+                        return f"{loc}: includes {value}, which includes this file again"
+                    if problem := scan(target, chain):
+                        return problem
+            for item in specs:
+                name, parses = _distribution(item)
+                if not parses:
+                    return f"{loc}: not a requirement: {item!r}"
+                if name is None:
+                    continue
+                if name in names:
+                    return f"{name} is listed twice ({names[name]}, {loc}); one line per distribution"
+                names[name] = loc
+        return None
+
+    problem = scan(path, ())
+    if problem is None and "ux-compose" not in names:
+        problem = f"{path.name} does not name ux-compose"
+    pinned = [f"{name} ({names[name]})" for name in SPECIALISTS if name in names]
+    if problem is None and pinned:
+        problem = (
+            f"{', '.join(pinned)} pinned beside ux-compose; "
+            "specialists come with the ux-compose line"
+        )
+    return RequirementsScan(problem, unchecked, names)
 
 
 class ComposeRefError(RuntimeError):
@@ -568,7 +706,10 @@ def create_app(
 __all__ = [
     "ComposeRefError",
     "ReservedDestError",
+    "RequirementsScan",
+    "SPECIALISTS",
     "compose_requirement",
     "create_app",
     "reserved_dest_reason",
+    "scan_requirements",
 ]

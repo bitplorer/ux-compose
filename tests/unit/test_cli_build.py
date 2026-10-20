@@ -68,8 +68,9 @@ def test_build_without_secret_is_one_clear_line(tmp_path, monkeypatch, capsys):
     out = capsys.readouterr().out
     assert rc == 1
     assert (
-        "[FAIL] import:app:asgi: Channel secret missing: set UX_CHANNEL_SECRET "
-        "(≥16 chars) for prod, or DEBUG=1 for a local build\n"
+        "[FAIL] import:app:asgi: Channel secret refused: attach() requires "
+        "UX_CHANNEL_SECRET or UX_BEHAVIOR_SECRET outside dev; the public dev "
+        "secret is not accepted — for a local build, set DEBUG=1 or set UX_CHANNEL_SECRET\n"
     ) in out
     assert "Traceback" not in out
     assert "RuntimeError" not in out
@@ -80,18 +81,18 @@ def test_build_without_secret_is_one_clear_line(tmp_path, monkeypatch, capsys):
     [
         (
             {"UX_CHANNEL_SECRET": "dev-secret-key-32chars-minimum!!!!"},
-            "[ATTACH_SECRET_REQUIRED] the public dev secret is not accepted\n",
+            "the public dev secret is not accepted\n",
         ),
         (
             {"DEBUG": "1", "REDIS_URL": "redis://127.0.0.1:1"},
-            "[ATTACH_SECRET_REQUIRED] attach() requires UX_CHANNEL_SECRET or "
+            "attach() requires UX_CHANNEL_SECRET or "
             "UX_BEHAVIOR_SECRET when REDIS_URL is set; a per-process dev secret "
             "is not shared across processes\n",
         ),
     ],
 )
 def test_build_keeps_ux_behaviors_own_refusal(tmp_path, monkeypatch, capsys, env, reason):
-    """A secret that is set but refused, or REDIS_URL with DEBUG=1, is not 'missing'."""
+    """A secret that is set but refused, or REDIS_URL with DEBUG=1: ux-behavior's reason."""
     root = create_app(tmp_path / "demo", name="demo")
     for name in ("DEBUG", "UX_CHANNEL_SECRET", "UX_BEHAVIOR_SECRET", "REDIS_URL"):
         monkeypatch.delenv(name, raising=False)
@@ -101,6 +102,5 @@ def test_build_keeps_ux_behaviors_own_refusal(tmp_path, monkeypatch, capsys, env
     rc = main(["build", "--skip-tailwind"])
     out = capsys.readouterr().out
     assert rc == 1
-    assert f"[FAIL] import:app:asgi: {reason}" in out
-    assert "Channel secret missing" not in out
+    assert f"[FAIL] import:app:asgi: Channel secret refused: {reason}" in out  # no DEBUG=1 advice
     assert "Traceback" not in out

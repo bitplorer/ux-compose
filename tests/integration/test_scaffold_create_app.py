@@ -12,7 +12,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-from ux_compose.scaffold import create_app
+from ux_compose.scaffold import create_app, scan_requirements
 from ux_compose.doctor import scan_isolation, scan_dual_document, scan_render_chrome
 
 
@@ -214,9 +214,6 @@ def test_create_app_settings_debug_matches_ux_behavior(tmp_path):
     assert seen == {None: "False", "0": "False", "false": "False", "1": "True", "on": "True"}
 
 
-SPECIALISTS = {"ux-dom", "ux-channel", "ux-behavior", "ux-motion"}
-
-
 def _requirements(root):
     from packaging.requirements import Requirement
     from packaging.utils import canonicalize_name
@@ -228,10 +225,8 @@ def _requirements(root):
 
 def test_scaffold_requirements_have_one_line_per_distribution(tmp_path):
     """One line per distribution, and no specialist beside ux-compose (D2)."""
-    names = [name for name, _ in _requirements(create_app(tmp_path / "one"))]
-    assert len(names) == len(set(names)), names
-    assert "ux-compose" in names
-    assert not SPECIALISTS & set(names), names
+    root = create_app(tmp_path / "one")
+    assert scan_requirements(root / "requirements.txt").problem is None
 
 
 class _Dist:

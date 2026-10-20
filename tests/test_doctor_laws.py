@@ -16,7 +16,9 @@ from ux_compose.doctor import (
     IsolationViolation,
     scan_store_clone,
     scan_store_precedence,
+    main,
 )
+from ux_compose.scaffold import create_app
 
 
 @pytest.fixture(autouse=True)
@@ -232,3 +234,38 @@ def test_doctor_fail_loud_when_both_store_envs(monkeypatch):
 def test_doctor_store_ok_when_neither_env():
     report = doctor([], fail=False)
     assert not any("Store precedence" in d for d in report.diagnostics)
+
+
+# without --prod: byte-for-byte unchanged
+
+
+_LAWS_OK = (
+    "ux-compose doctor — protective coach\n"
+    "  Progressive level available: L3\n"
+    "  Isolation: OK — product autonomy and additive levels on a complete install.\n"
+)
+
+
+def test_no_prod_report_unchanged_on_fresh_scaffold(tmp_path, monkeypatch, capsys):
+    app = create_app(tmp_path / "demo", name="demo")
+    monkeypatch.chdir(app)
+    assert main([]) == 0
+    assert capsys.readouterr().out == _LAWS_OK
+
+
+def test_no_prod_report_unchanged_on_isolation_violation(tmp_path, monkeypatch, capsys):
+    app = create_app(tmp_path / "demo", name="demo")
+    (app / "routes" / "bad.py").write_text("import ux_channel\n", encoding="utf-8")
+    monkeypatch.chdir(app)
+    assert main([]) == 1
+    assert capsys.readouterr().out == (
+        "ux-compose doctor — protective coach\n"
+        "  Progressive level available: L3\n"
+        "    - Isolation violation in routes/bad.py: importing `ux_channel`. Move behind wire/.\n"
+    )
+
+
+def test_no_prod_empty_dir_unchanged(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main([]) == 0
+    assert capsys.readouterr().out == _LAWS_OK

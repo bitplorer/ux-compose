@@ -6,8 +6,13 @@ from __future__ import annotations
 
 import ast
 import os
+import posixpath
+import re
+import socket
+import sys
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from importlib.util import find_spec
 from pathlib import Path
 from typing import Any, Iterable, List, Optional
 
@@ -24,7 +29,7 @@ __all__ = [
     "scan_store_clone",
     "scan_store_precedence",
     "secret_readiness",
-    "SECRET_MISSING",
+    "scan_product_readiness",
 ]
 
 
@@ -357,27 +362,190 @@ def scan_store_precedence() -> list[str]:
     ]
 
 
-SECRET_MISSING = (
-    "Channel secret missing: set UX_CHANNEL_SECRET (≥16 chars) for prod, "
-    "or DEBUG=1 for a local build"
-)
-
-
 def secret_readiness(env: Mapping[str, str] | None = None) -> str | None:
-    """``SECRET_MISSING`` when Channel attach would refuse to boot, else None.
+    """One line when Channel attach would refuse the secret config, else None.
 
-    Attach needs ``UX_CHANNEL_SECRET`` or ``UX_BEHAVIOR_SECRET`` unless
-    ``DEBUG`` asks for dev. Dev is ux-behavior's ``debug_requests_dev`` —
-    one truthy set, owned there.
+    The rule is ux-behavior's ``attach_secret_problem``, the check ``attach()``
+    itself runs (length from ux-channel). Nothing is decided here.
+    """
+    from ux_behavior.wire import attach_secret_problem
+
+    problem = attach_secret_problem(env)
+    return f"Channel secret refused: {problem}" if problem else None
+
+
+def _row(mark: str, name: str, detail: str) -> str:
+    return f"[{mark:4}] {name}: {detail}"
+
+
+def _lines(path: Path) -> list[str]:
+    if not path.is_file():
+        return []
+    return [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines()]
+
+
+def _port_row(host: str, port: int) -> str:
+    """The bind uvicorn makes: SO_REUSEADDR, so TIME_WAIT does not count."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            s.bind((host, port))
+        except socket.gaierror:
+            return _row("WARN", f"port:{port}", f"cannot resolve host {host}")
+        except OSError:
+            return _row("WARN", f"port:{port}", f"in use on {host}:{port}")
+    return _row("OK", f"port:{port}", f"free on {host}:{port}")
+
+
+def _docker_regex(pattern: str) -> re.Pattern[str]:
+    """moby/patternmatcher: ``**`` spans directories; ``*``/``?`` stay in one."""
+    out, i = "", 0
+    while i < len(pattern):
+        c = pattern[i]
+        if pattern.startswith("**", i):
+            i += 2
+            if pattern.startswith("/", i):
+                i += 1
+            out += ".*" if i == len(pattern) else "(.*/)?"
+            continue
+        if c == "*":
+            out += "[^/]*"
+        elif c == "?":
+            out += "[^/]"
+        elif c == "\\" and i + 1 < len(pattern):
+            i += 1
+            if pattern[i].isalnum():
+                # Docker hands "\\d" etc. to Go regexp: a class or a syntax error.
+                raise ValueError(pattern)
+            out += re.escape(pattern[i])
+        elif c == "[" and "]" in pattern[i + 1 :]:
+            end = pattern.index("]", i + 1)
+            out += "[" + pattern[i + 1 : end] + "]"
+            i = end
+        else:
+            out += re.escape(c)
+        i += 1
+    return re.compile(out)
+
+
+def _dockerignored(dockerignore: Path, path: str) -> bool:
+    """Docker's ``.dockerignore`` reading: last matching line wins, ``!`` re-includes."""
+    if not dockerignore.is_file():
+        return False
+    ignored = False
+    for raw in dockerignore.read_text(encoding="utf-8").splitlines():
+        if raw.startswith("#"):
+            continue
+        pattern = raw.strip()
+        if not pattern:
+            continue
+        include = pattern.startswith("!")
+        if include:
+            pattern = pattern[1:].strip()
+        pattern = posixpath.normpath(pattern).lstrip("/") or "/"
+        parts = path.split("/")
+        parents = ("/".join(parts[:n]) for n in range(len(parts), 0, -1))
+        if any(_docker_regex(pattern).fullmatch(p) for p in parents):
+            ignored = not include
+    return ignored
+
+
+def _dotenv_row(root: Path) -> str:
+    if not (root / ".env").exists():
+        return _row("OK", ".env", "absent")
+    if (root / "Dockerfile").is_file():
+        try:
+            ignored = _dockerignored(root / ".dockerignore", ".env")
+        except ValueError as exc:
+            return _row(
+                "FAIL",
+                ".env",
+                f"present; .dockerignore pattern {str(exc)!r} cannot be checked "
+                "(backslash before a letter or digit)",
+            )
+        if not ignored:
+            return _row("FAIL", ".env", "present and not in .dockerignore — docker build would copy it")
+    return _row("WARN", ".env", "present — do not ship; set secrets on the host")
+
+
+def scan_product_readiness(
+    root: str | Path,
+    *,
+    env: Mapping[str, str] | None = None,
+    port: int | None = None,
+    host: str = "0.0.0.0",
+) -> list[str]:
+    """``doctor --prod`` rows: ``[OK  |WARN|FAIL] name: detail``.
+
+    Static: reads files under ``root`` and ``env``; never imports the app.
+    Separate from the ``scan_*`` laws, which stay the same with or without it.
     """
     from ux_behavior.wire import debug_requests_dev
 
+    from ux_compose.scaffold import scan_requirements
+
+    root = Path(root)
     source = os.environ if env is None else env
-    if source.get("UX_CHANNEL_SECRET") or source.get("UX_BEHAVIOR_SECRET"):
-        return None
+    if not (root / "app.py").is_file():
+        return [
+            _row(
+                "FAIL",
+                "product",
+                f"no app.py in {root.resolve()} — run uxcompose create-app, or pass the app root",
+            )
+        ]
+    rows = [_row("OK", "product", "app.py")]
+    for module in ("uvicorn", "fastapi"):
+        if find_spec(module) is None:
+            rows.append(
+                _row(
+                    "FAIL",
+                    f"dep:{module}",
+                    f"not importable in {sys.executable} — pip install -r requirements.txt",
+                )
+            )
+        else:
+            rows.append(_row("OK", f"dep:{module}", "importable"))
+    req = root / "requirements.txt"
+    if not req.is_file():
+        rows.append(_row("FAIL", "requirements", "requirements.txt missing — deploys install from it"))
+    elif (scan := scan_requirements(req)).problem:
+        rows.append(_row("FAIL", "requirements", scan.problem))
+    elif scan.unchecked:
+        rows.append(_row("WARN", "requirements", "not checked: " + "; ".join(scan.unchecked)))
+    else:
+        rows.append(_row("OK", "requirements", "one line per distribution; names ux-compose"))
+    if refused := secret_readiness(source):
+        rows.append(_row("FAIL", "secret", f"{refused} — set UX_CHANNEL_SECRET on the host"))
+    else:
+        rows.append(_row("OK", "secret", "Channel attach can boot"))
     if debug_requests_dev(source):
-        return None
-    return SECRET_MISSING
+        rows.append(
+            _row("FAIL", "DEBUG", f"DEBUG={source.get('DEBUG')!r} is dev mode — unset it for prod")
+        )
+    else:
+        rows.append(_row("OK", "DEBUG", "prod mode"))
+    rows.append(_dotenv_row(root))
+    render = root / "render.yaml"
+    if render.is_file():
+        if "UX_CHANNEL_SECRET" in render.read_text(encoding="utf-8"):
+            rows.append(_row("OK", "deploy:render", "render.yaml declares UX_CHANNEL_SECRET"))
+        else:
+            rows.append(_row("FAIL", "deploy:render", "render.yaml does not declare UX_CHANNEL_SECRET"))
+    for unit in sorted((root / "deploy").glob("*.service")):
+        rel = unit.relative_to(root).as_posix()
+        ok = any(
+            ln.startswith(("EnvironmentFile=", "Environment=UX_CHANNEL_SECRET="))
+            for ln in _lines(unit)
+        )
+        if ok:
+            detail = f"{rel} sets EnvironmentFile or Environment=UX_CHANNEL_SECRET"
+        else:
+            detail = f"{rel} sets neither EnvironmentFile nor Environment=UX_CHANNEL_SECRET"
+        rows.append(_row("OK" if ok else "FAIL", "deploy:vps", detail))
+    if port is not None:
+        rows.append(_port_row(host, port))
+    return rows
 
 
 def scan_cek_host(app: Any) -> list[str]:
@@ -567,12 +735,22 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description="ux-compose doctor")
     parser.add_argument("paths", nargs="*")
     parser.add_argument("--no-fail", action="store_true")
+    parser.add_argument(
+        "--prod", action="store_true", help="also check product readiness (first path is the app root)"
+    )
+    parser.add_argument("--port", type=int, help="with --prod: warn when HOST:PORT cannot be bound")
+    parser.add_argument("--host", help="with --port: the address the app binds (default 0.0.0.0)")
     args = parser.parse_args(argv)
+    if args.port is not None and not args.prod:
+        parser.error("--port needs --prod")
+    if args.host is not None and args.port is None:
+        parser.error("--host needs --port")
     res = doctor(args.paths or ["."], fail=False)
     print("ux-compose doctor — protective coach")
     print(f"  Progressive level available: L{res.level_available}")
+    failed = False
     if res.diagnostics:
-        hard = any(
+        failed = any(
             "violation" in d.lower()
             or "dual-document risk" in d.lower()
             or "incomplete stack" in d.lower()
@@ -580,9 +758,17 @@ def main(argv: Optional[List[str]] = None) -> int:
         )
         for d in res.diagnostics:
             print(f"    - {d}")
-        return 0 if args.no_fail or not hard else 1
-    print("  Isolation: OK — product autonomy and additive levels on a complete install.")
-    return 0
+    else:
+        print("  Isolation: OK — product autonomy and additive levels on a complete install.")
+    if args.prod:
+        rows = scan_product_readiness(
+            (args.paths or ["."])[0], port=args.port, host=args.host or "0.0.0.0"
+        )
+        print("  Product readiness:")
+        for row in rows:
+            print(f"  {row}")
+        failed = failed or any(row.startswith("[FAIL]") for row in rows)
+    return 0 if args.no_fail or not failed else 1
 
 
 if __name__ == "__main__":

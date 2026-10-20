@@ -1,9 +1,9 @@
 """``strict_attach`` lets the original attach error out.
 
 ``wire/boot.py`` sets ``behavior.strict_attach = True`` before ``attach()``.
-A missing secret is ``RuntimeError`` from attach itself. A 13-character
-secret is ``ValueError`` from ``Channel.boot``. Without ``strict_attach``,
-that short secret becomes ``RuntimeError`` "Channel attach returned no channel".
+A missing secret and a 13-character secret are both ``RuntimeError`` from
+attach itself (``ATTACH_SECRET_REQUIRED``): attach checks the secret with
+ux-behavior's ``attach_secret_problem``, whose length rule is ux-channel's.
 """
 from __future__ import annotations
 
@@ -36,10 +36,10 @@ def test_missing_secret_is_runtimeerror(monkeypatch):
     assert app._channel is None
 
 
-def test_short_secret_is_valueerror(monkeypatch):
+def test_short_secret_is_runtimeerror(monkeypatch):
     assert len(_SHORT_SECRET) == 13
     _quiet_env(monkeypatch)
     app = App.boot("AttachShort")
-    with pytest.raises(ValueError, match=re.escape(_SHORT)):
+    with pytest.raises(RuntimeError, match=re.escape(_SHORT)):
         app.use_channel(asgi_app=FastAPI(), secret=_SHORT_SECRET)
     assert app._channel is None

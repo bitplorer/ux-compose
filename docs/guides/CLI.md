@@ -82,17 +82,49 @@ Outside dev, Channel attach needs `UX_CHANNEL_SECRET` (or
   `DEBUG=1` and one secret for the session. Without a secret in the env it
   mints one (`secrets.token_urlsafe(32)`), never written or printed, so a
   Cap minted by ui is accepted by channel. An env secret always wins.
-- `uxcompose build` and `uxcompose serve prod` without a secret print one
-  line, no traceback: `Channel secret missing: set UX_CHANNEL_SECRET (≥16
-  chars) for prod, or DEBUG=1 for a local build`. build exits 1, serve prod
-  exits 2. `ux_compose.doctor.secret_readiness(env)` is that check. When a
-  secret is set but refused (the published dev secret), or `REDIS_URL` is
-  set without one, build shows ux-behavior's own `[ATTACH_SECRET_REQUIRED]`
-  line instead, still without a traceback.
+- `uxcompose build`, `uxcompose serve prod` and `uxcompose doctor --prod`
+  print one line, no traceback, when attach would refuse the secret: it is
+  missing outside dev, shorter than 16 characters, the published dev
+  secret, or absent while `REDIS_URL` is set. The line is `Channel secret
+  refused: <reason>`. build exits 1, serve prod exits 2. When dev mode
+  would be accepted (the secret is only missing), build adds "— for a
+  local build, set DEBUG=1 or set UX_CHANNEL_SECRET"; doctor `--prod`
+  adds "— set UX_CHANNEL_SECRET on the host" instead.
+  `ux_compose.doctor.secret_readiness(env)` is that check; it calls
+  ux-behavior's `attach_secret_problem`, the same function `attach()` runs,
+  so the gates and the boot cannot disagree.
 - `uxcompose deploy` declares `UX_CHANNEL_SECRET` for every target and
   never writes a value: render `generateValue: true`; fly `fly secrets set`;
   docker `docker run -e UX_CHANNEL_SECRET`; railway `railway variables
   --set`; vps `EnvironmentFile=/etc/<name>.env`; checklist step 3.
+
+### `uxcompose doctor --prod`
+
+`uxcompose doctor [paths...]` checks the isolation laws. `--prod` adds
+product readiness rows for the app root (the first path, default `.`).
+Each row is `[OK  |WARN|FAIL] name: detail`. Any FAIL exits 1;
+`--no-fail` exits 0. Readiness is static: it reads files and the
+environment, never imports the app and never opens the network.
+
+```bash
+uxcompose doctor --prod                # in the app root
+uxcompose doctor --prod --port 8080    # also warn if 0.0.0.0:8080 cannot be bound
+```
+
+| Row | FAIL / WARN when |
+|-----|------------------|
+| `product` | FAIL: no `app.py` in the root (an empty dir fails; no other row is printed) |
+| `dep:uvicorn`, `dep:fastapi` | FAIL: not importable in the interpreter running `uxcompose` |
+| `requirements` | FAIL: `requirements.txt` missing, or `ux_compose.scaffold.scan_requirements` finds a problem. It reads the file the way pip does: `\` continuations are joined, comments are stripped, option lines (`--index-url`, `-f`, `-c`, `--hash=…`, …) are skipped, `-e` lines count as requirements, and local `-r` includes are followed relative to the including file (an include cycle fails, as in pip). It FAILs on a line that is not a requirement, a distribution listed twice, no ux-compose line, or a specialist (ux-dom, ux-channel, ux-behavior, ux-motion) pinned beside ux-compose. WARN: a remote `-r https://…` include, which doctor does not fetch |
+| `secret` | FAIL: `secret_readiness()` returns a "Channel secret refused" line (ux-behavior's `attach_secret_problem`: missing outside dev, under 16 characters, the published dev secret, or `REDIS_URL` without one). The row adds "— set UX_CHANNEL_SECRET on the host"; it never suggests `DEBUG=1`, which the `DEBUG` row FAILs |
+| `DEBUG` | FAIL: `DEBUG` is dev (`debug_requests_dev`: `1` / `true` / `yes` / `on`) |
+| `.env` | WARN: present ("do not ship; set secrets on the host"). FAIL: present, a `Dockerfile` exists, and `.dockerignore` does not exclude `.env` the way Docker reads it (`*`, `?`, `[…]`, `**`, `!` re-include, last match wins, leading `/` dropped, `#` comments). A pattern with `\` before a letter or digit FAILs as "cannot be checked" |
+| `deploy:render` | FAIL: `render.yaml` exists and does not declare `UX_CHANNEL_SECRET` |
+| `deploy:vps` | FAIL: a `deploy/*.service` unit has neither `EnvironmentFile=` nor `Environment=UX_CHANNEL_SECRET=` |
+| `port:N` | WARN: only with `--port N`, when `--host` (default `0.0.0.0`, as `serve prod` and the deploy targets) cannot bind N with `SO_REUSEADDR`, as uvicorn binds; "cannot resolve host H" when `--host` does not resolve |
+
+`--port` without `--prod` and `--host` without `--port` exit 2. `doctor` without `--prod` prints the
+same report and exit code as before.
 
 Architecture: [../internals/hmr.md](../internals/hmr.md).
 Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md).

@@ -1,6 +1,7 @@
 """Fail unless Chrome's major version is at least 155.
 
-CI and the Login and PasswordField browser tests call this script.
+CI and the Login, PasswordField and HMR reload browser tests call this
+script.
 A missing binary, a broken binary, a version with no digits, and a
 major below 155 exit non-zero.
 """

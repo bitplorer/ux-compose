@@ -50,7 +50,7 @@ Also: `apps/atelier_shop`, `apps/atelier_studio` (Makefile `shop` / `studio`),
 
 ## Commands
 
-The full suite needs Chrome 155 or newer on `PATH` as `google-chrome`. The Login and PasswordField browser tests drive that binary. `scripts/chrome_floor.py` is the version check. CI and those browser tests call it, and a major below 155 fails them. `UX_KEEP_VALUE_REQUIRE_BROWSER=1` only changes the failure message when the binary is missing. A missing browser fails the run either way. The tests do not skip.
+The full suite needs Chrome 155 or newer on `PATH` as `google-chrome`. The Login, PasswordField and HMR reload browser tests drive that binary. `scripts/chrome_floor.py` is the version check. CI and those browser tests call it, and a major below 155 fails them. `UX_KEEP_VALUE_REQUIRE_BROWSER=1` only changes the failure message when the binary is missing. A missing browser fails the run either way. The tests do not skip.
 
 ```bash
 # default (includes nested-shell fragment-law)

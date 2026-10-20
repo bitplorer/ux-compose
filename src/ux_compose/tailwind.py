@@ -413,6 +413,7 @@ def start_tailwind_watch(*, cwd: str | None = None):
     """Sibling Tailwind --watch. Lives here, not in cli.py or hmr.py.
 
     Returns a Popen or None. None is quiet when the tree has no input.css.
+    The Popen leads its own process group; serve dev stops that group.
     Missing CLI is a warning, not a failed serve.
     """
     import subprocess
@@ -447,7 +448,11 @@ def start_tailwind_watch(*, cwd: str | None = None):
     env["PYTHONPATH"] = os.pathsep.join([str(root), env.get("PYTHONPATH", "")])
     try:
         proc = subprocess.Popen(
-            cmd, cwd=str(root), env=env, stdin=subprocess.DEVNULL
+            cmd,
+            cwd=str(root),
+            env=env,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
         )
     except OSError as exc:
         print(f"CSS: sibling --watch spawn failed: {exc}", file=sys.stderr)

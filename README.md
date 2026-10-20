@@ -194,7 +194,7 @@ Public names are `ux_compose.__all__` (re-exported specialists + compose’s own
 make test314
 ```
 
-The full suite needs Chrome 155 or newer on `PATH` as `google-chrome`. `scripts/chrome_floor.py` is that check. CI and the Login and PasswordField browser tests call it, and a major below 155 fails them. `UX_KEEP_VALUE_REQUIRE_BROWSER=1` only changes the message when Chrome is missing; the Chrome tests fail either way and do not skip.
+The full suite needs Chrome 155 or newer on `PATH` as `google-chrome`. `scripts/chrome_floor.py` is that check. CI and the Login, PasswordField and HMR reload browser tests call it, and a major below 155 fails them. `UX_KEEP_VALUE_REQUIRE_BROWSER=1` only changes the message when Chrome is missing; the Chrome tests fail either way and do not skip.
 
 ## Security
 

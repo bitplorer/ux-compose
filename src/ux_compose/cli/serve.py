@@ -6,6 +6,7 @@ argv ``development`` / ``production`` / ``restart_channel`` are not synonyms.
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 
 
@@ -157,5 +158,7 @@ def main(argv: list[str]) -> int:
         f"uxcompose serve prod {args.app} http://{args.host}:{args.port} "
         f"clocks=off"
     )
-    uvicorn.run(args.app, host=args.host, port=args.port)
+    # The uvicorn CLI defaults to --app-dir "."; uvicorn.run does not, and a
+    # console script never has the cwd on sys.path.
+    uvicorn.run(args.app, host=args.host, port=args.port, app_dir=os.getcwd())
     return 0

@@ -121,7 +121,7 @@ def test_run_gives_both_workers_and_the_respawn_one_session_env(tmp_path, monkey
             time.sleep(0.05)
 
     monkeypatch.setattr(serve_dev, "_spawn", fake_spawn)
-    monkeypatch.setattr(serve_dev, "_stop", lambda proc: None)
+    monkeypatch.setattr(serve_dev, "_stop", lambda *procs: None)
     monkeypatch.setattr(serve_dev, "_port_open", lambda port, host="127.0.0.1": True)
     monkeypatch.setattr(serve_dev, "_watch_workers", lambda *a: None)
     monkeypatch.setattr(serve_dev, "prepare_shared_state", lambda root: None)

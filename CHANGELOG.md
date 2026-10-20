@@ -31,6 +31,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `uxcompose serve dev` stops all of its processes on SIGTERM and SIGHUP,
+  not only on Ctrl-C. Before, uvicorn re-raised SIGTERM after the origin
+  shut down, the default handler killed the origin, and the Tailwind
+  watcher and the ui and channel workers kept running with their ports.
+  Each child now leads its own process group. On SIGINT, SIGTERM or SIGHUP
+  the origin sends SIGTERM to each group, waits up to 3 s, sends SIGKILL to
+  what is left, and exits `128 + signal` (Ctrl-C was 0, now 130). A
+  channel respawn from `serve restart-channel` that races the stop is
+  stopped too, or it does not start. POSIX only; `serve dev` already
+  needs `--fd`.
 - The standalone Tailwind CLI runs only after its SHA256 matches
   `TAILWIND_STANDALONE_SHA256` (v4.1.12, from the release's
   `sha256sums.txt`). A download that does not match is deleted and the build

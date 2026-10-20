@@ -123,6 +123,8 @@ prints `pip install -e '.[serve]'` (from the clone; not on PyPI) and exits 1.
 It does **not** fall back to one uvicorn with reload.
 If a worker dies after bind, origin stops.
 Tailwind missing: CSS watch is skipped, the three processes still run.
+SIGINT, SIGTERM or SIGHUP to origin stops every child's process group
+(SIGTERM, 3 s, then SIGKILL) and exits `128 + signal`. POSIX only.
 
 ## What a save does
 

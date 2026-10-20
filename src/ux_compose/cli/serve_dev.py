@@ -29,6 +29,10 @@ not a sticky flag and does not change the next ``*.py`` save.
 httpx re-issues HTTP from origin to a worker. Starlette is origin's
 ASGI app. websockets forwards HMR and Channel sockets. None of these
 run in ``serve prod`` or deploy.
+
+Every child leads its own process group. SIGINT, SIGTERM and SIGHUP stop
+each group (SIGTERM, wait, then SIGKILL) and exit ``128 + signal``.
+POSIX only, like ``--fd``.
 """
 from __future__ import annotations
 
@@ -41,6 +45,7 @@ import sys
 import threading
 import time
 from collections.abc import Mapping
+from contextlib import contextmanager
 from typing import Literal
 from urllib.parse import urlsplit
 
@@ -244,6 +249,63 @@ def origin_asgi():
     return make_origin_asgi()
 
 
+class _Stopped(Exception):
+    """A stop signal arrived. ``run`` unwinds into its ``finally``."""
+
+
+class _StopSignals:
+    """SIGINT, SIGTERM and SIGHUP end ``run`` through its ``finally``.
+
+    uvicorn.run catches SIGINT and SIGTERM, shuts the origin down,
+    restores these handlers and then re-raises the signal. Before this,
+    SIGTERM then hit the default handler, and the process died with its
+    children still running. uvicorn does not catch SIGHUP, so it is
+    forwarded as SIGTERM and the origin shuts down the same way.
+    """
+
+    NAMES = ("SIGINT", "SIGTERM", "SIGHUP")
+
+    def __init__(self) -> None:
+        self.signum = 0
+        self._held = False
+        self._saved: dict[int, object] = {}
+
+    def install(self) -> None:
+        for name in self.NAMES:
+            sig = getattr(signal, name, None)
+            if sig is not None:
+                self._saved[sig] = signal.signal(sig, self._on_signal)
+
+    def _on_signal(self, signum, frame) -> None:
+        self.signum = self.signum or signum
+        if self._held:
+            return
+        if signum == getattr(signal, "SIGHUP", None):
+            signal.raise_signal(signal.SIGTERM)
+            return
+        raise _Stopped
+
+    @contextmanager
+    def held(self):
+        """Hold a stop until this spawn returns, so its Popen is not lost."""
+        self._held = True
+        try:
+            yield
+        finally:
+            self._held = False
+        if self.signum:
+            raise _Stopped
+
+    def ignore(self) -> None:
+        """Teardown runs once. A second Ctrl-C does not cut it short."""
+        for sig in self._saved:
+            signal.signal(sig, signal.SIG_IGN)
+
+    def restore(self) -> None:
+        for sig, handler in self._saved.items():
+            signal.signal(sig, handler)
+
+
 def _spawn(
     cmd: list[str],
     *,
@@ -257,17 +319,46 @@ def _spawn(
     if extra_env:
         env.update(extra_env)
     print("serve-dev:", " ".join(cmd), flush=True)
-    return subprocess.Popen(cmd, cwd=cwd, env=env, pass_fds=pass_fds, close_fds=True)
+    return subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        env=env,
+        pass_fds=pass_fds,
+        close_fds=True,
+        start_new_session=True,
+    )
 
 
-def _stop(proc: subprocess.Popen | None) -> None:
-    if proc is None or proc.poll() is not None:
-        return
-    proc.terminate()
+def _killpg(proc: subprocess.Popen, sig: int) -> bool:
+    """Send ``sig`` to the group ``proc`` leads. False when the group is empty."""
     try:
-        proc.wait(timeout=3)
-    except Exception:
-        proc.kill()
+        os.killpg(proc.pid, sig)
+    except (ProcessLookupError, PermissionError):
+        return False
+    return True
+
+
+def _stop(*procs: subprocess.Popen | None, timeout: float = 3.0) -> None:
+    """SIGTERM each child's process group, wait, then SIGKILL what is left.
+
+    The group holds what the child started, such as the ui reloader's
+    worker, and a group can outlive its leader. So this waits for the
+    group to empty, not only for the Popen.
+    """
+    live = [p for p in procs if p is not None]
+    for proc in live:
+        _killpg(proc, signal.SIGTERM)
+    deadline = time.monotonic() + timeout
+    for proc in live:
+        try:
+            proc.wait(timeout=max(0.0, deadline - time.monotonic()))
+        except subprocess.TimeoutExpired:
+            pass
+    while time.monotonic() < deadline and any(_killpg(p, 0) for p in live):
+        time.sleep(0.05)
+    for proc in live:
+        _killpg(proc, signal.SIGKILL)
+        proc.wait()
 
 
 def _port_open(port: int, host: str = "127.0.0.1") -> bool:
@@ -296,15 +387,17 @@ def _watch_workers(
     ui: subprocess.Popen,
     channel_holder: list,
     restarting: threading.Event,
+    stopping: threading.Event,
 ) -> None:
     """If a worker dies after bind, stop the origin process too.
 
     A planned Channel restart sets ``restarting`` so this loop does not
-    take the origin down while the worker is being replaced.
+    take the origin down while the worker is being replaced. Teardown
+    sets ``stopping``: workers exit then because the origin stops them.
     """
-    while True:
+    while not stopping.is_set():
         time.sleep(0.4)
-        if restarting.is_set():
+        if restarting.is_set() or stopping.is_set():
             continue
         channel = channel_holder[0] if channel_holder else None
         ui_dead = ui.poll() is not None
@@ -357,7 +450,9 @@ def run(
     session_env = dev_session_env(os.environ)
     py = sys.executable
     provider = parse_provider(tunnel)
-    css_watcher = start_tailwind_watch(cwd=root) if css_watch else None
+    stop = _StopSignals()
+    stop.install()
+    css_watcher = None
     tunnel_holder: list = [None]
 
     def _tunnel_worker() -> None:
@@ -400,6 +495,10 @@ def run(
     ui_proc = None
     restarting = threading.Event()
     restart_lock = threading.Lock()
+    # A respawn that races shutdown either lands before teardown reads
+    # channel_holder, or sees ``stopping`` and does not spawn.
+    stopping = threading.Event()
+    spawn_lock = threading.Lock()
     pid_written = False
 
     def _respawn_channel() -> None:
@@ -417,12 +516,15 @@ def run(
                 )
 
         def spawn() -> None:
-            channel_holder[0] = _spawn(
-                channel_cmd,
-                cwd=root,
-                extra_env=session_env,
-                pass_fds=(channel_sock.fileno(),),
-            )
+            with spawn_lock:
+                if stopping.is_set():
+                    return
+                channel_holder[0] = _spawn(
+                    channel_cmd,
+                    cwd=root,
+                    extra_env=session_env,
+                    pass_fds=(channel_sock.fileno(),),
+                )
             deadline = time.time() + 8
             while time.time() < deadline:
                 proc = channel_holder[0]
@@ -468,18 +570,23 @@ def run(
             raise
 
     try:
-        channel_holder[0] = _spawn(
-            channel_cmd,
-            cwd=root,
-            extra_env=session_env,
-            pass_fds=(channel_sock.fileno(),),
-        )
-        ui_proc = _spawn(
-            ui_cmd,
-            cwd=root,
-            extra_env={**session_env, "UXCOMPOSE_APP": app_ref},
-            pass_fds=(ui_sock.fileno(),),
-        )
+        if css_watch:
+            with stop.held():
+                css_watcher = start_tailwind_watch(cwd=root)
+        with stop.held():
+            channel_holder[0] = _spawn(
+                channel_cmd,
+                cwd=root,
+                extra_env=session_env,
+                pass_fds=(channel_sock.fileno(),),
+            )
+        with stop.held():
+            ui_proc = _spawn(
+                ui_cmd,
+                cwd=root,
+                extra_env={**session_env, "UXCOMPOSE_APP": app_ref},
+                pass_fds=(ui_sock.fileno(),),
+            )
         ui_sock.close()
         deadline = time.time() + 12
         while time.time() < deadline:
@@ -520,7 +627,7 @@ def run(
         pid_written = True
         threading.Thread(
             target=_watch_workers,
-            args=(ui_proc, channel_holder, restarting),
+            args=(ui_proc, channel_holder, restarting, stopping),
             name="serve-dev-workers",
             daemon=True,
         ).start()
@@ -532,14 +639,15 @@ def run(
             reload=False,
         )
         return 0
-    except KeyboardInterrupt:
-        return 0
+    except _Stopped:
+        return 128 + stop.signum
     finally:
+        stop.ignore()
+        with spawn_lock:
+            stopping.set()
         if pid_written:
             clear_pid(root)
-        _stop(ui_proc)
-        _stop(channel_holder[0])
-        _stop(css_watcher)
+        _stop(ui_proc, channel_holder[0], css_watcher)
         handle = tunnel_holder[0]
         if handle is not None:
             handle.close()
@@ -548,3 +656,4 @@ def run(
             channel_sock.close()
         except OSError:
             pass
+        stop.restore()

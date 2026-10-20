@@ -88,3 +88,57 @@ def test_serve_prod_without_secret_exits_2_with_one_line(tmp_path):
     assert elapsed < 5, elapsed
     assert SECRET_MISSING in proc.stderr
     assert "Traceback" not in out
+
+
+def test_run_gives_both_workers_and_the_respawn_one_session_env(tmp_path, monkeypatch):
+    """serve_dev.run hands the same dev_session_env to ui, channel and a channel respawn."""
+    import signal
+
+    import uvicorn
+
+    from ux_compose.cli import serve_dev
+
+    for name in _SCRUB:
+        monkeypatch.delenv(name, raising=False)
+    spawned: list[tuple[list[str], dict]] = []
+
+    class _Proc:
+        returncode = None
+
+        def poll(self):
+            return None
+
+    def fake_spawn(cmd, *, cwd, extra_env=None, pass_fds=()):
+        spawned.append((cmd, dict(extra_env or {})))
+        return _Proc()
+
+    def fake_origin(*args, **kwargs):
+        # Ask for one channel restart, as `serve restart-channel` does.
+        handler = signal.getsignal(signal.SIGUSR1)
+        handler(signal.SIGUSR1, None)
+        deadline = time.monotonic() + 5
+        while len(spawned) < 3 and time.monotonic() < deadline:
+            time.sleep(0.05)
+
+    monkeypatch.setattr(serve_dev, "_spawn", fake_spawn)
+    monkeypatch.setattr(serve_dev, "_stop", lambda proc: None)
+    monkeypatch.setattr(serve_dev, "_port_open", lambda port, host="127.0.0.1": True)
+    monkeypatch.setattr(serve_dev, "_watch_workers", lambda *a: None)
+    monkeypatch.setattr(serve_dev, "prepare_shared_state", lambda root: None)
+    monkeypatch.setattr(serve_dev, "drop_shared_state", lambda root: None)
+    monkeypatch.setattr(serve_dev, "clear_shared_state", lambda: True)
+    monkeypatch.setattr(uvicorn, "run", fake_origin)
+    old_usr1 = signal.getsignal(signal.SIGUSR1)
+    try:
+        rc = serve_dev.run(
+            app_ref="app:asgi", host="127.0.0.1", port=_free_port(),
+            reload_dirs=["."], cwd=str(tmp_path), css_watch=False,
+        )
+    finally:
+        signal.signal(signal.SIGUSR1, old_usr1)
+    assert rc == 0
+    assert len(spawned) == 3, spawned
+    secrets_seen = {env.get("UX_CHANNEL_SECRET") for _cmd, env in spawned}
+    assert len(secrets_seen) == 1 and None not in secrets_seen
+    assert all(env.get("DEBUG") == "1" for _cmd, env in spawned)
+    assert "UX_CHANNEL_SECRET" not in os.environ

@@ -50,6 +50,13 @@ _LEFTOVER_TOKENS = (
 )
 
 
+# Not app source: tool caches, environments, installed packages, build output
+# (``uxcompose build --package`` writes dist/<name>/, a second copy of the app).
+SKIP_DIRS = frozenset(
+    {"__pycache__", ".venv", "venv", ".git", ".pytest_cache", "node_modules", ".mypy_cache", "dist"}
+)
+
+
 def _norm(path: Path | str) -> str:
     return str(path).replace("\\", "/")
 
@@ -679,7 +686,9 @@ def doctor(
         for p in paths:
             pp = Path(p)
             if pp.is_dir():
-                expanded.extend(pp.rglob("*.py"))
+                expanded.extend(
+                    f for f in pp.rglob("*.py") if SKIP_DIRS.isdisjoint(f.relative_to(pp).parts)
+                )
             elif pp.suffix == ".py":
                 expanded.append(pp)
         diagnostics.extend(scan_isolation(expanded))

@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `uxcompose build --package` writes a runnable bundle to `dist/<name>/`
+  (`--out`, `--name`) after every build step passes; `--archive` adds a
+  byte-identical `dist/<name>.tar.gz` (sorted members, one `<name>/` root,
+  uid/gid 0, mtime `SOURCE_DATE_EPOCH` or 0). The bundle holds root `*.py`,
+  `routes/`, `components/`, `assets/`, the app's own `requirements.txt`,
+  `README.md`, existing deploy files, `run.sh` (`exec uvicorn app:asgi
+  --app-dir .`, one-line secret refusal before boot), `README.RUN.txt`
+  and `MANIFEST.json` (per-file sha256, and `resolved` commits for
+  ux-compose and the four specialists; no absolute path, no timestamp).
+  `.env`, `.env.*`, `*.pem` and `*.key` are left out at any depth and
+  listed. The bundle is refused when `doctor --prod` on it has a FAIL row
+  (missing or unresolvable `requirements.txt`, no secret, `DEBUG` on, …)
+  or its ux-compose line is not the running ux-compose. This replaces
+  `uxdom build --package/--archive` for product apps (ux-dom ADR 0003
+  rule 4). Library: `ux_compose.cli.package.write_bundle`.
+
 - `uxcompose doctor --prod` checks product readiness after the law scans:
   `product` (`app.py` at the root; an empty dir fails), `dep:uvicorn` and
   `dep:fastapi` (importable in the running interpreter), `requirements`
@@ -47,6 +63,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `App.control` and `App.mint_cap` take the action name positionally. A payload key named `action` passes through, as it does for `App.dispatch`.
 
 ### Fixed
+
+- `doctor(paths)` skips `dist/`, `.venv/`, `venv/`, `node_modules/`,
+  `__pycache__/`, `.git/` and tool caches when it walks a directory
+  (`ux_compose.doctor.SKIP_DIRS`). A bundle under `dist/` or a venv inside
+  the app no longer reads as a second Document or an isolation violation,
+  so `uxcompose build` passes again after `--package`.
 
 - `uxcompose serve dev` stops all of its processes on SIGTERM and SIGHUP,
   not only on Ctrl-C. Before, uvicorn re-raised SIGTERM after the origin

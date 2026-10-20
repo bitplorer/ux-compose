@@ -1,4 +1,4 @@
-"""``uxcompose build`` — argv for the CSS minify wrap.
+"""``uxcompose build`` — argv for the CSS minify wrap and the runnable bundle.
 
 This is not ``ux_compose.build`` (the composition orchestra). The wrap is
 ``product_build.py``, which calls ``ux_compose.tailwind``.
@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 
 def main(argv: list[str]) -> int:
@@ -20,6 +21,12 @@ def main(argv: list[str]) -> int:
     p.add_argument("--skip-tailwind", action="store_true")
     p.add_argument("--skip-import", action="store_true")
     p.add_argument("--app", default="app:asgi", help="ASGI entry for the import check")
+    p.add_argument(
+        "--package", action="store_true", help="after a passing build, write the runnable bundle OUT/NAME/"
+    )
+    p.add_argument("--archive", action="store_true", help="--package, plus OUT/NAME.tar.gz")
+    p.add_argument("--out", type=Path, default=None, help="bundle parent directory (default: <app root>/dist)")
+    p.add_argument("--name", default=None, help="bundle name (default: the app directory name)")
     args = p.parse_args(argv)
     try:
         report = run_product_build(
@@ -28,6 +35,10 @@ def main(argv: list[str]) -> int:
             minify=not args.no_minify,
             watch=False,
             app_ref=args.app,
+            package=args.package or args.archive,
+            archive=args.archive,
+            out_dir=args.out,
+            package_name=args.name,
         )
     except FileNotFoundError as e:
         print(str(e), file=sys.stderr)

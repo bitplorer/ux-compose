@@ -126,6 +126,52 @@ uxcompose doctor --prod --port 8080    # also warn if 0.0.0.0:8080 cannot be bou
 `--port` without `--prod` and `--host` without `--port` exit 2. `doctor` without `--prod` prints the
 same report and exit code as before.
 
+### `uxcompose build --package` / `--archive`
+
+A runnable bundle of the app, written only after every build step passes.
+
+```bash
+export UX_CHANNEL_SECRET=$(python -c 'import secrets; print(secrets.token_urlsafe(32))')
+uxcompose build --package                        # → dist/<app dir name>/
+uxcompose build --archive --out out --name shop  # → out/shop/ and out/shop.tar.gz
+# anywhere, in a fresh venv:
+pip install -r dist/<name>/requirements.txt && dist/<name>/run.sh
+```
+
+- `--out DIR` (default `<app root>/dist`), `--name NAME` (default the app
+  directory name). `--archive` implies `--package`. The bundle is rebuilt
+  from scratch each time; a refused bundle leaves nothing behind.
+- Copied: root `*.py`, `routes/`, `components/`, `assets/` (with the
+  compiled `output.css`), `requirements.txt`, `README.md`, and the deploy
+  files that already exist (`Dockerfile`, `.dockerignore`, `fly.toml`,
+  `render.yaml`, `railway.json`, `deploy/`). The bundler generates no
+  deploy file: run `uxcompose deploy` first to ship one.
+- Left out: `__pycache__`, `.venv`, `venv`, `.git`, `.pytest_cache`,
+  `node_modules`, `.mypy_cache`, `dist`, `*.pyc`, and secrets at any
+  depth (`.env`, `.env.*`, `*.pem`, `*.key`). The `package` row lists the
+  secrets it left out.
+- Generated: `run.sh` (0755: `cd` to the bundle, `PORT` 8080 / `HOST`
+  0.0.0.0 defaults, activates `.venv` if present, prints the one-line
+  `Channel secret refused: …` and exits 1 when the secret is not usable,
+  then `exec uvicorn app:asgi --app-dir .`; `--app` sets the entry, no
+  `PYTHONPATH`), `README.RUN.txt`, and `MANIFEST.json` (`name`,
+  `entrypoint`, `static_model: single_copy_from_site_packages`, each
+  file's `path` / `sha256` / `bytes`, and `resolved`: `version` and
+  `vcs_commit` for ux-compose and the four specialists). No file names
+  the build machine: no absolute path, no timestamp. Library JS is not
+  vendored; the installed packages serve `/ux-dom/static/x_element.js`.
+- The bundle FAILs (and is not written) when:
+  - `uxcompose doctor --prod` on the assembled bundle has a FAIL row, so
+    build with `UX_CHANNEL_SECRET` set and `DEBUG` unset; a missing or
+    unresolvable `requirements.txt` is the `requirements` row. A
+    `requirements.txt` is never synthesized.
+  - the `requirements.txt` ux-compose line is not the ux-compose running
+    the build (the line create-app would write now), since the bundle
+    would install code the build did not check.
+- `NAME.tar.gz` has one top-level `NAME/` directory, sorted members,
+  uid/gid 0, mtime `SOURCE_DATE_EPOCH` (or 0) in the tar and gzip
+  headers: two archives of the same tree are byte-identical.
+
 Architecture: [../internals/hmr.md](../internals/hmr.md).
 Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md).
 CSS how-to: [TAILWIND.md](TAILWIND.md).

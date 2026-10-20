@@ -111,6 +111,15 @@ def test_single_document_ok():
         assert diags == []
 
 
+@pytest.mark.parametrize("skipped", ["dist/demo", ".venv/lib", "node_modules/x"])
+def test_doctor_dir_scan_skips_build_output_and_envs(tmp_path, skipped):
+    """A bundle under dist/ (uxcompose build --package) is a copy, not a second Document."""
+    (tmp_path / "document.py").write_text("d = Document()\n", encoding="utf-8")
+    (tmp_path / skipped).mkdir(parents=True)
+    (tmp_path / skipped / "document.py").write_text("d = Document()\nimport ux_channel\n", encoding="utf-8")
+    assert doctor([tmp_path], fail=False).ok
+
+
 class _Caps:
     kernel_ssot = None
 

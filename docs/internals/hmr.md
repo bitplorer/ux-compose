@@ -124,7 +124,10 @@ It does **not** fall back to one uvicorn with reload.
 If a worker dies after bind, origin stops.
 Tailwind missing: CSS watch is skipped, the three processes still run.
 SIGINT, SIGTERM or SIGHUP to origin stops every child's process group
-(SIGTERM, 3 s, then SIGKILL) and exits `128 + signal`. POSIX only.
+(SIGTERM, 3 s, then SIGKILL). Ctrl-C exits 0. SIGTERM and SIGHUP end
+origin by that signal. POSIX only.
+The origin WebSocket proxy closes the other side with the same code and
+reason, so a ui reload's 1012 reaches the browser.
 
 ## What a save does
 

@@ -31,11 +31,15 @@ ASGI app. websockets forwards HMR and Channel sockets. None of these
 run in ``serve prod`` or deploy.
 
 Every child leads its own process group. SIGINT, SIGTERM and SIGHUP stop
-each group (SIGTERM, wait, then SIGKILL) and exit ``128 + signal``.
-POSIX only, like ``--fd``.
+each group (SIGTERM, wait, then SIGKILL). Then Ctrl-C returns 0, and
+SIGTERM / SIGHUP end origin by that signal. POSIX only, like ``--fd``.
+
+The WebSocket proxy ends when either side closes. The close code and
+reason go to the other side.
 """
 from __future__ import annotations
 
+import asyncio
 import os
 import secrets
 import signal
@@ -140,13 +144,22 @@ def _url_from_env(name: str) -> str:
     return raw.rstrip("/")
 
 
+def _sendable_close(code: int | None) -> int:
+    """A close code that may go in a close frame. 1005 / 1006 never do."""
+    if code is None or code == 1006:
+        return 1011
+    if code == 1005:
+        return 1000
+    return code
+
+
 def make_origin_asgi(*, ui_url: str | None = None, channel_url: str | None = None):
     """ASGI the browser hits. Reads worker URLs from the environment."""
     import httpx
     from starlette.applications import Starlette
     from starlette.responses import Response
     from starlette.routing import Route, WebSocketRoute
-    from starlette.websockets import WebSocket, WebSocketDisconnect, WebSocketState
+    from starlette.websockets import WebSocket, WebSocketState
 
     def ui() -> str:
         return ui_url or _url_from_env(UI_URL_ENV)
@@ -202,33 +215,46 @@ def make_origin_asgi(*, ui_url: str | None = None, channel_url: str | None = Non
             async with websockets.connect(dest, additional_headers=extra) as up:
 
                 async def client_to_worker():
-                    try:
-                        while True:
-                            msg = await ws.receive()
-                            if msg["type"] == "websocket.disconnect":
-                                break
-                            if msg.get("text") is not None:
-                                await up.send(msg["text"])
-                            elif msg.get("bytes") is not None:
-                                await up.send(msg["bytes"])
-                    except WebSocketDisconnect:
-                        pass
+                    while True:
+                        msg = await ws.receive()
+                        if msg["type"] == "websocket.disconnect":
+                            await up.close(
+                                _sendable_close(msg.get("code")), msg.get("reason") or ""
+                            )
+                            return
+                        if msg.get("text") is not None:
+                            await up.send(msg["text"])
+                        elif msg.get("bytes") is not None:
+                            await up.send(msg["bytes"])
 
                 async def worker_to_client():
                     try:
                         async for raw in up:
-                            if ws.client_state != WebSocketState.CONNECTED:
-                                break
                             if isinstance(raw, bytes):
                                 await ws.send_bytes(raw)
                             else:
                                 await ws.send_text(str(raw))
-                    except Exception:
+                    except websockets.ConnectionClosed:
                         pass
+                    await ws.close(
+                        code=_sendable_close(up.close_code), reason=up.close_reason or ""
+                    )
 
-                import asyncio
-
-                await asyncio.gather(client_to_worker(), worker_to_client())
+                # Whichever side closes first ends the pair. gather() waited
+                # on the open side forever, so a worker 1012 never reached
+                # the browser and a closed tab kept the upstream socket.
+                pumps = {
+                    asyncio.create_task(client_to_worker()),
+                    asyncio.create_task(worker_to_client()),
+                }
+                done, pending = await asyncio.wait(
+                    pumps, return_when=asyncio.FIRST_COMPLETED
+                )
+                for task in pending:
+                    task.cancel()
+                await asyncio.gather(*pending, return_exceptions=True)
+                for task in done:
+                    task.result()
         except Exception:
             if ws.client_state == WebSocketState.CONNECTED:
                 await ws.close(code=1011)
@@ -302,8 +328,15 @@ class _StopSignals:
             signal.signal(sig, signal.SIG_IGN)
 
     def restore(self) -> None:
+        """Put the old handlers back, then end by SIGTERM or SIGHUP as before.
+
+        uvicorn re-raised SIGTERM, and SIGHUP had its default action.
+        Ctrl-C returns 0 from ``run``.
+        """
         for sig, handler in self._saved.items():
             signal.signal(sig, handler)
+        if self.signum and self.signum != signal.SIGINT:
+            signal.raise_signal(self.signum)
 
 
 def _spawn(
@@ -640,7 +673,7 @@ def run(
         )
         return 0
     except _Stopped:
-        return 128 + stop.signum
+        return 0
     finally:
         stop.ignore()
         with spawn_lock:

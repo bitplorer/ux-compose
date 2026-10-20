@@ -126,7 +126,9 @@ def _get_200(url: str, timeout: float) -> bool:
 
 
 @pytest.fixture
-def serve_dev(tmp_path):
+def serve_dev(tmp_path, request):
+    # ``nohup``: the parent ignores SIGHUP, and serve dev must keep ignoring it.
+    prefix = ["nohup"] if getattr(request, "param", None) == "nohup" else []
     root = create_app(tmp_path / "demo", name="demo", level="auto", host="auto").resolve()
     port = _free_port()
     log = tmp_path / "serve.log"
@@ -134,7 +136,7 @@ def serve_dev(tmp_path):
     env.pop("DEBUG", None)
     with log.open("wb") as out:
         proc = subprocess.Popen(
-            [sys.executable, "-m", "ux_compose.cli", "serve", "dev", "--port", str(port)],
+            [*prefix, sys.executable, "-m", "ux_compose.cli", "serve", "dev", "--port", str(port)],
             cwd=root,
             env=env,
             stdout=out,
@@ -209,7 +211,11 @@ def test_stop_signal_leaves_no_descendant(serve_dev, signum):
 
 
 def test_ctrl_c_leaves_no_descendant(serve_dev):
-    """Ctrl-C: the terminal sends SIGINT to the foreground process group."""
+    """Ctrl-C: the terminal sends SIGINT to the foreground process group.
+
+    A guard, not a red test: main already passes it. It keeps exit 0,
+    the close frame and a full teardown on Ctrl-C.
+    """
     proc, ports, seen, log = serve_dev
     os.killpg(proc.pid, signal.SIGINT)
     _assert_clean_exit(proc, ports, seen, log, signal.SIGINT)
@@ -233,3 +239,16 @@ def test_sigterm_during_channel_respawn_leaves_no_descendant(serve_dev):
     time.sleep(1)  # a respawn the origin did not wait for would show up here
     seen.update(_in_dir(proc.app_root))
     assert _alive(seen) == {}, log.read_text()
+
+
+@pytest.mark.parametrize("serve_dev", ["nohup"], indirect=True)
+def test_sighup_ignored_by_parent_stays_ignored(serve_dev):
+    """Under ``nohup``, SIGHUP is ignored as on main. SIGTERM still stops it all."""
+    proc, ports, seen, log = serve_dev
+    os.kill(proc.pid, signal.SIGHUP)
+    time.sleep(2)
+    assert proc.poll() is None, log.read_text()
+    assert _get_200(f"http://127.0.0.1:{ports[0]}/", 5)
+    assert set(_alive(seen)) == set(seen), "a child died on SIGHUP"
+    os.kill(proc.pid, signal.SIGTERM)
+    _assert_clean_exit(proc, ports, seen, log, signal.SIGTERM)

@@ -12,13 +12,12 @@ Order (first hit wins):
 1. ``UXCOMPOSE_TAILWIND`` or ``TAILWINDCSS``
 2. ``tailwindcss`` on PATH
 3. ``pytailwindcss``'s binary for the pinned version, SHA256 checked
-4. local ``node_modules/.bin`` / ``@tailwindcss/cli`` (no implicit npx)
+4. local ``node_modules/.bin`` / ``@tailwindcss/cli``
 5. cached official standalone under ``$XDG_CACHE_HOME/ux-compose/``
    (SHA256 checked on every use; a mismatch is deleted)
 6. (only if ``ensure=True``) download the official standalone CLI, SHA256
-   checked before it is made executable
-7. (only if ``ensure=True`` and the download could not run) pinned
-   ``npx @tailwindcss/cli@<version>``. Never after an integrity failure.
+   checked before it is made executable. If that cannot happen,
+   ``FileNotFoundError`` names the platform and ``UXCOMPOSE_TAILWIND``.
 
 The standalone binary runs only when its SHA256 matches
 ``TAILWIND_STANDALONE_SHA256`` (or ``UXCOMPOSE_TAILWIND_SHA256`` for another
@@ -47,7 +46,6 @@ __all__ = [
     "argv_with_io",
     "cache_dir",
     "discover_css_io",
-    "ensure_tailwind",
     "resolve_tailwind",
     "resolve_tailwind_argv",
     "standalone_asset_name",
@@ -82,7 +80,7 @@ class TailwindResolution:
     """Resolved CLI argv plus where it came from (doctor / banners)."""
 
     argv: list[str]
-    source: str  # env | path | pytailwindcss | node | cache | download | npx
+    source: str  # env | path | pytailwindcss | node | cache | download
 
 
 # Removed in 0.2.0. Fail loudly instead of silently ignoring them: e.g.
@@ -120,17 +118,26 @@ def cache_dir() -> Path:
     return base / "ux-compose"
 
 
+def _platform() -> str:
+    return f"{platform.system()}/{platform.machine()}"
+
+
 def standalone_asset_name() -> str:
+    """Official standalone asset for this platform; refuse one with no digest."""
     sysname = platform.system().lower()
     machine = platform.machine().lower()
-    arch = "arm64" if machine in {"aarch64", "arm64"} else "x64"
-    if sysname == "linux":
-        return f"tailwindcss-linux-{arch}"
-    if sysname == "darwin":
-        return f"tailwindcss-macos-{arch}"
-    if sysname.startswith("win"):
-        return "tailwindcss-windows-x64.exe"
-    return f"tailwindcss-linux-{arch}"
+    arch = {"x86_64": "x64", "amd64": "x64", "aarch64": "arm64", "arm64": "arm64"}.get(machine)
+    os_name = {"linux": "linux", "darwin": "macos", "windows": "windows"}.get(sysname)
+    name = f"tailwindcss-{os_name}-{arch}" + (".exe" if os_name == "windows" else "")
+    if name not in TAILWIND_STANDALONE_SHA256:
+        raise TailwindIntegrityError(
+            f"no verified Tailwind standalone CLI for {_platform()} "
+            f"(pinned {TAILWIND_STANDALONE_VERSION} covers "
+            f"{', '.join(TAILWIND_STANDALONE_SHA256)}). Set UXCOMPOSE_TAILWIND "
+            "(or TAILWINDCSS) to a tailwindcss binary you trust, or put "
+            "tailwindcss on PATH."
+        )
+    return name
 
 
 def _split_cmd(value: str) -> list[str]:
@@ -178,7 +185,7 @@ def _from_pytailwindcss() -> Optional[TailwindResolution]:
 
 
 def _from_node_modules(start: Optional[Path] = None) -> Optional[TailwindResolution]:
-    """Local install only — never implicit npx (that is an ensure last resort)."""
+    """Local install only."""
     cur = Path(start or Path.cwd()).resolve()
     for base in [cur, *cur.parents]:
         bin_ = base / "node_modules" / ".bin" / "tailwindcss"
@@ -287,24 +294,15 @@ def _download_standalone(*, timeout: float = 60.0) -> Optional[Path]:
     return dest
 
 
-def _from_npx() -> Optional[TailwindResolution]:
-    npx = shutil.which("npx")
-    if not npx:
-        return None
-    pin = TAILWIND_STANDALONE_VERSION.lstrip("v")
-    return TailwindResolution(
-        [npx, "--yes", "-p", f"@tailwindcss/cli@{pin}", "-p", f"tailwindcss@{pin}", "tailwindcss"],
-        "npx",
-    )
-
-
 def resolve_tailwind(
     *,
     cwd: Optional[Path] = None,
     ensure: bool = False,
 ) -> Optional[TailwindResolution]:
-    """Return the first available Tailwind CLI, or None if unavailable.
+    """Return the first available Tailwind CLI.
 
+    Without ``ensure``, None if none is available. With ``ensure``, raises
+    ``FileNotFoundError`` when the verified download cannot run.
     Raises ``LegacyTailwindEnvError`` if a removed ``UXDOM_*`` variable is set,
     and ``TailwindIntegrityError`` if the standalone CLI cannot be verified.
     """
@@ -324,9 +322,17 @@ def resolve_tailwind(
         downloaded = _download_standalone()
         if downloaded:
             return TailwindResolution([str(downloaded)], "download")
-        npx = _from_npx()
-        if npx:
-            return npx
+        reason = (
+            "downloads are off (UXCOMPOSE_TAILWIND_DOWNLOAD=0)"
+            if not _download_allowed()
+            else f"downloading {standalone_asset_name()} "
+            f"{TAILWIND_STANDALONE_VERSION} failed"
+        )
+        raise FileNotFoundError(
+            f"Tailwind CLI not found on {_platform()}: {reason}. Set "
+            "UXCOMPOSE_TAILWIND (or TAILWINDCSS) to a tailwindcss binary you "
+            "trust, or put tailwindcss on PATH."
+        )
     return None
 
 
@@ -335,23 +341,9 @@ def resolve_tailwind_argv(
     cwd: Optional[Path] = None,
     ensure: bool = False,
 ) -> Optional[list[str]]:
-    """Return argv prefix for the Tailwind CLI, or None if unavailable."""
+    """Return argv prefix for the Tailwind CLI (see ``resolve_tailwind``)."""
     hit = resolve_tailwind(cwd=cwd, ensure=ensure)
     return list(hit.argv) if hit else None
-
-
-def ensure_tailwind(*, cwd: Optional[Path] = None) -> list[str]:
-    """Like ``resolve_tailwind_argv(ensure=True)`` but raises if missing."""
-    argv = resolve_tailwind_argv(cwd=cwd, ensure=True)
-    if not argv:
-        raise FileNotFoundError(
-            "Tailwind CLI not found. Install one of: "
-            "npm i -D @tailwindcss/cli  ·  "
-            "or put `tailwindcss` on PATH. "
-            "`uxcompose build` can also download the official standalone CLI, "
-            "SHA256-verified (set UXCOMPOSE_TAILWIND_DOWNLOAD=0 to disable)."
-        )
-    return argv
 
 
 def argv_with_io(

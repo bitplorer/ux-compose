@@ -81,22 +81,6 @@ def test_no_uxdom_reads_or_legacy_cache_in_tailwind_source():
     assert "UXDOM_" not in (src / "cli/product_build.py").read_text(encoding="utf-8")
 
 
-def test_no_npx_without_ensure(monkeypatch):
-    monkeypatch.setenv("UXCOMPOSE_TAILWIND_DOWNLOAD", "0")
-    with patch("ux_compose.tailwind._from_env", return_value=None), patch(
-        "ux_compose.tailwind._from_path", return_value=None
-    ), patch("ux_compose.tailwind._from_pytailwindcss", return_value=None), patch(
-        "ux_compose.tailwind._from_node_modules", return_value=None
-    ), patch(
-        "ux_compose.tailwind._cached_binary", return_value=None
-    ):
-        assert resolve_tailwind(ensure=False) is None
-        hit = resolve_tailwind(ensure=True)
-        if hit is not None:
-            assert hit.source == "npx"
-            assert "npx" in hit.argv[0]
-
-
 def test_download_disabled(monkeypatch):
     monkeypatch.setenv("UXCOMPOSE_TAILWIND_DOWNLOAD", "0")
     with patch("ux_compose.tailwind._from_env", return_value=None), patch(
@@ -106,11 +90,11 @@ def test_download_disabled(monkeypatch):
     ), patch(
         "ux_compose.tailwind._cached_binary", return_value=None
     ), patch(
-        "ux_compose.tailwind._from_npx", return_value=None
-    ), patch(
         "ux_compose.tailwind.urllib.request.urlopen"
     ) as urlopen:
-        assert resolve_tailwind_argv(ensure=True) is None
+        assert resolve_tailwind_argv(ensure=False) is None
+        with pytest.raises(FileNotFoundError, match="UXCOMPOSE_TAILWIND_DOWNLOAD=0"):
+            resolve_tailwind_argv(ensure=True)
         urlopen.assert_not_called()
 
 

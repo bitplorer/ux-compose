@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 import io
 import os
-from unittest.mock import patch
+from pathlib import Path
 
 import pytest
 
@@ -56,10 +56,8 @@ def _trust(monkeypatch, data: bytes) -> None:
 def test_wrong_hash_fails_closed(only_download, monkeypatch):
     fetch = FakeFetch(BAD)
     monkeypatch.setattr(tw.urllib.request, "urlopen", fetch)
-    with patch.object(tw, "_from_npx") as npx:
-        with pytest.raises(tw.TailwindIntegrityError) as exc:
-            tw.resolve_tailwind(ensure=True)
-        npx.assert_not_called()
+    with pytest.raises(tw.TailwindIntegrityError) as exc:
+        tw.resolve_tailwind(ensure=True)
     msg = str(exc.value)
     assert tw.TAILWIND_STANDALONE_SHA256[tw.standalone_asset_name()] in msg
     assert _sha(BAD) in msg
@@ -137,19 +135,39 @@ def test_other_version_with_digest_is_verified(only_download, monkeypatch):
     assert fetch.urls[0].endswith(f"/v9.9.9/{tw.standalone_asset_name()}")
 
 
-def test_npx_argv_is_pinned(monkeypatch):
-    monkeypatch.delenv("UXCOMPOSE_TAILWIND_VERSION", raising=False)
+def test_no_npx_ever(only_download, monkeypatch, tmp_path):
+    """npx is not a resolver step: downloads off + npx on PATH -> clear error."""
+    import subprocess
+
+    monkeypatch.setenv("UXCOMPOSE_TAILWIND_DOWNLOAD", "0")
     monkeypatch.setattr(tw.shutil, "which", lambda name: f"/bin/{name}")
-    hit = tw._from_npx()
-    assert hit is not None and hit.source == "npx"
-    pin = tw.TAILWIND_STANDALONE_VERSION.lstrip("v")
-    assert pin == "4.1.12"
-    assert hit.argv == [
-        "/bin/npx", "--yes",
-        "-p", f"@tailwindcss/cli@{pin}",
-        "-p", f"tailwindcss@{pin}",
-        "tailwindcss",
-    ]
+    spawned = []
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: spawned.append(a))
+    monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: spawned.append(a))
+    with pytest.raises(FileNotFoundError) as exc:
+        tw.resolve_tailwind(ensure=True)
+    msg = str(exc.value)
+    assert "UXCOMPOSE_TAILWIND_DOWNLOAD=0" in msg and "UXCOMPOSE_TAILWIND" in msg
+    assert spawned == []
+    src = (Path(tw.__file__).parent / "tailwind.py").read_text(encoding="utf-8")
+    build = (Path(tw.__file__).parent / "cli" / "product_build.py").read_text(encoding="utf-8")
+    assert "npx" not in src and "npx" not in build
+
+
+@pytest.mark.parametrize(
+    "system, machine",
+    [("FreeBSD", "amd64"), ("Linux", "riscv64"), ("Windows", "ARM64"), ("Linux", "i686")],
+)
+def test_unsupported_platform_fails_closed(only_download, monkeypatch, system, machine):
+    monkeypatch.setattr(tw.platform, "system", lambda: system)
+    monkeypatch.setattr(tw.platform, "machine", lambda: machine)
+    fetch = FakeFetch(GOOD)
+    monkeypatch.setattr(tw.urllib.request, "urlopen", fetch)
+    with pytest.raises(tw.TailwindIntegrityError) as exc:
+        tw.resolve_tailwind(ensure=True)
+    assert f"{system}/{machine}" in str(exc.value)
+    assert "UXCOMPOSE_TAILWIND" in str(exc.value)
+    assert fetch.urls == []
 
 
 @pytest.mark.parametrize(

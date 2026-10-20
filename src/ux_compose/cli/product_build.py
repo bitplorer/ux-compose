@@ -169,17 +169,10 @@ def run_product_build(
         else:
             input_css, output_css = io
             output_css.parent.mkdir(parents=True, exist_ok=True)
-            missing = (
-                "Tailwind CLI not found. Install one of: "
-                "npm i -D @tailwindcss/cli · "
-                "or put tailwindcss on PATH."
-            )
             try:
                 hit = resolve_tailwind(cwd=root, ensure=True)
-            except TailwindIntegrityError as exc:
-                hit, missing = None, str(exc)
-            if hit is None:
-                report.steps.append(BuildStep("tailwind", False, missing))
+            except (TailwindIntegrityError, FileNotFoundError) as exc:
+                report.steps.append(BuildStep("tailwind", False, str(exc)))
             else:
                 use_minify = bool(minify) and not watch
                 cmd = argv_with_io(

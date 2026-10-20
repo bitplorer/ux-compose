@@ -173,11 +173,15 @@ tailwindcss \
 2. `tailwindcss` on PATH
 3. `pytailwindcss`'s binary for v4.1.12, only if its SHA256 matches
    (never `python -m pytailwindcss`, which downloads `latest` unverified)
-4. local `node_modules/.bin` / `@tailwindcss/cli` (never implicit npx here)
+4. local `node_modules/.bin` / `@tailwindcss/cli`
 5. cached official standalone under `$XDG_CACHE_HOME/ux-compose/` (v4.1.12),
    SHA256 checked on every use. A mismatch is deleted and downloaded again.
 6. download that standalone (`ensure=True`; `UXCOMPOSE_TAILWIND_DOWNLOAD=0` disables)
-7. last resort, only when no download ran: `npx --yes -p @tailwindcss/cli@4.1.12 -p tailwindcss@4.1.12 tailwindcss`
+
+There is no npx step. When none of these yields a CLI (downloads off, the
+download failed, or a platform with no pinned digest), `uxcompose build`
+fails with one error naming the platform. Point `UXCOMPOSE_TAILWIND` (or
+`TAILWINDCSS`) at a `tailwindcss` binary you trust, or put one on PATH.
 
 `uxcompose build` uses `ensure=True`. A missing CLI is a real error, not a skip.
 Product compile is here.
@@ -191,11 +195,12 @@ copied from the release's
 The download streams into `<asset>.part`, is hashed, and only a match is made
 executable and moved into the cache. A mismatch deletes the file, runs
 nothing, and fails the build with `TailwindIntegrityError` (expected digest,
-actual digest, URL). It does not fall back to npx.
+actual digest, URL). Nothing else is tried after that.
 
 | Variable | Effect |
 |----------|--------|
-| `UXCOMPOSE_TAILWIND_DOWNLOAD=0` | no download; empty cache goes to pinned npx |
+| `UXCOMPOSE_TAILWIND=/path/to/tailwindcss` | use that binary (your trust, not checked) |
+| `UXCOMPOSE_TAILWIND_DOWNLOAD=0` | no download; with an empty cache the build fails and says so |
 | `UXCOMPOSE_TAILWIND_VERSION=vX.Y.Z` | another release; refused unless `UXCOMPOSE_TAILWIND_SHA256` is set |
 | `UXCOMPOSE_TAILWIND_SHA256=<hex>` | expected digest of that release's asset for this platform |
 | `UXCOMPOSE_TAILWIND_VERSION=latest` | refused |

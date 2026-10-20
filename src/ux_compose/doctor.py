@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import ast
 import os
+import posixpath
 import re
 import socket
 import sys
@@ -395,13 +396,86 @@ def _lines(path: Path) -> list[str]:
     return [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines()]
 
 
-def _port_in_use(port: int) -> bool:
+def _port_in_use(host: str, port: int) -> bool:
+    """The bind uvicorn makes: SO_REUSEADDR, so TIME_WAIT does not count."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
-            s.bind(("127.0.0.1", port))
+            s.bind((host, port))
         except OSError:
             return True
     return False
+
+
+def _docker_regex(pattern: str) -> re.Pattern[str]:
+    """moby/patternmatcher: ``**`` spans directories; ``*``/``?`` stay in one."""
+    out, i = "", 0
+    while i < len(pattern):
+        c = pattern[i]
+        if pattern.startswith("**", i):
+            i += 2
+            if pattern.startswith("/", i):
+                i += 1
+            out += ".*" if i == len(pattern) else "(.*/)?"
+            continue
+        if c == "*":
+            out += "[^/]*"
+        elif c == "?":
+            out += "[^/]"
+        elif c == "\\" and i + 1 < len(pattern):
+            i += 1
+            if pattern[i].isalnum():
+                # Docker hands "\\d" etc. to Go regexp: a class or a syntax error.
+                raise ValueError(pattern)
+            out += re.escape(pattern[i])
+        elif c == "[" and "]" in pattern[i + 1 :]:
+            end = pattern.index("]", i + 1)
+            out += "[" + pattern[i + 1 : end] + "]"
+            i = end
+        else:
+            out += re.escape(c)
+        i += 1
+    return re.compile(out)
+
+
+def _dockerignored(dockerignore: Path, path: str) -> bool:
+    """Docker's ``.dockerignore`` reading: last matching line wins, ``!`` re-includes."""
+    if not dockerignore.is_file():
+        return False
+    ignored = False
+    for raw in dockerignore.read_text(encoding="utf-8").splitlines():
+        if raw.startswith("#"):
+            continue
+        pattern = raw.strip()
+        if not pattern:
+            continue
+        include = pattern.startswith("!")
+        if include:
+            pattern = pattern[1:].strip()
+        pattern = posixpath.normpath(pattern).lstrip("/") or "/"
+        parts = path.split("/")
+        parents = ("/".join(parts[:n]) for n in range(len(parts), 0, -1))
+        if any(_docker_regex(pattern).fullmatch(p) for p in parents):
+            ignored = not include
+    return ignored
+
+
+def _dotenv_row(root: Path) -> str:
+    if not (root / ".env").exists():
+        return _row("OK", ".env", "absent")
+    if (root / "Dockerfile").is_file():
+        try:
+            ignored = _dockerignored(root / ".dockerignore", ".env")
+        except ValueError as exc:
+            return _row(
+                "FAIL",
+                ".env",
+                f"present; .dockerignore pattern {str(exc)!r} cannot be checked "
+                "(backslash before a letter or digit)",
+            )
+        if not ignored:
+            return _row("FAIL", ".env", "present and not in .dockerignore — docker build would copy it")
+    return _row("WARN", ".env", "present — do not ship; set secrets on the host")
 
 
 def scan_product_readiness(
@@ -409,6 +483,7 @@ def scan_product_readiness(
     *,
     env: Mapping[str, str] | None = None,
     port: int | None = None,
+    host: str = "0.0.0.0",
 ) -> list[str]:
     """``doctor --prod`` rows: ``[OK  |WARN|FAIL] name: detail``.
 
@@ -417,6 +492,8 @@ def scan_product_readiness(
     """
     from ux_behavior.wire import debug_requests_dev
 
+    from ux_compose.scaffold import requirements_problem
+
     root = Path(root)
     source = os.environ if env is None else env
     if not (root / "app.py").is_file():
@@ -424,7 +501,7 @@ def scan_product_readiness(
             _row(
                 "FAIL",
                 "product",
-                f"no app.py in {root} — run uxcompose create-app, or pass the app root",
+                f"no app.py in {root.resolve()} — run uxcompose create-app, or pass the app root",
             )
         ]
     rows = [_row("OK", "product", "app.py")]
@@ -442,10 +519,10 @@ def scan_product_readiness(
     req = root / "requirements.txt"
     if not req.is_file():
         rows.append(_row("FAIL", "requirements", "requirements.txt missing — deploys install from it"))
-    elif not re.search(r"^\s*ux[-_.]compose\b", req.read_text(encoding="utf-8"), re.I | re.M):
-        rows.append(_row("FAIL", "requirements", "requirements.txt does not name ux-compose"))
+    elif problem := requirements_problem(req.read_text(encoding="utf-8")):
+        rows.append(_row("FAIL", "requirements", f"requirements.txt {problem}"))
     else:
-        rows.append(_row("OK", "requirements", "names ux-compose"))
+        rows.append(_row("OK", "requirements", "one line per distribution; names ux-compose"))
     missing = secret_readiness(source)
     rows.append(
         _row("FAIL", "secret", missing) if missing else _row("OK", "secret", "Channel attach can boot")
@@ -456,14 +533,7 @@ def scan_product_readiness(
         )
     else:
         rows.append(_row("OK", "DEBUG", "prod mode"))
-    if not (root / ".env").exists():
-        rows.append(_row("OK", ".env", "absent"))
-    elif (root / "Dockerfile").is_file() and ".env" not in _lines(root / ".dockerignore"):
-        rows.append(
-            _row("FAIL", ".env", "present and not in .dockerignore — docker build would copy it")
-        )
-    else:
-        rows.append(_row("WARN", ".env", "present — do not ship; set secrets on the host"))
+    rows.append(_dotenv_row(root))
     render = root / "render.yaml"
     if render.is_file():
         if "UX_CHANNEL_SECRET" in render.read_text(encoding="utf-8"):
@@ -482,10 +552,10 @@ def scan_product_readiness(
             detail = f"{rel} sets neither EnvironmentFile nor Environment=UX_CHANNEL_SECRET"
         rows.append(_row("OK" if ok else "FAIL", "deploy:vps", detail))
     if port is not None:
-        if _port_in_use(port):
-            rows.append(_row("WARN", f"port:{port}", f"in use on 127.0.0.1:{port}"))
+        if _port_in_use(host, port):
+            rows.append(_row("WARN", f"port:{port}", f"in use on {host}:{port}"))
         else:
-            rows.append(_row("OK", f"port:{port}", f"free on 127.0.0.1:{port}"))
+            rows.append(_row("OK", f"port:{port}", f"free on {host}:{port}"))
     return rows
 
 
@@ -679,10 +749,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument(
         "--prod", action="store_true", help="also check product readiness (first path is the app root)"
     )
-    parser.add_argument("--port", type=int, help="with --prod: warn when 127.0.0.1:PORT is taken")
+    parser.add_argument("--port", type=int, help="with --prod: warn when HOST:PORT cannot be bound")
+    parser.add_argument("--host", help="with --port: the address the app binds (default 0.0.0.0)")
     args = parser.parse_args(argv)
     if args.port is not None and not args.prod:
         parser.error("--port needs --prod")
+    if args.host is not None and args.port is None:
+        parser.error("--host needs --port")
     res = doctor(args.paths or ["."], fail=False)
     print("ux-compose doctor — protective coach")
     print(f"  Progressive level available: L{res.level_available}")
@@ -699,7 +772,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     else:
         print("  Isolation: OK — product autonomy and additive levels on a complete install.")
     if args.prod:
-        rows = scan_product_readiness((args.paths or ["."])[0], port=args.port)
+        rows = scan_product_readiness(
+            (args.paths or ["."])[0], port=args.port, host=args.host or "0.0.0.0"
+        )
         print("  Product readiness:")
         for row in rows:
             print(f"  {row}")

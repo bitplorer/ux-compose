@@ -23,6 +23,7 @@ from urllib.parse import urlparse
 from urllib.request import url2pathname
 import json
 import keyword
+import re
 import subprocess
 import sys
 
@@ -281,6 +282,44 @@ REQUIREMENTS = dedent('''\
     fastapi
     uvicorn[standard]
 ''')
+
+
+SPECIALISTS = ("ux-dom", "ux-channel", "ux-behavior", "ux-motion")
+# pip's own comment rule: '#' at line start or after whitespace (not in a URL fragment).
+_COMMENT = re.compile(r"(^|\s+)#.*$")
+
+
+def requirements_problem(text: str) -> str | None:
+    """Why ``requirements.txt`` breaks create-app's one-line rule, else None.
+
+    Each line is a PEP 508 requirement (``packaging``), one line per
+    distribution, ux-compose is named, and no specialist is pinned beside
+    it: a second ux-dom line is the "conflicting URLs" file pip and uv refuse.
+    """
+    from packaging.requirements import InvalidRequirement, Requirement
+    from packaging.utils import canonicalize_name
+
+    seen: dict[str, int] = {}
+    for number, raw in enumerate(text.splitlines(), 1):
+        line = _COMMENT.sub("", raw).strip()
+        if not line:
+            continue
+        try:
+            name = canonicalize_name(Requirement(line).name)
+        except InvalidRequirement:
+            return f"line {number} is not a requirement: {line!r}"
+        if name in seen:
+            return f"lists {name} twice (lines {seen[name]} and {number}); one line per distribution"
+        seen[name] = number
+    if "ux-compose" not in seen:
+        return "does not name ux-compose"
+    pinned = [name for name in SPECIALISTS if name in seen]
+    if pinned:
+        return (
+            f"pins {', '.join(pinned)} beside ux-compose; "
+            "specialists come with the ux-compose line"
+        )
+    return None
 
 
 class ComposeRefError(RuntimeError):
@@ -568,7 +607,9 @@ def create_app(
 __all__ = [
     "ComposeRefError",
     "ReservedDestError",
+    "SPECIALISTS",
     "compose_requirement",
     "create_app",
+    "requirements_problem",
     "reserved_dest_reason",
 ]

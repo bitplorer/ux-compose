@@ -104,22 +104,22 @@ environment, never imports the app and never opens the network.
 
 ```bash
 uxcompose doctor --prod                # in the app root
-uxcompose doctor --prod --port 8080    # also warn if 127.0.0.1:8080 is taken
+uxcompose doctor --prod --port 8080    # also warn if 0.0.0.0:8080 cannot be bound
 ```
 
 | Row | FAIL / WARN when |
 |-----|------------------|
 | `product` | FAIL: no `app.py` in the root (an empty dir fails; no other row is printed) |
 | `dep:uvicorn`, `dep:fastapi` | FAIL: not importable in the interpreter running `uxcompose` |
-| `requirements` | FAIL: `requirements.txt` missing, or no line names ux-compose (uvicorn and fastapi come with it) |
+| `requirements` | FAIL: `requirements.txt` missing, a line is not a PEP 508 requirement (`packaging`), a distribution is listed twice, ux-compose is not named, or a specialist (ux-dom, ux-channel, ux-behavior, ux-motion) is pinned beside it. `ux_compose.scaffold.requirements_problem(text)` is the check |
 | `secret` | FAIL: `secret_readiness()` returns the "Channel secret missing" line |
 | `DEBUG` | FAIL: `DEBUG` is dev (`debug_requests_dev`: `1` / `true` / `yes` / `on`) |
-| `.env` | WARN: present ("do not ship; set secrets on the host"). FAIL: present, a `Dockerfile` exists, and `.dockerignore` has no `.env` line |
+| `.env` | WARN: present ("do not ship; set secrets on the host"). FAIL: present, a `Dockerfile` exists, and `.dockerignore` does not exclude `.env` the way Docker reads it (`*`, `?`, `[…]`, `**`, `!` re-include, last match wins, leading `/` dropped, `#` comments). A pattern with `\` before a letter or digit FAILs as "cannot be checked" |
 | `deploy:render` | FAIL: `render.yaml` exists and does not declare `UX_CHANNEL_SECRET` |
 | `deploy:vps` | FAIL: a `deploy/*.service` unit has neither `EnvironmentFile=` nor `Environment=UX_CHANNEL_SECRET=` |
-| `port:N` | WARN: only with `--port N`, when 127.0.0.1:N cannot be bound |
+| `port:N` | WARN: only with `--port N`, when `--host` (default `0.0.0.0`, as `serve prod` and the deploy targets) cannot bind N with `SO_REUSEADDR`, as uvicorn binds |
 
-`--port` without `--prod` exits 2. `doctor` without `--prod` prints the
+`--port` without `--prod` and `--host` without `--port` exit 2. `doctor` without `--prod` prints the
 same report and exit code as before.
 
 Architecture: [../internals/hmr.md](../internals/hmr.md).

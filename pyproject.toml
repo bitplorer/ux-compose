@@ -32,6 +32,14 @@ dependencies = [
     "fastapi>=0.115",
     "starlette>=0.40",
     "uvicorn>=0.30",
+    # Dependency intake
+    # name: packaging
+    # version: >=24
+    # licence: Apache-2.0 OR BSD-2-Clause
+    # maintenance: PyPA (https://github.com/pypa/packaging)
+    # why: `uxcompose doctor --prod` parses requirements.txt as PEP 508
+    #      requirements (scaffold.requirements_problem), not with a regex.
+    "packaging>=24",
 ]
 
 [project.optional-dependencies]

@@ -263,8 +263,7 @@ def run_product_build(
                 if line.startswith("[ATTACH_SECRET_REQUIRED]")
             ]
             if refusal:
-                # One line, no traceback. "Missing" only when it is missing;
-                # a refused or unshared secret keeps ux-behavior's reason.
+                # One line, no traceback: ux-behavior's reason for refusing.
                 from ux_compose.doctor import secret_readiness
 
                 detail = secret_readiness(env) or refusal[0]

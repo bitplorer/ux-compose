@@ -29,7 +29,6 @@ __all__ = [
     "scan_store_clone",
     "scan_store_precedence",
     "secret_readiness",
-    "SECRET_MISSING",
     "scan_product_readiness",
 ]
 
@@ -363,27 +362,16 @@ def scan_store_precedence() -> list[str]:
     ]
 
 
-SECRET_MISSING = (
-    "Channel secret missing: set UX_CHANNEL_SECRET (≥16 chars) for prod, "
-    "or DEBUG=1 for a local build"
-)
-
-
 def secret_readiness(env: Mapping[str, str] | None = None) -> str | None:
-    """``SECRET_MISSING`` when Channel attach would refuse to boot, else None.
+    """One line when Channel attach would refuse the secret config, else None.
 
-    Attach needs ``UX_CHANNEL_SECRET`` or ``UX_BEHAVIOR_SECRET`` unless
-    ``DEBUG`` asks for dev. Dev is ux-behavior's ``debug_requests_dev`` —
-    one truthy set, owned there.
+    The rule is ux-behavior's ``attach_secret_problem``, the check ``attach()``
+    itself runs (length from ux-channel). Nothing is decided here.
     """
-    from ux_behavior.wire import debug_requests_dev
+    from ux_behavior.wire import attach_secret_problem
 
-    source = os.environ if env is None else env
-    if source.get("UX_CHANNEL_SECRET") or source.get("UX_BEHAVIOR_SECRET"):
-        return None
-    if debug_requests_dev(source):
-        return None
-    return SECRET_MISSING
+    problem = attach_secret_problem(env)
+    return f"Channel secret refused: {problem}" if problem else None
 
 
 def _row(mark: str, name: str, detail: str) -> str:
@@ -523,9 +511,9 @@ def scan_product_readiness(
         rows.append(_row("FAIL", "requirements", f"requirements.txt {problem}"))
     else:
         rows.append(_row("OK", "requirements", "one line per distribution; names ux-compose"))
-    missing = secret_readiness(source)
+    refused = secret_readiness(source)
     rows.append(
-        _row("FAIL", "secret", missing) if missing else _row("OK", "secret", "Channel attach can boot")
+        _row("FAIL", "secret", refused) if refused else _row("OK", "secret", "Channel attach can boot")
     )
     if debug_requests_dev(source):
         rows.append(

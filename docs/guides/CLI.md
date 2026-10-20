@@ -82,13 +82,14 @@ Outside dev, Channel attach needs `UX_CHANNEL_SECRET` (or
   `DEBUG=1` and one secret for the session. Without a secret in the env it
   mints one (`secrets.token_urlsafe(32)`), never written or printed, so a
   Cap minted by ui is accepted by channel. An env secret always wins.
-- `uxcompose build` and `uxcompose serve prod` without a secret print one
-  line, no traceback: `Channel secret missing: set UX_CHANNEL_SECRET (≥16
-  chars) for prod, or DEBUG=1 for a local build`. build exits 1, serve prod
-  exits 2. `ux_compose.doctor.secret_readiness(env)` is that check. When a
-  secret is set but refused (the published dev secret), or `REDIS_URL` is
-  set without one, build shows ux-behavior's own `[ATTACH_SECRET_REQUIRED]`
-  line instead, still without a traceback.
+- `uxcompose build`, `uxcompose serve prod` and `uxcompose doctor --prod`
+  print one line, no traceback, when attach would refuse the secret: it is
+  missing outside dev, shorter than 16 characters, the published dev
+  secret, or absent while `REDIS_URL` is set. The line is `Channel secret
+  refused: <reason>`. build exits 1, serve prod exits 2.
+  `ux_compose.doctor.secret_readiness(env)` is that check; it calls
+  ux-behavior's `attach_secret_problem`, the same function `attach()` runs,
+  so the gates and the boot cannot disagree.
 - `uxcompose deploy` declares `UX_CHANNEL_SECRET` for every target and
   never writes a value: render `generateValue: true`; fly `fly secrets set`;
   docker `docker run -e UX_CHANNEL_SECRET`; railway `railway variables
@@ -112,7 +113,7 @@ uxcompose doctor --prod --port 8080    # also warn if 0.0.0.0:8080 cannot be bou
 | `product` | FAIL: no `app.py` in the root (an empty dir fails; no other row is printed) |
 | `dep:uvicorn`, `dep:fastapi` | FAIL: not importable in the interpreter running `uxcompose` |
 | `requirements` | FAIL: `requirements.txt` missing, a line is not a PEP 508 requirement (`packaging`), a distribution is listed twice, ux-compose is not named, or a specialist (ux-dom, ux-channel, ux-behavior, ux-motion) is pinned beside it. `ux_compose.scaffold.requirements_problem(text)` is the check |
-| `secret` | FAIL: `secret_readiness()` returns the "Channel secret missing" line |
+| `secret` | FAIL: `secret_readiness()` returns a "Channel secret refused" line (ux-behavior's `attach_secret_problem`: missing outside dev, under 16 characters, the published dev secret, or `REDIS_URL` without one) |
 | `DEBUG` | FAIL: `DEBUG` is dev (`debug_requests_dev`: `1` / `true` / `yes` / `on`) |
 | `.env` | WARN: present ("do not ship; set secrets on the host"). FAIL: present, a `Dockerfile` exists, and `.dockerignore` does not exclude `.env` the way Docker reads it (`*`, `?`, `[…]`, `**`, `!` re-include, last match wins, leading `/` dropped, `#` comments). A pattern with `\` before a letter or digit FAILs as "cannot be checked" |
 | `deploy:render` | FAIL: `render.yaml` exists and does not declare `UX_CHANNEL_SECRET` |

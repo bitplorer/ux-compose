@@ -1,4 +1,4 @@
-"""A missing channel secret is one clear line, and serve dev shares one secret."""
+"""A refused channel secret is one clear line, and serve dev shares one secret."""
 from __future__ import annotations
 
 import os
@@ -14,42 +14,67 @@ sys.path.insert(0, str(ROOT / "src"))
 import pytest
 
 from ux_compose.cli.serve_dev import dev_session_env
-from ux_compose.doctor import SECRET_MISSING, secret_readiness
+from ux_compose.doctor import secret_readiness
 from ux_compose.scaffold import create_app
 
 SECRET = "explicit-secret-0123456789abcdef"
 _SCRUB = ("DEBUG", "UX_CHANNEL_SECRET", "UX_BEHAVIOR_SECRET", "REDIS_URL", "PYTHONPATH")
 
 
-def test_secret_missing_line_names_both_ways_out():
-    assert SECRET_MISSING == (
-        "Channel secret missing: set UX_CHANNEL_SECRET (≥16 chars) for prod, "
-        "or DEBUG=1 for a local build"
-    )
+_MISSING = (
+    "Channel secret refused: attach() requires UX_CHANNEL_SECRET or "
+    "UX_BEHAVIOR_SECRET outside dev; the public dev secret is not accepted"
+)
+_SHORT = (
+    "Channel secret refused: ux_channel refuses the channel secret: capability "
+    "secret must be at least 16 characters (use secrets.token_urlsafe(32) in production)"
+)
 
 
 @pytest.mark.parametrize(
-    "env, missing",
+    "env, line",
     [
-        ({}, True),
-        ({"DEBUG": ""}, True),
-        ({"DEBUG": "0"}, True),
-        ({"DEBUG": "false"}, True),
-        ({"DEBUG": "1"}, False),
-        ({"DEBUG": " True "}, False),
-        ({"DEBUG": "on"}, False),
-        ({"DEBUG": "false", "UX_CHANNEL_SECRET": SECRET}, False),
-        ({"UX_BEHAVIOR_SECRET": SECRET}, False),
+        ({}, _MISSING),
+        ({"DEBUG": ""}, _MISSING),
+        ({"DEBUG": "0"}, _MISSING),
+        ({"DEBUG": "false"}, _MISSING),
+        ({"DEBUG": "1"}, None),
+        ({"DEBUG": " True "}, None),
+        ({"DEBUG": "on"}, None),
+        ({"DEBUG": "false", "UX_CHANNEL_SECRET": SECRET}, None),
+        ({"UX_BEHAVIOR_SECRET": SECRET}, None),
+        ({"UX_CHANNEL_SECRET": "x" * 15}, _SHORT),
+        ({"UX_CHANNEL_SECRET": "x" * 16}, None),
     ],
 )
-def test_secret_readiness_truth_table(env, missing):
-    assert secret_readiness(env) == (SECRET_MISSING if missing else None)
+def test_secret_readiness_truth_table(env, line):
+    assert secret_readiness(env) == line
+
+
+@pytest.mark.parametrize(
+    "env",
+    [
+        {},
+        {"UX_CHANNEL_SECRET": "x" * 15},
+        {"UX_CHANNEL_SECRET": "dev-secret-key-32chars-minimum!!!!"},
+        {"DEBUG": "1", "UX_CHANNEL_SECRET": "short"},
+        {"DEBUG": "1", "REDIS_URL": "redis://127.0.0.1:1"},
+        {"UX_CHANNEL_SECRET": SECRET},
+        {"DEBUG": "1"},
+    ],
+)
+def test_secret_readiness_is_ux_behaviors_attach_rule(env):
+    """No rule lives here: the line is attach_secret_problem's, the check attach() runs."""
+    from ux_behavior.wire import attach_secret_problem
+
+    problem = attach_secret_problem(env)
+    assert secret_readiness(env) == (problem and f"Channel secret refused: {problem}")
 
 
 def test_secret_readiness_defaults_to_process_env(monkeypatch):
     for name in _SCRUB:
         monkeypatch.delenv(name, raising=False)
-    assert secret_readiness() == SECRET_MISSING
+    assert secret_readiness() == _MISSING
     monkeypatch.setenv("DEBUG", "yes")
     assert secret_readiness() is None
 
@@ -86,7 +111,7 @@ def test_serve_prod_without_secret_exits_2_with_one_line(tmp_path):
     out = proc.stdout + proc.stderr
     assert proc.returncode == 2, out
     assert elapsed < 5, elapsed
-    assert SECRET_MISSING in proc.stderr
+    assert _MISSING in proc.stderr
     assert "Traceback" not in out
 
 

@@ -45,7 +45,10 @@ def test_missing_secret_outside_dev_fails_boot(app_root, debug):
 def test_short_secret_fails_boot(app_root):
     proc = _boot(app_root, UX_CHANNEL_SECRET="thirteen-char")
     assert proc.returncode != 0
-    assert "ValueError: capability secret must be at least 16 characters" in proc.stderr
+    assert (
+        "[ATTACH_SECRET_REQUIRED] ux_channel refuses the channel secret: "
+        "capability secret must be at least 16 characters"
+    ) in proc.stderr
 
 
 def test_published_dev_secret_fails_boot(app_root):

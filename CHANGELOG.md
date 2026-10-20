@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   targets are not under it.
 
 - Trust now comes from `dispatch_verified(name, payload)` (one wire call after Channel accepts a Cap) or `app.trust()`, and the `_trusted` keyword is gone. `async_dispatch_verified` is the async twin. Developer-authored server code uses `app.trust()`. A bool no longer grants trust (ux-behavior #20, pin `09a9a65`).
-- Outside dev, a live FastAPI attach failure fails the boot. `wire/boot.py` sets `strict_attach=True`. `use_channel` raises when attach returns no channel, and a `TypeError` from attach is not retried. A missing secret raises `RuntimeError` (`attach() requires UX_CHANNEL_SECRET or UX_BEHAVIOR_SECRET outside dev`). A 13-character secret raises `ValueError` (`capability secret must be at least 16 characters`) because `strict_attach` re-raises `Channel.boot`. Without that flag the short secret becomes `RuntimeError` ("Channel attach returned no channel"). A `REDIS_URL` that `Channel.boot` refuses, or anything else `attach` raises, stops the process instead of continuing without Caps. Atelier shop and studio fail at boot the same way.
+- Outside dev, a live FastAPI attach failure fails the boot. `wire/boot.py` sets `strict_attach=True`. `use_channel` raises when attach returns no channel, and a `TypeError` from attach is not retried. A missing secret raises `RuntimeError` (`attach() requires UX_CHANNEL_SECRET or UX_BEHAVIOR_SECRET outside dev`). A 13-character secret raises `RuntimeError` from attach itself (`[ATTACH_SECRET_REQUIRED] ux_channel refuses the channel secret: capability secret must be at least 16 characters`), with or without `strict_attach`: attach checks the secret with ux-behavior's `attach_secret_problem` (pin `f12321f`, ux-behavior #22) before `Channel.boot`. A `REDIS_URL` that `Channel.boot` refuses, or anything else `attach` raises, stops the process instead of continuing without Caps. Atelier shop and studio fail at boot the same way.
 - `App.dispatch` takes the action name positionally (`dispatch(self, action, /, **kwargs)`). A payload key named `action` passes through as a normal keyword.
 - A posted key a named signature does not declare is a validation error (ux-behavior pin `09a9a65`), including a payload key named `self` and a host field such as `csrf`. The action does not run. The result is the ordinary validation result, never a 500. The component instance stays the component. A `**kwargs` signature does not receive that key either.
 - Kit `set_field` stays on `**kwargs`, matching main. The posted control name is not stored. Restoring those fields waits on a per-visitor state decision.
@@ -106,12 +106,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   upstream `-musl` assets. `TAILWINDCSS` is no longer read
   (`UXCOMPOSE_TAILWIND` is the one knob), and an unusable
   `UXCOMPOSE_TAILWIND` is an error.
-- A fresh app without `DEBUG` or `UX_CHANNEL_SECRET` gets one line, not a
-  traceback: `Channel secret missing: set UX_CHANNEL_SECRET (≥16 chars) for
-  prod, or DEBUG=1 for a local build`. `uxcompose build` exits 1 and
-  `uxcompose serve prod` exits 2 (`ux_compose.doctor.secret_readiness`).
-  A refused secret (the published dev secret, or `REDIS_URL` without one)
-  keeps ux-behavior's own one-line `[ATTACH_SECRET_REQUIRED]` reason.
+- A secret config that attach would refuse (missing outside dev, under 16
+  characters, the published dev secret, or `REDIS_URL` without one) gets
+  one line, not a traceback: `Channel secret refused: <reason>`.
+  `uxcompose build` exits 1 and `uxcompose serve prod` exits 2.
+  `ux_compose.doctor.secret_readiness` calls ux-behavior's
+  `attach_secret_problem` (pin `f12321f`, #22), the check `attach()` runs,
+  so no rule is copied here.
   `serve dev` gives its ui and channel workers `DEBUG=1` and one secret per
   session (minted when the env has none, never written or printed), so it
   serves `/` without `DEBUG` set. Scaffold `settings.py` and the apps read

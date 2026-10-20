@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import pytest
 
 from ux_compose.cli.deploy import prepare_deploy
-from ux_compose.doctor import SECRET_MISSING, main, scan_product_readiness
+from ux_compose.doctor import main, scan_product_readiness, secret_readiness
 from ux_compose.scaffold import create_app, requirements_problem
 
 # ``ux_compose.doctor`` the attribute is the function; this is the module.
@@ -132,8 +132,47 @@ def test_requirements_problem(text, problem):
 # secret (UC4 secret_readiness)
 
 
+SHORT_15 = "fifteen-chars-x"
+
+
+def test_short_secret_reported_by_doctor_and_build_and_refused_at_boot(app, monkeypatch, capsys):
+    """One rule (ux-behavior attach_secret_problem): what boot refuses, both gates report."""
+    import os
+    import subprocess
+
+    from ux_compose.cli import main as cli_main
+
+    assert len(SHORT_15) == 15
+    reason = "capability secret must be at least 16 characters"
+    monkeypatch.setenv("UX_CHANNEL_SECRET", SHORT_15)
+    monkeypatch.chdir(app)
+
+    boot = subprocess.run(
+        [sys.executable, "-c", "import app"],
+        cwd=app,
+        env={**os.environ, "PYTHONPATH": os.pathsep.join([str(app), str(ROOT / "src")])},
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert boot.returncode != 0
+    assert f"[ATTACH_SECRET_REQUIRED] ux_channel refuses the channel secret: {reason}" in boot.stderr
+
+    assert main(["--prod"]) == 1
+    assert f"[FAIL] secret: Channel secret refused: ux_channel refuses the channel secret: {reason}" in (
+        capsys.readouterr().out
+    )
+
+    assert cli_main(["build", "--skip-tailwind"]) == 1
+    out = capsys.readouterr().out
+    assert f"[FAIL] import:app:asgi: Channel secret refused: ux_channel refuses the channel secret: {reason}" in out
+    assert "Traceback" not in out
+
+
 def test_secret_missing_fails_with_uc4_line(app):
-    assert _row(scan_product_readiness(app, env={}), "secret") == f"[FAIL] secret: {SECRET_MISSING}"
+    assert _row(scan_product_readiness(app, env={}), "secret") == (
+        f"[FAIL] secret: {secret_readiness({})}"
+    )
 
 
 @pytest.mark.parametrize("key", ["UX_CHANNEL_SECRET", "UX_BEHAVIOR_SECRET"])
@@ -342,7 +381,7 @@ def test_no_port_row_without_port(app):
 def test_cli_prod_fresh_scaffold_fails_on_secret(app, capsys):
     assert main([str(app), "--prod"]) == 1
     out = capsys.readouterr().out
-    assert f"  [FAIL] secret: {SECRET_MISSING}\n" in out
+    assert f"  [FAIL] secret: {secret_readiness({})}\n" in out
     assert "Product readiness:" in out
 
 

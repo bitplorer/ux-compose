@@ -1,6 +1,7 @@
 """Outside dev, an attach failure must fail the boot.
 
-A 13-character secret is under Channel's 16-character minimum.
+A 13-character secret is under Channel's 16-character minimum; attach refuses
+it before ``Channel.boot`` (``ATTACH_SECRET_REQUIRED``).
 ``strict_attach=True`` makes ``live_asgi``, ``build()``, and both Atelier
 servers exit non-zero instead of continuing without Caps.
 """
@@ -70,7 +71,7 @@ def test_live_asgi_fails_on_13_char_secret():
     """A short secret is an attach failure. The process must not stay up."""
     assert len(SHORT_SECRET) == 13
     proc = _run([PY, "examples/live_asgi.py"], {"UX_CHANNEL_SECRET": SHORT_SECRET})
-    _assert_boot_failed(proc, "ATTACH_BOOT_FAILED", "at least 16 characters")
+    _assert_boot_failed(proc, "ATTACH_SECRET_REQUIRED", "at least 16 characters")
 
 
 def test_build_fails_on_13_char_secret():
@@ -81,7 +82,7 @@ def test_build_fails_on_13_char_secret():
         "build(Path('examples/live_asgi_app'), name='LiveDemo', host='fastapi', live='auto')\n"
     )
     proc = _run([PY, "-c", code], {"UX_CHANNEL_SECRET": SHORT_SECRET})
-    _assert_boot_failed(proc, "ATTACH_BOOT_FAILED", "at least 16 characters")
+    _assert_boot_failed(proc, "ATTACH_SECRET_REQUIRED", "at least 16 characters")
 
 
 def test_atelier_shop_boot_fails_without_channel_secret():
@@ -99,7 +100,7 @@ def test_atelier_shop_boot_fails_on_13_char_secret():
         [PY, "-c", "import apps.atelier_shop.server"],
         {"UX_CHANNEL_SECRET": SHORT_SECRET},
     )
-    _assert_boot_failed(proc, "ATTACH_BOOT_FAILED", "at least 16 characters")
+    _assert_boot_failed(proc, "ATTACH_SECRET_REQUIRED", "at least 16 characters")
 
 
 def test_atelier_studio_boot_fails_on_13_char_secret():
@@ -107,4 +108,4 @@ def test_atelier_studio_boot_fails_on_13_char_secret():
         [PY, "-c", "import apps.atelier_studio.server"],
         {"UX_CHANNEL_SECRET": SHORT_SECRET},
     )
-    _assert_boot_failed(proc, "ATTACH_BOOT_FAILED", "at least 16 characters")
+    _assert_boot_failed(proc, "ATTACH_SECRET_REQUIRED", "at least 16 characters")

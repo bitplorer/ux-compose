@@ -33,6 +33,8 @@ def test_dockerfile_relies_on_honest_requirements_txt():
     assert "pip install --no-cache-dir -r requirements.txt" in _DOCKERFILE
     assert "ux-compose ux-dom ux-behavior" not in _DOCKERFILE
     assert "FROM python:3.14-slim" in _DOCKERFILE
+    git = _DOCKERFILE.index("apt-get install -y --no-install-recommends git")
+    assert git < _DOCKERFILE.index("pip install --no-cache-dir -r requirements.txt")
 
 
 _PROVIDERS = ("docker", "fly", "render", "railway", "vps")

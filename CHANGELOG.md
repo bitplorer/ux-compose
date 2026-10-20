@@ -65,6 +65,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `apps/pulseboard` lose their `requirements.txt` (same conflict; the apps
   run from the repo on `pip install -e ".[dev]"`). CI resolves the
   scaffold's file with `uv pip compile`.
+- The `uxcompose deploy` Dockerfile installs `git` before
+  `pip install -r requirements.txt`. `python:3.14-slim` has no git, so the
+  git-pinned ux-compose line failed with "Cannot find command 'git'".
 - The standalone Tailwind CLI runs only after its SHA256 matches
   `TAILWIND_STANDALONE_SHA256` (v4.1.12, from the release's
   `sha256sums.txt`). A download that does not match is deleted and the build

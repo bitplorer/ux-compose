@@ -156,10 +156,10 @@ Runs `ux_compose.tailwind` (`discover_css_io` / `resolve_tailwind` /
 `argv_with_io`). Output is always `assets/static/file/css/output.css`.
 create-app already emits `assets/css/input.css`.
 
-Same argv, if you want the raw CLI:
+Same argv, if you want the raw CLI (any verified `tailwindcss` binary):
 
 ```bash
-python -m pytailwindcss \
+tailwindcss \
   -i assets/css/input.css \
   -o assets/static/file/css/output.css \
   --minify
@@ -171,14 +171,34 @@ python -m pytailwindcss \
 
 1. `UXCOMPOSE_TAILWIND` or `TAILWINDCSS`
 2. `tailwindcss` on PATH
-3. `pytailwindcss` (`pip install pytailwindcss`)
+3. `pytailwindcss`'s binary for v4.1.12, only if its SHA256 matches
+   (never `python -m pytailwindcss`, which downloads `latest` unverified)
 4. local `node_modules/.bin` / `@tailwindcss/cli` (never implicit npx here)
-5. cached official standalone under `$XDG_CACHE_HOME/ux-compose/` (v4.1.12)
+5. cached official standalone under `$XDG_CACHE_HOME/ux-compose/` (v4.1.12),
+   SHA256 checked on every use. A mismatch is deleted and downloaded again.
 6. download that standalone (`ensure=True`; `UXCOMPOSE_TAILWIND_DOWNLOAD=0` disables)
-7. last resort: `npx --yes @tailwindcss/cli`
+7. last resort, only when no download ran: `npx --yes -p @tailwindcss/cli@4.1.12 -p tailwindcss@4.1.12 tailwindcss`
 
 `uxcompose build` uses `ensure=True`. A missing CLI is a real error, not a skip.
 Product compile is here.
+
+### Verified download
+
+`ux_compose.tailwind.TAILWIND_STANDALONE_SHA256` holds the SHA256 of each
+standalone asset of v4.1.12 (linux x64/arm64, macOS x64/arm64, windows x64),
+copied from the release's
+[`sha256sums.txt`](https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.12/sha256sums.txt).
+The download streams into `<asset>.part`, is hashed, and only a match is made
+executable and moved into the cache. A mismatch deletes the file, runs
+nothing, and fails the build with `TailwindIntegrityError` (expected digest,
+actual digest, URL). It does not fall back to npx.
+
+| Variable | Effect |
+|----------|--------|
+| `UXCOMPOSE_TAILWIND_DOWNLOAD=0` | no download; empty cache goes to pinned npx |
+| `UXCOMPOSE_TAILWIND_VERSION=vX.Y.Z` | another release; refused unless `UXCOMPOSE_TAILWIND_SHA256` is set |
+| `UXCOMPOSE_TAILWIND_SHA256=<hex>` | expected digest of that release's asset for this platform |
+| `UXCOMPOSE_TAILWIND_VERSION=latest` | refused |
 
 Dev watch is the sibling process inside `uxcompose serve dev`, not a second
 `uxcompose build` invocation:
@@ -290,16 +310,11 @@ Add a build step **after** `COPY . .` so `@source` / content globs still see
 `routes/*.py`:
 
 ```dockerfile
-RUN pip install --no-cache-dir pytailwindcss \
- && python -m pytailwindcss \
-      -i assets/css/input.css \
-      -o assets/static/file/css/output.css \
-      --minify
+RUN uxcompose build --skip-import
 ```
 
-Do not run `--watch` in the image. Do not install Node only to compile CSS;
-`pytailwindcss` is the Python-native binary the resolver already prefers
-after PATH.
+That downloads the pinned standalone CLI and checks its SHA256 before it runs.
+Do not run `--watch` in the image. Do not install Node only to compile CSS.
 
 ### C. CI artifact
 

@@ -68,9 +68,8 @@ RUN pip install --no-cache-dir -U pip \\
 COPY . .
 
 # CSS: run `uxcompose build` before `docker build` so output.css is in COPY.
-# Or compile in the image (uncomment):
-# RUN pip install --no-cache-dir pytailwindcss \\
-#  && uxcompose build --skip-import
+# Or compile in the image (uncomment; downloads the pinned, SHA256-verified CLI):
+# RUN uxcompose build --skip-import
 
 EXPOSE 8080
 CMD ["sh", "-c", "uvicorn app:asgi --host 0.0.0.0 --port ${PORT:-8080}"]

@@ -134,7 +134,12 @@ def run_product_build(
 
     ``minify`` and ``watch`` are XOR (same as argv_with_io: minify wins).
     """
-    from ux_compose.tailwind import argv_with_io, discover_css_io, resolve_tailwind
+    from ux_compose.tailwind import (
+        TailwindIntegrityError,
+        argv_with_io,
+        discover_css_io,
+        resolve_tailwind,
+    )
 
     root = find_product_root(cwd, app_ref=app_ref)
     report = ProductBuildReport(root=root)
@@ -164,18 +169,17 @@ def run_product_build(
         else:
             input_css, output_css = io
             output_css.parent.mkdir(parents=True, exist_ok=True)
-            hit = resolve_tailwind(cwd=root, ensure=True)
+            missing = (
+                "Tailwind CLI not found. Install one of: "
+                "npm i -D @tailwindcss/cli · "
+                "or put tailwindcss on PATH."
+            )
+            try:
+                hit = resolve_tailwind(cwd=root, ensure=True)
+            except TailwindIntegrityError as exc:
+                hit, missing = None, str(exc)
             if hit is None:
-                report.steps.append(
-                    BuildStep(
-                        "tailwind",
-                        False,
-                        "Tailwind CLI not found. Install one of: "
-                        "pip install pytailwindcss · "
-                        "npm i -D @tailwindcss/cli · "
-                        "or put tailwindcss on PATH.",
-                    )
-                )
+                report.steps.append(BuildStep("tailwind", False, missing))
             else:
                 use_minify = bool(minify) and not watch
                 cmd = argv_with_io(

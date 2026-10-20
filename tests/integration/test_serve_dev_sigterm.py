@@ -1,9 +1,17 @@
 """Integration: a stop signal to ``uxcompose serve dev`` leaves no process behind.
 
 Starts the real command in a fresh scaffold, waits for ``GET /`` 200,
-records every descendant from ``/proc`` (stdlib only), signals the origin,
-and asserts that every descendant is gone and that the origin, ui and
-channel ports bind again at once. Linux only: it reads ``/proc``.
+opens the HMR WebSocket through origin, records every descendant from
+``/proc`` (stdlib only), signals the origin, and asserts that:
+
+- the WebSocket gets a close frame (1012, what uvicorn sends on shutdown);
+- every descendant is gone, including the ui reloader's
+  ``multiprocessing`` worker and resource tracker;
+- the exit status is main's: Ctrl-C exits 0, SIGTERM and SIGHUP end the
+  process by that signal (uvicorn re-raises SIGTERM; SIGHUP is default);
+- the origin, ui and channel ports bind again at once.
+
+Linux only: it reads ``/proc``.
 """
 from __future__ import annotations
 
@@ -18,6 +26,8 @@ import urllib.request
 from pathlib import Path
 
 import pytest
+from websockets.exceptions import ConnectionClosed
+from websockets.sync.client import connect
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
@@ -140,6 +150,11 @@ def serve_dev(tmp_path):
         ports = [port] + [int(p) for p in re.findall(r"(?:ui|channel) http://127\.0\.0\.1:(\d+)", text)]
         assert len(ports) == 3, text
         proc.app_root = root
+        cmds = " | ".join(_alive(seen).values())
+        # uvicorn --reload: the ui worker and the resource tracker it starts.
+        assert "multiprocessing.spawn import spawn_main" in cmds, cmds
+        assert "multiprocessing.resource_tracker import main" in cmds, cmds
+        proc.hmr = connect(f"ws://127.0.0.1:{port}/__uxcompose/hmr", open_timeout=10)
         yield proc, ports, seen, log
     finally:
         seen.update(_descendants(proc.pid))
@@ -154,7 +169,17 @@ def serve_dev(tmp_path):
             proc.wait()
 
 
+# Exit status of serve dev on main, kept as is (Popen returncode).
+EXPECTED_RC = {signal.SIGINT: 0, signal.SIGTERM: -signal.SIGTERM, signal.SIGHUP: -signal.SIGHUP}
+
+
 def _assert_clean_exit(proc, ports, seen, log, signum) -> None:
+    t0 = time.monotonic()
+    with pytest.raises(ConnectionClosed) as closed:
+        proc.hmr.recv(timeout=10)
+    assert time.monotonic() - t0 < 10
+    assert closed.value.rcvd is not None, "no close frame"
+    assert closed.value.rcvd.code == 1012
     try:
         rc = proc.wait(timeout=15)
     except subprocess.TimeoutExpired:
@@ -166,7 +191,7 @@ def _assert_clean_exit(proc, ports, seen, log, signum) -> None:
             break
         time.sleep(0.1)
     assert _alive(seen) == {}, log.read_text()
-    assert rc == 128 + signum, log.read_text()
+    assert rc == EXPECTED_RC[signum], log.read_text()
     for p in ports:
         assert _binds(p), f"port {p} still held"
 

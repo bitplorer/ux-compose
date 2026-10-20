@@ -248,9 +248,7 @@ def _installed(monkeypatch, direct_url, version="0.2.0"):
     """The checkout's egg-info (PYTHONPATH=src) comes first, as it does in this repo."""
     from ux_compose import scaffold
 
-    found = [_Dist(direct_url, version)]
-    if direct_url is not None:
-        found.insert(0, _Dist(None, version))
+    found = [_Dist(None, version), _Dist(direct_url, version)]
     monkeypatch.setattr(scaffold.metadata, "distributions", lambda name: found)
 
 
@@ -298,9 +296,30 @@ def test_create_app_pins_local_checkout_head(tmp_path, monkeypatch, capsys):
     assert "uncommitted changes are not in it" in capsys.readouterr().err
 
 
-def test_create_app_index_install_pins_version(tmp_path, monkeypatch):
-    _installed(monkeypatch, None, version="0.2.0")
-    assert str(_compose_line(create_app(tmp_path / "idx"))) == "ux-compose==0.2.0"
+def test_create_app_refuses_stale_egg_info(tmp_path, monkeypatch, capsys):
+    """Review repro: PYTHONPATH=src with an old egg-info and no installed record."""
+    from importlib import metadata
+
+    from ux_compose import scaffold
+    from ux_compose.cli.create_app import main
+
+    src = tmp_path / "src"
+    egg = src / "ux_compose.egg-info"
+    egg.mkdir(parents=True)
+    (egg / "PKG-INFO").write_text(
+        "Metadata-Version: 2.1\nName: ux-compose\nVersion: 0.2.0\n", encoding="utf-8"
+    )
+    real = metadata.distributions
+    monkeypatch.setattr(
+        scaffold.metadata, "distributions", lambda name: real(name=name, path=[str(src)])
+    )
+    assert [d.version for d in scaffold.metadata.distributions("ux-compose")] == ["0.2.0"]
+
+    assert main([str(tmp_path / "bare")]) == 1
+    err = capsys.readouterr().err
+    assert "no install record (direct_url.json)" in err
+    assert "git at a commit" in err and "editable git checkout" in err
+    assert not (tmp_path / "bare").exists()
 
 
 def test_create_app_refuses_unknown_ref(tmp_path, monkeypatch):
@@ -308,6 +327,6 @@ def test_create_app_refuses_unknown_ref(tmp_path, monkeypatch):
 
     wheel = (tmp_path / "ux_compose-0.2.0-py3-none-any.whl").as_uri()
     _installed(monkeypatch, {"url": wheel, "archive_info": {}})
-    with pytest.raises(ComposeRefError, match="has nothing to pin"):
+    with pytest.raises(ComposeRefError, match="has nothing to pin.*editable git checkout"):
         create_app(tmp_path / "wheel")
     assert not (tmp_path / "wheel").exists()

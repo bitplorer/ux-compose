@@ -57,9 +57,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   ux-compose line and no specialist lines; the specialists come with that
   commit's pins. The line is the running ux-compose: the git commit from
   `direct_url.json`, the `HEAD` of an editable checkout (with a note, and a `WARNING` when
-  HEAD is on no remote branch),
-  `==<version>` from an index, or a remote archive URL. A local wheel
-  install makes create-app exit 1 (`ComposeRefError`). `COMPOSE_VCS_PIN`
+  HEAD is on no remote branch), or a remote archive URL. Any other
+  install (no `direct_url.json`, such as `PYTHONPATH=src` with a stale
+  egg-info, or a local wheel) makes create-app exit 1 with
+  `ComposeRefError` and write nothing; ux-compose is on no index. `COMPOSE_VCS_PIN`
   and the specialist `*_VCS_PIN` constants are gone.
   `test_pins_agree_in_all_four_places` reads the specialist pins from the
   `pyproject.toml` of the commit create-app pins. `apps/nook` and

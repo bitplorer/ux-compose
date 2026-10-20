@@ -300,27 +300,39 @@ def _git(checkout: Path, *args: str) -> str | None:
     return out.stdout.strip()
 
 
+_SUPPORTED_INSTALLS = (
+    "create-app supports two ux-compose installs: git at a commit "
+    f"(pip install 'ux-compose @ git+{COMPOSE_GIT}@<sha>') or an editable git "
+    "checkout (pip install -e <checkout>). Install one, then rerun."
+)
+
+
 def compose_requirement() -> tuple[str, str | None]:
     """The requirement line for the running ux-compose, and a note to print.
 
     - VCS install: the ``direct_url.json`` commit (PEP 610).
     - Editable or local-directory install: that checkout's ``HEAD``.
-    - Index install (no ``direct_url.json``): ``ux-compose==<version>``.
-    - Remote archive: its URL. Anything else raises ``ComposeRefError``.
+    - Remote archive: its URL.
+
+    No ux-* package is on an index, so a record without ``direct_url.json``
+    (an index install, or ``PYTHONPATH=src`` finding a stale egg-info) and
+    everything else raise ``ComposeRefError``.
     """
     # PYTHONPATH=src also finds the checkout's egg-info, which has no
     # direct_url.json; the installed record is the one that says where from.
-    dists = list(metadata.distributions(name="ux-compose"))
-    if not dists:
-        raise ComposeRefError(
-            "create-app: ux-compose is not installed, so the commit to pin in "
-            "requirements.txt is unknown. Install it from git or as an editable "
-            "checkout, then rerun."
-        )
-    dist = next((d for d in dists if d.read_text("direct_url.json")), dists[0])
-    raw = dist.read_text("direct_url.json")
+    raw = next(
+        (
+            text
+            for d in metadata.distributions(name="ux-compose")
+            if (text := d.read_text("direct_url.json"))
+        ),
+        None,
+    )
     if raw is None:
-        return f"ux-compose=={dist.version}", None
+        raise ComposeRefError(
+            "create-app: ux-compose has no install record (direct_url.json), so "
+            "requirements.txt has nothing to pin. " + _SUPPORTED_INSTALLS
+        )
     info = json.loads(raw)
     url = info.get("url", "")
     vcs = info.get("vcs_info") or {}
@@ -353,9 +365,7 @@ def compose_requirement() -> tuple[str, str | None]:
         return f"ux-compose @ {url}", None
     raise ComposeRefError(
         f"create-app: ux-compose was installed from {url} with no commit, so "
-        "requirements.txt has nothing to pin. Install ux-compose from git at a "
-        f"commit (pip install 'ux-compose @ git+{COMPOSE_GIT}@<sha>') or as an "
-        "editable git checkout, then rerun."
+        "requirements.txt has nothing to pin. " + _SUPPORTED_INSTALLS
     )
 
 

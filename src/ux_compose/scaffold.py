@@ -111,13 +111,15 @@ SETTINGS_PY = dedent('''\
     """
     from __future__ import annotations
 
-    import os
     from pathlib import Path
 
+    from ux_behavior.wire import debug_requests_dev
     from ux_compose import WebAssets
 
     BASE_DIR = Path(__file__).resolve().parent
-    DEBUG = os.environ.get("DEBUG", "1") not in ("0", "false", "False")
+    # Same switch as Channel attach: DEBUG=1/true/yes/on is dev, unset is prod.
+    # uxcompose serve dev sets DEBUG=1 for its workers.
+    DEBUG = debug_requests_dev()
 
     # FastAPI Swagger / ReDoc / OpenAPI JSON. Off so routes/docs.py can own GET /docs.
     # Opt in: OPENAPI = True, or build(openapi=True).
@@ -334,6 +336,11 @@ README = dedent('''\
     uxcompose deploy --provider docker
     uxcompose doctor .
     ```
+
+    `uxcompose serve dev` sets dev mode (`DEBUG=1`) and one channel secret
+    for its workers. Unset `DEBUG` is prod: `uxcompose build`, `serve prod`
+    and deploys need `UX_CHANNEL_SECRET` (≥16 chars, never commit it), or
+    `DEBUG=1` for a local build.
 
     `uxcompose build` finds and runs the Tailwind CLI (`ux_compose.tailwind`).
     Output: `assets/static/file/css/output.css`, linked as `/css/output.css`.

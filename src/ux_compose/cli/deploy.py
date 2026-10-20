@@ -1,6 +1,7 @@
 """uxcompose deploy — generate deploy configs for product ASGI apps.
 
 Does not upload secrets/cloud. Prepares Dockerfile / fly / render / railway / vps.
+Every target declares ``UX_CHANNEL_SECRET`` as required. No file holds its value.
 Default ASGI entry: ``app:asgi`` (uxcompose create-app composition root).
 """
 from __future__ import annotations
@@ -71,6 +72,8 @@ COPY . .
 # Or compile in the image (uncomment; downloads the pinned, SHA256-verified CLI):
 # RUN uxcompose build --skip-import
 
+# Channel needs UX_CHANNEL_SECRET (>=16 chars) at run time. Never bake it in:
+#   docker run -e UX_CHANNEL_SECRET ...
 EXPOSE 8080
 CMD ["sh", "-c", "uvicorn app:asgi --host 0.0.0.0 --port ${PORT:-8080}"]
 """
@@ -113,8 +116,8 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app:asgi --host 0.0.0.0 --port $PORT
     envVars:
-      - key: DEBUG
-        value: "false"
+      - key: UX_CHANNEL_SECRET
+        generateValue: true
 """
 
 _RAILWAY = """\
@@ -137,12 +140,17 @@ After=network.target
 User=www-data
 WorkingDirectory=/var/www/{app_name}
 Environment=PORT=8080
+EnvironmentFile=/etc/{app_name}.env
 ExecStart=/var/www/{app_name}/.venv/bin/uvicorn app:asgi --host 0.0.0.0 --port 8080
 Restart=always
 
 [Install]
 WantedBy=multi-user.target
 """
+
+
+_SECRET_STEP = "Set UX_CHANNEL_SECRET (≥16 chars, never commit it)"
+_MAKE_SECRET = "$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
 
 
 def prepare_deploy(
@@ -164,7 +172,7 @@ def prepare_deploy(
         result.instructions = [
             "1. uxcompose build",
             "2. uxcompose doctor .",
-            "3. Set secrets / DEBUG=false on host",
+            f"3. {_SECRET_STEP}",
             "4. uvicorn app:asgi --host 0.0.0.0 --port 8080",
             "5. TLS reverse proxy in front",
         ]
@@ -177,7 +185,8 @@ def prepare_deploy(
             result.files_written.append(".dockerignore")
         result.instructions = [
             f"docker build -t {name} .",
-            f"docker run --rm -p 8080:8080 {name}",
+            f"export UX_CHANNEL_SECRET={_MAKE_SECRET}",
+            f"docker run --rm -p 8080:8080 -e UX_CHANNEL_SECRET {name}",
         ]
     elif provider == "fly":
         if not (root / "Dockerfile").exists():
@@ -185,15 +194,28 @@ def prepare_deploy(
             result.files_written.append("Dockerfile")
         if _write(root / "fly.toml", _FLY.format(app_name=name), force=force):
             result.files_written.append("fly.toml")
-        result.instructions = ["fly auth login", f"fly apps create {name}", "fly deploy"]
+        result.instructions = [
+            "fly auth login",
+            f"fly apps create {name}",
+            f"fly secrets set UX_CHANNEL_SECRET={_MAKE_SECRET}",
+            "fly deploy",
+        ]
     elif provider == "render":
         if _write(root / "render.yaml", _RENDER.format(app_name=name), force=force):
             result.files_written.append("render.yaml")
-        result.instructions = ["Push repo → Render Blueprint with render.yaml"]
+        result.instructions = [
+            "Push repo → Render Blueprint with render.yaml "
+            "(Render generates UX_CHANNEL_SECRET)",
+        ]
     elif provider == "railway":
         if _write(root / "railway.json", _RAILWAY, force=force):
             result.files_written.append("railway.json")
-        result.instructions = ["railway login", "railway init && railway up"]
+        result.instructions = [
+            "railway login",
+            "railway init",
+            f'railway variables --set "UX_CHANNEL_SECRET={_MAKE_SECRET}"',
+            "railway up",
+        ]
     elif provider == "vps":
         unit = f"deploy/{name}.service"
         if _write(root / unit, _SYSTEMD.format(app_name=name), force=force):
@@ -201,6 +223,8 @@ def prepare_deploy(
         result.instructions = [
             f"rsync to /var/www/{name}",
             "python -m venv .venv && pip install -r requirements.txt",
+            f"echo \"UX_CHANNEL_SECRET={_MAKE_SECRET}\" | sudo tee /etc/{name}.env "
+            f"&& sudo chmod 600 /etc/{name}.env",
             f"sudo cp {unit} /etc/systemd/system/ && systemctl enable --now {name}",
         ]
     else:

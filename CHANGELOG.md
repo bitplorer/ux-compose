@@ -50,6 +50,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   upstream `-musl` assets. `TAILWINDCSS` is no longer read
   (`UXCOMPOSE_TAILWIND` is the one knob), and an unusable
   `UXCOMPOSE_TAILWIND` is an error.
+- A fresh app without `DEBUG` or `UX_CHANNEL_SECRET` gets one line, not a
+  traceback: `Channel secret missing: set UX_CHANNEL_SECRET (≥16 chars) for
+  prod, or DEBUG=1 for a local build`. `uxcompose build` exits 1 and
+  `uxcompose serve prod` exits 2 (`ux_compose.doctor.secret_readiness`).
+  `serve dev` gives its ui and channel workers `DEBUG=1` and one secret per
+  session (minted when the env has none, never written or printed), so it
+  serves `/` without `DEBUG` set. Scaffold `settings.py` and the apps read
+  `DEBUG` with ux-behavior's `debug_requests_dev()`: unset is prod, as it is
+  for Channel attach. `uxcompose deploy` declares `UX_CHANNEL_SECRET` for
+  every target without a value; render.yaml uses `generateValue: true` and
+  drops `DEBUG=false`. Outside dev a missing secret still fails boot (#114).
+  ux-behavior pin `938832d` (#21, public `DEBUG_TRUTHY` /
+  `debug_requests_dev`).
+
 - `uxcompose serve prod` imports `app:asgi` from the current directory
   without `PYTHONPATH=.`. It passes the cwd as uvicorn's `app_dir`, the
   same default the `uvicorn` CLI uses. Before, the installed console script

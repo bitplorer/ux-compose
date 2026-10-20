@@ -332,8 +332,8 @@ Do not run `--watch` in the image. Do not install Node only to compile CSS.
 Same minify command in GitHub Actions (or equivalent). Upload `output.css`.
 The deploy job copies it next to the app. Image stays slim.
 
-Set `DEBUG=false` on the host either way (`uxdom` doctor warns if it stays
-true). Tailwind minify is independent of that flag. Prefer a file on disk
+Leave `DEBUG` unset on the host and set `UX_CHANNEL_SECRET` either way
+(`uxcompose deploy` declares it). Tailwind minify is independent of that flag. Prefer a file on disk
 so workers do not race the compiler. `TailwindStyle` on ux-dom fails closed.
 
 ---

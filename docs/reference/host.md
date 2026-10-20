@@ -432,6 +432,8 @@ error `Channel.boot` raises, is an attach failure too. `wire/boot.py`
 sets `strict_attach=True` before `attach`, so the error propagates.
 `use_channel` raises when that call returns no channel. A `TypeError`
 from `attach` stops the boot; compose does not retry without `secret=`.
-Compose does not invent a secret and does not continue without Caps. `examples/live_asgi.py`, `apps/atelier_shop`, and
+Outside `uxcompose serve dev`, compose does not invent a secret and does
+not continue without Caps. `serve dev` mints one secret per session for its
+two workers (see [CLI](../guides/CLI.md#channel-secret-and-debug)). `examples/live_asgi.py`, `apps/atelier_shop`, and
 `apps/atelier_studio` fail the process. Dev is `DEBUG` in `1` / `true` /
-`yes` / `on`.
+`yes` / `on` (`ux_behavior.wire.debug_requests_dev`); unset is prod.

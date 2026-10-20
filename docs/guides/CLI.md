@@ -51,6 +51,27 @@ live in `cli/serve_dev.py` (sibling Tailwind `--watch` + tunnel). Leftover
 `start_css_watcher=` is gone. argv `development` / `production` /
 `restart_channel` fail closed — not synonyms. No `serve/` /
 `services/` packages. Library modules do not import `ux_compose.cli`.
+
+### Channel secret and `DEBUG`
+
+Dev is ux-behavior's `debug_requests_dev()`: `DEBUG` in `1` / `true` /
+`yes` / `on`. Unset `DEBUG` is prod, in the scaffold's `settings.py` too.
+Outside dev, Channel attach needs `UX_CHANNEL_SECRET` (or
+`UX_BEHAVIOR_SECRET`, ≥16 chars).
+
+- `uxcompose serve dev` is dev by verb. Its ui and channel workers get
+  `DEBUG=1` and one secret for the session. Without a secret in the env it
+  mints one (`secrets.token_urlsafe(32)`), never written or printed, so a
+  Cap minted by ui is accepted by channel. An env secret always wins.
+- `uxcompose build` and `uxcompose serve prod` without a secret print one
+  line, no traceback: `Channel secret missing: set UX_CHANNEL_SECRET (≥16
+  chars) for prod, or DEBUG=1 for a local build`. build exits 1, serve prod
+  exits 2. `ux_compose.doctor.secret_readiness(env)` is that check.
+- `uxcompose deploy` declares `UX_CHANNEL_SECRET` for every target and
+  never writes a value: render `generateValue: true`; fly `fly secrets set`;
+  docker `docker run -e UX_CHANNEL_SECRET`; railway `railway variables
+  --set`; vps `EnvironmentFile=/etc/<name>.env`; checklist step 3.
+
 Architecture: [../internals/hmr.md](../internals/hmr.md).
 Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md).
 CSS how-to: [TAILWIND.md](TAILWIND.md).

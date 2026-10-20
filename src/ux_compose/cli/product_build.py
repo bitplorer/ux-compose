@@ -256,7 +256,12 @@ def run_product_build(
                 timeout=30,
                 env={**os.environ, "PYTHONPATH": str(root)},
             )
-            detail = (proc.stdout or proc.stderr or "").strip()[:200]
+            if "ATTACH_SECRET_REQUIRED" in (proc.stderr or ""):
+                from ux_compose.doctor import SECRET_MISSING
+
+                detail = SECRET_MISSING
+            else:
+                detail = (proc.stdout or proc.stderr or "").strip()[:200]
             report.steps.append(
                 BuildStep(
                     f"import:{app_ref}",

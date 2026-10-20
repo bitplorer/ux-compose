@@ -203,23 +203,29 @@ def run_product_build(
                         )
                     )
                 else:
-                    proc = subprocess.run(
-                        cmd,
-                        cwd=str(root),
-                        capture_output=True,
-                        text=True,
-                        timeout=180,
-                        env=env,
-                    )
-                    out = ((proc.stdout or "") + (proc.stderr or "")).strip()
-                    ok = proc.returncode == 0
-                    detail = f"{hit.source} exit {proc.returncode}"
-                    if out:
-                        detail += f" · {out[:200]}"
-                    if ok and output_css.is_file():
-                        detail += f" · wrote {output_css.relative_to(root)}"
-                        report.output_css = output_css
-                    report.steps.append(BuildStep("tailwind", ok, detail))
+                    try:
+                        proc = subprocess.run(
+                            cmd,
+                            cwd=str(root),
+                            capture_output=True,
+                            text=True,
+                            timeout=180,
+                            env=env,
+                        )
+                    except OSError as exc:
+                        report.steps.append(
+                            BuildStep("tailwind", False, f"{hit.source}: cannot run {exc}")
+                        )
+                    else:
+                        out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+                        ok = proc.returncode == 0
+                        detail = f"{hit.source} exit {proc.returncode}"
+                        if out:
+                            detail += f" · {out[:200]}"
+                        if ok and output_css.is_file():
+                            detail += f" · wrote {output_css.relative_to(root)}"
+                            report.output_css = output_css
+                        report.steps.append(BuildStep("tailwind", ok, detail))
 
     if skip_import:
         report.steps.append(BuildStep("import", True, "skipped"))

@@ -43,7 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and could not be verified. With no CLI (downloads off, a failed download,
   or a platform outside the digest table) `uxcompose build` fails with one
   error naming the platform and `UXCOMPOSE_TAILWIND`. `ensure_tailwind` is
-  removed; `resolve_tailwind(ensure=True)` raises instead.
+  removed; `resolve_tailwind(ensure=True)` raises instead. A failed
+  download names the URL, the requested version and the cause. Parallel
+  cold-cache builds each download into their own temp file and
+  `os.replace` a verified binary into the cache. musl Linux gets the
+  upstream `-musl` assets. `TAILWINDCSS` is no longer read
+  (`UXCOMPOSE_TAILWIND` is the one knob), and an unusable
+  `UXCOMPOSE_TAILWIND` is an error.
 - `uxcompose serve prod` imports `app:asgi` from the current directory
   without `PYTHONPATH=.`. It passes the cwd as uvicorn's `app_dir`, the
   same default the `uvicorn` CLI uses. Before, the installed console script

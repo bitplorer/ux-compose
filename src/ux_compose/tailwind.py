@@ -9,7 +9,7 @@ Sibling ``--watch`` spawn for ``serve dev`` lives here
 
 Order (first hit wins):
 
-1. ``UXCOMPOSE_TAILWIND`` or ``TAILWINDCSS``
+1. ``UXCOMPOSE_TAILWIND`` (set but unusable is an error)
 2. ``tailwindcss`` on PATH
 3. ``pytailwindcss``'s binary for the pinned version, SHA256 checked
 4. local ``node_modules/.bin`` / ``@tailwindcss/cli``
@@ -28,11 +28,13 @@ Never copies library JS. CSS output stays in the app WebAssets tree.
 from __future__ import annotations
 
 import hashlib
+import http.client
 import os
 import platform
 import shutil
 import stat
 import sys
+import tempfile
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -68,6 +70,8 @@ TAILWIND_STANDALONE_SHA256: dict[str, str] = {
     "tailwindcss-macos-x64": "fc935d51813442472c2e1b28582fec3df204379e53d5724937d516dd425af37c",
     "tailwindcss-macos-arm64": "7d69be1776bbe8a49e15714d9873d08959c320aff0f0714d8d8e6d9d00d9b543",
     "tailwindcss-windows-x64.exe": "27e14fd9c0872281464da9c0991709e0f7cadedc60e4acfac371299246d54669",
+    "tailwindcss-linux-x64-musl": "a8a1926a2951a5da0684c568d612bc0a590600334d3a85d0e63ea90ac7ced2e5",
+    "tailwindcss-linux-arm64-musl": "eaedd516e9885a02ca752833b8acbf378c463b89abc1bf00f307fe4f523e1e7f",
 }
 
 
@@ -122,20 +126,30 @@ def _platform() -> str:
     return f"{platform.system()}/{platform.machine()}"
 
 
+def _is_musl(lib: Path = Path("/lib")) -> bool:
+    """musl Linux: not glibc, and the musl loader the musl assets ask for exists."""
+    if platform.libc_ver()[0] == "glibc":
+        return False
+    return any(lib.glob("ld-musl-*.so.1"))
+
+
 def standalone_asset_name() -> str:
     """Official standalone asset for this platform; refuse one with no digest."""
     sysname = platform.system().lower()
     machine = platform.machine().lower()
     arch = {"x86_64": "x64", "amd64": "x64", "aarch64": "arm64", "arm64": "arm64"}.get(machine)
     os_name = {"linux": "linux", "darwin": "macos", "windows": "windows"}.get(sysname)
-    name = f"tailwindcss-{os_name}-{arch}" + (".exe" if os_name == "windows" else "")
+    name = f"tailwindcss-{os_name}-{arch}"
+    if os_name == "windows":
+        name += ".exe"
+    elif os_name == "linux" and _is_musl():
+        name += "-musl"
     if name not in TAILWIND_STANDALONE_SHA256:
         raise TailwindIntegrityError(
             f"no verified Tailwind standalone CLI for {_platform()} "
             f"(pinned {TAILWIND_STANDALONE_VERSION} covers "
             f"{', '.join(TAILWIND_STANDALONE_SHA256)}). Set UXCOMPOSE_TAILWIND "
-            "(or TAILWINDCSS) to a tailwindcss binary you trust, or put "
-            "tailwindcss on PATH."
+            "to a tailwindcss binary you trust, or put tailwindcss on PATH."
         )
     return name
 
@@ -145,22 +159,18 @@ def _split_cmd(value: str) -> list[str]:
 
 
 def _from_env() -> Optional[TailwindResolution]:
-    raw = (
-        os.environ.get("UXCOMPOSE_TAILWIND")
-        or os.environ.get("TAILWINDCSS")
-    )
+    raw = os.environ.get("UXCOMPOSE_TAILWIND")
     if not raw:
         return None
     parts = _split_cmd(raw)
     if not parts:
         return None
-    if len(parts) == 1 and Path(parts[0]).is_file():
+    if shutil.which(parts[0]) or Path(parts[0]).is_file():
         return TailwindResolution(parts, "env")
-    if shutil.which(parts[0]):
-        return TailwindResolution(parts, "env")
-    if Path(parts[0]).is_file():
-        return TailwindResolution(parts, "env")
-    return None
+    raise FileNotFoundError(
+        f"UXCOMPOSE_TAILWIND={raw!r} is not a file or a command on PATH. "
+        "Fix it or unset it."
+    )
 
 
 def _from_path() -> Optional[TailwindResolution]:
@@ -177,9 +187,8 @@ def _from_pytailwindcss() -> Optional[TailwindResolution]:
         from pytailwindcss import get_bin_path  # type: ignore[import-not-found]
     except Exception:
         return None
-    version, expected = _pinned()
-    path = Path(get_bin_path(version))
-    if path.is_file() and _sha256(path) == expected:
+    path = Path(get_bin_path(_version()))
+    if path.is_file() and _sha256(path) == _pinned()[1]:
         return TailwindResolution([str(path)], "pytailwindcss")
     return None
 
@@ -202,11 +211,13 @@ def _from_node_modules(start: Optional[Path] = None) -> Optional[TailwindResolut
     return None
 
 
+def _version() -> str:
+    return os.environ.get("UXCOMPOSE_TAILWIND_VERSION") or TAILWIND_STANDALONE_VERSION
+
+
 def _pinned() -> tuple[str, str]:
     """Return (version, expected SHA256) for the standalone CLI, or refuse."""
-    version = (
-        os.environ.get("UXCOMPOSE_TAILWIND_VERSION") or TAILWIND_STANDALONE_VERSION
-    )
+    version = _version()
     if version == "latest":
         raise TailwindIntegrityError(
             "UXCOMPOSE_TAILWIND_VERSION=latest is refused: pin a release tag "
@@ -257,30 +268,48 @@ def _download_allowed() -> bool:
     return raw not in {"0", "false", "False"}
 
 
+def _missing(reason: str) -> FileNotFoundError:
+    return FileNotFoundError(
+        f"Tailwind CLI not found on {_platform()}: {reason}. Set "
+        "UXCOMPOSE_TAILWIND to a tailwindcss binary you trust, or put "
+        "tailwindcss on PATH."
+    )
+
+
 def _download_standalone(*, timeout: float = 60.0) -> Optional[Path]:
     """Download, verify, then install into the cache.
 
-    None when downloads are off or the network fails. A digest mismatch
-    deletes the file and raises ``TailwindIntegrityError``.
+    None when downloads are off. A failed download raises
+    ``FileNotFoundError`` from its cause. A digest mismatch deletes the file
+    and raises ``TailwindIntegrityError``.
+
+    Each process writes its own temp file next to the cache entry, verifies
+    it, then ``os.replace`` s it in, so parallel builds never share a
+    half-written file. The returned path is hashed again after the replace.
     """
     if not _download_allowed():
         return None
     version, expected = _pinned()
     name = standalone_asset_name()
     dest = cache_dir() / name
-    dest.parent.mkdir(parents=True, exist_ok=True)
     url = f"{TAILWIND_RELEASES_URL}/{version}/{name}"
-    tmp = dest.with_suffix(dest.suffix + ".part")
     digest = hashlib.sha256()
+    tmp: Optional[Path] = None
     try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(dir=dest.parent, prefix=f"{name}.", suffix=".part")
+        tmp = Path(tmp_name)
         req = urllib.request.Request(url, headers={"User-Agent": "ux-compose/0.1"})
-        with urllib.request.urlopen(req, timeout=timeout) as resp, tmp.open("wb") as fh:
+        with urllib.request.urlopen(req, timeout=timeout) as resp, os.fdopen(fd, "wb") as fh:
             for block in iter(lambda: resp.read(1 << 20), b""):
                 digest.update(block)
                 fh.write(block)
-    except Exception:
-        tmp.unlink(missing_ok=True)
-        return None
+            fh.flush()
+            os.fsync(fh.fileno())
+    except (OSError, http.client.HTTPException) as exc:
+        if tmp is not None:
+            tmp.unlink(missing_ok=True)
+        raise _missing(f"downloading Tailwind {version} from {url} failed: {exc}") from exc
     actual = digest.hexdigest()
     if actual != expected:
         tmp.unlink(missing_ok=True)
@@ -288,8 +317,14 @@ def _download_standalone(*, timeout: float = 60.0) -> Optional[Path]:
             f"Tailwind download failed sha256: expected {expected}, got {actual} "
             f"from {url}. The file was deleted and nothing was run."
         )
-    tmp.chmod(tmp.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-    tmp.replace(dest)
+    tmp.chmod(0o755)
+    os.replace(tmp, dest)
+    actual = _sha256(dest)
+    if actual != expected:
+        raise TailwindIntegrityError(
+            f"{dest} changed after it was installed (sha256 {actual}, expected "
+            f"{expected}). Nothing was run."
+        )
     print(f"tailwind: downloaded {name} {version} sha256 {actual} ok", file=sys.stderr)
     return dest
 
@@ -322,17 +357,7 @@ def resolve_tailwind(
         downloaded = _download_standalone()
         if downloaded:
             return TailwindResolution([str(downloaded)], "download")
-        reason = (
-            "downloads are off (UXCOMPOSE_TAILWIND_DOWNLOAD=0)"
-            if not _download_allowed()
-            else f"downloading {standalone_asset_name()} "
-            f"{TAILWIND_STANDALONE_VERSION} failed"
-        )
-        raise FileNotFoundError(
-            f"Tailwind CLI not found on {_platform()}: {reason}. Set "
-            "UXCOMPOSE_TAILWIND (or TAILWINDCSS) to a tailwindcss binary you "
-            "trust, or put tailwindcss on PATH."
-        )
+        raise _missing("downloads are off (UXCOMPOSE_TAILWIND_DOWNLOAD=0)")
     return None
 
 
@@ -399,7 +424,7 @@ def start_tailwind_watch(*, cwd: str | None = None):
     input_css, output_css = io
     try:
         hit = resolve_tailwind(cwd=root, ensure=False)
-    except TailwindIntegrityError as exc:
+    except (TailwindIntegrityError, FileNotFoundError) as exc:
         print(f"CSS: {exc} — skip sibling --watch", file=sys.stderr)
         return None
     if hit is None:

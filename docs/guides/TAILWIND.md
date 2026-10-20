@@ -169,19 +169,21 @@ tailwindcss \
 
 `ux_compose.tailwind.resolve_tailwind` (first hit wins):
 
-1. `UXCOMPOSE_TAILWIND` or `TAILWINDCSS`
-2. `tailwindcss` on PATH
+1. `UXCOMPOSE_TAILWIND` (not checked: your trust). Set but not a file or a
+   command on PATH is an error, not a silent fall-through.
+2. `tailwindcss` on PATH (not checked: your trust)
 3. `pytailwindcss`'s binary for v4.1.12, only if its SHA256 matches
    (never `python -m pytailwindcss`, which downloads `latest` unverified)
-4. local `node_modules/.bin` / `@tailwindcss/cli`
+4. local `node_modules/.bin` / `@tailwindcss/cli` (not checked: your trust)
 5. cached official standalone under `$XDG_CACHE_HOME/ux-compose/` (v4.1.12),
    SHA256 checked on every use. A mismatch is deleted and downloaded again.
 6. download that standalone (`ensure=True`; `UXCOMPOSE_TAILWIND_DOWNLOAD=0` disables)
 
 There is no npx step. When none of these yields a CLI (downloads off, the
 download failed, or a platform with no pinned digest), `uxcompose build`
-fails with one error naming the platform. Point `UXCOMPOSE_TAILWIND` (or
-`TAILWINDCSS`) at a `tailwindcss` binary you trust, or put one on PATH.
+fails with one error naming the platform (and, for a failed download, the
+URL, the requested version and the cause). Point `UXCOMPOSE_TAILWIND` at a
+`tailwindcss` binary you trust, or put one on PATH.
 
 `uxcompose build` uses `ensure=True`. A missing CLI is a real error, not a skip.
 Product compile is here.
@@ -189,11 +191,15 @@ Product compile is here.
 ### Verified download
 
 `ux_compose.tailwind.TAILWIND_STANDALONE_SHA256` holds the SHA256 of each
-standalone asset of v4.1.12 (linux x64/arm64, macOS x64/arm64, windows x64),
-copied from the release's
+standalone asset of v4.1.12 (linux x64/arm64 for glibc and musl, macOS
+x64/arm64, windows x64), copied from the release's
 [`sha256sums.txt`](https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.12/sha256sums.txt).
-The download streams into `<asset>.part`, is hashed, and only a match is made
-executable and moved into the cache. A mismatch deletes the file, runs
+Linux counts as musl when `platform.libc_ver()` is not glibc and
+`/lib/ld-musl-*.so.1` exists.
+Each build streams the download into its own temp file next to the cache
+entry, hashes it, fsyncs it, and only a match is made executable and moved
+into place with `os.replace`. The installed file is hashed again before it
+runs, so parallel builds on a cold cache each get a verified binary. A mismatch deletes the file, runs
 nothing, and fails the build with `TailwindIntegrityError` (expected digest,
 actual digest, URL). Nothing else is tried after that.
 

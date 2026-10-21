@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import ast
 import importlib
+import inspect
 import sys
 from pathlib import Path
 
@@ -97,3 +98,14 @@ def test_legacy_tailwind_env_guard_is_gone(monkeypatch):
     monkeypatch.delenv("UXCOMPOSE_CACHE", raising=False)
     monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
     assert tw.cache_dir() == Path.home() / ".cache" / "ux-compose"
+
+
+def test_attach_channel_rejects_unknown_kwargs():
+    from ux_compose.wire.boot import attach_channel
+
+    assert not any(
+        p.kind is inspect.Parameter.VAR_KEYWORD
+        for p in inspect.signature(attach_channel).parameters.values()
+    )
+    with pytest.raises(TypeError, match="asgi"):
+        attach_channel(object(), asgi=object())

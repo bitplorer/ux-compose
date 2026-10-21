@@ -265,6 +265,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is ignored like any other unknown variable. `UXDOM_TAILWIND_DOWNLOAD=0`
   no longer blocks the download: use `UXCOMPOSE_TAILWIND_DOWNLOAD=0`.
   Every download is SHA256-verified before it runs (UC5).
+- `wire.boot.attach_channel(..., **_ignored)`: an unknown keyword (a typo
+  such as `use_channel(asgi=...)`) is a `TypeError` instead of being
+  swallowed.
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

@@ -745,7 +745,10 @@ def _teaching_for_level(level: int, caps: dict) -> list[str]:
             "(routes/ + stem match via DirectoryRoutes). "
             "App.mount is the page-unit scan step, not a second product."
         )
-    lines.append("One catalog: uxcompose add copies a kit widget. Do not import kit in product apps.")
+    lines.append((
+            "One catalog: ux_compose.components. Import a component, or "
+            "uxcompose add copies it into components/ for the app to own."
+        ))
     try:
         from ux_compose.attach_notes import format_report
         lines.extend(format_report())

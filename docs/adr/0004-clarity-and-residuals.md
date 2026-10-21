@@ -34,9 +34,10 @@ still lock them. Confusion must stop growing.
    (`bind_pages=False` so mount does not bind HTTP). Two walkers, one
    product door. Do not merge them. Do not teach this as one filesystem
    implementation.
-3. **One catalog.** `ux_compose.kit` is the source. `uxcompose add` copies.
-   `examples/` is the Atelier, not a second catalog. Product trees do not
-   import the kit.
+3. **One catalog.** `ux_compose.components` is the source, one component
+   per module. Apps import it, or `uxcompose add` copies one into the app's
+   `components/` for the app to own. `examples/` is the Atelier, not a
+   second catalog.
 4. **Removed names are gone** (amended 2026-10-21; was "leftovers expire
    by teaching"). Nothing is published (ux-dom ADR 0004), so there are no
    tombstones, alias periods or doctor scans that teach a removed name: it

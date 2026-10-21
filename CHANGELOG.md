@@ -94,6 +94,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `ux_compose.components`' docstring, ADR 0004 §3 and the doctor teaching
+  line describe the catalog as it is (import a component, or
+  `uxcompose add` copies it to own) instead of the removed
+  `ux_compose.kit` package (#134). A regression test keeps `src/` and
+  `docs/adr/` free of `ux_compose.kit`.
+
 - `doctor --prod`'s requirements scan (#129) reads three more cases the way
   pip does: a missing `-c`/`--constraint` file FAILs; lines pip installs as
   one distribution (different environment markers on both, or one pin

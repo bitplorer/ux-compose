@@ -1,6 +1,6 @@
 """Ownable components: one per module; ``uxcompose add <slug>`` copies one into your app.
 
-Replaces the removed ``ux_compose.kit`` package.
+The one catalog: import a component, or copy it to own and edit it.
 Shared helpers live in ``ux_compose.arrange`` (``arrange_slots``, ``wrap_in_card``,
 ``build_heading``). Registry and copier live in the CLI package.
 """

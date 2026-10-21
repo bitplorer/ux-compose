@@ -134,3 +134,15 @@ def test_no_tombstone_prose_in_src():
         text = (SRC / rel).read_text(encoding="utf-8")
         hits += [f"{rel}: {w}" for w in words if w in text]
     assert hits == []
+
+
+def test_the_removed_kit_package_is_not_described():
+    """#134: wording describes components/ as it is, not the ``ux_compose.kit`` it replaced."""
+    texts = [*sorted(SRC.rglob("*.py")), *sorted((ROOT / "docs" / "adr").glob("*.md"))]
+    hits = [
+        f"{path.relative_to(ROOT)}:{n}"
+        for path in texts
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+        if "ux_compose.kit" in line or "import kit" in line
+    ]
+    assert hits == []

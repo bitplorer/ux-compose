@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 from examples.foundation import Counter, Toggle, Planes
-from examples.presence import Tabs, Accordion, Dropdown, Drawer
+from examples.presence import Tabs, Accordion, Dropdown, Sheet
 from examples.shell import AppShell, Breadcrumbs, BottomNav, Popover, OverflowMenu
 from examples.overlays import Toasts, Confirm, Lightbox, Palette, Banner
 from examples.forms import SignupForm, Wizard, Search
@@ -161,15 +161,15 @@ PATTERNS: list[dict[str, Any]] = [
         file="examples/presence.py",
     ),
     _p(
-        "drawer",
+        "sheet",
         "Chrome",
-        "Drawer",
-        "Sheet from the side",
+        "Sheet",
+        "Panel from the side",
         "Same shape as a modal — different CSS. Presence flag only.",
         ("Document SSoT",),
-        "A drawer is not a second Document. One HTML shell, many units. "
-        "Drawer is the components/ Sheet (same Host, right edge).",
-        Drawer,
+        "A sheet is not a second Document. One HTML shell, many units. "
+        "It is the components/ Sheet (right edge).",
+        Sheet,
         file="examples/presence.py",
     ),
     _p(

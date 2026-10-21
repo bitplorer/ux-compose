@@ -49,14 +49,6 @@ def test_open_plan_degrades_without_motion():
     assert plan is None or hasattr(plan, "enter")
 
 
-def test_drawer_kind_is_sheet_edge_not_a_second_host():
-    assert overlay("filters", kind="drawer").edge == "right"
-    from ux_compose.components.drawer import Drawer
-    from ux_compose.components.sheet import Sheet
-
-    assert Drawer is Sheet
-
-
 def test_dialog_sheet_actionsheet_take_chrome_from_primitive():
     from ux_compose.components.actionsheet import ActionSheet
     from ux_compose.components.dialog import Dialog

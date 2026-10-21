@@ -268,6 +268,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `wire.boot.attach_channel(..., **_ignored)`: an unknown keyword (a typo
   such as `use_channel(asgi=...)`) is a `TypeError` instead of being
   swallowed.
+- Kit synonyms: `Drawer` (`Drawer = Sheet`, `components/drawer.py`, the
+  `drawer` catalog entry, `OverlayEdge` `kind="drawer"`) and the
+  `treeview` → `tree` alias in `uxcompose add`. Use `Sheet` /
+  `uxcompose add sheet` and `uxcompose add tree`. `examples/presence.py`
+  and `examples/catalog.py` use `Sheet`.
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

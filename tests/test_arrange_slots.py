@@ -53,7 +53,6 @@ DEMO_FRAMING: dict[str, tuple[str, ...]] = {
     "descriptionlist": ("Facts",),
     "dialog": ("Confirm a delete", "Authority"),
     "diff": ("Revise",),
-    "drawer": ("Edge",),
     "dropdown": ("Material",),
     "emptystate": ("Empty",),
     "fab": ("A new thing",),

@@ -109,3 +109,18 @@ def test_attach_channel_rejects_unknown_kwargs():
     )
     with pytest.raises(TypeError, match="asgi"):
         attach_channel(object(), asgi=object())
+
+
+def test_kit_synonyms_are_gone():
+    import ux_compose.components as components
+    import ux_compose.components.sheet as sheet
+    from ux_compose.cli import registry
+    from ux_compose.components.overlay import KIND_EDGE
+
+    assert not hasattr(components, "Drawer") and "Drawer" not in components.__all__
+    assert not hasattr(sheet, "Drawer")
+    assert not (SRC / "components" / "drawer.py").exists()
+    assert "drawer" not in registry.CATALOG and "drawer" not in KIND_EDGE
+    assert not hasattr(registry, "ALIASES")
+    with pytest.raises(KeyError):
+        registry.resolve("treeview")

@@ -7,7 +7,7 @@ Style: edit the ``class_*`` Tailwind strings. No companion CSS.
 
 MorphState: ``expanded`` (tuple of names), ``selected``. Caps: none.
 A11y (APG Tree View): ``role=tree`` / ``treeitem`` ``aria-expanded``
-``aria-selected``. ``uxcompose add treeview`` resolves here.
+``aria-selected``.
 """
 
 from __future__ import annotations

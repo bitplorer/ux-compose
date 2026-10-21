@@ -58,7 +58,6 @@ def test_p2_d_resolve():
         assert meta["stem"] == stem
         assert meta["css"] is False
         assert meta["page"] is True
-    assert resolve("treeview")["stem"] == "tree"
     assert resolve("color-picker")["stem"] == "colorpicker"
     assert resolve("scroll-area")["stem"] == "scrollarea"
 

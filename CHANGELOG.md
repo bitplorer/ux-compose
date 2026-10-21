@@ -358,6 +358,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- ux-dom pin `d87a21b` → `2b7c851` (ux-dom main: ux-dom#140 removed its
+  HTMX runtime, routes and middleware; `hx-*` attributes still render) in
+  `pyproject.toml`, `Makefile` and `test_hard_deps.py`. HTMX moved into
+  `ux_compose.htmx`: `Htmx` (htmx.org 2.0.4, optional idiomorph 0.7.4 and
+  htmx-ext-sse 2.2.3, each pinned with a sha384 SRI hash), `HtmxDetails`,
+  `HtmxMiddleware`, `HtmxRoutes` and `is_partial`. `build(use_htmx=True)`
+  now answers an `HX-Request` page GET that is not a history restore with
+  the fragment, and its HTML page responses send `Vary: HX-Request`. Import `Htmx` from `ux_compose.htmx`, not `ux_dom`.
+
 - ux-dom pin `6ac2e5e` → `d87a21b` (ux-dom main: ux-dom#123 public
   `ux_dom.response.sanitize_html` / `sanitize_html_stream` /
   `HtmlStreamOverflow`, and ux-dom#44, whose `ux-valio` dependency

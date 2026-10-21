@@ -90,7 +90,8 @@ def test_no_ux_dom_runtime_imports_in_create_app_output(tmp_path):
 
 
 def test_top_level_ux_dom_exports_document_plugins():
-    from ux_dom import Channel, Csp, Document, Htmx, XElement
+    from ux_dom import Channel, Csp, Document, XElement
+    from ux_compose.htmx import Htmx
 
     doc = Document(head=[], body=[], ensure_csrf_token=False)
     assert doc.use(XElement(), Htmx(), Csp.auto(), Channel.optional()) is doc

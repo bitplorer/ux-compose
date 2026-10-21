@@ -188,7 +188,7 @@ def attach_document_runtimes(
 
     runtimes: list[Any] = [XElement(), Csp.auto()]
     if htmx:
-        from ux_dom import Htmx  # type: ignore
+        from ux_compose.htmx import Htmx
 
         runtimes.insert(1, Htmx())
     if motion:

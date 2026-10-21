@@ -15,7 +15,8 @@ from __future__ import annotations
 from ux_compose import (
     App,
 )
-from ux_dom import Csp, Document, Htmx, XElement
+from ux_compose.htmx import Htmx
+from ux_dom import Csp, Document, XElement
 from ux_compose.components.badge import Badge
 
 

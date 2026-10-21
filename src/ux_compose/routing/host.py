@@ -79,6 +79,7 @@ def bind(
     wrap: Any = _UNSET,
     resolve_unit: Optional[Callable] = None,
     mounted: Optional[list] = None,
+    partial: Optional[Callable[[Any], bool]] = None,
 ) -> Any:
     """Attach Document runtimes + page routes. Returns the ASGI app.
 
@@ -92,6 +93,9 @@ def bind(
 
     Omit ``wrap`` to wrap with ``document`` (other callers). Pass
     ``wrap=None`` to mount without wrapping.
+
+    ``partial(request_or_scope)`` true answers a page GET with the bare
+    fragment (``build(use_htmx=True)`` passes the htmx predicate).
     """
     if wrap is _UNSET:
         wrap = document
@@ -106,7 +110,7 @@ def bind(
                 mounted.append("document")
         from ux_compose.routing import fastapi as http
 
-        http.bind(asgi, core, document=wrap, resolve_unit=resolve_unit)
+        http.bind(asgi, core, document=wrap, resolve_unit=resolve_unit, partial=partial)
         return asgi
 
     from ux_compose.routing.asgi import DirectoryASGI
@@ -114,5 +118,7 @@ def bind(
     if isinstance(asgi, DirectoryASGI):
         if wrap is not None and getattr(asgi, "document", None) is None:
             asgi.document = wrap
+        if partial is not None:
+            asgi.partial = partial
         return asgi
-    return DirectoryASGI(core, document=wrap)
+    return DirectoryASGI(core, document=wrap, partial=partial)

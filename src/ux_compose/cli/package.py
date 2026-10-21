@@ -311,12 +311,58 @@ def _write_archive(src: Path, tar_path: Path, name: str, mtime: int) -> None:
         raise
 
 
+# GET each (path, content-type word) from the app's own ASGI callable, no lifespan
+# (Channel stays down). A failure is one stderr line starting with _STATIC.
+_STATIC = "uxcompose-static:"
+_PROBE = """
+import asyncio
+async def get(app, path):
+    sent, done, requested = [], asyncio.Event(), []
+    async def receive():
+        if not requested:
+            requested.append(True)
+            return {"type": "http.request", "body": b"", "more_body": False}
+        await done.wait()
+        return {"type": "http.disconnect"}
+    async def send(message):
+        sent.append(message)
+        if message["type"] == "http.response.body" and not message.get("more_body"):
+            done.set()
+    scope = {"type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1", "method": "GET",
+             "scheme": "http", "path": path, "raw_path": path.encode(), "query_string": b"",
+             "root_path": "", "headers": [(b"host", b"localhost")], "client": ("127.0.0.1", 0),
+             "server": ("localhost", 80)}
+    await app(scope, receive, send)
+    start = next(m for m in sent if m["type"] == "http.response.start")
+    body = b"".join(m.get("body", b"") for m in sent if m["type"] == "http.response.body")
+    kind = dict(start.get("headers", [])).get(b"content-type", b"").decode()
+    return start["status"], kind, len(body)
+for path, want in PATHS:
+    status, kind, size = asyncio.run(get(APP, path))
+    if status != 200 or want not in kind or not size:
+        sys.exit(f"STATIC GET {path} from the bundle alone returned {status} {kind or 'no content-type'} "
+                 f"({size} bytes); the app must serve it with 200 {want}")
+"""
+
+
+def _served(bundle: Path) -> list[tuple[str, str]]:
+    """Library JS always (the package URL is the SSoT); the app's CSS when the bundle ships it."""
+    from ux_compose.assets import WebAssets
+
+    paths = [("/ux-dom/static/x_element.js", "javascript")]
+    css = WebAssets.from_app_root(bundle, dry_run=True).output_css
+    if css.is_file():
+        paths.append((f"/css/{css.name}", "text/css"))
+    return paths
+
+
 def _smoke_import(bundle: Path, entry: str) -> None:
-    """Import ``entry`` from a copy of the bundle alone: ``python -I -B``, cwd = bundle.
+    """Import ``entry`` from a copy of the bundle alone (``python -I -B``, cwd = bundle), then GET its static.
 
     ``-I`` keeps the source root, ``PYTHONPATH`` and the user site off
     ``sys.path``; only the bundle dir is added. The copy keeps the app's
-    import-time writes (``WebAssets`` folders) out of the bundle.
+    import-time writes (``WebAssets`` folders) out of the bundle. The GETs
+    (``_served``) go to the imported ASGI callable in the same process.
     """
     import subprocess
     import sys
@@ -326,7 +372,10 @@ def _smoke_import(bundle: Path, entry: str) -> None:
         "import importlib, sys\n"
         "sys.path.insert(0, '.')\n"
         f"m = importlib.import_module({mod!r})\n"
-        f"assert getattr(m, {attr!r}, None) is not None, 'no attribute {attr}'\n"
+        f"APP = getattr(m, {attr!r}, None)\n"
+        f"assert APP is not None, 'no attribute {attr}'\n"
+        f"PATHS = {_served(bundle)!r}\n"
+        + _PROBE.replace("STATIC", _STATIC)
     )
     env = {k: v for k, v in os.environ.items() if not k.startswith("PYTHON")}
     probe = Path(tempfile.mkdtemp(prefix="uxcompose-probe-"))
@@ -346,6 +395,8 @@ def _smoke_import(bundle: Path, entry: str) -> None:
     if proc.returncode != 0:
         lines = [ln for ln in (proc.stderr or proc.stdout or "").splitlines() if ln.strip()]
         reason = lines[-1].replace(str(probe / "bundle") + "/", "") if lines else f"exit {proc.returncode}"
+        if reason.startswith(_STATIC):
+            raise PackageError(reason.removeprefix(_STATIC).strip())
         raise PackageError(f"import {entry} from the bundle alone failed: {reason}")
 
 
@@ -389,8 +440,10 @@ def _check_staged(staged: Path, entry: str, warnings: list[str]) -> dict:
     return _resolved(staged, warnings)
 
 
-def check_bundle(root: Path, *, entry: str = "app:asgi") -> list[str]:
-    """Every ``write_bundle`` check on a throwaway copy in the system temp dir; returns its warnings.
+def check_bundle(root: Path, *, entry: str = "app:asgi") -> tuple[list[str], list[str]]:
+    """Every ``write_bundle`` check on a throwaway copy in the system temp dir.
+
+    Returns the URLs the smoke import GOT and the warnings.
 
     Raises the ``PackageError`` ``write_bundle`` would raise. Writes nothing under ``root``.
     """
@@ -400,7 +453,8 @@ def check_bundle(root: Path, *, entry: str = "app:asgi") -> list[str]:
     with tempfile.TemporaryDirectory(prefix="uxcompose-check-") as tmp:
         _stage(root, found, Path(tmp))
         _check_staged(Path(tmp), entry, warnings)
-    return warnings
+        served = [path for path, _ in _served(Path(tmp))]
+    return served, warnings
 
 
 def write_bundle(

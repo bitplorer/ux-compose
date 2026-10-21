@@ -247,7 +247,7 @@ def _cached_binary(*, read_only: bool = False) -> Optional[Path]:
     """The cached standalone CLI if its SHA256 matches. A mismatch is deleted.
 
     ``read_only`` changes nothing in the cache: a mismatch raises
-    ``TailwindIntegrityError``, a non-executable file is not used.
+    ``TailwindIntegrityError``, a non-executable file ``FileNotFoundError``.
     """
     dest = cache_dir() / standalone_asset_name()
     if not dest.is_file():
@@ -257,7 +257,7 @@ def _cached_binary(*, read_only: bool = False) -> Optional[Path]:
     if actual != expected:
         if read_only:
             raise TailwindIntegrityError(
-                f"tailwind: cached {dest} failed sha256 (expected {expected}, got {actual})"
+                f"cached {dest} failed sha256 (expected {expected}, got {actual})"
             )
         dest.unlink(missing_ok=True)
         print(
@@ -268,7 +268,7 @@ def _cached_binary(*, read_only: bool = False) -> Optional[Path]:
         return None
     if not os.access(dest, os.X_OK):
         if read_only:
-            return None
+            raise FileNotFoundError(f"cached {dest} is not executable (--check does not chmod)")
         dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     return dest
 

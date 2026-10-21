@@ -378,7 +378,8 @@ def _package_check_step(report: ProductBuildReport, app_ref: str) -> None:
 
     entry = _entry(app_ref)
     try:
-        report.warnings.extend(check_bundle(report.root, entry=entry))
+        served, warnings = check_bundle(report.root, entry=entry)
+        report.warnings.extend(warnings)
     except PackageError as exc:
         report.steps.append(BuildStep("package", False, str(exc)))
         return
@@ -386,7 +387,8 @@ def _package_check_step(report: ProductBuildReport, app_ref: str) -> None:
         BuildStep(
             "package",
             True,
-            f"would pass: doctor --prod, import {entry} from the bundle alone, the ux-compose pin",
+            f"would pass: doctor --prod, import {entry} and GET {', '.join(served)} "
+            "from the bundle alone, the ux-compose pin",
         )
     )
 

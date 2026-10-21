@@ -16,14 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   downloading or repairing the cached CLI
   (`resolve_tailwind(read_only=True)`); the `doctor` law scan; and
   `package`, every `--package` check (file set, `doctor --prod`, import
-  from the bundle alone, ux-compose pin) on a copy in the system temp
-  dir, with the same one-line FAIL messages. Exit 1 on any FAIL. It does
+  from the bundle alone, then an in-process ASGI `GET
+  /ux-dom/static/x_element.js` and `/css/output.css` that must return 200
+  with a JS/CSS content-type, so a library-JS 404 FAILs `--package` too;
+  ux-compose pin) on a copy in the system temp dir, with the same one-line FAIL messages. Exit 1 on any FAIL. It does
   not import the source tree. `--package`, `--archive`, `--out`, `--name`
   and `--skip-import` with `--check` exit 2. Library:
   `ux_compose.cli.package.check_bundle`. The "no product app found" error
   for an `app/main.py` tree now says to start one with
-  `uxcompose create-app`; a guard test keeps sources and docs from naming
-  an ux-dom `build` verb (ux-dom has none).
+  `uxcompose create-app`. A guard test keeps sources and docs on
+  `uxcompose build` and on package static `/ux-dom/static/x_element.js`
+  as the only library JS source.
 
 - `uxcompose build --package` writes a runnable bundle to `dist/<name>/`
   (`--out`, `--name`) after every build step passes; `--archive` adds a
@@ -807,7 +810,7 @@ and not a 0.2 line.
 - `create-app` teaching surface: `settings.py`, `document.py`, `assets/css/input.css`, `requirements.txt`.
 - Tailwind CLI finder / download / ensure moved here (`ux_compose.tailwind`). ux-dom does not compile CSS (`TailwindCommand` fail-closed).
 - Product path fail-closed: `build()` honors `level` / `live=null`; `WebAssets.mount_css` wraps DirectoryASGI (no silent `/css` 404); discover CSS is pure (no leftover `app/tailwindcss.py` branch); `uxcompose doctor` prints the teaching report; browser HMR is opt-in (`--hmr`); product root is `app.py` only.
-- `serve="dual_copy"` is the package-static escape hatch name (the `serve="webassets"` alias was removed in ux-dom 0.2.0 and now raises; doctor still flags it). Not `WebAssets`.
+- Package static `/ux-dom/static/x_element.js` is the only library JS source (the `serve="webassets"` alias was removed in ux-dom 0.2.0 and now raises; doctor still flags it). Not `WebAssets`.
 
 ### Changed
 

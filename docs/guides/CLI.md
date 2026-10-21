@@ -182,7 +182,11 @@ pip install -r dist/<name>/requirements.txt && dist/<name>/run.sh
   (`app:asgi`) from a copy of the assembled bundle, with only the bundle
   dir on `sys.path` (no source root, no `PYTHONPATH`, no user site). A
   failure FAILs the build with the last error line, so a module or data
-  file the allowlist missed cannot give BUILD OK.
+  file the allowlist missed cannot give BUILD OK. In the same process it
+  sends a plain ASGI `GET /ux-dom/static/x_element.js` (and
+  `/css/output.css` when the bundle ships it) to the app's own callable,
+  with no lifespan, so Channel does not boot. Anything but 200 with a
+  JavaScript (CSS) content-type and a body FAILs, naming the status.
 - Generated: `run.sh` (0755: `cd` to the bundle, `PORT` 8080 / `HOST`
   0.0.0.0 defaults, activates `.venv` if present, runs `python3` to print
   the one-line `Channel secret refused: …` and exit 1 when the secret is
@@ -231,8 +235,8 @@ Steps (`--skip-tailwind` and `--no-minify` apply; `--package`,
   fails its SHA256, the step FAILs and says why.
 - `doctor`: the same law scan as `build`.
 - `package`: every `--package` check, on a copy in the system temp dir:
-  the file set, `doctor --prod` on the copy, the import from the bundle
-  alone, and the ux-compose pin. A FAIL prints the line `--package`
+  the file set, `doctor --prod` on the copy, the import and static GETs
+  from the bundle alone, and the ux-compose pin. A FAIL prints the line `--package`
   prints. Because `doctor --prod` runs, set `UX_CHANNEL_SECRET` and
   unset `DEBUG`. The source tree is not imported: an app may write when
   imported, so the import runs from the copy only.

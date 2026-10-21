@@ -89,7 +89,7 @@ def test_check_writes_nothing_and_passes(built, capsys):
     assert _snapshot(built) == before
     assert list(_rows(out)) == ["app.py", "tailwind", "doctor", "package"]
     assert f"[OK  ] tailwind: {CSS} matches a fresh env compile" in out
-    assert "[OK  ] package: would pass" in out
+    assert "[OK  ] package: would pass: doctor --prod, import app:asgi and GET /ux-dom/static/x_element.js, /css/output.css from the bundle alone" in out
     assert out.rstrip().endswith("BUILD OK (--check: nothing written)")
 
 
@@ -148,7 +148,7 @@ def test_check_never_touches_the_tailwind_cache(built, capsys, monkeypatch, tmp_
     before = _snapshot(tmp_path / "cache")
     assert main(["build", "--check"]) == 1
     out = capsys.readouterr().out
-    assert f"[FAIL] tailwind: tailwind: cached {cached} failed sha256" in out
+    assert f"[FAIL] tailwind: cached {cached} failed sha256" in out
     assert _snapshot(tmp_path / "cache") == before
     cached.unlink()
     assert main(["build", "--check"]) == 1
@@ -198,6 +198,19 @@ def test_check_refuses_flags_that_write_or_skip_its_checks(app, capsys, flag):
         main(["build", "--check", flag])
     assert exc.value.code == 2
     assert f"--check cannot be combined with {flag.split('=')[0]}" in capsys.readouterr().err
+
+
+def test_check_fails_when_the_app_does_not_serve_the_library_js(built, capsys):
+    # A root secrets.py shadows the stdlib module the static mount needs (#131): import OK, JS 404.
+    (built / "secrets.py").write_text("X = 1\n", encoding="utf-8")
+    assert main(["build", "--check"]) == 1
+    check = _rows(capsys.readouterr().out)["package"]
+    assert check.startswith(
+        "[FAIL] package: GET /ux-dom/static/x_element.js from the bundle alone returned 404"
+    )
+    assert main(["build", "--skip-tailwind", "--package"]) == 1
+    assert _rows(capsys.readouterr().out)["package"] == check
+    assert not (built / "dist" / "demo").exists()
 
 
 def test_default_build_steps_unchanged(app, capsys):

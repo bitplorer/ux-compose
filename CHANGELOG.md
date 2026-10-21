@@ -112,8 +112,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `doctor --prod`'s requirements scan (#129) reads three more cases the way
   pip does: a missing `-c`/`--constraint` file FAILs; lines pip installs as
   one distribution (different environment markers on both, or one pin
-  with different extras) are not "listed twice"; a requirement with no
-  name (bare VCS URL without `#egg=`, sdist URL, path) is a WARN naming
+  with different extras) are not "listed twice"; a URL requirement
+  with no name (bare VCS URL without `#egg=`, sdist URL) is a WARN naming
   it, since it could be a second ux-dom, and a wheel URL is named by its
   filename.
 

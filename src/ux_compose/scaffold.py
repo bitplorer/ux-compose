@@ -301,7 +301,7 @@ class RequirementsScan(NamedTuple):
     """``problem``: why pip or create-app's one-line rule refuses the file.
 
     ``unchecked``: what doctor cannot read: remote ``-r``/``-c`` files, and
-    requirements with no name (a bare URL or path pip names by building it).
+    URL requirements with no name (pip learns it only by building them).
     ``names``: canonical distribution name -> ``file:line``.
     """
 
@@ -445,7 +445,8 @@ def scan_requirements(path: Path) -> RequirementsScan:
                 if not parses:
                     return f"{loc}: not a requirement: {item!r}"
                 if name is None:
-                    unchecked.append(f"{loc} names no distribution ({item}); write 'name @ url' or add #egg=name")
+                    if "://" in item:  # a local path is the app's own code
+                        unchecked.append(f"{loc} names no distribution ({item}); write 'name @ url' or add #egg=name")
                     continue
                 if not all(_one_install(line, seen) for seen in lines.get(name, [])):
                     return f"{name} is listed twice ({names[name]}, {loc}); one line per distribution"

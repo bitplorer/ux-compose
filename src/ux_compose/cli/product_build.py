@@ -5,8 +5,8 @@ Ownership (OWNERSHIP law):
     Finding / downloading / invoking the Tailwind CLI is product DX.
   - Render stays on ux-dom: className, ``<link>``, package static.
   - App folders live HERE (``ux_compose.assets.WebAssets``).
-  - ``uxdom build`` is Document/static verify for leftover ``app/main.py``
-    trees. It does not compile CSS.
+  - ``uxcompose build --check`` is the read-only verify: CSS freshness and
+    every ``--package`` check (``doctor --prod``, import from the bundle alone).
 
 Product path::
 
@@ -86,8 +86,7 @@ def find_product_root(
 ) -> Path:
     """Locate a product app root.
 
-    Prefer ``app.py`` (uxcompose create-app). Leftover ``app/main.py``
-    showcase trees are ``uxdom build`` (Document/static verify), not this CLI.
+    The root is the directory holding ``app.py`` (uxcompose create-app).
 
     When cwd is not the app root, ``app_ref`` may be a path prefix
     (``myapp/app:asgi`` / ``myapp/app.py:asgi``) so the CLI can walk from
@@ -119,7 +118,7 @@ def find_product_root(
         f"Looked from: {looked}{extra}.\n"
         "cd into the app directory (the folder that contains app.py), "
         "or pass --app path/to/app:asgi so the CLI can find the root.\n"
-        "Leftover app/main.py trees: uxdom build (does not compile CSS)."
+        "An app/main.py tree is not a product app: start one with uxcompose create-app."
     )
 
 

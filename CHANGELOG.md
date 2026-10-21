@@ -20,7 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dir, with the same one-line FAIL messages. Exit 1 on any FAIL. It does
   not import the source tree. `--package`, `--archive`, `--out`, `--name`
   and `--skip-import` with `--check` exit 2. Library:
-  `ux_compose.cli.package.check_bundle`.
+  `ux_compose.cli.package.check_bundle`. The "no product app found" error
+  for an `app/main.py` tree now says to start one with
+  `uxcompose create-app`; a guard test keeps sources and docs from naming
+  an ux-dom `build` verb (ux-dom has none).
 
 - `uxcompose build --package` writes a runnable bundle to `dist/<name>/`
   (`--out`, `--name`) after every build step passes; `--archive` adds a
@@ -45,8 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an allowed directory; any symlink in the tree;
   a `doctor --prod` FAIL row on the bundle; a ux-compose line that is not
   the running ux-compose; `-r`/`-c` includes. A dirty editable checkout
-  prints a `WARNING:` line. This replaces `uxdom build --package/--archive`
-  for product (`app.py`) apps (ux-dom ADR 0003 rule 4). Library:
+  prints a `WARNING:` line. Library:
   `ux_compose.cli.package.write_bundle`.
 
 - `uxcompose doctor --prod` checks product readiness after the law scans:
@@ -835,11 +837,11 @@ and not a 0.2 line.
 - Scaffold no longer emits leftover `page()`. Host wraps `render()` with the
   author Document. Motion Scene IR becomes `transition.play`.
 - `_is_response` recognizes FileResponse / RedirectResponse / body_iterator.
-- **Docs:** teaching pages no longer name leftover `uxdom build` / DirectoryRouter /
+- **Docs:** teaching pages no longer name leftover DirectoryRouter /
   `host=batteries` as something to run. Stub cites (`docs/CLI.md`, `docs/DX.md`,
   `docs/TESTING.md`) point at `docs/guides/`. Product path is the only path taught.
 - CI pins ux-behavior / ux-motion / ux-channel / ux-dom to origin/main SHAs;
   leftover `httpx2` is gone. Teaching is `create-app` + `build()` (`App.mount`
   is a secondary door). Clock A GET asserts `Content-Security-Policy` when
   Document mounts Csp.
-- Product path is `create-app → build → serve → deploy`. `uxdom build` does not compile CSS.
+- Product path is `create-app → build → serve → deploy`. `uxcompose build` compiles CSS.

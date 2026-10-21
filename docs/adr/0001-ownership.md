@@ -11,7 +11,7 @@
 
 Authors were mixing render (tag trees, Document) with product lifecycle
 (`create-app`, `build`, `serve`, `deploy`, HMR, tunnel). After the hard-cut,
-CSS minify still looked like an ux-dom product verb (`uxdom build`) gated on
+CSS minify still looked like an ux-dom product verb gated on
 the old `app/main.py` layout, while `uxcompose create-app` emitted `app.py`.
 
 ## Decision
@@ -31,8 +31,9 @@ Frozen serve verbs: `dev` / `prod` / `restart-channel`.
 
 - `uxdom create-app` / `serve` / `deploy` are not the product path.
 - `uxcompose build` is the product CSS command. App folders are `ux_compose.assets.WebAssets`. `from ux_dom import WebAssets` fails closed.
-- `uxdom build` remains Document/static verify for pure-dom `app/main.py`
-  trees. It does not compile CSS. `TailwindCommand` fails closed.
+- `uxcompose build --check` verifies a product tree without writing
+  (CSS freshness, `doctor --prod`, import from the bundle alone).
+  ux-dom does not compile CSS. `TailwindCommand` fails closed.
 - HMR is not a `Document.use` product API.
 - Product code does not import `ux_channel` (attach via `App.use_channel`).
 - Full contract: [../OWNERSHIP.md](../OWNERSHIP.md).

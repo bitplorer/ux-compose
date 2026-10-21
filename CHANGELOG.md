@@ -94,6 +94,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Security: a route body that is a plain `str` or `bytes` is untrusted HTML
+  and goes through ux-dom `sanitize_html` on both hosts, with or without a
+  Document, and through `brand_wrap`; main sent it through `raw()` (or as
+  is, with no Document) unsanitized, so `'<img src=x onerror=alert(1)>hi'`
+  ran script. A string `render()` serialized by `Component.__render__` or
+  `update_with` / `morph_play` is sanitized the same way. A generator body
+  goes through `sanitize_html_stream`: `str` / `bytes` chunks are untrusted
+  (bytes decoded as one UTF-8 stream), tree and `Markup` chunks are sent as
+  written, and the joined output equals `sanitize_html` of the joined text
+  wherever the chunks split. A stream that holds more than 1 MiB without a
+  safe HTML boundary raises `HtmlStreamOverflow` and sends none of the held
+  text: a logged 500 before the first byte (any other error before the
+  first byte is now a 500 too, not an empty 200), an aborted response with
+  no final chunk after it. `Markup` stays explicit trust; a Response object
+  passes through as before. Behavior change for apps that relied on
+  unsanitized strings: `<script>`, `<style>`, `<link>`, event-handler
+  attributes, `javascript:` URLs, `<!doctype>` and unknown tags are removed
+  or unwrapped, attributes come out sorted and double-quoted, and
+  `return tree.__async_render__()` (plain `str` tokens) is sanitized too.
+  Return `Markup(html)` for HTML you trust, a tree, or
+  `StreamingResponse(tree)`. Output gains no trailing newline. Tests:
+  `tests/security/test_route_strings_sanitized.py` (attack strings through
+  real routes, both hosts, random chunk splits; Chromium with the CSP
+  bypassed: 0 executions, while the same strings as `Markup` execute).
 - `doctor --prod`'s requirements scan (#140) names every requirement by
   what it installs, in every form, and FAILs when that is a specialist
   (ux-dom, ux-channel, ux-behavior, ux-motion; PEP 503 spelling): the
@@ -311,6 +335,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- ux-dom pin `6ac2e5e` → `d87a21b` (ux-dom main: ux-dom#123 public
+  `ux_dom.response.sanitize_html` / `sanitize_html_stream` /
+  `HtmlStreamOverflow`, and ux-dom#44, whose `ux-valio` dependency
+  resolves from its pinned commit) in `pyproject.toml`, `Makefile` and
+  `test_hard_deps.py`; create-app's `requirements.txt` follows through the
+  ux-compose commit it pins.
 - ux-dom pin `8422b9a` → `6ac2e5e` (ux-dom main, 21 commits) in
   `pyproject.toml`, `Makefile` and `test_hard_deps.py`; create-app's
   `requirements.txt` follows through the ux-compose commit it pins. No

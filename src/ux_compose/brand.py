@@ -22,6 +22,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from ux_dom.response import sanitize_html
+
 from ux_compose.dom import nav, raw, span
 
 GET_BRAND_ATTR = "data-uxcompose-brand"
@@ -35,13 +37,15 @@ __all__ = [
 
 
 def _as_child(inner: Any) -> Any:
-    """Accept a GET fragment (tag tree or HTML str via ``raw()``)."""
+    """Accept a GET fragment: a tag tree, or an HTML str that is sanitized
+    (ux-dom ``sanitize_html``; ``Markup`` stays as written) and put in via
+    ``raw()``."""
     if inner is None:
         return None
     if isinstance(inner, (bytes, bytearray, memoryview)):
         inner = bytes(inner).decode("utf-8")
     if isinstance(inner, str):
-        return raw(inner)
+        return raw(sanitize_html(inner))
     return inner
 
 

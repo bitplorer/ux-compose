@@ -14,6 +14,7 @@ from typing import Any, List, Optional
 
 from ux_behavior import bind as _behavior_bind, notify as _real_notify, update as _real_update
 from ux_behavior.ops import Op as _Op
+from ux_dom.response import sanitize_html
 from ux_dom.response.serialize import to_html_bytes
 
 # Soft USE (ux-dom#20 / compose#80 C2): prefer owner extract when the
@@ -149,11 +150,15 @@ def control(action: str, **args) -> dict:
 
 
 def _serialize_tree(tree: Any) -> str:
-    """Serialize via ux-dom. No homemade HTML-string renderer."""
+    """Serialize via ux-dom. No homemade HTML-string renderer.
+
+    A ``str`` from ``render()`` is untrusted HTML: ux-dom ``sanitize_html``
+    (``Markup`` stays as written).
+    """
     if tree is None:
         return ""
     if isinstance(tree, str):
-        return tree
+        return sanitize_html(tree)
     return to_html_bytes(tree).decode("utf-8")
 
 

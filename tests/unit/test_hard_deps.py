@@ -11,7 +11,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
-UX_DOM_SHA = "6ac2e5e73957d877fd9716b86d904ca851d4bb85"
+UX_DOM_SHA = "d87a21b77b5b21bf4b44cd91df0170bd4b2d3dec"
 UX_CHANNEL_SHA = "0ffe8e9907cd1a0701ffc8cb2e5414d6b39d2996"
 UX_BEHAVIOR_SHA = "f12321fa7a5399753a21fd6e5c4e88de43027222"
 UX_MOTION_SHA = "bbe7d73466a6c1eccb47e711568c80ce3b4d5487"

@@ -201,10 +201,14 @@ def apply_html_document(document: Any, payload: Any) -> Any:
     skip it). Author-provided ``document=`` is the SSoT. A synthesized
     Document is for ``document.mount`` (CSP / static), not for wrapping.
 
-    HTML strings are not valid ``Document(*args)`` children — ux-dom treats
-    a positional str on ``<body>`` as a script ``src``. Convert via ``raw()``
-    so the fragment lands in the body as markup.
+    A ``str`` / ``bytes`` payload is untrusted HTML: it goes through
+    ux-dom's ``sanitize_html`` whether or not there is a Document.
+    ``Markup`` is explicit trust and stays as written. HTML strings are not
+    valid ``Document(*args)`` children (ux-dom treats a positional str on
+    ``<body>`` as a script ``src``), so the sanitized fragment goes in
+    through ``raw()``.
     """
+    payload = sanitize_html_payload(payload)
     if document is None or not callable(document):
         return payload
     child = _document_child(payload)
@@ -217,19 +221,110 @@ def apply_html_document(document: Any, payload: Any) -> Any:
         return payload
 
 
-def _document_child(payload: Any) -> Any:
-    if payload is None:
-        return None
+def sanitize_html_payload(payload: Any) -> Any:
+    """``str`` / ``bytes`` route body → ``sanitize_html`` str. Others unchanged."""
+    from ux_dom.response import sanitize_html
+
     if isinstance(payload, (bytes, bytearray, memoryview)):
         payload = bytes(payload).decode("utf-8")
     if isinstance(payload, str):
-        try:
-            from ux_dom.dom import raw
-
-            return raw(payload)
-        except Exception:
-            return payload
+        return sanitize_html(payload)
     return payload
+
+
+def _document_child(payload: Any) -> Any:
+    if isinstance(payload, str):
+        from ux_dom.dom import raw
+
+        return raw(payload)
+    return payload
+
+
+class _Rendered:
+    """A tree chunk rendered by ux-dom: trusted (``__html__``) in the stream."""
+
+    __slots__ = ("html",)
+
+    def __init__(self, html: str) -> None:
+        self.html = html
+
+    def __html__(self) -> str:
+        return self.html
+
+
+def _stream_text(chunk: Any, decoder: Any) -> Any:
+    if chunk is None:
+        return ""
+    if isinstance(chunk, (bytes, bytearray, memoryview)):
+        return decoder.decode(bytes(chunk))
+    if isinstance(chunk, str) or hasattr(chunk, "__html__"):
+        return chunk
+    from ux_dom.response import to_html_bytes
+
+    return _Rendered(to_html_bytes(chunk).decode("utf-8"))
+
+
+def sanitize_stream_payload(payload: Any) -> Any:
+    """Generator route body → ``sanitize_html_stream`` of its text.
+
+    Sync stays sync, async stays async. ``bytes`` chunks are decoded as one
+    UTF-8 stream; ``str`` chunks are untrusted; ``Markup`` and tree chunks
+    are sent as written. Joined, the pieces equal ``sanitize_html`` of the
+    joined text. A stream that holds more than ``MAX_BUFFER_CHARS``
+    characters without a safe boundary raises ``HtmlStreamOverflow`` and
+    sends none of the held text.
+    """
+    import codecs
+
+    from ux_dom.response import sanitize_html_stream
+
+    decoder = codecs.getincrementaldecoder("utf-8")()
+    if hasattr(payload, "__aiter__"):
+
+        async def atexts():
+            async for chunk in payload:
+                yield _stream_text(chunk, decoder)
+            yield decoder.decode(b"", final=True)
+
+        return sanitize_html_stream(atexts())
+
+    def texts():
+        for chunk in payload:
+            yield _stream_text(chunk, decoder)
+        yield decoder.decode(b"", final=True)
+
+    return sanitize_html_stream(texts())
+
+
+async def open_html_stream(payload: Any) -> Any:
+    """Sanitized stream with its first piece already computed.
+
+    Hosts call this before they send the status line, so a stream that
+    fails before its first piece (``HtmlStreamOverflow`` included) becomes a
+    500 with no body. A failure after that point is raised mid-response.
+    A sync stream's first piece is computed off the event loop.
+    """
+    import asyncio
+
+    stream = sanitize_stream_payload(payload)
+    if hasattr(stream, "__aiter__"):
+        first = await anext(stream, None)
+
+        async def arest():
+            if first is not None:
+                yield first
+            async for piece in stream:
+                yield piece
+
+        return arest()
+    first = await asyncio.to_thread(next, stream, None)
+
+    def rest():
+        if first is not None:
+            yield first
+        yield from stream
+
+    return rest()
 
 
 def is_renderable_unit(klass: type) -> bool:

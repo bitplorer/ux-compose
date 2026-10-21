@@ -79,10 +79,10 @@ def test_apply_html_document_logs_and_keeps_the_fragment(caplog):
     def shell(child=None):
         raise RuntimeError("shell-broke")
 
-    fragment = "<script>alert(1)</script>"
+    fragment = '<div id="x">kept</div><script>alert(1)</script>'
     with caplog.at_level(logging.ERROR):
         out = apply_html_document(shell, fragment)
-    assert out == fragment
+    assert out == '<div id="x">kept</div>'
     assert "shell-broke" in caplog.text
 
 

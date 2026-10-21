@@ -21,6 +21,7 @@ from ux_compose.routing.core import (
     apply_html_document,
     is_json_payload,
     is_stream_payload,
+    open_html_stream,
     _non_identifier_param,
 )
 
@@ -134,6 +135,13 @@ def _chunk_bytes(chunk: Any) -> bytes:
 
 
 async def _send_stream(send: Callable, iterable: Any, *, content_type: bytes) -> None:
+    """Send a sanitized stream; the status line goes out first.
+
+    An error mid-stream is logged and the body ends; its text is not sent.
+    ``HtmlStreamOverflow`` is raised instead (fail closed): the response
+    gets no final chunk, so the server drops the connection and the client
+    sees a cut-off response, not a whole one.
+    """
     await send(
         {
             "type": "http.response.start",
@@ -156,7 +164,12 @@ async def _send_stream(send: Callable, iterable: Any, *, content_type: bytes) ->
                     await send(
                         {"type": "http.response.body", "body": data, "more_body": True}
                     )
-    except Exception:
+    except Exception as exc:
+        from ux_dom.response import HtmlStreamOverflow
+
+        if isinstance(exc, HtmlStreamOverflow):
+            logger.exception("DirectoryASGI stream overflow; response aborted")
+            raise
         logger.exception("DirectoryASGI stream failed")
         await send({"type": "http.response.body", "body": b"", "more_body": False})
         return
@@ -213,6 +226,7 @@ class DirectoryASGI:
             return
 
         rec, params = hit
+        stream = None
         try:
             result = _invoke(rec, self.hooks, params)
             if inspect.isawaitable(result):
@@ -232,19 +246,22 @@ class DirectoryASGI:
                         {"type": "http.response.body", "body": b"", "more_body": False}
                     )
                     return
-                await _send_stream(
-                    send, result, content_type=b"text/html; charset=utf-8"
-                )
-                return
-            if not is_json_payload(result):
+                stream = await open_html_stream(result)
+            elif not is_json_payload(result):
                 result = apply_html_document(self.document, result)
-            body, content_type = _encode(result)
+            if stream is None:
+                body, content_type = _encode(result)
             status = 200
         except Exception:
             logger.exception("DirectoryASGI request failed")
             body = b"Internal Server Error"
             content_type = b"text/plain; charset=utf-8"
             status = 500
+            stream = None
+
+        if stream is not None:
+            await _send_stream(send, stream, content_type=b"text/html; charset=utf-8")
+            return
 
         outbound = b"" if str(method).upper() == "HEAD" else body
         await send(

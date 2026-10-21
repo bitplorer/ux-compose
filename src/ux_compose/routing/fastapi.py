@@ -8,8 +8,10 @@ Page units have no HTTP verbs. This file:
 
 Media type is the payload, not Accept:
   tree / str / bytes → apply_html_document(wrap) → HTMLResponse
+    (str / bytes are untrusted: ux-dom sanitize_html; Markup is trusted)
   dict / list-of-dicts → returned as-is (FastAPI JSON-encodes)
-  async/sync generator → StreamingResponse
+  async/sync generator → sanitize_html_stream → StreamingResponse
+    (a stream that fails before its first piece is a 500)
   Response subclass (JSONResponse, StreamingResponse, FileResponse, …) → pass through
 
 JSON author routes stay JSON: this module does **not** set FastAPI's
@@ -18,6 +20,7 @@ default_response_class. Streaming is a return value, not a route_class.
 from __future__ import annotations
 
 import inspect
+import logging
 from typing import Any, Callable, Optional
 
 from ux_compose.routing.core import (
@@ -25,7 +28,11 @@ from ux_compose.routing.core import (
     apply_html_document,
     is_json_payload,
     is_stream_payload,
+    open_html_stream,
+    sanitize_stream_payload,
 )
+
+logger = logging.getLogger("ux_compose.routing.fastapi")
 
 __all__ = ["create", "bind", "page_endpoint"]
 
@@ -93,13 +100,29 @@ def _as_stream_response(payload: Any) -> Any:
 
 
 def _as_http_response(payload: Any, *, document: Any = None) -> Any:
-    """Payload type picks media type. Same spirit as ux-dom html_response."""
+    """Payload type picks media type. Same spirit as ux-dom html_response.
+
+    A page GET opens streams with :func:`_open_stream_response` instead, so
+    a stream that fails before its first piece is a 500.
+    """
     if _is_response(payload) or is_json_payload(payload):
         return payload
     if is_stream_payload(payload):
-        return _as_stream_response(payload)
+        return _as_stream_response(sanitize_stream_payload(payload))
     tree = apply_html_document(document, payload)
     return _as_html_response(tree)
+
+
+async def _open_stream_response(payload: Any) -> Any:
+    """Sanitized stream response, or a logged 500 if it fails before byte one."""
+    from starlette.responses import PlainTextResponse
+
+    try:
+        stream = await open_html_stream(payload)
+    except Exception:
+        logger.exception("page stream failed before its first byte")
+        return PlainTextResponse("Internal Server Error", status_code=500)
+    return _as_stream_response(stream)
 
 
 def page_endpoint(
@@ -127,6 +150,8 @@ def page_endpoint(
             tree = _call_render(inst, path_params)
         if inspect.isawaitable(tree):
             tree = await tree
+        if is_stream_payload(tree):
+            return await _open_stream_response(tree)
         return _as_http_response(tree, document=document)
 
     # from __future__ import annotations stringifies types. FastAPI must see

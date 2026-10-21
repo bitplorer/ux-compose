@@ -39,6 +39,9 @@ class ProductBuildReport:
     root: Path
     steps: list[BuildStep] = field(default_factory=list)
     output_css: Optional[Path] = None
+    package_path: Optional[Path] = None
+    archive_path: Optional[Path] = None
+    warnings: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -49,6 +52,8 @@ class ProductBuildReport:
             "ok": self.ok,
             "root": str(self.root),
             "output_css": str(self.output_css) if self.output_css else None,
+            "package_path": str(self.package_path) if self.package_path else None,
+            "archive_path": str(self.archive_path) if self.archive_path else None,
             "steps": [
                 {"name": s.name, "ok": s.ok, "detail": s.detail} for s in self.steps
             ],
@@ -123,6 +128,10 @@ def run_product_build(
     minify: bool = True,
     watch: bool = False,
     app_ref: str = "app:asgi",
+    package: bool = False,
+    archive: bool = False,
+    out_dir: Optional[Path] = None,
+    package_name: Optional[str] = None,
 ) -> ProductBuildReport:
     """Run the product production build.
 
@@ -131,6 +140,8 @@ def run_product_build(
       2. Tailwind minify/watch via ux_compose.tailwind
       3. Soft import of the ASGI entry (default app:asgi)
       4. Soft product doctor
+      5. ``package``: the runnable bundle (``cli/package.py``), only when
+         every step above passed
 
     ``minify`` and ``watch`` are XOR (same as argv_with_io: minify wins).
     """
@@ -285,17 +296,52 @@ def run_product_build(
 
         doc = doctor([root], fail=False)
         ok_flag = bool(getattr(doc, "ok", True))
-        report.steps.append(
-            BuildStep(
-                "doctor",
-                ok_flag,
-                f"ok={ok_flag} surfaces={getattr(doc, 'surfaces', None)}",
-            )
-        )
+        detail = f"ok={ok_flag} surfaces={getattr(doc, 'surfaces', None)}"
+        hard = [
+            d
+            for d in getattr(doc, "diagnostics", [])
+            if any(k in d.lower() for k in ("violation", "dual-document risk", "incomplete stack"))
+        ]
+        if not ok_flag and hard:
+            detail += f" · {hard[0][:300]}"
+        report.steps.append(BuildStep("doctor", ok_flag, detail))
     except Exception as e:
         report.steps.append(BuildStep("doctor", False, f"doctor failed: {e}"))
 
+    if package or archive:
+        _package_step(report, out_dir, package_name, app_ref, archive)
     return report
+
+
+def _package_step(
+    report: ProductBuildReport,
+    out_dir: Optional[Path],
+    name: Optional[str],
+    app_ref: str,
+    archive: bool,
+) -> None:
+    from ux_compose.cli.package import PackageError, write_bundle
+
+    if not report.ok:
+        report.steps.append(BuildStep("package", False, "skipped — earlier build steps failed"))
+        return
+    root = report.root
+    out = out_dir or root / "dist"
+    loc, _, attr = app_ref.partition(":")
+    entry = f"{Path(loc).stem}:{attr}"
+    try:
+        bundle = write_bundle(root, out_dir=out, name=root.name if name is None else name, entry=entry, archive=archive)
+    except PackageError as exc:
+        report.steps.append(BuildStep("package", False, str(exc)))
+        return
+    report.package_path, report.archive_path = bundle.path, bundle.archive
+    report.warnings.extend(bundle.warnings)
+    shown = bundle.path.relative_to(root) if bundle.path.is_relative_to(root) else bundle.path
+    detail = (
+        f"{shown.as_posix()} (run.sh {entry}; excluded: {', '.join(bundle.excluded) or 'none'}; "
+        "secret detection is best-effort: keep secrets in the environment, not in the app tree)"
+    )
+    report.steps.append(BuildStep("package", True, detail))
 
 
 def format_product_build_report(report: ProductBuildReport) -> str:
@@ -305,9 +351,19 @@ def format_product_build_report(report: ProductBuildReport) -> str:
         lines.append(f"  [{mark:4}] {s.name}: {s.detail}")
     if report.output_css:
         lines.append(f"  css → {report.output_css}")
+    if report.package_path:
+        lines.append(f"  package → {report.package_path}")
+    if report.archive_path:
+        lines.append(f"  archive → {report.archive_path}")
+    lines.extend(f"  {w}" for w in report.warnings)
     lines.append("=" * 48)
     lines.append("BUILD OK" if report.ok else "BUILD FAILED")
-    if report.ok:
+    if report.ok and report.package_path:
+        lines.append(
+            f"Run: cd {report.package_path} && pip install -r requirements.txt "
+            "&& UX_CHANNEL_SECRET=... ./run.sh"
+        )
+    elif report.ok:
         lines.append("Next: uxcompose serve prod")
         if report.output_css:
             lines.append(

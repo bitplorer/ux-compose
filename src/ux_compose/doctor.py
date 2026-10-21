@@ -5,6 +5,7 @@ Residuals (kit import, leftover aliases) are teaching, not kill.
 from __future__ import annotations
 
 import ast
+import json
 import os
 import posixpath
 import re
@@ -48,6 +49,68 @@ _LEFTOVER_TOKENS = (
     "ux_compose.routing.adapters",
     'host="starlette"', "host='starlette'",
 )
+
+
+# Not app source. Tool caches go by name. A venv needs ``pyvenv.cfg`` AND an
+# interpreter; a bundle from ``uxcompose build --package`` needs a MANIFEST
+# whose file list and hashes match the dir. Anything less is source.
+SKIP_DIRS = frozenset({"__pycache__", ".git", ".pytest_cache", ".mypy_cache", "node_modules"})
+BUNDLE_GENERATOR = "uxcompose build --package"
+BUNDLE_GENERATED = frozenset({"MANIFEST.json", "run.sh", "README.RUN.txt"})
+
+
+def is_venv(path: str | Path) -> bool:
+    p = Path(path)
+    return (p / "pyvenv.cfg").is_file() and (
+        os.path.lexists(p / "bin" / "python") or os.path.lexists(p / "Scripts" / "python.exe")
+    )
+
+
+def is_bundle(path: str | Path, *, allow_venv: bool = True) -> bool:
+    """True when ``path`` is a bundle ``uxcompose build --package`` wrote and nobody changed.
+
+    Its ``MANIFEST.json`` carries the marker, every listed file exists with
+    that sha256, and the dir holds nothing else but the generated files,
+    ``__pycache__/`` (from running it) and, with ``allow_venv``, a venv.
+    """
+    import hashlib
+
+    p = Path(path)
+    try:
+        manifest = json.loads((p / "MANIFEST.json").read_text(encoding="utf-8"))
+        if not isinstance(manifest, dict) or manifest.get("generator") != BUNDLE_GENERATOR:
+            return False
+        listed = {f["path"]: f["sha256"] for f in manifest["files"]}
+        for rel, digest in listed.items():
+            f = p / rel
+            if f.is_symlink() or hashlib.sha256(f.read_bytes()).hexdigest() != digest:
+                return False
+    except (OSError, ValueError, KeyError, TypeError):
+        return False
+    found: set[str] = set()
+    for dirpath, dirnames, filenames in os.walk(p):
+        here = Path(dirpath)
+        for d in dirnames:
+            if (here / d).is_symlink():
+                return False
+        dirnames[:] = [
+            d for d in dirnames if d != "__pycache__" and not (allow_venv and is_venv(here / d))
+        ]
+        found.update((here / f).relative_to(p).as_posix() for f in filenames)
+    return found == set(listed) | BUNDLE_GENERATED
+
+
+def is_skipped_dir(path: str | Path) -> bool:
+    p = Path(path)
+    return p.name in SKIP_DIRS or is_venv(p) or is_bundle(p)
+
+
+def _walk_py(root: Path) -> list[Path]:
+    found: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if not is_skipped_dir(Path(dirpath) / d))
+        found.extend(Path(dirpath) / f for f in sorted(filenames) if f.endswith(".py"))
+    return found
 
 
 def _norm(path: Path | str) -> str:
@@ -679,7 +742,7 @@ def doctor(
         for p in paths:
             pp = Path(p)
             if pp.is_dir():
-                expanded.extend(pp.rglob("*.py"))
+                expanded.extend(_walk_py(pp))
             elif pp.suffix == ".py":
                 expanded.append(pp)
         diagnostics.extend(scan_isolation(expanded))

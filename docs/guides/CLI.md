@@ -126,6 +126,91 @@ uxcompose doctor --prod --port 8080    # also warn if 0.0.0.0:8080 cannot be bou
 `--port` without `--prod` and `--host` without `--port` exit 2. `doctor` without `--prod` prints the
 same report and exit code as before.
 
+### `uxcompose build --package` / `--archive`
+
+A runnable bundle of the app, written only after every build step passes.
+
+```bash
+export UX_CHANNEL_SECRET=$(python -c 'import secrets; print(secrets.token_urlsafe(32))')
+uxcompose build --package                        # → dist/<app dir name>/
+uxcompose build --archive --out out --name shop  # → out/shop/ and out/shop.tar.gz
+# anywhere, in a fresh venv:
+pip install -r dist/<name>/requirements.txt && dist/<name>/run.sh
+```
+
+- `--out DIR` (default `<app root>/dist`), `--name NAME` (default the app
+  directory name; one plain path segment). `--archive` implies `--package`.
+- `--out` safety, checked on the resolved path (symlinks followed) before
+  anything is written or deleted: it is refused when it is the app
+  directory or one of its parents (`.`, `..`, `/`, `~` for an app under
+  home), inside `routes/` / `components/` / `assets/` / `deploy/`, or an
+  existing directory holding anything but bundles this tool wrote (a
+  `MANIFEST.json` with `"generator": "uxcompose build --package"` whose
+  files and hashes match, holding nothing else but `__pycache__/`, or
+  their `.tar.gz`). Only such a bundle is ever replaced, and it is
+  re-checked just before the rename. A bundle you added files to
+  (a `.venv`, an `.env`, an edit) is refused, never deleted. The bundle
+  is assembled in a temp dir inside `--out` and renamed into place; a
+  refused bundle leaves nothing behind, and `--package` alone removes that
+  bundle's older archive.
+- Allowlist (regular files only): every `*.py` under the app root, so
+  `lib/`, nested and relative-import packages ship; root
+  `requirements.txt`, `README.md` and existing deploy files
+  (`Dockerfile`, `.dockerignore`, `fly.toml`, `render.yaml`,
+  `railway.json`); source types (`.py .html .css .js .json .md .txt`)
+  under `routes/` and `components/`; web asset types under `assets/` (with
+  the compiled `output.css`); unit and config types under `deploy/`. The
+  bundler generates no deploy file: run `uxcompose deploy` first. Every
+  other file and directory is left out and listed in the `package` row
+  (`excluded: …`): tool caches (`__pycache__`, `.git`, `node_modules`,
+  `.pytest_cache`, `.mypy_cache`), a venv (`pyvenv.cfg` and
+  `bin/python` or `Scripts/python.exe`), a bundle whose MANIFEST file
+  list and hashes match its dir, and `--out` itself. A stray `pyvenv.cfg`
+  or MANIFEST does not hide a dir: it stays source.
+- Refused (FAIL, nothing written), each listed:
+  - any symlink in the walked tree, whatever it points at;
+  - a key-shaped file inside an allowed directory: by name (`.env`,
+    `.env.*`, `*.env`, `id_rsa*`, `id_dsa*`, `id_ecdsa*`, `id_ed25519*`,
+    `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.jks`, `*.keystore`, `*.kdbx`,
+    `*.gpg`, `.netrc`, `.npmrc`, `.pypirc`, `.htpasswd`) or by content
+    (`PRIVATE KEY-----`, a JSON `"private_key":` in the first 64 KiB), and
+    a copied file holding a private key. This is best-effort hygiene, not
+    a guarantee: it misses DER keys, tokens and keys under innocent names.
+    Secrets belong in the environment, not in the app tree; the `package`
+    row says so.
+- Import check: after doctor, `python -I -B` imports the entry
+  (`app:asgi`) from a copy of the assembled bundle, with only the bundle
+  dir on `sys.path` (no source root, no `PYTHONPATH`, no user site). A
+  failure FAILs the build with the last error line, so a module or data
+  file the allowlist missed cannot give BUILD OK.
+- Generated: `run.sh` (0755: `cd` to the bundle, `PORT` 8080 / `HOST`
+  0.0.0.0 defaults, activates `.venv` if present, runs `python3` to print
+  the one-line `Channel secret refused: …` and exit 1 when the secret is
+  not usable, then `exec uvicorn app:asgi --app-dir .`; `--app` sets the
+  entry, no `PYTHONPATH`), `README.RUN.txt`, and `MANIFEST.json`
+  (`generator`, `name`, `entrypoint`, `static_model:
+  single_copy_from_site_packages`, each file's `path` / `sha256` / `bytes`,
+  and `resolved`: `version` and `vcs_commit` for ux-compose and the four
+  specialists). No file names the build machine: no absolute path, no
+  timestamp. Library JS is not vendored; the installed packages serve
+  `/ux-dom/static/x_element.js`.
+- The bundle also FAILs (and is not written) when:
+  - `uxcompose doctor --prod` on the assembled bundle has a FAIL row, so
+    build with `UX_CHANNEL_SECRET` set and `DEBUG` unset; a missing or
+    unresolvable `requirements.txt` is the `requirements` row. A
+    `requirements.txt` is never synthesized, and `-r` / `-c` includes are
+    refused (the bundle ships `requirements.txt` alone).
+  - the `requirements.txt` ux-compose line is not the ux-compose running
+    the build (the line create-app would write now), since the bundle
+    would install code the build did not check.
+  - `SOURCE_DATE_EPOCH` is set and not a non-negative integer.
+- `WARNING:` lines: an editable ux-compose checkout with uncommitted
+  tracked changes (the bundle pins `HEAD`, so it matches no commit the
+  build checked), and create-app's unpushed-`HEAD` note.
+- `NAME.tar.gz` has one top-level `NAME/` directory, sorted members,
+  uid/gid 0, mtime `SOURCE_DATE_EPOCH` (or 0) in the tar and gzip
+  headers: two archives of the same tree are byte-identical.
+
 Architecture: [../internals/hmr.md](../internals/hmr.md).
 Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md).
 CSS how-to: [TAILWIND.md](TAILWIND.md).

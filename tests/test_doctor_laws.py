@@ -111,6 +111,59 @@ def test_single_document_ok():
         assert diags == []
 
 
+@pytest.mark.parametrize(
+    "rel, marker, skipped",
+    [
+        ("dist/demo", ("MANIFEST.json", '{"name": "demo"}'), False),
+        ("routes", ("MANIFEST.json", '{"generator": "uxcompose build --package", "files": []}'), False),
+        ("routes", ("pyvenv.cfg", "home = /usr/bin"), False),
+        ("env", ("pyvenv.cfg", "home = /usr/bin"), False),
+        ("env", ("bin/python", ""), False),
+        ("routes/venv", None, False),
+        ("node_modules/x", None, True),
+    ],
+)
+def test_doctor_dir_scan_skips_bundles_and_venvs_by_content(tmp_path, rel, marker, skipped):
+    """A bundle (MANIFEST marker) or a venv (pyvenv.cfg) is not app source; a dir name alone is not proof."""
+    (tmp_path / "document.py").write_text("d = Document()\n", encoding="utf-8")
+    (tmp_path / rel).mkdir(parents=True)
+    (tmp_path / rel / "document.py").write_text("d = Document()\nimport ux_channel\n", encoding="utf-8")
+    if marker:
+        (tmp_path / rel / marker[0]).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel / marker[0]).write_text(marker[1], encoding="utf-8")
+    assert doctor([tmp_path], fail=False).ok is skipped
+
+
+def test_doctor_skips_a_real_venv(tmp_path):
+    """pyvenv.cfg AND an interpreter: a venv. Either alone is source."""
+    (tmp_path / "document.py").write_text("d = Document()\n", encoding="utf-8")
+    venv = tmp_path / "env"
+    (venv / "bin").mkdir(parents=True)
+    (venv / "pyvenv.cfg").write_text("home = /usr/bin\n", encoding="utf-8")
+    (venv / "bin" / "python").write_text("", encoding="utf-8")
+    (venv / "lib").mkdir()
+    (venv / "lib" / "document.py").write_text("d = Document()\nimport ux_channel\n", encoding="utf-8")
+    assert doctor([tmp_path], fail=False).ok
+
+
+def test_doctor_skips_only_a_bundle_whose_manifest_matches(tmp_path):
+    import hashlib, json
+
+    (tmp_path / "document.py").write_text("d = Document()\n", encoding="utf-8")
+    bundle = tmp_path / "out" / "shop"
+    bundle.mkdir(parents=True)
+    body = b"d = Document()\n"
+    (bundle / "document.py").write_bytes(body)
+    for name in ("run.sh", "README.RUN.txt"):
+        (bundle / name).write_text("x", encoding="utf-8")
+    entry = {"path": "document.py", "sha256": hashlib.sha256(body).hexdigest(), "bytes": len(body)}
+    manifest = {"generator": "uxcompose build --package", "files": [entry]}
+    (bundle / "MANIFEST.json").write_text(json.dumps(manifest), encoding="utf-8")
+    assert doctor([tmp_path], fail=False).ok
+    (bundle / "document.py").write_bytes(b"d = Document()  # edited\n")
+    assert not doctor([tmp_path], fail=False).ok
+
+
 class _Caps:
     kernel_ssot = None
 

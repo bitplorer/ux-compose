@@ -292,6 +292,13 @@ SPECIALISTS = ("ux-dom", "ux-channel", "ux-behavior", "ux-motion")
 # continues the line, and a line's options start at its first '-' token.
 _COMMENT = re.compile(r"(^|\s+)#.*$")
 _EGG = re.compile(r"#egg=([A-Za-z0-9][A-Za-z0-9._-]*)")
+# A bitplorer/ux-* repo URL (VCS over https or ssh, archive, tarball, codeload)
+# is that distribution whether or not it says #egg: pip installs it all the same.
+_BITPLORER_REPO = re.compile(
+    r"(?:codeload\.github\.com|api\.github\.com/repos|github\.com)[/:]bitplorer/"
+    r"([A-Za-z0-9_.-]+?)(?:\.git)?(?=[/@#?]|$)",
+    re.IGNORECASE,
+)
 _FLAGS = {
     "-r": "-r", "--requirement": "-r", "-e": "-e", "--editable": "-e", "-c": "-c", "--constraint": "-c",
 }
@@ -353,20 +360,31 @@ class _Line(NamedTuple):
 def _distribution(spec: str) -> tuple[str | None, bool, _Line | None]:
     """(canonical name or None, parses, line). A bare URL or path has no name to check.
 
-    A wheel is named by its filename, as pip names it without building.
+    Markers split as pip splits them (``req_install.parse_req_from_line``):
+    at the first ``"; "`` of a bare URL line, else at the first ``;``, so
+    ``name @ url;marker`` is ``name`` with that marker (packaging alone may
+    read the marker into the URL). A wheel is named by its filename and a
+    bitplorer/ux-* repo URL by its repo, as pip names them; other bare URLs
+    and paths only by building them.
     """
     from packaging.requirements import InvalidRequirement, Requirement
     from packaging.utils import InvalidWheelFilename, canonicalize_name, parse_wheel_filename
 
+    head, semi, marker = spec.partition("; " if "://" in spec.split(" ", 1)[0] else ";")
     try:
-        req = Requirement(spec)
+        req = Requirement(f"{head.strip()} ; {marker.strip()}" if semi else spec)
     except InvalidRequirement:
         pass
     else:
-        marker = str(req.marker) if req.marker else None
-        return canonicalize_name(req.name), True, _Line(str(req.specifier), req.url, marker, frozenset(req.extras))
+        marker_text = str(req.marker) if req.marker else None
+        line = _Line(str(req.specifier), req.url, marker_text, frozenset(req.extras))
+        return canonicalize_name(req.name), True, line
     if egg := _EGG.search(spec):
         return canonicalize_name(egg.group(1)), True, None
+    if (repo := _BITPLORER_REPO.search(spec)) and (
+        name := canonicalize_name(repo.group(1))
+    ) in (*SPECIALISTS, "ux-compose"):
+        return name, True, None
     if spec.endswith(".whl"):
         try:
             return parse_wheel_filename(spec.rsplit("/", 1)[-1])[0], True, None

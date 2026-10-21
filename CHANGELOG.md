@@ -112,10 +112,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `doctor --prod`'s requirements scan (#129) reads three more cases the way
   pip does: a missing `-c`/`--constraint` file FAILs; lines pip installs as
   one distribution (different environment markers on both, or one pin
-  with different extras) are not "listed twice"; a URL requirement
-  with no name (bare VCS URL without `#egg=`, sdist URL) is a WARN naming
-  it, since it could be a second ux-dom, and a wheel URL is named by its
-  filename.
+  with different extras) are not "listed twice"; a
+  `github.com/bitplorer/ux-*` URL (VCS over https or ssh, archive,
+  tarball, codeload) is named by its repo with or without `#egg`, so a
+  bare specialist URL FAILs like a named pin; `name @ url;marker` (no
+  space) splits as pip splits it; any other URL requirement with no name
+  is a WARN naming it, and a wheel URL is named by its filename.
 
 - The stdlib-shadow check (#136) counts every importable top-level file
   (`importlib.machinery.all_suffixes()`), so a sourceless root

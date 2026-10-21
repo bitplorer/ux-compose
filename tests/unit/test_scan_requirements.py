@@ -136,13 +136,15 @@ def test_corpus_parses(name, names):
 @pytest.mark.parametrize(
     "line",
     [
-        "git+https://github.com/bitplorer/ux-dom.git@abc",
-        "-e git+https://github.com/bitplorer/ux-dom.git@abc",
+        "git+https://github.com/encode/httpx.git@abc",
+        "-e git+https://gitlab.com/acme/tool.git@abc",
         "https://example.com/pkgs/ux-dom-main.tar.gz",
+        "git+https://github.com/bitplorer/ux-dom-fork.git@abc",
+        "git+https://github.com/someone/ux-dom.git@abc",
     ],
 )
 def test_nameless_requirement_is_reported_unidentifiable(tmp_path, line):
-    """pip learns these names only by building them, so the rule cannot see a second ux-dom (#129)."""
+    """pip learns these names only by building them (#129); not a bitplorer specialist repo."""
     scan = _scan(tmp_path, f"ux-compose\n{line}\n")
     assert scan.problem is None
     assert scan.unchecked == [
@@ -196,3 +198,53 @@ def test_pip_accepted_splits_are_not_duplicates(tmp_path, lines):
 )
 def test_overlapping_lines_still_count_twice(tmp_path, lines):
     assert _scan(tmp_path, "ux-compose\n" + lines).problem.endswith("one line per distribution")
+
+
+SPECIALIST_PIN = "{name} (requirements.txt:2) pinned beside ux-compose; specialists come with the ux-compose line"
+
+
+@pytest.mark.parametrize(
+    "line, name",
+    [
+        ("git+https://github.com/bitplorer/ux-dom.git@0440ccb", "ux-dom"),
+        ("git+https://github.com/bitplorer/ux-dom@0440ccb", "ux-dom"),
+        ("-e git+https://github.com/bitplorer/ux-dom.git@0440ccb", "ux-dom"),
+        ("git+ssh://git@github.com/bitplorer/ux-behavior.git@abc", "ux-behavior"),
+        ("git+git@github.com:bitplorer/ux-motion.git@abc", "ux-motion"),
+        ("git+https://github.com/bitplorer/ux-channel.git@0ffe8e9#subdirectory=python", "ux-channel"),
+        ("git+https://GitHub.com/Bitplorer/UX-Dom.git@abc", "ux-dom"),
+        ("https://github.com/bitplorer/ux-dom/archive/0440ccb.tar.gz", "ux-dom"),
+        ("https://github.com/bitplorer/ux-dom/archive/refs/heads/main.zip", "ux-dom"),
+        ("https://github.com/bitplorer/ux-motion/tarball/abc", "ux-motion"),
+        ("https://github.com/bitplorer/ux-motion/zipball/abc", "ux-motion"),
+        ("https://codeload.github.com/bitplorer/ux-behavior/tar.gz/abc", "ux-behavior"),
+        ("https://api.github.com/repos/bitplorer/ux-channel/tarball/abc", "ux-channel"),
+        ("git+https://github.com/bitplorer/ux-dom.git@0440ccb ; python_version >= '3.14'", "ux-dom"),
+    ],
+)
+def test_specialist_repo_url_without_egg_fails_like_a_named_pin(tmp_path, line, name):
+    """UC1/D2: pip installs a second specialist from these, #egg or not (#137 review)."""
+    scan = _scan(tmp_path, f"ux-compose\n{line}\n")
+    assert scan.problem == SPECIALIST_PIN.format(name=name)
+    assert scan.unchecked == []
+
+
+@pytest.mark.parametrize("space", ["", " "])
+def test_name_at_url_marker_without_space_is_named(tmp_path, space):
+    """pip splits ``name @ url;marker`` at ``;``, so the unspaced form names ux-dom too (#137 review)."""
+    line = f'ux-dom @ git+https://github.com/bitplorer/ux-dom.git@0440ccb{space};python_version >= "3.14"'
+    scan = _scan(tmp_path, f"ux-compose\n{line}\n")
+    assert scan.problem == SPECIALIST_PIN.format(name="ux-dom")
+
+
+def test_name_at_url_marker_without_space_splits_like_the_spaced_form(tmp_path):
+    scan = _scan(
+        tmp_path,
+        "ux-compose\nfoo @ https://x/foo.zip;sys_platform=='win32'\nfoo @ https://x/foo.zip ; sys_platform!='win32'\n",
+    )
+    assert scan.problem is None and scan.unchecked == []
+
+
+def test_bare_compose_url_names_ux_compose(tmp_path):
+    scan = _scan(tmp_path, "git+https://github.com/bitplorer/ux-compose.git@abc\n")
+    assert scan.problem is None and scan.names == {"ux-compose": "requirements.txt:1"}

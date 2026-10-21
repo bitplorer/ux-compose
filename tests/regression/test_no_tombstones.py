@@ -84,3 +84,16 @@ def test_doctor_has_no_leftover_teaching_scanners():
     for name in ("scan_leftover_aliases", "scan_kit_product_imports", "_LEFTOVER_TOKENS"):
         assert not hasattr(d, name), name
         assert name not in d.__all__
+
+
+def test_legacy_tailwind_env_guard_is_gone(monkeypatch):
+    import ux_compose.cli as cli
+    import ux_compose.tailwind as tw
+
+    for name in ("LEGACY_ENV", "LegacyTailwindEnvError", "_reject_legacy_env"):
+        assert not hasattr(tw, name), name
+    assert not hasattr(cli, "_legacy_env_guard")
+    monkeypatch.setenv("UXDOM_CACHE", "/nonexistent")
+    monkeypatch.delenv("UXCOMPOSE_CACHE", raising=False)
+    monkeypatch.delenv("XDG_CACHE_HOME", raising=False)
+    assert tw.cache_dir() == Path.home() / ".cache" / "ux-compose"

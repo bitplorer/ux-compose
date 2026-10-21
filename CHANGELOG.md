@@ -259,6 +259,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `host="starlette"`) and `scan_kit_product_imports`
   (`from ux_compose.kit import`, which is an `ImportError` anyway). The law
   scans and `scan_render_chrome` are unchanged.
+- The `UXDOM_TAILWIND*` / `UXDOM_CACHE` tombstone (`LEGACY_ENV`,
+  `LegacyTailwindEnvError`, `_reject_legacy_env`, the CLI's
+  `_legacy_env_guard`). Only `UXCOMPOSE_*` is read; a `UXDOM_*` variable
+  is ignored like any other unknown variable. `UXDOM_TAILWIND_DOWNLOAD=0`
+  no longer blocks the download: use `UXCOMPOSE_TAILWIND_DOWNLOAD=0`.
+  Every download is SHA256-verified before it runs (UC5).
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

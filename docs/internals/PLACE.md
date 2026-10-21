@@ -72,7 +72,7 @@ flowchart TB
 
 Mint, intent, verify, project, apply, undo.
 
-1. **Mint.** Host mints a Cap. The subject on the Cap is the subject in the args. dev is the workshop. prod refuses the workshop secret.
+1. **Mint.** Host mints a Cap. Identity for authorization is the verified principal. A subject-bound Cap runs only when principal == subject (ux-channel#68). For a Cap without a subject, `ctx.principal` may still come from client args (ux-channel#72), so compose must not treat it as identity. dev is the workshop. prod refuses the workshop secret.
 2. **Intent.** Channel carries action, args, and cap. That is the click. It is not a form post.
 3. **Verify.** Host verifies the Cap before any shared-world write. A bad Cap, or a store that is down, refuses. ops is empty. The peer never mints.
 4. **Project.** Only declared pairs leave the host. Baseline and ui.dom are the catalog. Hardware pairs arrive through project_ops. They are not a fork of Host.

@@ -94,6 +94,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- An app module named like a standard library module (`secrets.py`,
+  `email/`, `types.py`, …) at the app root shadowed it for every library
+  in the process: ux-dom's `import secrets` got the app's file and every
+  library JS URL returned 404 (#131). `uxcompose doctor` (plain and
+  `--prod`), `build` (all modes) and `serve dev` / `serve prod` now FAIL
+  first with one line naming every top-level offender from
+  `sys.stdlib_module_names`: "app module `secrets.py` shadows the Python
+  standard library module `secrets`; rename it". Library:
+  `ux_compose.doctor.stdlib_shadows`. The `--package` library-JS GET stays
+  as the backstop.
+- `build --package` / `--check` follow-ups from the #130 review (#131): a
+  blocking import or sync ASGI startup FAILs in one line after 120 s, not
+  a `TimeoutExpired` traceback; a planted `pyvenv.cfg` + `bin/python` no
+  longer hides `routes/` (or `components/`, `assets/`, `deploy/`) from the
+  bundle and `doctor`; a bundle holding files uxcompose did not write is
+  refused naming them (`dist/demo holds .env, .venv/ …`), even when an
+  earlier step failed, and `doctor` notes it; a copied file with more than
+  one hardlink is refused; `--package` no longer also imports the source
+  tree, so import side effects run once. `README.RUN.txt` no longer
+  suggests a `./.venv` inside the output dir. `test_cli_package.py` stubs
+  the smoke import except where it is the subject (60 s → 14 s).
+
 - `doctor(paths)` skips, when it walks a directory, a bundle written by
   `uxcompose build --package` (its `MANIFEST.json` marker, file list and
   hashes all match the dir, whatever `--out` was), a venv (`pyvenv.cfg`

@@ -26,6 +26,7 @@ __all__ = [
     "scan_store_precedence",
     "secret_readiness",
     "scan_product_readiness",
+    "stdlib_shadows",
 ]
 
 
@@ -53,12 +54,14 @@ def is_venv(path: str | Path) -> bool:
     )
 
 
-def is_bundle(path: str | Path, *, allow_venv: bool = True) -> bool:
-    """True when ``path`` is a bundle ``uxcompose build --package`` wrote and nobody changed.
+def bundle_changes(path: str | Path, *, allow_venv: bool = True) -> list[str] | None:
+    """What in a ``uxcompose build --package`` bundle that tool did not write; None if not one.
 
-    Its ``MANIFEST.json`` carries the marker, every listed file exists with
-    that sha256, and the dir holds nothing else but the generated files,
-    ``__pycache__/`` (from running it) and, with ``allow_venv``, a venv.
+    A bundle's ``MANIFEST.json`` carries the marker. ``[]``: every listed file
+    exists with that sha256, and the dir holds nothing else but the generated
+    files, ``__pycache__/`` (from running it) and, with ``allow_venv``, a venv.
+    Otherwise the extra files (under a dir the bundle does not have, that dir
+    once, as ``name/``) and ``rel (changed)`` / ``rel (missing)`` for listed files.
     """
     import hashlib
 
@@ -66,36 +69,67 @@ def is_bundle(path: str | Path, *, allow_venv: bool = True) -> bool:
     try:
         manifest = json.loads((p / "MANIFEST.json").read_text(encoding="utf-8"))
         if not isinstance(manifest, dict) or manifest.get("generator") != BUNDLE_GENERATOR:
-            return False
+            return None
         listed = {f["path"]: f["sha256"] for f in manifest["files"]}
-        for rel, digest in listed.items():
-            f = p / rel
-            if f.is_symlink() or hashlib.sha256(f.read_bytes()).hexdigest() != digest:
-                return False
     except (OSError, ValueError, KeyError, TypeError):
-        return False
-    found: set[str] = set()
+        return None
+    expected = set(listed) | BUNDLE_GENERATED
+    expected_dirs = {parent.as_posix() for rel in expected for parent in Path(rel).parents}
+    changes: list[str] = []
+    for rel, digest in listed.items():
+        f = p / rel
+        if not f.is_file():
+            changes.append(f"{rel} (missing)")
+        elif f.is_symlink() or hashlib.sha256(f.read_bytes()).hexdigest() != digest:
+            changes.append(f"{rel} (changed)")
+    extra: set[str] = set()
     for dirpath, dirnames, filenames in os.walk(p):
         here = Path(dirpath)
         for d in dirnames:
             if (here / d).is_symlink():
-                return False
+                extra.add(f"{(here / d).relative_to(p).as_posix()}/")
         dirnames[:] = [
-            d for d in dirnames if d != "__pycache__" and not (allow_venv and is_venv(here / d))
+            d
+            for d in dirnames
+            if d != "__pycache__" and not (here / d).is_symlink() and not (allow_venv and is_venv(here / d))
         ]
-        found.update((here / f).relative_to(p).as_posix() for f in filenames)
-    return found == set(listed) | BUNDLE_GENERATED
+        for f in filenames:
+            rel = (here / f).relative_to(p)
+            if rel.as_posix() in expected:
+                continue
+            outer = next((d for d in reversed(rel.parents[:-1]) if d.as_posix() not in expected_dirs), None)
+            extra.add(f"{outer.as_posix()}/" if outer else rel.as_posix())
+    return sorted(changes + sorted(extra))
 
 
-def is_skipped_dir(path: str | Path) -> bool:
+def is_bundle(path: str | Path, *, allow_venv: bool = True) -> bool:
+    """True when ``path`` is a bundle ``uxcompose build --package`` wrote and nobody changed."""
+    return bundle_changes(path, allow_venv=allow_venv) == []
+
+
+# App source dirs at the root. Never skipped as a venv or bundle: two planted files would hide them.
+SOURCE_DIRS = frozenset({"routes", "components", "assets", "deploy"})
+
+
+def is_skipped_dir(path: str | Path, *, source: bool = False) -> bool:
     p = Path(path)
-    return p.name in SKIP_DIRS or is_venv(p) or is_bundle(p)
+    return p.name in SKIP_DIRS or (not source and (is_venv(p) or is_bundle(p)))
 
 
-def _walk_py(root: Path) -> list[Path]:
+def _walk_py(root: Path, notes: list[str] | None = None) -> list[Path]:
+    """``*.py`` under ``root`` outside skipped dirs; ``notes`` gets one line per changed bundle."""
     found: list[Path] = []
     for dirpath, dirnames, filenames in os.walk(root):
-        dirnames[:] = sorted(d for d in dirnames if not is_skipped_dir(Path(dirpath) / d))
+        here = Path(dirpath)
+        top = here == Path(root)
+        dirnames[:] = sorted(
+            d for d in dirnames if not is_skipped_dir(here / d, source=top and d in SOURCE_DIRS)
+        )
+        if notes is not None and here != Path(root) and (changes := bundle_changes(here)):
+            notes.append(
+                f"{here} is a uxcompose bundle holding {', '.join(changes[:5])} "
+                "(not written by uxcompose), so it is scanned as app source"
+            )
         found.extend(Path(dirpath) / f for f in sorted(filenames) if f.endswith(".py"))
     return found
 
@@ -376,6 +410,44 @@ def secret_readiness(env: Mapping[str, str] | None = None) -> str | None:
     return f"Channel secret refused: {problem}" if problem else None
 
 
+def stdlib_shadows(root: str | Path) -> str | None:
+    """One line naming every top-level app module that shadows a stdlib module, else None.
+
+    The app root is first on ``sys.path`` (uvicorn ``--app-dir``), so a root
+    ``secrets.py`` is the ``secrets`` every library in the process imports:
+    ux-dom's CSP nonce got it and the library JS returned 404 (#131). Moving
+    the root behind the stdlib would break the app's own import instead, so
+    the name is the error. Modules and regular packages only: a directory
+    without ``__init__.py`` is a namespace portion, which never beats stdlib.
+    """
+    shown = []
+    for path in sorted(Path(root).iterdir()):
+        if path.suffix == ".py" and path.is_file():
+            name, label = path.stem, path.name
+        elif (path / "__init__.py").is_file():
+            name, label = path.name, f"{path.name}/"
+        else:
+            continue
+        if name in sys.stdlib_module_names:
+            shown.append((label, name))
+    if not shown:
+        return None
+    labels = ", ".join(f"`{label}`" for label, _ in shown)
+    names = ", ".join(f"`{name}`" for _, name in shown)
+    if len(shown) == 1:
+        return f"app module {labels} shadows the Python standard library module {names}; rename it"
+    return f"app modules {labels} shadow the Python standard library modules {names}; rename them"
+
+
+def is_hard(diagnostic: str) -> bool:
+    """A ``doctor`` diagnostic that fails the run (the rest are teaching)."""
+    low = diagnostic.lower()
+    return any(
+        key in low
+        for key in ("violation", "dual-document risk", "incomplete stack", "the python standard library")
+    )
+
+
 def _row(mark: str, name: str, detail: str) -> str:
     return f"[{mark:4}] {name}: {detail}"
 
@@ -497,6 +569,8 @@ def scan_product_readiness(
             )
         ]
     rows = [_row("OK", "product", "app.py")]
+    if shadow := stdlib_shadows(root):
+        rows.append(_row("FAIL", "stdlib", shadow))
     for module in ("uvicorn", "fastapi"):
         if find_spec(module) is None:
             rows.append(
@@ -681,7 +755,9 @@ def doctor(
         for p in paths:
             pp = Path(p)
             if pp.is_dir():
-                expanded.extend(_walk_py(pp))
+                if shadow := stdlib_shadows(pp):
+                    diagnostics.append(shadow)
+                expanded.extend(_walk_py(pp, diagnostics))
             elif pp.suffix == ".py":
                 expanded.append(pp)
         diagnostics.extend(scan_isolation(expanded))
@@ -709,13 +785,7 @@ def doctor(
         app = getattr(bundle, "compose_app", None) or getattr(bundle, "app", None)
     diagnostics.extend(scan_store_precedence())
     diagnostics.extend(scan_cek_host(app))
-    hard = [
-        d
-        for d in diagnostics
-        if "violation" in d.lower()
-        or "dual-document risk" in d.lower()
-        or "incomplete stack" in d.lower()
-    ]
+    hard = [d for d in diagnostics if is_hard(d)]
     result = DoctorResult(
         ok=len(hard) == 0,
         level_available=level,
@@ -750,12 +820,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"  Progressive level available: L{res.level_available}")
     failed = False
     if res.diagnostics:
-        failed = any(
-            "violation" in d.lower()
-            or "dual-document risk" in d.lower()
-            or "incomplete stack" in d.lower()
-            for d in res.diagnostics
-        )
+        failed = any(is_hard(d) for d in res.diagnostics)
         for d in res.diagnostics:
             print(f"    - {d}")
     else:

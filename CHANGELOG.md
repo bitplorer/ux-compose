@@ -98,8 +98,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and goes through ux-dom `sanitize_html` on both hosts, with or without a
   Document, and through `brand_wrap`; main sent it through `raw()` (or as
   is, with no Document) unsanitized, so `'<img src=x onerror=alert(1)>hi'`
-  ran script. A string `render()` serialized by `Component.__render__` or
-  `update_with` / `morph_play` is sanitized the same way. A generator body
+  ran script. Morph HTML follows the same rule: every HTML field the
+  client inserts goes through `wire.caps.ops_to_wire`, where a plain `str`
+  / `bytes` is sanitized, whether it comes from `update_with(html=)`, a
+  string `render()` (`Component.__render__`, `update_with`, `morph_play`,
+  ux-behavior's refresh), `ux_behavior.update(target, str)` (validation
+  messages included), a `morph` / `swap` dict, or a motion `enter`
+  `html=`. HTML compose renders from a ux-dom tree is trusted
+  (`helpers.TrustedHtml`, `__html__`), so `hx-*` / `x-*` attributes on a
+  tree survive the morph; a `Markup` stays as written. The pinned
+  ux-channel `0ffe8e9` client has no morph guard of its own, so this is
+  the only layer. A generator body
   goes through `sanitize_html_stream`: `str` / `bytes` chunks are untrusted
   (bytes decoded as one UTF-8 stream), tree and `Markup` chunks are sent as
   written, and the joined output equals `sanitize_html` of the joined text
@@ -117,7 +126,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `StreamingResponse(tree)`. Output gains no trailing newline. Tests:
   `tests/security/test_route_strings_sanitized.py` (attack strings through
   real routes, both hosts, random chunk splits; Chromium with the CSP
-  bypassed: 0 executions, while the same strings as `Markup` execute).
+  bypassed: 0 executions, while the same strings as `Markup` execute) and
+  `tests/security/test_morph_strings_sanitized.py` (each morph path through
+  the real `ux-channel.js` / ux-motion player in Chromium: 0 executions;
+  `Markup` executes; a tree's `hx-*` / `x-*` attributes survive).
 - `doctor --prod`'s requirements scan (#140) names every requirement by
   what it installs, in every form, and FAILs when that is a specialist
   (ux-dom, ux-channel, ux-behavior, ux-motion; PEP 503 spelling): the

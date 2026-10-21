@@ -74,7 +74,10 @@ L1 without HTTP: return a ux-dom tag tree. A `str` still serializes as
 `text/html` (not JSON, not streamed) but is not a Document-absent product path.
 A `str` / `bytes` body is untrusted: ux-dom `sanitize_html` drops scripts,
 handlers and unsafe URLs. Return `markupsafe.Markup(html)` only for HTML you
-trust.
+trust. The same holds for morph HTML: `update_with(html=str)`,
+`ux_behavior.update(target, str)` and a motion `enter(html=str)` are
+sanitized on the wire (which also drops `hx-*` / `x-*`); a tree `render()`
+and `Markup` go as written.
 
 Path params: `routes/shop/[sku].py` → `GET /shop/{sku}`.
 

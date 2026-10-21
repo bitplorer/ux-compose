@@ -182,7 +182,16 @@ pip install -r dist/<name>/requirements.txt && dist/<name>/run.sh
   (`app:asgi`) from a copy of the assembled bundle, with only the bundle
   dir on `sys.path` (no source root, no `PYTHONPATH`, no user site). A
   failure FAILs the build with the last error line, so a module or data
-  file the allowlist missed cannot give BUILD OK.
+  file the allowlist missed cannot give BUILD OK. In the same process it
+  boots the app as uvicorn does: ASGI `lifespan.startup` must complete
+  (a `startup.failed`, an exception or 30 s without an answer FAILs with
+  the app's message on one line; an app that rejects the lifespan scope
+  has none, as with uvicorn `--lifespan auto`). Then it sends
+  `GET /ux-dom/static/x_element.js` (and `/css/output.css` when the
+  bundle ships it) to the app's own ASGI callable, then
+  `lifespan.shutdown`. Anything but 200 with a JavaScript (CSS)
+  content-type and a body FAILs, naming the status; a handler that raises
+  or sends no response FAILs as that GET, not as the import.
 - Generated: `run.sh` (0755: `cd` to the bundle, `PORT` 8080 / `HOST`
   0.0.0.0 defaults, activates `.venv` if present, runs `python3` to print
   the one-line `Channel secret refused: …` and exit 1 when the secret is
@@ -210,6 +219,32 @@ pip install -r dist/<name>/requirements.txt && dist/<name>/run.sh
 - `NAME.tar.gz` has one top-level `NAME/` directory, sorted members,
   uid/gid 0, mtime `SOURCE_DATE_EPOCH` (or 0) in the tar and gzip
   headers: two archives of the same tree are byte-identical.
+
+### `uxcompose build --check`
+
+Verify that the app is built and shippable, writing nothing: no CSS, no
+bundle, no Tailwind cache change, no `__pycache__`. It passes on a
+read-only tree. Exit 0 when every step is OK, 1 on any FAIL.
+
+```bash
+UX_CHANNEL_SECRET=... uxcompose build --check   # CI gate before deploy
+```
+
+Steps (`--skip-tailwind` and `--no-minify` apply; `--package`,
+`--archive`, `--out`, `--name` and `--skip-import` exit 2):
+
+- `app.py`, then `tailwind`: `assets/static/file/css/output.css` must
+  equal a fresh compile (to a temp file) by the same Tailwind CLI, so
+  an edited template or `input.css` FAILs as stale. It never downloads
+  the CLI or repairs the cache: with no CLI found, or a cache entry that
+  fails its SHA256, the step FAILs and says why.
+- `doctor`: the same law scan as `build`.
+- `package`: every `--package` check, on a copy in the system temp dir:
+  the file set, `doctor --prod` on the copy, the import and static GETs
+  from the bundle alone, and the ux-compose pin. A FAIL prints the line `--package`
+  prints. Because `doctor --prod` runs, set `UX_CHANNEL_SECRET` and
+  unset `DEBUG`. The source tree is not imported: an app may write when
+  imported, so the import runs from the copy only.
 
 Architecture: [../internals/hmr.md](../internals/hmr.md).
 Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md).

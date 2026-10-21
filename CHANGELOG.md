@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `uxcompose build --check` verifies without writing anything (no CSS,
+  no bundle, no Tailwind cache change, no `__pycache__`; it passes on a
+  read-only tree): `app.py`; `tailwind` compiles to a temp file and FAILs
+  when `output.css` differs from it (stale) or is missing, never
+  downloading or repairing the cached CLI
+  (`resolve_tailwind(read_only=True)`); the `doctor` law scan; and
+  `package`, every `--package` check (file set, `doctor --prod`, import
+  from the bundle alone, then ASGI lifespan startup (a failure, an
+  exception or a 30 s hang FAILs) and an in-process `GET
+  /ux-dom/static/x_element.js` and `/css/output.css` that must return 200
+  with a JS/CSS content-type, so a library-JS 404 FAILs `--package` too;
+  ux-compose pin) on a copy in the system temp dir, with the same one-line FAIL messages. Exit 1 on any FAIL. It does
+  not import the source tree. `--package`, `--archive`, `--out`, `--name`
+  and `--skip-import` with `--check` exit 2. Library:
+  `ux_compose.cli.package.check_bundle`. The "no product app found" error
+  for an `app/main.py` tree now says to start one with
+  `uxcompose create-app`. A guard test keeps sources and docs on
+  `uxcompose build` and on package static `/ux-dom/static/x_element.js`
+  as the only library JS source.
+
 - `uxcompose build --package` writes a runnable bundle to `dist/<name>/`
   (`--out`, `--name`) after every build step passes; `--archive` adds a
   byte-identical `dist/<name>.tar.gz` (sorted members, one `<name>/` root,
@@ -32,8 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an allowed directory; any symlink in the tree;
   a `doctor --prod` FAIL row on the bundle; a ux-compose line that is not
   the running ux-compose; `-r`/`-c` includes. A dirty editable checkout
-  prints a `WARNING:` line. This replaces `uxdom build --package/--archive`
-  for product (`app.py`) apps (ux-dom ADR 0003 rule 4). Library:
+  prints a `WARNING:` line. Library:
   `ux_compose.cli.package.write_bundle`.
 
 - `uxcompose doctor --prod` checks product readiness after the law scans:
@@ -792,7 +811,7 @@ and not a 0.2 line.
 - `create-app` teaching surface: `settings.py`, `document.py`, `assets/css/input.css`, `requirements.txt`.
 - Tailwind CLI finder / download / ensure moved here (`ux_compose.tailwind`). ux-dom does not compile CSS (`TailwindCommand` fail-closed).
 - Product path fail-closed: `build()` honors `level` / `live=null`; `WebAssets.mount_css` wraps DirectoryASGI (no silent `/css` 404); discover CSS is pure (no leftover `app/tailwindcss.py` branch); `uxcompose doctor` prints the teaching report; browser HMR is opt-in (`--hmr`); product root is `app.py` only.
-- `serve="dual_copy"` is the package-static escape hatch name (the `serve="webassets"` alias was removed in ux-dom 0.2.0 and now raises; doctor still flags it). Not `WebAssets`.
+- Package static `/ux-dom/static/x_element.js` is the only library JS source (the `serve="webassets"` alias was removed in ux-dom 0.2.0 and now raises; doctor still flags it). Not `WebAssets`.
 
 ### Changed
 
@@ -822,11 +841,11 @@ and not a 0.2 line.
 - Scaffold no longer emits leftover `page()`. Host wraps `render()` with the
   author Document. Motion Scene IR becomes `transition.play`.
 - `_is_response` recognizes FileResponse / RedirectResponse / body_iterator.
-- **Docs:** teaching pages no longer name leftover `uxdom build` / DirectoryRouter /
+- **Docs:** teaching pages no longer name leftover DirectoryRouter /
   `host=batteries` as something to run. Stub cites (`docs/CLI.md`, `docs/DX.md`,
   `docs/TESTING.md`) point at `docs/guides/`. Product path is the only path taught.
 - CI pins ux-behavior / ux-motion / ux-channel / ux-dom to origin/main SHAs;
   leftover `httpx2` is gone. Teaching is `create-app` + `build()` (`App.mount`
   is a secondary door). Clock A GET asserts `Content-Security-Policy` when
   Document mounts Csp.
-- Product path is `create-app → build → serve → deploy`. `uxdom build` does not compile CSS.
+- Product path is `create-app → build → serve → deploy`. `uxcompose build` compiles CSS.

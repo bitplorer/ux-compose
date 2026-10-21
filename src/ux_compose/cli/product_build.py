@@ -5,8 +5,8 @@ Ownership (OWNERSHIP law):
     Finding / downloading / invoking the Tailwind CLI is product DX.
   - Render stays on ux-dom: className, ``<link>``, package static.
   - App folders live HERE (``ux_compose.assets.WebAssets``).
-  - ``uxdom build`` is Document/static verify for leftover ``app/main.py``
-    trees. It does not compile CSS.
+  - ``uxcompose build --check`` is the read-only verify: CSS freshness and
+    every ``--package`` check (``doctor --prod``, import from the bundle alone).
 
 Product path::
 
@@ -14,6 +14,7 @@ Product path::
     cd myapp
     uxcompose serve dev      # clocks on; sibling Tailwind --watch
     uxcompose build          # minify → assets/static/file/css/output.css
+    uxcompose build --check  # the same checks, prod-ready, nothing written
     uxcompose serve prod     # clocks off; disk CSS
     uxcompose deploy --provider docker
 """
@@ -22,6 +23,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
@@ -42,6 +44,7 @@ class ProductBuildReport:
     package_path: Optional[Path] = None
     archive_path: Optional[Path] = None
     warnings: list[str] = field(default_factory=list)
+    check: bool = False
 
     @property
     def ok(self) -> bool:
@@ -83,8 +86,7 @@ def find_product_root(
 ) -> Path:
     """Locate a product app root.
 
-    Prefer ``app.py`` (uxcompose create-app). Leftover ``app/main.py``
-    showcase trees are ``uxdom build`` (Document/static verify), not this CLI.
+    The root is the directory holding ``app.py`` (uxcompose create-app).
 
     When cwd is not the app root, ``app_ref`` may be a path prefix
     (``myapp/app:asgi`` / ``myapp/app.py:asgi``) so the CLI can walk from
@@ -116,7 +118,7 @@ def find_product_root(
         f"Looked from: {looked}{extra}.\n"
         "cd into the app directory (the folder that contains app.py), "
         "or pass --app path/to/app:asgi so the CLI can find the root.\n"
-        "Leftover app/main.py trees: uxdom build (does not compile CSS)."
+        "An app/main.py tree is not a product app: start one with uxcompose create-app."
     )
 
 
@@ -132,6 +134,7 @@ def run_product_build(
     archive: bool = False,
     out_dir: Optional[Path] = None,
     package_name: Optional[str] = None,
+    check: bool = False,
 ) -> ProductBuildReport:
     """Run the product production build.
 
@@ -143,6 +146,11 @@ def run_product_build(
       5. ``package``: the runnable bundle (``cli/package.py``), only when
          every step above passed
 
+    ``check`` writes nothing: step 2 compiles to a temp file and compares it
+    with ``output.css``; step 3 is left to step 5, which runs every
+    ``--package`` check (``doctor --prod``, import from the bundle alone,
+    ux-compose pin) on a copy in the system temp dir.
+
     ``minify`` and ``watch`` are XOR (same as argv_with_io: minify wins).
     """
     from ux_compose.tailwind import (
@@ -153,7 +161,7 @@ def run_product_build(
     )
 
     root = find_product_root(cwd, app_ref=app_ref)
-    report = ProductBuildReport(root=root)
+    report = ProductBuildReport(root=root, check=check)
 
     app_py = root / "app.py"
     if app_py.is_file():
@@ -177,6 +185,8 @@ def run_product_build(
                     "CSS is soft-OK without it, not a production path",
                 )
             )
+        elif check:
+            report.steps.append(_css_check(root, *io, minify=minify))
         else:
             input_css, output_css = io
             output_css.parent.mkdir(parents=True, exist_ok=True)
@@ -193,10 +203,7 @@ def run_product_build(
                     minify=use_minify,
                     watch=bool(watch) and not use_minify,
                 )
-                env = os.environ.copy()
-                env["PYTHONPATH"] = os.pathsep.join(
-                    [str(root), env.get("PYTHONPATH", "")]
-                )
+                env = _tailwind_env(root)
                 if watch and not use_minify:
                     print(
                         f"tailwind --watch  ({hit.source})\n"
@@ -238,7 +245,9 @@ def run_product_build(
                             report.output_css = output_css
                         report.steps.append(BuildStep("tailwind", ok, detail))
 
-    if skip_import:
+    if check:
+        pass  # the package check imports a copy; importing the source may write
+    elif skip_import:
         report.steps.append(BuildStep("import", True, "skipped"))
     else:
         if ":" not in app_ref:
@@ -308,9 +317,80 @@ def run_product_build(
     except Exception as e:
         report.steps.append(BuildStep("doctor", False, f"doctor failed: {e}"))
 
-    if package or archive:
+    if check:
+        _package_check_step(report, app_ref)
+    elif package or archive:
         _package_step(report, out_dir, package_name, app_ref, archive)
     return report
+
+
+def _tailwind_env(root: Path) -> dict[str, str]:
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join([str(root), env.get("PYTHONPATH", "")])
+    return env
+
+
+def _css_check(root: Path, input_css: Path, output_css: Path, *, minify: bool) -> BuildStep:
+    """Is ``output.css`` what ``uxcompose build`` would write now? Compiles to a temp file."""
+    from ux_compose.tailwind import TailwindIntegrityError, argv_with_io, resolve_tailwind
+
+    rel = output_css.relative_to(root).as_posix()
+    if not output_css.is_file():
+        return BuildStep("tailwind", False, f"{rel} missing — run uxcompose build")
+    try:
+        hit = resolve_tailwind(cwd=root, read_only=True)
+    except (TailwindIntegrityError, FileNotFoundError) as exc:
+        return BuildStep("tailwind", False, str(exc))
+    if hit is None:
+        return BuildStep(
+            "tailwind",
+            False,
+            "no Tailwind CLI found, and --check does not download one — "
+            "run uxcompose build once, or set UXCOMPOSE_TAILWIND",
+        )
+    with tempfile.TemporaryDirectory(prefix="uxcompose-check-") as tmp:
+        fresh = Path(tmp) / output_css.name
+        cmd = argv_with_io(hit.argv, input_css=input_css, output_css=fresh, minify=minify)
+        try:
+            proc = subprocess.run(
+                cmd, cwd=str(root), capture_output=True, text=True, timeout=180, env=_tailwind_env(root)
+            )
+        except OSError as exc:
+            return BuildStep("tailwind", False, f"{hit.source}: cannot run {exc}")
+        if proc.returncode != 0 or not fresh.is_file():
+            out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+            return BuildStep("tailwind", False, f"{hit.source} exit {proc.returncode} · {out[:200]}")
+        same = fresh.read_bytes() == output_css.read_bytes()
+    if same:
+        return BuildStep("tailwind", True, f"{rel} matches a fresh {hit.source} compile")
+    return BuildStep(
+        "tailwind", False, f"{rel} is stale: a fresh {hit.source} compile differs — run uxcompose build"
+    )
+
+
+def _entry(app_ref: str) -> str:
+    loc, _, attr = app_ref.partition(":")
+    return f"{Path(loc).stem}:{attr}"
+
+
+def _package_check_step(report: ProductBuildReport, app_ref: str) -> None:
+    from ux_compose.cli.package import PackageError, check_bundle
+
+    entry = _entry(app_ref)
+    try:
+        served, warnings = check_bundle(report.root, entry=entry)
+        report.warnings.extend(warnings)
+    except PackageError as exc:
+        report.steps.append(BuildStep("package", False, str(exc)))
+        return
+    report.steps.append(
+        BuildStep(
+            "package",
+            True,
+            f"would pass: doctor --prod, import {entry}, ASGI startup, GET {', '.join(served)} "
+            "from the bundle alone, the ux-compose pin",
+        )
+    )
 
 
 def _package_step(
@@ -327,8 +407,7 @@ def _package_step(
         return
     root = report.root
     out = out_dir or root / "dist"
-    loc, _, attr = app_ref.partition(":")
-    entry = f"{Path(loc).stem}:{attr}"
+    entry = _entry(app_ref)
     try:
         bundle = write_bundle(root, out_dir=out, name=root.name if name is None else name, entry=entry, archive=archive)
     except PackageError as exc:
@@ -358,7 +437,9 @@ def format_product_build_report(report: ProductBuildReport) -> str:
     lines.extend(f"  {w}" for w in report.warnings)
     lines.append("=" * 48)
     lines.append("BUILD OK" if report.ok else "BUILD FAILED")
-    if report.ok and report.package_path:
+    if report.check:
+        lines[-1] += " (--check: nothing written)"
+    elif report.ok and report.package_path:
         lines.append(
             f"Run: cd {report.package_path} && pip install -r requirements.txt "
             "&& UX_CHANNEL_SECRET=... ./run.sh"

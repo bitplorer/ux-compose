@@ -81,7 +81,7 @@ def _help() -> None:
     print("                      [--reload-dir PATH ...] [--tunnel none|ngrok|cloudflare]")
     print("  uxcompose serve prod [app:asgi] [--host 0.0.0.0] [--port 8080]")
     print("  uxcompose serve restart-channel   # one-shot Channel RAM drop (running serve dev)")
-    print("  uxcompose build [--no-minify] [--skip-tailwind] [--skip-import] [--app app:asgi]")
+    print("  uxcompose build [--no-minify] [--skip-tailwind] [--skip-import] [--app app:asgi] [--check]")
     print("                  [--package | --archive] [--out DIR] [--name NAME]   # runnable bundle")
     print("  uxcompose deploy [--provider docker|fly|render|railway|vps|checklist] [--force] [--name NAME]")
     print("  uxcompose doctor [paths...] [--no-fail] [--prod [--port N [--host H]]]")

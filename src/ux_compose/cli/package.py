@@ -311,12 +311,116 @@ def _write_archive(src: Path, tar_path: Path, name: str, mtime: int) -> None:
         raise
 
 
+# Boot the app as uvicorn would (ASGI lifespan startup; an app that rejects
+# the lifespan scope has none), GET each (path, content-type word) from its
+# own ASGI callable, then shut it down. A failure is one stderr line
+# starting with _STATIC. Each phase is bounded by LIFESPAN_TIMEOUT seconds.
+_STATIC = "uxcompose-static:"
+LIFESPAN_TIMEOUT = 30.0
+_PROBE = """
+import asyncio
+
+def fail(message):
+    sys.exit(STATIC + " " + " ".join(str(message).split()))
+
+def why(exc):
+    return f"{type(exc).__name__}: {exc}"
+
+async def within(awaitable, what):
+    try:
+        return await asyncio.wait_for(awaitable, TIMEOUT)
+    except TimeoutError:
+        fail(f"{what} did not finish within {TIMEOUT:g}s")
+
+class Lifespan:
+    def __init__(self, app, state):
+        self.to_app, self.from_app, self.received = asyncio.Queue(), asyncio.Queue(), False
+        scope = {"type": "lifespan", "asgi": {"version": "3.0", "spec_version": "2.0"}, "state": state}
+        self.task = asyncio.create_task(self.run(app, scope))
+
+    async def receive(self):
+        self.received = True
+        return await self.to_app.get()
+
+    async def run(self, app, scope):
+        try:
+            await app(scope, self.receive, self.from_app.put)
+        except Exception as exc:
+            await self.from_app.put({"type": "raised", "message": why(exc)})
+        else:
+            await self.from_app.put({"type": "returned", "message": "the app returned"})
+
+    async def step(self, phase):
+        await self.to_app.put({"type": f"lifespan.{phase}"})
+        msg = await within(self.from_app.get(), f"ASGI {phase}")
+        if msg["type"] == f"lifespan.{phase}.complete":
+            return True
+        if not self.received:
+            return False  # rejected the lifespan scope: no lifespan, as uvicorn --lifespan auto
+        fail(f"ASGI {phase} failed: {msg.get('message') or msg['type']}")
+
+async def get(app, path, state):
+    sent, done, requested = [], asyncio.Event(), []
+    async def receive():
+        if not requested:
+            requested.append(True)
+            return {"type": "http.request", "body": b"", "more_body": False}
+        await done.wait()
+        return {"type": "http.disconnect"}
+    async def send(message):
+        sent.append(message)
+        if message["type"] == "http.response.body" and not message.get("more_body"):
+            done.set()
+    scope = {"type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1", "method": "GET",
+             "scheme": "http", "path": path, "raw_path": path.encode(), "query_string": b"",
+             "root_path": "", "headers": [(b"host", b"localhost")], "client": ("127.0.0.1", 0),
+             "server": ("localhost", 80), "state": dict(state)}
+    try:
+        await within(app(scope, receive, send), f"GET {path}")
+    except Exception as exc:
+        fail(f"GET {path} from the bundle alone raised {why(exc)}")
+    start = next((m for m in sent if m["type"] == "http.response.start"), None)
+    if start is None:
+        fail(f"GET {path} from the bundle alone sent no response")
+    body = b"".join(m.get("body", b"") for m in sent if m["type"] == "http.response.body")
+    kind = dict(start.get("headers", [])).get(b"content-type", b"").decode()
+    return start["status"], kind, len(body)
+
+async def main():
+    state = {}
+    lifespan = Lifespan(APP, state)
+    booted = await lifespan.step("startup")
+    for path, want in PATHS:
+        status, kind, size = await get(APP, path, state)
+        if status != 200 or want not in kind or not size:
+            fail(f"GET {path} from the bundle alone returned {status} {kind or 'no content-type'} "
+                 f"({size} bytes); the app must serve it with 200 {want}")
+    if booted:
+        await lifespan.step("shutdown")
+
+asyncio.run(main())
+"""
+
+
+def _served(bundle: Path) -> list[tuple[str, str]]:
+    """Library JS always (the package URL is the SSoT); the app's CSS when the bundle ships it."""
+    from ux_compose.assets import WebAssets
+
+    paths = [("/ux-dom/static/x_element.js", "javascript")]
+    css = WebAssets.from_app_root(bundle, dry_run=True).output_css
+    if css.is_file():
+        paths.append((f"/css/{css.name}", "text/css"))
+    return paths
+
+
 def _smoke_import(bundle: Path, entry: str) -> None:
-    """Import ``entry`` from a copy of the bundle alone: ``python -I -B``, cwd = bundle.
+    """Import ``entry`` from a copy of the bundle alone (``python -I -B``, cwd = bundle), then GET its static.
 
     ``-I`` keeps the source root, ``PYTHONPATH`` and the user site off
     ``sys.path``; only the bundle dir is added. The copy keeps the app's
-    import-time writes (``WebAssets`` folders) out of the bundle.
+    import-time writes (``WebAssets`` folders) out of the bundle. In the same
+    process the app's ASGI lifespan starts, the GETs (``_served``) run, and
+    it shuts down (``_PROBE``).
     """
     import subprocess
     import sys
@@ -326,7 +430,11 @@ def _smoke_import(bundle: Path, entry: str) -> None:
         "import importlib, sys\n"
         "sys.path.insert(0, '.')\n"
         f"m = importlib.import_module({mod!r})\n"
-        f"assert getattr(m, {attr!r}, None) is not None, 'no attribute {attr}'\n"
+        f"APP = getattr(m, {attr!r}, None)\n"
+        f"assert APP is not None, 'no attribute {attr}'\n"
+        f"PATHS = {_served(bundle)!r}\n"
+        f"STATIC, TIMEOUT = {_STATIC!r}, {LIFESPAN_TIMEOUT!r}\n"
+        + _PROBE
     )
     env = {k: v for k, v in os.environ.items() if not k.startswith("PYTHON")}
     probe = Path(tempfile.mkdtemp(prefix="uxcompose-probe-"))
@@ -346,6 +454,8 @@ def _smoke_import(bundle: Path, entry: str) -> None:
     if proc.returncode != 0:
         lines = [ln for ln in (proc.stderr or proc.stdout or "").splitlines() if ln.strip()]
         reason = lines[-1].replace(str(probe / "bundle") + "/", "") if lines else f"exit {proc.returncode}"
+        if reason.startswith(_STATIC):
+            raise PackageError(reason.removeprefix(_STATIC).strip())
         raise PackageError(f"import {entry} from the bundle alone failed: {reason}")
 
 
@@ -354,6 +464,56 @@ def _source_date_epoch() -> int:
     if not raw.isdigit():
         raise PackageError(f"SOURCE_DATE_EPOCH must be a non-negative integer, got {raw!r}")
     return int(raw)
+
+
+def _collect_checked(root: Path, *, skip: Path | None = None) -> Collected:
+    _requirement_lines(root)
+    found = collect(root, skip=skip)
+    if found.refused:
+        raise PackageError("refusing to bundle: " + ", ".join(found.refused))
+    return found
+
+
+def _stage(root: Path, found: Collected, dest: Path) -> list[dict]:
+    """Copy the collected files into ``dest``; return their MANIFEST entries."""
+    manifest_files = []
+    for rel in found.files:
+        (dest / rel).parent.mkdir(parents=True, exist_ok=True)
+        data = (root / rel).read_bytes()
+        (dest / rel).write_bytes(data)
+        shutil.copymode(root / rel, dest / rel)
+        manifest_files.append(
+            {"path": rel.as_posix(), "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
+        )
+    return manifest_files
+
+
+def _check_staged(staged: Path, entry: str, warnings: list[str]) -> dict:
+    """``doctor --prod``, the import from the bundle alone, the ux-compose pin; returns ``resolved``."""
+    from ux_compose.doctor import scan_product_readiness
+
+    fails = [row for row in scan_product_readiness(staged) if row.startswith("[FAIL]")]
+    if fails:
+        raise PackageError("doctor --prod: " + "; ".join(fails))
+    _smoke_import(staged, entry)
+    return _resolved(staged, warnings)
+
+
+def check_bundle(root: Path, *, entry: str = "app:asgi") -> tuple[list[str], list[str]]:
+    """Every ``write_bundle`` check on a throwaway copy in the system temp dir.
+
+    Returns the URLs the smoke import GOT and the warnings.
+
+    Raises the ``PackageError`` ``write_bundle`` would raise. Writes nothing under ``root``.
+    """
+    root = Path(root).resolve()
+    found = _collect_checked(root)
+    warnings: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="uxcompose-check-") as tmp:
+        _stage(root, found, Path(tmp))
+        _check_staged(Path(tmp), entry, warnings)
+        served = [path for path, _ in _served(Path(tmp))]
+    return served, warnings
 
 
 def write_bundle(
@@ -371,41 +531,24 @@ def write_bundle(
     ``doctor --prod`` and the ux-compose pin check before it replaces the
     previous bundle.
     """
-    from ux_compose.doctor import scan_product_readiness
-
     root = Path(root).resolve()
     out = check_out(root, Path(out_dir), name)
     mtime = _source_date_epoch()
-    _requirement_lines(root)
-    found = collect(root, skip=out)
-    if found.refused:
-        raise PackageError("refusing to bundle: " + ", ".join(found.refused))
+    found = _collect_checked(root, skip=out)
 
     created = not out.exists()
     out.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix=_TMP, dir=out))
     warnings: list[str] = []
     try:
-        manifest_files = []
-        for rel in found.files:
-            (tmp / rel).parent.mkdir(parents=True, exist_ok=True)
-            data = (root / rel).read_bytes()
-            (tmp / rel).write_bytes(data)
-            shutil.copymode(root / rel, tmp / rel)
-            manifest_files.append(
-                {"path": rel.as_posix(), "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
-            )
-        fails = [row for row in scan_product_readiness(tmp) if row.startswith("[FAIL]")]
-        if fails:
-            raise PackageError("doctor --prod: " + "; ".join(fails))
-        _smoke_import(tmp, entry)
+        manifest_files = _stage(root, found, tmp)
         manifest = {
             "generator": BUNDLE_GENERATOR,
             "name": name,
             "entrypoint": entry,
             "static_model": "single_copy_from_site_packages",
             "files": manifest_files,
-            "resolved": _resolved(tmp, warnings),
+            "resolved": _check_staged(tmp, entry, warnings),
         }
         (tmp / "README.RUN.txt").write_text(README_RUN.format(name=name), encoding="utf-8")
         (tmp / "run.sh").write_text(RUN_SH.format(entry=entry), encoding="utf-8")
@@ -442,4 +585,4 @@ def write_bundle(
     return bundle
 
 
-__all__ = ["Bundle", "Collected", "PackageError", "check_out", "collect", "write_bundle"]
+__all__ = ["Bundle", "Collected", "PackageError", "check_bundle", "check_out", "collect", "write_bundle"]

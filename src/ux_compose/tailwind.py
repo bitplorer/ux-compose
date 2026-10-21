@@ -243,14 +243,22 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _cached_binary() -> Optional[Path]:
-    """The cached standalone CLI if its SHA256 matches. A mismatch is deleted."""
+def _cached_binary(*, read_only: bool = False) -> Optional[Path]:
+    """The cached standalone CLI if its SHA256 matches. A mismatch is deleted.
+
+    ``read_only`` changes nothing in the cache: a mismatch raises
+    ``TailwindIntegrityError``, a non-executable file ``FileNotFoundError``.
+    """
     dest = cache_dir() / standalone_asset_name()
     if not dest.is_file():
         return None
     _, expected = _pinned()
     actual = _sha256(dest)
     if actual != expected:
+        if read_only:
+            raise TailwindIntegrityError(
+                f"cached {dest} failed sha256 (expected {expected}, got {actual})"
+            )
         dest.unlink(missing_ok=True)
         print(
             f"tailwind: cached {dest} failed sha256 (expected {expected}, "
@@ -259,6 +267,8 @@ def _cached_binary() -> Optional[Path]:
         )
         return None
     if not os.access(dest, os.X_OK):
+        if read_only:
+            raise FileNotFoundError(f"cached {dest} is not executable (--check does not chmod)")
         dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     return dest
 
@@ -333,11 +343,14 @@ def resolve_tailwind(
     *,
     cwd: Optional[Path] = None,
     ensure: bool = False,
+    read_only: bool = False,
 ) -> Optional[TailwindResolution]:
     """Return the first available Tailwind CLI.
 
     Without ``ensure``, None if none is available. With ``ensure``, raises
     ``FileNotFoundError`` when the verified download cannot run.
+    ``read_only`` (``build --check``, without ``ensure``) leaves the cache
+    as it is: no delete, no chmod.
     Raises ``LegacyTailwindEnvError`` if a removed ``UXDOM_*`` variable is set,
     and ``TailwindIntegrityError`` if the standalone CLI cannot be verified.
     """
@@ -350,7 +363,7 @@ def resolve_tailwind(
     hit = _from_node_modules(cwd)
     if hit:
         return hit
-    cached = _cached_binary()
+    cached = _cached_binary(read_only=read_only)
     if cached:
         return TailwindResolution([str(cached)], "cache")
     if ensure:

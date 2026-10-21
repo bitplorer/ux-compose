@@ -1,4 +1,4 @@
-"""``uxcompose build`` — argv for the CSS minify wrap and the runnable bundle.
+"""``uxcompose build`` — argv for the CSS minify wrap, the runnable bundle and ``--check``.
 
 This is not ``ux_compose.build`` (the composition orchestra). The wrap is
 ``product_build.py``, which calls ``ux_compose.tailwind``.
@@ -27,7 +27,22 @@ def main(argv: list[str]) -> int:
     p.add_argument("--archive", action="store_true", help="--package, plus OUT/NAME.tar.gz")
     p.add_argument("--out", type=Path, default=None, help="bundle parent directory (default: <app root>/dist)")
     p.add_argument("--name", default=None, help="bundle name (default: the app directory name)")
+    p.add_argument(
+        "--check",
+        action="store_true",
+        help="verify without writing: output.css is fresh, and every --package check passes",
+    )
     args = p.parse_args(argv)
+    if args.check:
+        for flag, value in (
+            ("--package", args.package),
+            ("--archive", args.archive),
+            ("--out", args.out),
+            ("--name", args.name),
+            ("--skip-import", args.skip_import),
+        ):
+            if value:
+                p.error(f"--check cannot be combined with {flag}")
     try:
         report = run_product_build(
             skip_tailwind=args.skip_tailwind,
@@ -39,6 +54,7 @@ def main(argv: list[str]) -> int:
             archive=args.archive,
             out_dir=args.out,
             package_name=args.name,
+            check=args.check,
         )
     except FileNotFoundError as e:
         print(str(e), file=sys.stderr)

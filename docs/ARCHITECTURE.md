@@ -188,7 +188,7 @@ flag these in app trees. Teaching, not kill.
 | `ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `routing.fastapi` |
 | `from ux_compose.kit import` in an app | `uxcompose add` |
 | `host="batteries"` / `DirectoryRouter` / `use_host("batteries")` | `host="auto"` |
-| `serve="webassets"` (removed; ux-dom 0.2 raises) | package-static `serve="dual_copy"` |
+| `serve="webassets"` (removed; ux-dom 0.2 raises) | no `serve=`: package static `/ux-dom/static/x_element.js` is the only source |
 | `stunning-root` / nav brand in `render()` | `brand_wrap(document, brand=…)` / `build(wrap=document)` |
 
 ### Agent leftovers (do not recreate)

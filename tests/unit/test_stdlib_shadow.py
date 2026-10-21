@@ -136,3 +136,26 @@ def test_common_module_names(app, capsys, no_server, name):
         assert line in capsys.readouterr().err
         return
     assert main(["build", "--skip-tailwind", "--package"]) == 0, capsys.readouterr().out
+
+
+@pytest.mark.parametrize("filename", ["secrets.pyc", "secrets.abi3.so"])
+def test_sourceless_root_module_is_caught(app, filename):
+    """``importlib.machinery.all_suffixes()`` decides what imports, not ``.py`` alone (#136)."""
+    from ux_compose.doctor import stdlib_shadows
+
+    (app / filename).write_bytes(b"")
+    (app / "__pycache__").mkdir(exist_ok=True)  # cached bytecode imports by its source, never by itself
+    (app / "__pycache__" / "json.cpython-314.pyc").write_bytes(b"")
+    assert stdlib_shadows(app) == (
+        f"app module `{filename}` shadows the Python standard library module `secrets`; rename it"
+    )
+
+
+def test_doctor_on_a_subdirectory_checks_the_app_root(app, capsys):
+    """``routes/email.py`` is ``routes.email``; only the app root's names are top-level (#136)."""
+    (app / "routes" / "email.py").write_text("", encoding="utf-8")
+    assert main(["doctor", "routes"]) == 0
+    assert "shadow" not in capsys.readouterr().out
+    (app / "secrets.py").write_text("", encoding="utf-8")
+    assert main(["doctor", "routes"]) == 1
+    assert "app module `secrets.py` shadows" in capsys.readouterr().out

@@ -105,8 +105,12 @@ the root behind the stdlib would break the app's own `import secrets`
 instead, so the name is the error. `uxcompose doctor` (plain and `--prod`,
 row `stdlib`), `build` (all modes, a `stdlib` step before anything else
 runs) and `serve dev` / `serve prod` (exit 2) FAIL with one line naming every
-top-level module (`name.py`) and regular package (`name/__init__.py`) whose
-name is in `sys.stdlib_module_names`:
+top-level module (any `importlib.machinery.all_suffixes()` file: `name.py`,
+a sourceless `name.pyc`, an extension `name.so`) and regular package
+(`name/__init__.py`) whose name is in `sys.stdlib_module_names`. Top-level
+means in the app root, the directory on `sys.path` at runtime: `uxcompose
+doctor routes` checks the app root (the nearest directory with `app.py`), so
+`routes/email.py`, which is `routes.email`, is not flagged:
 
 ```text
 app module `secrets.py` shadows the Python standard library module `secrets`; rename it

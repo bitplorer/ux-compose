@@ -94,6 +94,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The stdlib-shadow check (#136) counts every importable top-level file
+  (`importlib.machinery.all_suffixes()`), so a sourceless root
+  `secrets.pyc` or an extension `secrets.so` FAILs like `secrets.py`.
+  `uxcompose doctor <subdir>` checks the app root's names (nearest
+  directory with `app.py`, else the first directory above the regular
+  packages) instead of the subdirectory's: `doctor routes` no longer flags
+  `routes/email.py`.
+
 - An app module named like a standard library module (`secrets.py`,
   `email/`, `types.py`, …) at the app root shadowed it for every library
   in the process: ux-dom's `import secrets` got the app's file and every

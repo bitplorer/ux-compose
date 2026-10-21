@@ -28,7 +28,7 @@ class Palette(Component):
     COMMANDS = (
         ("counter.inc", "Increase the counter"),
         ("tabs.select", "Open the Make tab"),
-        ("drawer.open_drawer", "Open filters"),
+        ("sheet.open_sheet", "Open filters"),
         ("toasts.push", "Push a toast"),
     )
 

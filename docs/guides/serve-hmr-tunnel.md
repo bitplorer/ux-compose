@@ -22,8 +22,7 @@ uxcompose doctor .
 `uxcompose serve` with no mode prints help and exits 2.
 
 `cli/__init__.py` is argv only. `serve_dev.py` starts sibling CSS `--watch` and
-tunnel. Leftover `start_css_watcher=` is gone. argv `development` /
-`production` / `restart_channel` fail closed.
+tunnel.
 
 Need the origin extras once:
 

@@ -5,8 +5,6 @@ Accepted: ``title``, ``body`` (same type as the RefState attrs); ``shell``
 (bool; ``False`` renders only the interactive unit, no demo kicker/title/lede card).
 Instance attrs win over class consts.
 
-``Drawer`` is this Host under another name (right edge). Not a second Host.
-
 MorphState: ``open``. RefState: ``title``, ``body``, ``which``. Caps: none
 on open/close. A11y: ``role=dialog`` ``aria-modal`` labelledby. Escape +
 swipe-right on dismiss (OverlayEdge). Focus: panel tabindex + Close
@@ -34,7 +32,7 @@ from ux_compose import (
 
 
 class Sheet(Component):
-    """Drawer from the right. Presence is MorphState. Resting card stays in flow."""
+    """Panel from the right. Presence is MorphState. Resting card stays in flow."""
 
     id = "sheet"
     _SEAMS = {'title': 'title', 'body': 'body'}
@@ -161,5 +159,3 @@ class Sheet(Component):
         self.open = False
         return update_with(self)
 
-
-Drawer = Sheet

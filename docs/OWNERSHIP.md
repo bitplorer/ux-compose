@@ -73,9 +73,8 @@ Architecture: [internals/hmr.md](internals/hmr.md) · decision: [adr/0005-serve-
 
 `serve dev` is origin + ui + channel. `serve prod` is one process, clocks off.
 `cli/__init__.py` is argv only. `serve_dev.py` starts sibling CSS `--watch` and tunnel.
-Leftover `start_css_watcher=` is gone. Frozen serve verbs: `dev` / `prod` /
-`restart-channel`. argv `development` / `production` / `restart_channel`
-fail closed. No `serve/` / `services/` ghost packages. Library modules do not
+Frozen serve verbs: `dev` / `prod` /
+`restart-channel`. No `serve/` / `services/` ghost packages. Library modules do not
 import `ux_compose.cli`.
 Three clocks on `serve dev` only: process reload (`*.py`) · browser WS live-reload · sibling Tailwind `--watch` + client HEAD `/css/output.css`. No watcher and no `Popen` in `hmr.py`. CSS save must not kill the worker.
 Cap door is `Channel.boot` (pin ux-channel @ `0ffe8e9`; Cut C floor
@@ -130,5 +129,5 @@ Locked (full table in the spec):
 - FastAPI is the product process. DirectoryASGI is the no-Starlette degrade.
 - Page units have no HTTP verbs. One path law (`http_path`).
 - `App.boot("auto")` is Level 1. Channel binds after the process exists.
-- `host="batteries"` fails closed. No `StreamingRoute`. No HTML
+- `host=` is `auto` | `fastapi` | `asgi`. No `StreamingRoute`. No HTML
   `default_response_class`.

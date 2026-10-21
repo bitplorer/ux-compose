@@ -43,9 +43,7 @@ Folders are import/copy laws. Full table: [docs/ARCHITECTURE.md](docs/ARCHITECTU
   Library modules do not import `ux_compose.cli`. `doctor.py`, `build.py`,
   `scaffold.py`, and `tailwind.py` stay at the package root (public algebra).
   `serve_dev.py` (under `cli/`) starts sibling CSS `--watch` and tunnel.
-  Leftover `start_css_watcher=` is gone.
-- Frozen serve verbs: `dev` / `prod` / `restart-channel`. argv
-  `development` / `production` / `restart_channel` fail closed. No
+- Frozen serve verbs: `dev` / `prod` / `restart-channel`. No
   `serve/` / `services/` ghost packages.
 - `wire/` is the only `ux_channel` door. `routing/` is the host pair.
 - Do not add `helpers/` or grow `dx/` into a product.
@@ -64,7 +62,7 @@ Host / surface / motion also on `__all__`: `build`, `WebAssets`,
 `HAS_DOM`, and DOM tags (`div`, `h1`, `button`, …).
 
 Components are not a public import path for product apps. Own a copy with
-`uxcompose add`. `from ux_compose.kit import X` is leftover.
+`uxcompose add`.
 
 There is **no** public `ux.div` / `when` / `forall` / `Page` on this package.
 Do not document them. Tags are imported from `ux_compose`.
@@ -146,9 +144,7 @@ channel — that would drop HMR for route edits.
 
 Cap door is `Channel.boot` (not `ActionRegistry.from_config` — that name
 is not a frozen wire import). Pin: ux-channel @ `0ffe8e9` (cek-host 0.2.0;
-Cut C floor `985e58a`). Leftover
-teaching for retired hooks lives on [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-**Agent leftovers**.
+Cut C floor `985e58a`).
 
 ## Product host (Clock A)
 

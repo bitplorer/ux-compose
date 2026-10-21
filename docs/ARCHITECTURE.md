@@ -53,11 +53,11 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Isolation door | `wire/boot.py`, `wire/caps.py`, `wire/cek.py` | `ux_channel` import outside `wire/` |
 | Cap mint | `wire/caps.py` | empty-token dual attrs |
 | Product CLI | `cli/__init__.py` | second verb, clock flags, library import of `ux_compose.cli` |
-| Build / CSS | `cli/product_build.py`, `tailwind.py`, `assets.py` | Tailwind on ux-dom; Tailwind `Popen` in `cli/` or `hmr.py`; leftover `start_css_watcher=` |
+| Build / CSS | `cli/product_build.py`, `tailwind.py`, `assets.py` | Tailwind on ux-dom; Tailwind `Popen` in `cli/` or `hmr.py` |
 | Product host | `routing/host.py`, `routing/fastapi.py`, `routing/asgi.py`, `routing/core.py` | fold FastAPI into DirectoryASGI |
 | Composition | `app.py`, `component.py`, `helpers.py` | clone MorphState / Cap |
 | Surfaces / scan | `surfaces.py`, `surfaces_host.py`, `build.py` | second HTTP pipeline; fold `scan_surfaces` into `DirectoryRoutes.discover` |
-| Doctor | `doctor.py` (laws: `scan_*`; `--prod`: `scan_product_readiness`) | leftover scan as kill; importing the app for readiness |
+| Doctor | `doctor.py` (laws: `scan_*`; `--prod`: `scan_product_readiness`) | residual scan as kill; importing the app for readiness |
 | Component catalog / copy | `cli/registry.py`, `cli/copy_component.py` | overlay in CATALOG |
 | Author helpers on copies | `arrange.py` (outside `components/`) | move under `components/` |
 | HMR | `hmr.py` | `Document.use` HMR |
@@ -172,42 +172,21 @@ do not leak. This is not a message bus and not part of HMR.
 
 ---
 
-## Leftovers that expire by teaching
+## Doctor residual (product trees)
 
-These strings are not the product path. Deleting aliases that tests still
-lock is a capability drop.
+`scan_render_chrome` flags this in `routes/*.py`. Teaching, not kill.
 
-### Doctor leftover tokens (product trees)
-
-`scan_leftover_aliases` / `scan_kit_product_imports` / `scan_render_chrome`
-flag these in app trees. Teaching, not kill.
-
-| Leftover | Prefer |
-|----------|--------|
-| `host="starlette"` | `auto` \| `fastapi` \| `asgi` (fail closed) |
-| `ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `routing.fastapi` |
-| `from ux_compose.kit import` in an app | `uxcompose add` |
-| `host="batteries"` / `DirectoryRouter` / `use_host("batteries")` | `host="auto"` |
-| `serve="webassets"` (removed; ux-dom 0.2 raises) | no `serve=`: package static `/ux-dom/static/x_element.js` is the only source |
+| Found | Prefer |
+|-------|--------|
 | `stunning-root` / nav brand in `render()` | `brand_wrap(document, brand=…)` / `build(wrap=document)` |
 
-### Agent leftovers (do not recreate)
+## Design rules (do not recreate)
 
-Not scanned as leftover tokens in product trees. Map locks and argv/docs
-names. Doctor will not print these from `scan_leftover_aliases`.
-
-| Leftover | Prefer |
-|----------|--------|
-| root `cli.py` / `serve_dev.py` / `cli_build.py` | `ux_compose.cli` (argv in `__init__`, bodies in the package) |
-| `kit/kit_construct.py` / `kit_construct.py` / `kit/` | `ux_compose.arrange` / `ux_compose.components` (removed in 0.2.0) |
-| `tests/property/` | drop; no property suite in this tree |
-| argv `create` | `uxcompose create-app` |
-| argv `development` / `production` / `restart_channel` | `dev` / `prod` / `restart-channel` |
-| `start_css_watcher=` on `serve_dev.run` | `serve_dev` calls `start_tailwind_watch` |
-| `src/ux_compose/serve/` / `services/` packages | `cli/serve_dev.py` (no fashion folders) |
+| Don't | Do |
+|-------|----|
 | Channel `ops/` / `enhance/` as a compose door | Isolation `wire/` only (`ops_to_wire` is wire dicts) |
 | homemade `_fragment_for_target` HTML walker in `helpers.py` | prefer `extract_by_id` (ux-dom#20); KEEP walker as escape if absent; serialize is `to_html_bytes`; no `fragment.py` |
-| `docs/MODULE_MAP.md` | this table (INDEX remains the audience map) |
+| `docs/MODULE_MAP.md` | this file (INDEX remains the audience map) |
 | `pip install ux-compose` / PyPI cell | git clone + `pip install -e ".[serve]"` |
 | Teaching `App.mount` as a "secondary door" | catalog scan step; product path is `build()` |
 | Teaching `App.mount` as the product path | `build()` |

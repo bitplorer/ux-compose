@@ -87,33 +87,7 @@ class TailwindResolution:
     source: str  # env | path | pytailwindcss | node | cache | download
 
 
-# Removed in 0.2.0. Fail loudly instead of silently ignoring them: e.g.
-# UXDOM_TAILWIND_DOWNLOAD=0 forbade network downloads, and dropping it would
-# fail open (download + execute a binary).
-LEGACY_ENV = {
-    "UXDOM_TAILWIND": "UXCOMPOSE_TAILWIND",
-    "UXDOM_TAILWIND_DOWNLOAD": "UXCOMPOSE_TAILWIND_DOWNLOAD",
-    "UXDOM_TAILWIND_VERSION": "UXCOMPOSE_TAILWIND_VERSION",
-    "UXDOM_CACHE": "UXCOMPOSE_CACHE",
-}
-
-
-class LegacyTailwindEnvError(RuntimeError):
-    """A removed ``UXDOM_*`` Tailwind variable is set."""
-
-
-def _reject_legacy_env() -> None:
-    found = [name for name in LEGACY_ENV if name in os.environ]
-    if found:
-        hints = ", ".join(f"{name} -> {LEGACY_ENV[name]}" for name in found)
-        raise LegacyTailwindEnvError(
-            f"no longer read (removed in 0.2.0): {hints}. "
-            "Rename the variable(s) (or unset them) and run again."
-        )
-
-
 def cache_dir() -> Path:
-    _reject_legacy_env()
     root = (
         os.environ.get("XDG_CACHE_HOME")
         or os.environ.get("UXCOMPOSE_CACHE")
@@ -351,10 +325,8 @@ def resolve_tailwind(
     ``FileNotFoundError`` when the verified download cannot run.
     ``read_only`` (``build --check``, without ``ensure``) leaves the cache
     as it is: no delete, no chmod.
-    Raises ``LegacyTailwindEnvError`` if a removed ``UXDOM_*`` variable is set,
-    and ``TailwindIntegrityError`` if the standalone CLI cannot be verified.
+    Raises ``TailwindIntegrityError`` if the standalone CLI cannot be verified.
     """
-    _reject_legacy_env()
     cwd = Path(cwd).resolve() if cwd is not None else None
     for finder in (_from_env, _from_path, _from_pytailwindcss):
         hit = finder()

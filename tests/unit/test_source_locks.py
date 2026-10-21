@@ -328,44 +328,35 @@ def test_on_disk_packages_are_mapped_not_ghosts():
     assert not (SRC / "services").exists()
     cli = _read("cli/__init__.py")
     serve = _read("cli/serve_dev.py")
-    assert "argv only" in cli or "argv ``create``" in cli
+    assert "argv only" in cli
     assert "start_tailwind_watch" in serve
-    assert "start_css_watcher:" not in serve
-    assert "start_css_watcher=" in serve
+    assert "start_css_watcher" not in serve
 
 
-def test_routing_adapters_path_absent_and_taught():
+def test_routing_adapters_path_absent():
     adapters = SRC / "routing" / "adapters"
     assert not adapters.exists()
     src_hits = []
     for path in SRC.rglob("*.py"):
-        if path.name == "doctor.py":
-            continue
         text = path.read_text(encoding="utf-8")
         if "routing.adapters" in text or "routing/adapters" in text:
             src_hits.append(str(path.relative_to(ROOT)))
     assert src_hits == [], src_hits
-    doctor = _read("doctor.py")
-    assert "ux_compose.routing.adapters" in doctor
-    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
-    assert "`ux_compose.routing.adapters`" in arch
 
 
 def test_create_argv_dropped_create_app_stays():
     cli = _read("cli/__init__.py")
     assert 'cmd in ("create-app", "create")' not in cli
     assert 'cmd == "create-app"' in cli
-    assert "argv ``create`` is leftover" in cli
     help_fn = _fn(cli, "_help")
     assert "create-app" in help_fn
     assert "create |" not in help_fn and '", "create"' not in help_fn
     assert '"development": "dev"' not in cli
     assert '"production": "prod"' not in cli
     assert '"restart_channel": "restart-channel"' not in cli
-    assert "argv ``development``" in cli
-    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
-    assert "argv `create`" in arch
-    assert "argv `development`" in arch
+    from ux_compose.cli import main
+
+    assert main(["create", "x"]) == 2
 
 
 def _load_doctor():
@@ -378,26 +369,6 @@ def _load_doctor():
     sys.modules[spec.name] = mod
     spec.loader.exec_module(mod)
     return mod
-
-
-def test_leftover_scan_has_no_first_token_break():
-    chunk = _fn(_read("doctor.py"), "scan_leftover_aliases")
-    assert "break" not in chunk
-    import tempfile
-    from pathlib import Path as P
-
-    doctor = _load_doctor()
-    with tempfile.TemporaryDirectory() as td:
-        product = P(td) / "app.py"
-        product.write_text(
-            'build(PACKAGE, host="batteries")\nfrom leftover import DirectoryRouter\n',
-            encoding="utf-8",
-        )
-        diags = doctor.scan_leftover_aliases([product])
-        joined = "\n".join(diags)
-        assert "batteries" in joined
-        assert "DirectoryRouter" in joined
-        assert len(diags) >= 2
 
 
 def test_render_chrome_scan_has_no_first_hit_break():
@@ -497,8 +468,6 @@ def test_unknown_host_fail_closed_lock():
     assert '"starlette"' not in _fn(surfaces, "attach_page_router")
     spec = (DOCS / "reference" / "host.md").read_text(encoding="utf-8")
     assert "alias of `auto`" not in spec
-    doctor = _read("doctor.py")
-    assert 'host="starlette"' in doctor
 
 
 def test_command_does_not_import_overlay_chrome():
@@ -535,10 +504,8 @@ def test_css_watch_spawn_lives_in_tailwind():
     serve = _read("cli/serve_dev.py")
     assert "start_tailwind_watch" not in cli
     assert "start_tailwind_watch" in serve
-    assert "start_css_watcher:" not in cli
-    assert "start_css_watcher:" not in serve
-    assert "start_css_watcher=" in cli
-    assert "start_css_watcher=" in serve
+    assert "start_css_watcher" not in cli
+    assert "start_css_watcher" not in serve
     assert "subprocess.Popen" in tw
     assert "subprocess.Popen" not in cli
     assert "Popen" not in hmr
@@ -632,47 +599,6 @@ def test_store_precedence_docs_name_redis_wins():
     assert "diagnostics.extend(scan_store_precedence())" in doctor
 
 
-def test_leftover_table_splits_doctor_tokens_from_agent_locks():
-    """Doctor is not credited for names it does not scan in product trees."""
-    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
-    assert "### Doctor leftover tokens" in arch
-    assert "### Agent leftovers" in arch
-    assert "Doctor flags these in product trees" not in arch
-    assert "Doctor will not print these from `scan_leftover_aliases`" in arch
-    doctor_src = _read("doctor.py")
-    for token in (
-        'host="batteries"',
-        "DirectoryRouter",
-        "ux_compose.routing.adapters",
-        'host="starlette"',
-        'serve="webassets"',
-    ):
-        assert token in doctor_src, token
-    doctor_sec = arch.split("### Doctor leftover tokens")[1].split("### Agent leftovers")[0]
-    agent_sec = arch.split("### Agent leftovers")[1]
-    assert "`ux_compose.routing.adapters`" in doctor_sec
-    assert '`host="starlette"`' in doctor_sec
-    assert "argv `create`" in agent_sec
-    assert "root `cli.py`" in agent_sec
-    assert "`src/ux_compose/cli/` package" not in agent_sec
-    assert "`kit/kit_construct.py`" in agent_sec
-    assert "`docs/MODULE_MAP.md`" in agent_sec
-    assert "argv `development`" in agent_sec
-    assert "`start_css_watcher=`" in agent_sec
-    assert "`src/ux_compose/serve/`" in agent_sec
-    assert "Channel `ops/`" in agent_sec
-    assert "`_fragment_for_target`" in agent_sec
-    assert "`fragment.py`" in agent_sec
-    assert "extract_by_id" in agent_sec
-    assert "escape if absent" in agent_sec
-    assert "KEEP until ux-dom owns extract" not in agent_sec
-    assert "argv `create`" not in doctor_sec
-    assert "`src/ux_compose/cli/` package" not in doctor_sec
-    assert "root `cli.py`" not in doctor_sec
-    assert "`start_css_watcher=`" not in doctor_sec
-    assert "`_fragment_for_target`" not in doctor_sec
-
-
 def test_encyclopedia_teaches_cut3_leftovers():
     """Cut 4: encyclopedia names leftover dual doors instead of teaching them live."""
     agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
@@ -682,23 +608,19 @@ def test_encyclopedia_teaches_cut3_leftovers():
     adr4 = (DOCS / "adr" / "0004-clarity-and-residuals.md").read_text(encoding="utf-8")
     host = (DOCS / "reference" / "host.md").read_text(encoding="utf-8")
     contrib = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
-    assert "start_css_watcher=" in agents
-    assert "development" in agents and "restart_channel" in agents
     assert "serve_dev.py" in agents
     assert "985e58a" in agents
     assert "Channel.boot" in agents
-    assert "start_css_watcher=" in start
-    assert "development" in start
     assert "serve_dev.py" in start
-    assert "start_css_watcher=" in cli
-    assert "development" in cli
     assert "argv only" in cli
+    for doc in (agents, start, cli, own):
+        assert "start_css_watcher" not in doc
     assert "Channel.attach(asgi)" not in own
     assert "Channel.boot" in own
     assert "serve_dev.py" in own
     assert "do not raise when a specialist is absent" not in adr4
     assert "fail loud" in adr4
-    assert "start_css_watcher=" in adr4
+    assert "start_css_watcher" not in adr4
     assert "_fragment_for_target" in adr4
     assert "authors import `build()`" in host
     assert "Channel.boot" in host

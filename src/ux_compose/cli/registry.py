@@ -227,15 +227,6 @@ CATALOG: dict[str, KitEntry] = {
         "css": False,
         "page": True,
     },
-    "drawer": {
-        "name": "Drawer",
-        "module": "ux_compose.components.drawer",
-        "stem": "drawer",
-        "exports": ["Drawer"],
-        "description": "Sheet alias — same Host, right edge. Not a second overlay Host.",
-        "css": False,
-        "page": True,
-    },
     "navbar": {
         "name": "Navbar",
         "module": "ux_compose.components.navbar",
@@ -673,7 +664,7 @@ CATALOG: dict[str, KitEntry] = {
         "module": "ux_compose.components.tree",
         "stem": "tree",
         "exports": ["Tree"],
-        "description": "APG treeview. Expanded ids are names. uxcompose add treeview resolves here.",
+        "description": "APG treeview. Expanded ids are names.",
         "css": False,
         "page": True,
     },
@@ -752,11 +743,6 @@ CATALOG: dict[str, KitEntry] = {
 }
 
 
-ALIASES = {
-    "treeview": "tree",
-}
-
-
 # Example ports (spec §4): addable, not bound by the kit widget contract
 # (render(shell=, **slots), DEMO_FRAMING). These modules are canonical;
 # examples/ imports them (spec §4).
@@ -771,9 +757,6 @@ def resolve(name: str) -> KitEntry:
     raw = name.strip().lower()
     key = raw.replace("-", "_")
     compact = key.replace("_", "")
-    alias = ALIASES.get(key) or ALIASES.get(compact)
-    if alias:
-        return CATALOG[alias]
     if key in CATALOG:
         return CATALOG[key]
     if compact in CATALOG:

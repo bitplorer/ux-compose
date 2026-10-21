@@ -332,7 +332,6 @@ def mount_surfaces(
 
     Host bind is delegated to ``surfaces_host.attach_page_router``
     (``ux_compose.routing.DirectoryRoutes`` + ``host.bind``).
-    ``host="batteries"`` fails closed.
     """
     surfaces = scan_surfaces(
         package_dir,

@@ -8,8 +8,6 @@ dismiss ids plus a root swipe token that swallows row clicks.
 Command is a different family (popover-like). It does not import this
 module.
 
-``kind="drawer"`` is the Sheet edge (right) — not a second Host.
-
 MorphState: none (ids + grammar only). Caps: none. Keyboard: Escape is
 appended on ``dismiss_on()`` (public close). Focus: callers set
 ``tabindex="-1"`` on the panel and autofocus the first control; trap/
@@ -27,7 +25,6 @@ KIND_EDGE = {
     "modal": "center",
     "dialog": "center",
     "sheet": "right",
-    "drawer": "right",
     "action": "bottom",
     "actionsheet": "bottom",
 }

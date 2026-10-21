@@ -73,7 +73,7 @@ from ux_dom.dom import (  # type: ignore
     tr,
     ul,
 )
-from ux_dom.dom.src.utils.dom_util import raw  # type: ignore
+from ux_dom.dom import raw  # type: ignore
 
 HAS_DOM = True
 

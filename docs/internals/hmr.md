@@ -232,14 +232,6 @@ cannot apply a coherent patch:
 A user navigation closes the HMR socket with code `1000`.
 That path does not morph and does not reload.
 
-## Dead names — do not bring back
-
-`devstack`, `glue_factory`, `pages` worker, `public_asgi`, `owner_for`,
-`A` / `X` / `Y`, `--one-process`, `--no-css-watch`, `--no-hmr`,
-`--no-reload` as a clock switch, `build --watch`, `HmrHub`, `reloadPage`,
-leftover `start_css_watcher=`, argv `development` / `production` /
-`restart_channel`.
-
 ## Files
 
 | File | Owns |

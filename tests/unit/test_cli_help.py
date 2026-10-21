@@ -29,9 +29,8 @@ def test_help_lists_serve_modes():
     assert "def start_tailwind_watch" in tw
     assert "start_tailwind_watch" not in src
     assert "start_tailwind_watch" in serve
-    assert "start_css_watcher:" not in src
-    assert "start_css_watcher:" not in serve
-    assert "start_css_watcher=" in src
+    assert "start_css_watcher" not in src
+    assert "start_css_watcher" not in serve
     assert "run_serve_dev" in command
     assert "--one-process" not in src
     assert "def _missing_serve_dev_extras" in command
@@ -73,7 +72,7 @@ def test_create_argv_is_unknown(capsys):
 
 
 def test_serve_mode_synonyms_fail_closed(capsys):
-    """Leftover aliases. Frozen modes are dev / prod / restart-channel."""
+    """Frozen modes are dev / prod / restart-channel; nothing else is a mode."""
     assert main(["serve", "development"]) == 2
     assert main(["serve", "production"]) == 2
     assert main(["serve", "restart_channel"]) == 2
@@ -81,7 +80,6 @@ def test_serve_mode_synonyms_fail_closed(capsys):
     assert '"development": "dev"' not in src
     assert '"production": "prod"' not in src
     assert '"restart_channel": "restart-channel"' not in src
-    assert "argv ``development``" in src
 
 
 def test_restart_channel_without_pidfile_fails_closed(capsys, tmp_path, monkeypatch):

@@ -241,6 +241,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `test_pins_agree_in_all_four_places` fails when `pyproject.toml`,
   `Makefile`, `scaffold.py` and `test_hard_deps.py` disagree on any
   specialist SHA.
+- `component.py`, `dom.py` and `routing/core.py` import `Component`,
+  `dom_tag` and `raw` from ux-dom's public `ux_dom.dom`, not the private
+  `ux_dom.dom.src.*` modules. `tests/regression/test_no_tombstones.py`
+  fails on any `ux_dom.*.src` or underscore-module import of a specialist
+  from `src/`.
+
+### Removed
+
+- The `host="batteries"` / `"directory_router"` tombstone
+  (`ProductBatteriesRejected`, `_BATTERIES_TEACH`) in `routing/host.py`
+  and `surfaces_host.py`. Every host name other than `auto` | `fastapi` |
+  `asgi` gets the one `ValueError("unknown host … use auto|fastapi|asgi")`.
+- Doctor's teaching scanners for names that never shipped:
+  `scan_leftover_aliases` (`_LEFTOVER_TOKENS`: `host="batteries"`,
+  `DirectoryRouter`, `serve="webassets"`, `routing.adapters`,
+  `host="starlette"`) and `scan_kit_product_imports`
+  (`from ux_compose.kit import`, which is an `ImportError` anyway). The law
+  scans and `scan_render_chrome` are unchanged.
+- The `UXDOM_TAILWIND*` / `UXDOM_CACHE` tombstone (`LEGACY_ENV`,
+  `LegacyTailwindEnvError`, `_reject_legacy_env`, the CLI's
+  `_legacy_env_guard`). Only `UXCOMPOSE_*` is read; a `UXDOM_*` variable
+  is ignored like any other unknown variable. `UXDOM_TAILWIND_DOWNLOAD=0`
+  no longer blocks the download: use `UXCOMPOSE_TAILWIND_DOWNLOAD=0`.
+  Every download is SHA256-verified before it runs (UC5).
+- `wire.boot.attach_channel(..., **_ignored)`: an unknown keyword (a typo
+  such as `use_channel(asgi=...)`) is a `TypeError` instead of being
+  swallowed.
+- Kit synonyms: `Drawer` (`Drawer = Sheet`, `components/drawer.py`, the
+  `drawer` catalog entry, `OverlayEdge` `kind="drawer"`) and the
+  `treeview` → `tree` alias in `uxcompose add`. Use `Sheet` /
+  `uxcompose add sheet` and `uxcompose add tree`. `examples/presence.py`
+  and `examples/catalog.py` use `Sheet`.
+- Tombstone prose for names that never shipped: argv `create`,
+  `development` / `production` / `restart_channel` and
+  `start_css_watcher=` in `cli/__init__.py`, `cli/serve.py`,
+  `cli/serve_dev.py`, `AGENTS.md`, `START_HERE.md`, `docs/OWNERSHIP.md`,
+  `docs/guides/CLI.md`, `docs/guides/serve-hmr-tunnel.md` and
+  `docs/internals/hmr.md` (its "Dead names" list). `docs/ARCHITECTURE.md`
+  "Leftovers that expire by teaching" becomes "Doctor residual"
+  (`scan_render_chrome`) plus "Design rules (do not recreate)". ADR 0004
+  point 4 ("leftovers expire by teaching") is amended to "removed names are
+  gone", and ADR 0005's dead-names list drops the same names. Unknown
+  verbs and serve modes already get the one generic error; the tests that
+  pinned the prose now assert the names are absent.
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

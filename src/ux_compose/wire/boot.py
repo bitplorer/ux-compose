@@ -59,7 +59,6 @@ def attach_channel(
     config: Any = None,
     asgi_app: Any = None,
     secret: str | None = None,
-    **_ignored: Any,
 ) -> Any:
     """
     Attach Channel to the App / Behavior. Called only from App.use_channel().

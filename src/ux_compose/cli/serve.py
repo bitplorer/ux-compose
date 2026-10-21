@@ -1,7 +1,6 @@
 """``uxcompose serve`` — mode argv. Clocks start in ``serve_dev.py``.
 
 Frozen modes: ``dev`` / ``prod`` / ``restart-channel``.
-argv ``development`` / ``production`` / ``restart_channel`` are not synonyms.
 """
 from __future__ import annotations
 

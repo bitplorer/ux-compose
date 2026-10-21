@@ -290,17 +290,6 @@ def test_build_asgi_degrade(tmp_path: Path):
     assert "text/html" in r.headers.get("content-type", "")
 
 
-def test_build_batteries_fails_closed(tmp_path: Path):
-    from ux_compose.build import build
-    from ux_compose.routing.host import ProductBatteriesRejected
-
-    pkg = tmp_path / "demo"
-    (pkg / "routes").mkdir(parents=True)
-    (pkg / "__init__.py").write_text("", encoding="utf-8")
-    with pytest.raises(ProductBatteriesRejected):
-        build(pkg, name="Demo", host="batteries")
-
-
 def test_host_fastapi_missing_fails_closed(monkeypatch):
     from ux_compose.routing import host as hostmod
 

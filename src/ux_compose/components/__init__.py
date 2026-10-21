@@ -27,7 +27,6 @@ from ux_compose.components.cta import Cta
 from ux_compose.components.descriptionlist import DescriptionList
 from ux_compose.components.dialog import Dialog
 from ux_compose.components.diff import Diff
-from ux_compose.components.drawer import Drawer
 from ux_compose.components.dropdown import Dropdown
 from ux_compose.components.emptystate import EmptyState
 from ux_compose.components.fab import Fab
@@ -96,7 +95,6 @@ __all__ = [
     "Dropdown",
     "Dialog",
     "Sheet",
-    "Drawer",
     "Toast",
     "Command",
     "Table",

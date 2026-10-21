@@ -2,11 +2,8 @@
 
 Hard ownership (SoC + locality):
   create-app · build · serve · deploy · doctor · add  →  command modules here
-  argv ``create`` is leftover — use ``create-app``.
-  argv ``development`` / ``production`` / ``restart_channel`` are leftover —
-  use ``dev`` / ``prod`` / ``restart-channel``.
   ``cli/__init__.py`` is argv only. Clock bodies (sibling Tailwind ``--watch``,
-  tunnel) live in ``cli/serve_dev.py``. Leftover ``start_css_watcher=`` is gone.
+  tunnel) live in ``cli/serve_dev.py``.
   Pure Document tooling stays on uxdom (lint / profile / add ui|component).
   Tailwind *compiler resolution* lives in ``ux_compose.tailwind``.
   ux-dom owns className, the Document ``<link>``, and package static.
@@ -40,11 +37,11 @@ def main(argv: list[str] | None = None) -> int:
     if cmd == "build":
         from ux_compose.cli.build import main as run
 
-        return _legacy_env_guard(run, rest)
+        return run(rest)
     if cmd == "serve":
         from ux_compose.cli.serve import main as run
 
-        return _legacy_env_guard(run, rest)
+        return run(rest)
     if cmd == "deploy":
         from ux_compose.cli.deploy import main as run
 
@@ -60,17 +57,6 @@ def main(argv: list[str] | None = None) -> int:
     print(f"unknown command: {cmd}", file=sys.stderr)
     _help()
     return 2
-
-
-def _legacy_env_guard(run, rest: list[str]) -> int:
-    """Removed UXDOM_* variables: one line on stderr, exit 2, no traceback."""
-    from ux_compose.tailwind import LegacyTailwindEnvError
-
-    try:
-        return run(rest)
-    except LegacyTailwindEnvError as exc:
-        print(f"uxcompose: {' '.join(str(exc).split())}", file=sys.stderr)
-        return 2
 
 
 def _help() -> None:

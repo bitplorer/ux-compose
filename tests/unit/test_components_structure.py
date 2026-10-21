@@ -45,7 +45,7 @@ def test_components_package_defines_every_widget():
     for slug, meta in CATALOG.items():
         mod = importlib.import_module(f"ux_compose.components.{slug}")
         cls = getattr(mod, meta["name"])
-        assert cls.__module__.startswith("ux_compose.components."), slug  # Drawer lives in sheet
+        assert cls.__module__.startswith("ux_compose.components."), slug
 
 
 def test_kit_package_is_gone():

@@ -26,8 +26,7 @@ from ux_behavior import (  # type: ignore
     action,
 )
 
-from ux_dom.dom.src.component import Component as _DomComponent  # type: ignore
-from ux_dom.dom.src.dom_tag import dom_tag as _dom_tag  # type: ignore
+from ux_dom.dom import Component as _DomComponent, dom_tag as _dom_tag  # type: ignore
 
 _DOM_TREE_NAMES = frozenset({"Component", "Tags", "dom_tag", "ReactiveComponent", "Fragment"})
 

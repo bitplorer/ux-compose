@@ -1,7 +1,4 @@
-"""Doctor — protective coach for ux-compose.
-
-Residuals (kit import, leftover aliases) are teaching, not kill.
-"""
+"""Doctor — protective coach for ux-compose."""
 from __future__ import annotations
 
 import ast
@@ -22,8 +19,6 @@ __all__ = [
     "DoctorResult",
     "IsolationViolation",
     "scan_isolation",
-    "scan_kit_product_imports",
-    "scan_leftover_aliases",
     "scan_render_chrome",
     "scan_cek_host",
     "scan_fastapi_docs_collision",
@@ -41,14 +36,6 @@ class IsolationViolation(Exception):
 FORBIDDEN_IMPORTS = {
     "ux_channel", "cek", "cek_host", "cek_surface", "MotionChannel",
 }
-_KIT_IMPORT_SKIP = ("/tests/", "/src/ux_compose/", "/examples/")
-_LEFTOVER_TOKENS = (
-    'host="batteries"', "host='batteries'",
-    'use_host("batteries")', "use_host('batteries')",
-    "DirectoryRouter", 'serve="webassets"', "serve='webassets'",
-    "ux_compose.routing.adapters",
-    'host="starlette"', "host='starlette'",
-)
 
 
 # Not app source. Tool caches go by name. A venv needs ``pyvenv.cfg`` AND an
@@ -227,33 +214,6 @@ def scan_dual_document(paths: Iterable[str | Path]) -> list[str]:
     return diagnostics
 
 
-def _skip_kit_scan(path: Path) -> bool:
-    sp = _norm(path)
-    return "site-packages" in sp or any(token in sp for token in _KIT_IMPORT_SKIP)
-
-
-def scan_kit_product_imports(paths: Iterable[str | Path]) -> list[str]:
-    diagnostics: list[str] = []
-    for raw in paths:
-        p = Path(raw)
-        if not p.exists() or p.suffix != ".py" or _skip_kit_scan(p):
-            continue
-        try:
-            tree = ast.parse(p.read_text(encoding="utf-8"), filename=str(p))
-        except Exception:
-            continue
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.ImportFrom):
-                continue
-            mod = node.module or ""
-            if mod == "ux_compose.kit" or mod.startswith("ux_compose.kit."):
-                names = ", ".join(a.name for a in node.names)
-                diagnostics.append(
-                    f"residual in {p}: `from {mod} import {names}`. Use `uxcompose add`."
-                )
-    return diagnostics
-
-
 _RENDER_CHROME_SKIP = ("/tests/", "/src/ux_compose/", "site-packages")
 _STUNNING_ROOT = "stunning-root"
 _NAV_CLASS = (
@@ -332,27 +292,6 @@ def scan_render_chrome(paths: Iterable[str | Path]) -> list[str]:
             diagnostics.append(
                 f"residual in {p}: render() contains the brand bar ({', '.join(hits)}). {teach}"
             )
-    return diagnostics
-
-
-def scan_leftover_aliases(paths: Iterable[str | Path]) -> list[str]:
-    diagnostics: list[str] = []
-    for raw in paths:
-        p = Path(raw)
-        if not p.exists() or p.suffix != ".py":
-            continue
-        sp = _norm(p)
-        if "/tests/" in sp or "/src/ux_compose/" in sp or "site-packages" in sp:
-            continue
-        try:
-            src = p.read_text(encoding="utf-8")
-        except Exception:
-            continue
-        for token in _LEFTOVER_TOKENS:
-            if token in src:
-                diagnostics.append(
-                    f"residual in {p}: leftover `{token}`. Clock A host is FastAPI."
-                )
     return diagnostics
 
 
@@ -748,8 +687,6 @@ def doctor(
         diagnostics.extend(scan_isolation(expanded))
         diagnostics.extend(scan_store_clone(expanded))
         diagnostics.extend(scan_dual_document(expanded))
-        diagnostics.extend(scan_kit_product_imports(expanded))
-        diagnostics.extend(scan_leftover_aliases(expanded))
         diagnostics.extend(scan_render_chrome(expanded))
     teaching = _teaching_for_level(level, caps)
     surface_ids: list[str] = []

@@ -18,10 +18,11 @@ from pathlib import Path
 
 from ux_compose import doctor
 from ux_compose.build import build
+from ux_compose.htmx import Htmx
 
 PACKAGE = Path(__file__).resolve().parent / "live_asgi_app"
 
-from ux_dom import Csp, Document, Htmx, XElement
+from ux_dom import Csp, Document, XElement
 
 
 def build_app():

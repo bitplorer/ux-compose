@@ -25,7 +25,8 @@ from ux_compose import (
     scene,
     rise,
 )
-from ux_dom import Csp, Document, Htmx, XElement
+from ux_compose.htmx import Htmx
+from ux_dom import Csp, Document, XElement
 from ux_dom.dom import div, h1, p
 
 

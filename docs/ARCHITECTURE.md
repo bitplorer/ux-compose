@@ -61,6 +61,7 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 | Component catalog / copy | `cli/registry.py`, `cli/copy_component.py` | overlay in CATALOG |
 | Author helpers on copies | `arrange.py` (outside `components/`) | move under `components/` |
 | HMR | `hmr.py` | `Document.use` HMR |
+| HTMX (opt-in) | `htmx.py` (scripts with SRI, partial GET, middleware, `HtmxRoutes`) | htmx URLs or `HX-*` headers in any other module |
 | Channel scripts | `live_client.py` | fold into `hmr.py`; synthesized HTML shell for fragments |
 | Serve-dev clocks | `cli/serve_dev.py` (body), `cli/__init__.py` (argv) | `--one-process`; clock spawn in `cli/__init__.py` |
 | Store lifecycle | `cli/serve_state.py` | compose `FileStateStore` class |
@@ -136,7 +137,7 @@ Do not put `serve_dev.py` or `cli_build.py` back at the package root.
 | `arrange.py` | `arrange_slots` / `wrap_in_card` / `build_heading` | catalog stems |
 
 `_fragment_for_target` prefers `ux_dom.response.serialize.extract_by_id`
-when importable (ux-dom#20, current pin `d87a21b`; compose#80 C2). The homemade
+when importable (ux-dom#20, current pin `2b7c851`; compose#80 C2). The homemade
 walker in `helpers.py` is escape if the owner symbol is absent. Serialize
 is already library-owned (`to_html_bytes`). `Fragment` is an invisible
 tree shell; `parse_html` / `defHTML` are ingest, not extract. String

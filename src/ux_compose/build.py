@@ -143,7 +143,7 @@ def _attach_document(app: Any, document: Any, *, use_htmx: bool) -> Any:
     try:
         if document is not None:
             if use_htmx:
-                from ux_dom import Htmx
+                from ux_compose.htmx import Htmx
 
                 document.use(Htmx())
             app.use_dom(document)
@@ -152,7 +152,7 @@ def _attach_document(app: Any, document: Any, *, use_htmx: bool) -> Any:
 
         runtimes: list[Any] = [XElement(), Csp.auto()]
         if use_htmx:
-            from ux_dom import Htmx
+            from ux_compose.htmx import Htmx
 
             runtimes.insert(1, Htmx())
         document = Document(head=[], body=[], ensure_csrf_token=False).use(*runtimes)
@@ -190,6 +190,11 @@ def build(
       Author GET shell. Defaults to ``document`` (Document SSoT).
       ``wrap=None`` is a bare fragment. Never a synthesized Document
       (string fragment → script src).
+
+    use_htmx:
+      Attach :class:`ux_compose.htmx.Htmx` (pinned htmx scripts with SRI).
+      A page GET with ``HX-Request: true`` that is not a history restore
+      gets the fragment, not the Document shell.
 
     openapi:
       FastAPI Swagger / ReDoc / ``/openapi.json``. Default off so
@@ -262,6 +267,11 @@ def build(
     author_document = document
     author_wrap = author_document if wrap is _UNSET else wrap
     document = _attach_document(app, author_document, use_htmx=use_htmx)
+    partial = None
+    if use_htmx:
+        from ux_compose.htmx import is_partial
+
+        partial = is_partial
 
     if want_channel and kind == KIND_FASTAPI and asgi is not None:
         # strict_attach lives on the wire attach. A failure raises there.
@@ -352,6 +362,7 @@ def build(
                     document=document,
                     wrap=author_wrap,
                     resolve_unit=_resolve,
+                    partial=partial,
                 )
                 if bundle is not None and core.records:
                     bundle.route_table = core.route_table()

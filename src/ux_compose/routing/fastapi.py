@@ -130,6 +130,7 @@ def page_endpoint(
     *,
     document: Any = None,
     resolve_unit: Optional[Callable] = None,
+    partial: Optional[Callable[[Any], bool]] = None,
 ) -> Callable:
     """Closed-signature GET. Path params come from the Request, not Component."""
 
@@ -152,6 +153,8 @@ def page_endpoint(
             tree = await tree
         if is_stream_payload(tree):
             return await _open_stream_response(tree)
+        if partial is not None and request is not None and partial(request):
+            return _as_http_response(tree)
         return _as_http_response(tree, document=document)
 
     # from __future__ import annotations stringifies types. FastAPI must see
@@ -197,6 +200,7 @@ def bind(
     document: Any = None,
     resolve_unit: Optional[Callable] = None,
     prefix: str = "",
+    partial: Optional[Callable[[Any], bool]] = None,
 ) -> Any:
     """Include page routes on a FastAPI/Starlette app. Document wrap is here."""
     from fastapi import APIRouter
@@ -207,7 +211,9 @@ def bind(
     for rec in core.records:
         router.add_api_route(
             rec.path,
-            page_endpoint(rec, document=document, resolve_unit=resolve_unit),
+            page_endpoint(
+                rec, document=document, resolve_unit=resolve_unit, partial=partial
+            ),
             methods=[rec.method.upper()],
             name=rec.name,
         )

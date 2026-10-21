@@ -183,12 +183,19 @@ class DirectoryASGI:
     present; otherwise stringifies the render result.
     """
 
-    def __init__(self, core: DirectoryRoutes, *, document: Any = None) -> None:
+    def __init__(
+        self,
+        core: DirectoryRoutes,
+        *,
+        document: Any = None,
+        partial: Optional[Callable[[Any], bool]] = None,
+    ) -> None:
         if not core.records:
             core.discover()
         self.core = core
         self.hooks = core.hooks or RouterHooks()
         self.document = document
+        self.partial = partial
         self._records = list(core.records)
         for rec in self._records:
             if "{" in (rec.path or ""):
@@ -248,7 +255,8 @@ class DirectoryASGI:
                     return
                 stream = await open_html_stream(result)
             elif not is_json_payload(result):
-                result = apply_html_document(self.document, result)
+                fragment = self.partial is not None and self.partial(scope)
+                result = apply_html_document(None if fragment else self.document, result)
             if stream is None:
                 body, content_type = _encode(result)
             status = 200

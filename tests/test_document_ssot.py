@@ -15,7 +15,8 @@ pytestmark = pytest.mark.skipif(not HAS_DOM, reason="ux-dom not installed (needs
 
 
 def test_document_single_ssot():
-    from ux_dom import Csp, Document, Htmx, XElement
+    from ux_dom import Csp, Document, XElement
+    from ux_compose.htmx import Htmx
 
     doc = Document(head=[], body=[], ensure_csrf_token=False).use(
         XElement(),

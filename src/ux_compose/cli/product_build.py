@@ -41,6 +41,7 @@ class ProductBuildReport:
     output_css: Optional[Path] = None
     package_path: Optional[Path] = None
     archive_path: Optional[Path] = None
+    warnings: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -323,17 +324,18 @@ def _package_step(
         report.steps.append(BuildStep("package", False, "skipped — earlier build steps failed"))
         return
     root = report.root
-    out = (out_dir or root / "dist").resolve()
+    out = out_dir or root / "dist"
     loc, _, attr = app_ref.partition(":")
     entry = f"{Path(loc).stem}:{attr}"
     try:
-        bundle = write_bundle(root, out_dir=out, name=name or root.name, entry=entry, archive=archive)
+        bundle = write_bundle(root, out_dir=out, name=root.name if name is None else name, entry=entry, archive=archive)
     except PackageError as exc:
         report.steps.append(BuildStep("package", False, str(exc)))
         return
     report.package_path, report.archive_path = bundle.path, bundle.archive
+    report.warnings.extend(bundle.warnings)
     shown = bundle.path.relative_to(root) if bundle.path.is_relative_to(root) else bundle.path
-    detail = f"{shown.as_posix()} (run.sh {entry}; excluded secrets: {', '.join(bundle.excluded) or 'none'})"
+    detail = f"{shown.as_posix()} (run.sh {entry}; excluded: {', '.join(bundle.excluded) or 'none'})"
     report.steps.append(BuildStep("package", True, detail))
 
 
@@ -348,6 +350,7 @@ def format_product_build_report(report: ProductBuildReport) -> str:
         lines.append(f"  package → {report.package_path}")
     if report.archive_path:
         lines.append(f"  archive → {report.archive_path}")
+    lines.extend(f"  {w}" for w in report.warnings)
     lines.append("=" * 48)
     lines.append("BUILD OK" if report.ok else "BUILD FAILED")
     if report.ok and report.package_path:

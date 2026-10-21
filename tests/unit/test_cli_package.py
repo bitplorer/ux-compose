@@ -34,7 +34,6 @@ SOURCE = {
     "components/login.py",
 }
 GENERATED = {"run.sh", "README.RUN.txt", "MANIFEST.json"}
-PLANTED_SECRETS = (".env", ".env.local", "server.pem", "routes/.env", "components/tls.key")
 
 
 @pytest.fixture(autouse=True)
@@ -68,28 +67,116 @@ def test_flags_are_on_build_help(capsys):
         assert flag in out
 
 
-def test_file_set_and_exclusions(app, capsys):
-    for rel in PLANTED_SECRETS:
-        (app / rel).write_text("SECRET=1\n", encoding="utf-8")
-    for junk in ("routes/__pycache__/hello.cpython-314.pyc", "assets/node_modules/x.js", "components/stale.pyc"):
-        (app / junk).parent.mkdir(parents=True, exist_ok=True)
-        (app / junk).write_text("x", encoding="utf-8")
+def _excluded(out: str) -> list[str]:
+    return out.split("excluded: ", 1)[1].split(")\n", 1)[0].split(", ")
+
+
+def test_file_set_is_an_allowlist_and_lists_every_exclusion(app, capsys):
+    planted = {
+        ".env": "SECRET=1",
+        ".env.local": "SECRET=1",
+        "id_rsa": "k",
+        ".netrc": "machine x",
+        "notes.txt": "n",
+        "pyproject.toml": "[x]",
+        "routes/notes.bin": "b",
+        "assets/data.sqlite": "d",
+        "components/stale.pyc": "x",
+        "routes/__pycache__/hello.cpython-314.pyc": "x",
+        "assets/node_modules/x.js": "x",
+        "tests/test_x.py": "x",
+    }
+    for rel, text in planted.items():
+        (app / rel).parent.mkdir(parents=True, exist_ok=True)
+        (app / rel).write_text(text, encoding="utf-8")
 
     assert _package() == 0
     out = capsys.readouterr().out
     bundle = app / "dist" / "demo"
     assert _tree(bundle) == SOURCE | GENERATED
     assert "[OK  ] package: dist/demo" in out
-    for rel in PLANTED_SECRETS:
-        assert rel in out.split("excluded secrets:", 1)[1].splitlines()[0]
+    assert set(_excluded(out)) == {
+        ".env",
+        ".env.local",
+        ".netrc",
+        "id_rsa",
+        "notes.txt",
+        "pyproject.toml",
+        "tests/",
+        "__pycache__/",
+        "routes/notes.bin",
+        "routes/__pycache__/",
+        "assets/data.sqlite",
+        "assets/node_modules/",
+        "components/stale.pyc",
+    }
+
+
+@pytest.mark.parametrize(
+    "rel, text",
+    [
+        ("routes/.env", "SECRET=1"),
+        ("deploy/id_rsa", "k"),
+        ("deploy/id_ed25519.pub.txt", "k"),
+        ("deploy/cert.p12", "k"),
+        ("assets/site.pfx", "k"),
+        ("deploy/.netrc", "machine x"),
+        ("assets/.npmrc", "//registry/:_authToken=x"),
+        ("components/tls.key", "k"),
+        ("assets/sa.json", '{"type": "service_account", "private_key": "x"}'),
+        ("deploy/notes.txt", "-----BEGIN OPENSSH PRIVATE KEY-----"),
+        ("settings_key.py", "K = '-----BEGIN RSA PRIVATE KEY-----'"),
+    ],
+)
+def test_refuses_key_shaped_files_in_allowed_dirs(app, capsys, rel, text):
+    (app / rel).parent.mkdir(parents=True, exist_ok=True)
+    (app / rel).write_text(text, encoding="utf-8")
+    assert _package() == 1
+    out = capsys.readouterr().out
+    assert f"[FAIL] package: refusing to bundle: {rel} (" in out
+    assert not (app / "dist").exists()
+
+
+def test_refuses_symlinks_out_of_the_tree(app, tmp_path, capsys):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "creds.json").write_text('{"token": "x"}', encoding="utf-8")
+    (app / "routes" / "creds.json").symlink_to(outside / "creds.json")
+    (app / "assets" / "rel.txt").symlink_to(os.path.relpath(outside / "creds.json", app / "assets"))
+    (app / "assets" / "shared").symlink_to(outside, target_is_directory=True)
+    assert _package() == 1
+    out = capsys.readouterr().out
+    assert (
+        "[FAIL] package: refusing to bundle: assets/rel.txt (symlink out of the app tree), "
+        "assets/shared (symlink out of the app tree), routes/creds.json (symlink out of the app tree)"
+    ) in out
+    assert not (app / "dist").exists()
+
+
+def test_in_tree_symlinks(app, capsys):
+    (app / "assets" / "css" / "alias.css").symlink_to("input.css")
+    (app / "assets" / "css2").symlink_to("css", target_is_directory=True)
+    assert _package() == 0
+    out = capsys.readouterr().out
+    bundle = app / "dist" / "demo"
+    alias = bundle / "assets" / "css" / "alias.css"
+    assert not alias.is_symlink()
+    assert alias.read_bytes() == (app / "assets" / "css" / "input.css").read_bytes()
+    assert "assets/css2/ (symlinked dir)" in _excluded(out)
 
 
 def test_rebuilt_from_scratch(app):
+    assert _package() == 0
     stale = app / "dist" / "demo" / "stale.txt"
-    stale.parent.mkdir(parents=True)
     stale.write_text("old", encoding="utf-8")
     assert _package() == 0
     assert not stale.exists()
+
+
+def test_package_without_archive_drops_an_older_archive(app):
+    assert main(["build", "--skip-tailwind", "--archive"]) == 0
+    assert _package() == 0
+    assert not (app / "dist" / "demo.tar.gz").exists()
 
 
 def test_out_and_name(app, tmp_path):
@@ -145,6 +232,7 @@ def test_manifest(app):
     for rel in GENERATED:
         assert str(app) not in (bundle / rel).read_text(encoding="utf-8")
 
+    assert manifest["generator"] == "uxcompose build --package"
     assert manifest["entrypoint"] == "app:asgi"
     assert manifest["static_model"] == "single_copy_from_site_packages"
     assert {f["path"] for f in manifest["files"]} == SOURCE
@@ -241,3 +329,124 @@ def test_refuses_on_doctor_prod_fail_row(app, capsys, monkeypatch):
     out = capsys.readouterr().out
     assert "[FAIL] package: doctor --prod: [FAIL] DEBUG: DEBUG='1' is dev mode" in out
     assert not (app / "dist" / "demo").exists()
+
+
+# --out safety: nothing is written or deleted unless the target is ours.
+
+
+def _snapshot(path: Path) -> dict[str, bytes]:
+    """Every file except the build's own import cache."""
+    return {
+        p.relative_to(path).as_posix(): p.read_bytes()
+        for p in path.rglob("*")
+        if p.is_file() and "__pycache__" not in p.parts
+    }
+
+
+@pytest.mark.parametrize(
+    "out, name",
+    [(".", None), ("..", None), ("/", None), ("~", None), (".", "routes"), ("routes", None), ("assets/x", None)],
+)
+def test_refuses_out_that_is_the_app_a_parent_or_its_source(app, capsys, monkeypatch, out, name):
+    monkeypatch.setenv("HOME", str(app.parent))
+    (app / ".git").mkdir()
+    (app / ".git" / "HEAD").write_text("ref", encoding="utf-8")
+    (app / ".env").write_text("SECRET=1", encoding="utf-8")
+    before = _snapshot(app.parent)
+    argv = ["--out", os.path.expanduser(out)] + (["--name", name] if name else [])
+    assert _package(*argv) == 1
+    printed = capsys.readouterr().out
+    assert "[FAIL] package: --out " in printed
+    assert _snapshot(app.parent) == before
+
+
+def test_refuses_a_foreign_non_empty_out(app, tmp_path, capsys):
+    foreign = tmp_path / "foreign"
+    (foreign / "demo").mkdir(parents=True)
+    (foreign / "demo" / "keep.txt").write_text("mine", encoding="utf-8")
+    (foreign / "other.txt").write_text("mine", encoding="utf-8")
+    assert _package("--out", str(foreign)) == 1
+    out = capsys.readouterr().out
+    assert "is not a dedicated bundle directory (it holds demo, other.txt)" in out
+    assert (foreign / "demo" / "keep.txt").read_text(encoding="utf-8") == "mine"
+
+
+def test_refuses_a_foreign_dir_with_the_bundle_name(app, tmp_path, capsys):
+    out = tmp_path / "out"
+    (out / "demo").mkdir(parents=True)
+    (out / "demo" / "MANIFEST.json").write_text('{"name": "demo"}', encoding="utf-8")
+    assert _package("--out", str(out)) == 1
+    assert "not a dedicated bundle directory (it holds demo)" in capsys.readouterr().out
+    assert (out / "demo" / "MANIFEST.json").is_file()
+
+
+def test_refuses_a_symlinked_out_to_the_app_or_a_foreign_dir(app, tmp_path, capsys):
+    (tmp_path / "to-parent").symlink_to(app.parent, target_is_directory=True)
+    assert _package("--out", str(tmp_path / "to-parent")) == 1
+    assert "is the app directory or one of its parents" in capsys.readouterr().out
+    foreign = tmp_path / "foreign"
+    foreign.mkdir()
+    (foreign / "x.txt").write_text("x", encoding="utf-8")
+    (tmp_path / "to-foreign").symlink_to(foreign, target_is_directory=True)
+    assert _package("--out", str(tmp_path / "to-foreign")) == 1
+    assert "not a dedicated bundle directory (it holds x.txt)" in capsys.readouterr().out
+    assert sorted(p.name for p in foreign.iterdir()) == ["x.txt"]
+
+
+def test_refuses_a_symlink_inside_out(app, tmp_path, capsys):
+    assert _package("--out", str(tmp_path / "out")) == 0
+    (tmp_path / "out" / "elsewhere").symlink_to(app, target_is_directory=True)
+    assert _package("--out", str(tmp_path / "out")) == 1
+    assert "it holds elsewhere" in capsys.readouterr().out
+    assert (app / "app.py").is_file()
+
+
+@pytest.mark.parametrize("name", ["../x", "a/b", ".", "..", "", ".hidden"])
+def test_refuses_a_name_that_is_not_one_segment(app, capsys, name):
+    assert _package("--name", name) == 1
+    assert "must be one plain path segment" in capsys.readouterr().out
+    assert not (app / "dist").exists()
+
+
+def test_replaces_only_its_own_bundles_and_keeps_siblings(app, tmp_path):
+    out = tmp_path / "out"
+    assert _package("--out", str(out), "--name", "a") == 0
+    assert main(["build", "--skip-tailwind", "--archive", "--out", str(out), "--name", "b"]) == 0
+    assert _package("--out", str(out), "--name", "a") == 0
+    assert sorted(p.name for p in out.iterdir()) == ["a", "b", "b.tar.gz"]
+
+
+def test_a_refused_build_creates_no_out_dir(app, capsys):
+    (app / "requirements.txt").unlink()
+    assert _package() == 1
+    assert not (app / "dist").exists()
+
+
+def test_custom_out_inside_app_does_not_break_the_next_build(app):
+    """doctor skips a bundle by its MANIFEST marker, not by the dir name."""
+    assert main(["build", "--skip-tailwind", "--archive", "--out", "out", "--name", "shop"]) == 0
+    assert main(["build", "--skip-tailwind", "--archive", "--out", "out", "--name", "shop"]) == 0
+
+
+def test_bad_source_date_epoch_is_one_line(app, capsys, monkeypatch):
+    monkeypatch.setenv("SOURCE_DATE_EPOCH", "soon")
+    assert main(["build", "--skip-tailwind", "--archive"]) == 1
+    assert "[FAIL] package: SOURCE_DATE_EPOCH must be a non-negative integer, got 'soon'" in capsys.readouterr().out
+
+
+def test_refuses_requirement_includes(app, capsys):
+    (app / "base.txt").write_text("fastapi\n", encoding="utf-8")
+    req = app / "requirements.txt"
+    req.write_text(req.read_text(encoding="utf-8").replace("fastapi\n", "-r base.txt\n"), encoding="utf-8")
+    assert _package() == 1
+    assert "requirements.txt includes other files (-r / -c)" in capsys.readouterr().out
+
+
+def test_dirty_checkout_warns_loudly(app, capsys, monkeypatch):
+    from ux_compose.cli import package
+
+    monkeypatch.setattr(package, "_dirty_checkout", lambda: "/src/ux-compose")
+    assert _package() == 0
+    out = capsys.readouterr().out
+    assert "  WARNING: the ux-compose checkout /src/ux-compose has uncommitted changes." in out
+    assert "matches no commit" in out

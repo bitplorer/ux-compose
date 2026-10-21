@@ -111,13 +111,24 @@ def test_single_document_ok():
         assert diags == []
 
 
-@pytest.mark.parametrize("skipped", ["dist/demo", ".venv/lib", "node_modules/x"])
-def test_doctor_dir_scan_skips_build_output_and_envs(tmp_path, skipped):
-    """A bundle under dist/ (uxcompose build --package) is a copy, not a second Document."""
+@pytest.mark.parametrize(
+    "rel, marker, skipped",
+    [
+        ("out/shop", ("MANIFEST.json", '{"generator": "uxcompose build --package"}'), True),
+        ("dist/demo", ("MANIFEST.json", '{"name": "demo"}'), False),
+        ("env", ("pyvenv.cfg", "home = /usr/bin"), True),
+        ("routes/venv", None, False),
+        ("node_modules/x", None, True),
+    ],
+)
+def test_doctor_dir_scan_skips_bundles_and_venvs_by_content(tmp_path, rel, marker, skipped):
+    """A bundle (MANIFEST marker) or a venv (pyvenv.cfg) is not app source; a dir name alone is not proof."""
     (tmp_path / "document.py").write_text("d = Document()\n", encoding="utf-8")
-    (tmp_path / skipped).mkdir(parents=True)
-    (tmp_path / skipped / "document.py").write_text("d = Document()\nimport ux_channel\n", encoding="utf-8")
-    assert doctor([tmp_path], fail=False).ok
+    (tmp_path / rel).mkdir(parents=True)
+    (tmp_path / rel / "document.py").write_text("d = Document()\nimport ux_channel\n", encoding="utf-8")
+    if marker:
+        (tmp_path / rel / marker[0]).write_text(marker[1], encoding="utf-8")
+    assert doctor([tmp_path], fail=False).ok is skipped
 
 
 class _Caps:

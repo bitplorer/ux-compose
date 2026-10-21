@@ -5,6 +5,7 @@ Residuals (kit import, leftover aliases) are teaching, not kill.
 from __future__ import annotations
 
 import ast
+import json
 import os
 import posixpath
 import re
@@ -50,11 +51,33 @@ _LEFTOVER_TOKENS = (
 )
 
 
-# Not app source: tool caches, environments, installed packages, build output
-# (``uxcompose build --package`` writes dist/<name>/, a second copy of the app).
-SKIP_DIRS = frozenset(
-    {"__pycache__", ".venv", "venv", ".git", ".pytest_cache", "node_modules", ".mypy_cache", "dist"}
-)
+# Not app source. Tool caches go by name; a venv by its ``pyvenv.cfg``; a
+# bundle from ``uxcompose build --package`` by its MANIFEST marker (any
+# ``--out``), since it is a second copy of the app.
+SKIP_DIRS = frozenset({"__pycache__", ".git", ".pytest_cache", ".mypy_cache", "node_modules"})
+BUNDLE_GENERATOR = "uxcompose build --package"
+
+
+def is_bundle(path: str | Path) -> bool:
+    """True when ``path`` holds a ``MANIFEST.json`` written by ``uxcompose build --package``."""
+    try:
+        manifest = json.loads((Path(path) / "MANIFEST.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return isinstance(manifest, dict) and manifest.get("generator") == BUNDLE_GENERATOR
+
+
+def is_skipped_dir(path: str | Path) -> bool:
+    p = Path(path)
+    return p.name in SKIP_DIRS or (p / "pyvenv.cfg").is_file() or is_bundle(p)
+
+
+def _walk_py(root: Path) -> list[Path]:
+    found: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if not is_skipped_dir(Path(dirpath) / d))
+        found.extend(Path(dirpath) / f for f in sorted(filenames) if f.endswith(".py"))
+    return found
 
 
 def _norm(path: Path | str) -> str:
@@ -686,9 +709,7 @@ def doctor(
         for p in paths:
             pp = Path(p)
             if pp.is_dir():
-                expanded.extend(
-                    f for f in pp.rglob("*.py") if SKIP_DIRS.isdisjoint(f.relative_to(pp).parts)
-                )
+                expanded.extend(_walk_py(pp))
             elif pp.suffix == ".py":
                 expanded.append(pp)
         diagnostics.extend(scan_isolation(expanded))

@@ -187,6 +187,7 @@ class Htmx:
         return dict(kwargs)
 
     def partial_policy(self, request: Any) -> str:
+        # ux-dom plugin protocol; the routing hosts call is_partial directly.
         # A bare header dict with a "type" key is not a scope: wrap only Requests.
         headers = getattr(request, "headers", None)
         source = request if hasattr(headers, "get") else {}

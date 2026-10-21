@@ -194,7 +194,8 @@ def build(
     use_htmx:
       Attach :class:`ux_compose.htmx.Htmx` (pinned htmx scripts with SRI).
       A page GET with ``HX-Request: true`` that is not a history restore
-      gets the fragment, not the Document shell.
+      gets the fragment, not the Document shell; HTML page responses send
+      ``Vary: HX-Request``.
 
     openapi:
       FastAPI Swagger / ReDoc / ``/openapi.json``. Default off so

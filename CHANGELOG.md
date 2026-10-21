@@ -94,8 +94,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- `docs/internals/PLACE.md`: identity is the subject on the verified Cap,
-  never a subject in the Intent args (ux-channel#69).
 - Security: a route body that is a plain `str` or `bytes` is untrusted HTML
   and goes through ux-dom `sanitize_html` on both hosts, with or without a
   Document, and through `brand_wrap`; main sent it through `raw()` (or as
@@ -367,7 +365,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   htmx-ext-sse 2.2.3, each pinned with a sha384 SRI hash), `HtmxDetails`,
   `HtmxMiddleware`, `HtmxRoutes` and `is_partial`. `build(use_htmx=True)`
   now answers an `HX-Request` page GET that is not a history restore with
-  the fragment. Import `Htmx` from `ux_compose.htmx`, not `ux_dom`.
+  the fragment, and its HTML page responses send `Vary: HX-Request`. Import `Htmx` from `ux_compose.htmx`, not `ux_dom`.
 
 - ux-dom pin `6ac2e5e` → `d87a21b` (ux-dom main: ux-dom#123 public
   `ux_dom.response.sanitize_html` / `sanitize_html_stream` /

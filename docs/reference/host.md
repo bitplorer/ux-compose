@@ -259,6 +259,7 @@ OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
 - HTMX is opt-in (`build(use_htmx=True)` / `Document.use(Htmx())`, from
   `ux_compose.htmx`). With `use_htmx=True` a page GET with `HX-Request: true`
   that is not a history restore gets the fragment, not the Document shell.
+  HTML page responses then send `Vary: HX-Request`.
 - `Document.use(XElement(), Csp.auto(), Channel.optional())` (the
   `ux_dom` Document-plugin alias, not `ux_channel.Channel`) is the full shell.
   Product path is `build(document=, wrap=document)`. There is no

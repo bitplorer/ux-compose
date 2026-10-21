@@ -234,6 +234,7 @@ class DirectoryASGI:
 
         rec, params = hit
         stream = None
+        vary = False
         try:
             result = _invoke(rec, self.hooks, params)
             if inspect.isawaitable(result):
@@ -255,7 +256,8 @@ class DirectoryASGI:
                     return
                 stream = await open_html_stream(result)
             elif not is_json_payload(result):
-                fragment = self.partial is not None and self.partial(scope)
+                vary = self.partial is not None
+                fragment = vary and self.partial(scope)
                 result = apply_html_document(None if fragment else self.document, result)
             if stream is None:
                 body, content_type = _encode(result)
@@ -266,20 +268,19 @@ class DirectoryASGI:
             content_type = b"text/plain; charset=utf-8"
             status = 500
             stream = None
+            vary = False
 
         if stream is not None:
             await _send_stream(send, stream, content_type=b"text/html; charset=utf-8")
             return
 
         outbound = b"" if str(method).upper() == "HEAD" else body
-        await send(
-            {
-                "type": "http.response.start",
-                "status": status,
-                "headers": [
-                    (b"content-type", content_type),
-                    (b"content-length", str(len(body)).encode()),
-                ],
-            }
-        )
+        headers = [
+            (b"content-type", content_type),
+            (b"content-length", str(len(body)).encode()),
+        ]
+        if vary:
+            # Fragment or full page by HX-Request: caches must key on it.
+            headers.append((b"vary", b"HX-Request"))
+        await send({"type": "http.response.start", "status": status, "headers": headers})
         await send({"type": "http.response.body", "body": outbound, "more_body": False})

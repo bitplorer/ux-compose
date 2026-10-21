@@ -38,15 +38,26 @@ def _body(rt: Htmx) -> str:
 # ── script runtime ────────────────────────────────────────────────────────
 
 
+# Recorded independently: sha384 of each file in its npm tarball, the
+# tarball checked against the registry's sha512 integrity.
+PINNED = {
+    "https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js": (
+        "sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+    ),
+    "https://unpkg.com/idiomorph@0.7.4/dist/idiomorph-ext.min.js": (
+        "sha384-SsScJKzATF/w6suEEdLbgYGsYFLzeKfOA6PY+/C5ZPxOSuA+ARquqtz/BZz9JWU8"
+    ),
+    "https://unpkg.com/htmx-ext-sse@2.2.3/dist/sse.min.js": (
+        "sha384-Y4gc0CK6Kg+hmulDc6rZPJu0tqvk7EWlih0Oh+2OkAi1ZDlCbBDCQEE2uVk472Ky"
+    ),
+}
+
+
 def test_scripts_are_pinned_with_sri():
-    html = _body(Htmx())
-    assert 'src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"' in html
-    assert (
-        'integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"'
-        in html
-    )
-    assert html.count('crossorigin="anonymous"') == 2
-    assert f'src="{IDIOMORPH_EXT_JS[0]}"' in html and IDIOMORPH_EXT_JS[1] in html
+    html = _body(Htmx(sse=True))
+    for src, sri in PINNED.items():
+        assert f'<script crossorigin="anonymous" integrity="{sri}" src="{src}">' in html
+    assert html.count("<script") == 3
     assert "1.9.2" not in html
 
 
@@ -60,7 +71,7 @@ def test_every_pinned_file_names_an_exact_version_and_sha384():
 def test_sse_script_included_when_enabled():
     html = _body(Htmx(sse=True))
     assert "htmx.org" in html
-    assert f'src="{SSE_EXT_JS[0]}"' in html and SSE_EXT_JS[1] in html
+    assert "htmx-ext-sse@2.2.3" in html
 
 
 def test_sse_off_by_default():
@@ -277,8 +288,10 @@ def test_build_use_htmx_full_page_and_partial(tmp_path, host):
     )
 
     def get(headers=None) -> str:
-        status, _, body = asgi_http(asgi, "/hello", headers=headers)
+        status, hdrs, body = asgi_http(asgi, "/hello", headers=headers)
         assert status == 200
+        # Every variant says it varies, so a cache never swaps fragment and page.
+        assert hdrs.get("vary") == "HX-Request"
         return body.decode()
 
     full = get()
@@ -299,5 +312,6 @@ def test_build_without_htmx_wraps_hx_request(tmp_path):
     root = create_app(tmp_path / "plain", name="plain", level=1, host="asgi")
     doc = Document(head=[], body=[], ensure_csrf_token=False)
     _, asgi, _ = build(root, name="plain", host="asgi", live="null", level=1, document=doc)
-    _, _, body = asgi_http(asgi, "/hello", headers={"HX-Request": "true"})
+    _, hdrs, body = asgi_http(asgi, "/hello", headers={"HX-Request": "true"})
     assert b"<html" in body and b"htmx.org" not in body
+    assert "vary" not in hdrs

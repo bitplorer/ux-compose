@@ -153,9 +153,13 @@ def page_endpoint(
             tree = await tree
         if is_stream_payload(tree):
             return await _open_stream_response(tree)
-        if partial is not None and request is not None and partial(request):
-            return _as_http_response(tree)
-        return _as_http_response(tree, document=document)
+        if partial is None or _is_response(tree) or is_json_payload(tree):
+            return _as_http_response(tree, document=document)
+        fragment = request is not None and partial(request)
+        response = _as_http_response(tree, document=None if fragment else document)
+        # Fragment or full page by HX-Request: caches must key on it.
+        response.headers.append("Vary", "HX-Request")
+        return response
 
     # from __future__ import annotations stringifies types. FastAPI must see
     # the Request class object or it treats `request` as a body field (422).

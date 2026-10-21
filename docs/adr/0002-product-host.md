@@ -44,7 +44,7 @@ wrap trees and pass everything else through. Compose must keep the L1 HTML
    Trees are **not** auto-streamed (`Content-Length` + CSP stamp before first
    byte). Leftover `StreamingRoute` is not the product path.
 
-7. `host="batteries"` fails closed.
+7. `host=` is `auto` | `fastapi` | `asgi`; any other name is a `ValueError`.
 
 ## Consequences
 
@@ -56,7 +56,6 @@ wrap trees and pass everything else through. Compose must keep the L1 HTML
   [../reference/host.md](../reference/host.md).
 - Extra APIs (`/api/…`, `/act/…`) are FastAPI routes on the process `build()`
   returned, not methods on the page class.
-- Leftover `DirectoryRouter` stays in ux-dom for demosite only.
 - New media types follow the protocol in the spec §10 (predicate + both hosts
   + test + this ADR's spec page). Conflicts get **ADR 0003**, not a second
   pipeline.

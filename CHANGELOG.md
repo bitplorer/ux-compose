@@ -249,6 +249,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- The `host="batteries"` / `"directory_router"` tombstone
+  (`ProductBatteriesRejected`, `_BATTERIES_TEACH`) in `routing/host.py`
+  and `surfaces_host.py`. Every host name other than `auto` | `fastapi` |
+  `asgi` gets the one `ValueError("unknown host … use auto|fastapi|asgi")`.
+- Doctor's teaching scanners for names that never shipped:
+  `scan_leftover_aliases` (`_LEFTOVER_TOKENS`: `host="batteries"`,
+  `DirectoryRouter`, `serve="webassets"`, `routing.adapters`,
+  `host="starlette"`) and `scan_kit_product_imports`
+  (`from ux_compose.kit import`, which is an `ImportError` anyway). The law
+  scans and `scan_render_chrome` are unchanged.
+
 ## 0.2.0 — remove deprecations and bloat cleanup
 
 ux-compose and its ux-* specialists are not on PyPI, so these are removed

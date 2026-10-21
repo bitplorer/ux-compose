@@ -64,7 +64,7 @@ Host / surface / motion also on `__all__`: `build`, `WebAssets`,
 `HAS_DOM`, and DOM tags (`div`, `h1`, `button`, …).
 
 Components are not a public import path for product apps. Own a copy with
-`uxcompose add`. `from ux_compose.kit import X` is leftover.
+`uxcompose add`.
 
 There is **no** public `ux.div` / `when` / `forall` / `Page` on this package.
 Do not document them. Tags are imported from `ux_compose`.

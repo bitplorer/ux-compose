@@ -158,7 +158,7 @@ Do not set `router.route_class = StreamingRoute`. That is leftover ux-dom.
 build(PACKAGE, host="auto")      # FastAPI if installed
 build(PACKAGE, host="fastapi")   # fail closed if missing
 build(PACKAGE, host="asgi")      # DirectoryASGI, no Starlette
-# host="batteries" → ProductBatteriesRejected
+# any other host= → ValueError
 ```
 
 ---

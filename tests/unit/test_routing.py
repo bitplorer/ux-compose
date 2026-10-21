@@ -6,7 +6,6 @@ from pathlib import Path
 import pytest
 
 from ux_compose.routing import DirectoryRoutes, RouterHooks
-from ux_compose.surfaces_host import ProductBatteriesRejected, attach_page_router
 
 
 def test_directory_routes_exported_from_compose():
@@ -44,19 +43,6 @@ def test_discover_stem_match(tmp_path: Path):
     assert "/_skip" not in paths
     table = core.route_table()
     assert any(row["path"] == "/hello" and row["method"] == "GET" for row in table)
-
-
-def test_batteries_host_fails_closed():
-    with pytest.raises(ProductBatteriesRejected) as ctx:
-        attach_page_router(
-            asgi_app=object(),
-            package_dir=".",
-            base_directory="routes",
-            unit_registry={},
-            host="batteries",
-        )
-    msg = str(ctx.value)
-    assert "DirectoryRoutes" in msg or "ux_compose.routing" in msg
 
 
 def test_fastapi_adapter_binds_stem_path(tmp_path: Path):

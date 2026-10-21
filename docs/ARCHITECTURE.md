@@ -177,24 +177,17 @@ do not leak. This is not a message bus and not part of HMR.
 These strings are not the product path. Deleting aliases that tests still
 lock is a capability drop.
 
-### Doctor leftover tokens (product trees)
+### Doctor residual (product trees)
 
-`scan_leftover_aliases` / `scan_kit_product_imports` / `scan_render_chrome`
-flag these in app trees. Teaching, not kill.
+`scan_render_chrome` flags this in `routes/*.py`. Teaching, not kill.
 
-| Leftover | Prefer |
-|----------|--------|
-| `host="starlette"` | `auto` \| `fastapi` \| `asgi` (fail closed) |
-| `ux_compose.routing.adapters` | `ux_compose.routing.asgi` / `routing.fastapi` |
-| `from ux_compose.kit import` in an app | `uxcompose add` |
-| `host="batteries"` / `DirectoryRouter` / `use_host("batteries")` | `host="auto"` |
-| `serve="webassets"` (removed; ux-dom 0.2 raises) | no `serve=`: package static `/ux-dom/static/x_element.js` is the only source |
+| Found | Prefer |
+|-------|--------|
 | `stunning-root` / nav brand in `render()` | `brand_wrap(document, brand=…)` / `build(wrap=document)` |
 
 ### Agent leftovers (do not recreate)
 
-Not scanned as leftover tokens in product trees. Map locks and argv/docs
-names. Doctor will not print these from `scan_leftover_aliases`.
+Not scanned in product trees. Map locks and argv/docs names.
 
 | Leftover | Prefer |
 |----------|--------|

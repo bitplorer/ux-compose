@@ -23,17 +23,6 @@ KIND_FASTAPI = "fastapi"
 KIND_ASGI = "asgi"
 
 
-class ProductBatteriesRejected(RuntimeError):
-    """Raised when a caller asks for leftover DirectoryRouter batteries."""
-
-
-_BATTERIES_TEACH = (
-    "host='batteries' is leftover ux-dom DirectoryRouter, not the product path. "
-    "Use host='fastapi' | 'asgi' | 'auto' (ux_compose.routing.DirectoryRoutes). "
-    "Scaffold: uxcompose create-app / ux_compose.build(host=)."
-)
-
-
 def open(
     *,
     name: str = "App",
@@ -47,7 +36,7 @@ def open(
       auto     — FastAPI if importable, else DirectoryASGI
       fastapi  — fail closed if FastAPI missing
       asgi     — DirectoryASGI (no Starlette)
-      other    — fail closed (including leftover host='starlette')
+      other    — ValueError
 
     openapi:
       False (default) — FastAPI ``docs_url`` / ``redoc_url`` / ``openapi_url``
@@ -55,8 +44,6 @@ def open(
       True — Swagger / ReDoc / OpenAPI JSON at the FastAPI defaults.
     """
     want = (host or "auto").lower().strip()
-    if want in ("batteries", "directory_router"):
-        raise ProductBatteriesRejected(_BATTERIES_TEACH)
     if want not in ("auto", "fastapi", "asgi"):
         raise ValueError(
             "unknown host %r — use auto|fastapi|asgi" % (host or want)

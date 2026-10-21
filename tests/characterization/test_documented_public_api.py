@@ -38,7 +38,6 @@ from ux_compose import (
 )
 from ux_compose.build import build
 from ux_compose.routing import DirectoryRoutes
-from ux_compose.routing.host import ProductBatteriesRejected, open as host_open
 from ux_compose.scaffold import create_app
 from ux_compose.surfaces import SurfaceError, mount_surfaces, scan_surfaces, validate_surfaces
 from ux_dom.response.serialize import to_html_bytes
@@ -363,11 +362,6 @@ def test_directory_routes_path_law(tmp_path):
     core.discover()
     paths = {rec.path for rec in core.records}
     assert paths == {"/", "/hello", "/shop", "/item/{sku}"}
-
-
-def test_host_batteries_fails_closed():
-    with pytest.raises(ProductBatteriesRejected):
-        host_open(name="Shop", host="batteries")
 
 
 def test_public_tags_escape_text():

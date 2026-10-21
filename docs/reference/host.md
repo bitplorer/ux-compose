@@ -164,8 +164,7 @@ shop/
 | `app.py` | `build(host=, live=, level=, document=, wrap=document)` | HTML wrap, HTTP verbs |
 | `routes/*.py` | `render()` + `@action` | `get()`, `HTMLResponse`, Document.mount |
 
-Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs,
-`host="batteries"` / leftover `DirectoryRouter`.
+Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs.
 
 ---
 
@@ -182,8 +181,7 @@ Gone: `Hello.get()`, `document.mount(asgi)` in `main()`, class HTTP verbs,
 | Scaffold? | `src/ux_compose/scaffold.py` |
 | Fitness tests? | `tests/unit/test_host.py` |
 
-`routing/adapters/` is leftover (deleted). Product imports
-`ux_compose.routing.asgi` / `ux_compose.routing.fastapi`.
+Product imports `ux_compose.routing.asgi` / `ux_compose.routing.fastapi`.
 
 Invisible Strategy: authors import `build()`. `App.mount` is the catalog
 scan inside `build()`, not a second product path. They do not import
@@ -201,8 +199,6 @@ the product path.
 | `auto` | FastAPI if importable, else DirectoryASGI | never |
 | `fastapi` | FastAPI | closed if FastAPI missing |
 | `asgi` | DirectoryASGI (no Starlette) | never |
-| `starlette` | — | closed (`ValueError`) |
-| `batteries` / `directory_router` | — | `ProductBatteriesRejected` |
 | other names | — | closed (`ValueError`) |
 
 FastAPI is **not** given `default_response_class=HTMLResponse`. Author
@@ -366,11 +362,9 @@ Do **not**:
 | `document.mount` in scaffold `main()` | host.bind already does it |
 | `HTMLResponse` in page units | host wraps; Isolation of concerns |
 | A second path function next to `http_path` | two scanners, two URLs |
-| `ux_compose.routing.adapters` | leftover; use `routing.asgi` / `routing.fastapi` |
 | Mini HTML builder when `HAS_DOM` is false | invents a sixth product; ux-dom is a hard dep |
 | Wrap GET with a synthesized Document | HTML `str` becomes script `src`; fragment vanishes |
 | Scaffold `page()` as the GET wrap | host calls `document(child)`; two wrap stories |
-| `host="batteries"` as a product path | leftover ux-dom `DirectoryRouter` |
 | Document-absent `wrap_get_chrome` / `shell.py` primary | dual floor; product path is `wrap=document` |
 
 If a future need conflicts with the payload law, write **ADR 0003**. Do not

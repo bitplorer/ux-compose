@@ -7,76 +7,8 @@ from pathlib import Path
 from ux_compose.doctor import (
     doctor,
     scan_fastapi_docs_collision,
-    scan_kit_product_imports,
-    scan_leftover_aliases,
     scan_render_chrome,
 )
-
-
-def test_kit_import_in_product_is_residual_not_violation():
-    with tempfile.TemporaryDirectory() as td:
-        product = Path(td) / "routes" / "shop.py"
-        product.parent.mkdir(parents=True)
-        product.write_text(
-            "from ux_compose.kit import Dialog\n",
-            encoding="utf-8",
-        )
-        diags = scan_kit_product_imports([product])
-        assert diags, "expected residual teaching"
-        assert any("residual" in d and "kit" in d for d in diags)
-        report = doctor([product], fail=False)
-        assert report.ok is True
-        assert any("residual" in d for d in report.diagnostics)
-
-
-def test_kit_import_in_tests_is_silent():
-    with tempfile.TemporaryDirectory() as td:
-        tests = Path(td) / "tests" / "test_kit.py"
-        tests.parent.mkdir(parents=True)
-        tests.write_text(
-            "from ux_compose.kit import Dialog\n",
-            encoding="utf-8",
-        )
-        assert scan_kit_product_imports([tests]) == []
-
-
-def test_leftover_batteries_keyword_is_residual():
-    with tempfile.TemporaryDirectory() as td:
-        product = Path(td) / "app.py"
-        product.write_text(
-            'build(PACKAGE, host="batteries")\n',
-            encoding="utf-8",
-        )
-        diags = scan_leftover_aliases([product])
-        assert diags
-        assert any("batteries" in d for d in diags)
-
-
-def test_leftover_routing_adapters_is_residual():
-    with tempfile.TemporaryDirectory() as td:
-        product = Path(td) / "app.py"
-        product.write_text(
-            "from ux_compose.routing.adapters.asgi import DirectoryASGI\n",
-            encoding="utf-8",
-        )
-        diags = scan_leftover_aliases([product])
-        assert diags
-        assert any("routing.adapters" in d for d in diags)
-
-
-def test_leftover_scan_reports_every_token():
-    with tempfile.TemporaryDirectory() as td:
-        product = Path(td) / "app.py"
-        product.write_text(
-            'build(PACKAGE, host="batteries")\n'
-            "from leftover import DirectoryRouter\n",
-            encoding="utf-8",
-        )
-        diags = scan_leftover_aliases([product])
-        joined = "\n".join(diags)
-        assert "batteries" in joined
-        assert "DirectoryRouter" in joined
-        assert len(diags) >= 2
 
 
 def test_render_stunning_root_is_residual_not_violation():
@@ -159,15 +91,3 @@ def test_docs_route_collision_is_residual_not_violation():
         report = doctor([product], fail=False)
         assert report.ok is True
         assert any("/docs" in d and "/about" in d for d in report.diagnostics)
-
-
-def test_leftover_use_host_batteries_is_residual():
-    with tempfile.TemporaryDirectory() as td:
-        product = Path(td) / "app.py"
-        product.write_text(
-            'app.use_host("batteries")\n',
-            encoding="utf-8",
-        )
-        diags = scan_leftover_aliases([product])
-        assert diags
-        assert any("batteries" in d for d in diags)

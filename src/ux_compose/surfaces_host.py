@@ -6,7 +6,6 @@ Authors never see this module. Host choice happens via::
     app.mount(..., asgi_app=api)
 
 Preferred path: ``ux_compose.routing.host.open/bind``.
-Leftover ``DirectoryRouter`` (ux-dom batteries) is not a product path.
 
 ``wrap=`` is the author HTML shell. ``document=`` is mounted (CSP/static).
 Same split as ``build()``. A synthesized Document never wraps GET.
@@ -18,9 +17,6 @@ from pathlib import Path
 from typing import Any, Optional
 
 logger = logging.getLogger("ux_compose.surfaces_host")
-
-
-from ux_compose.routing.host import ProductBatteriesRejected, _BATTERIES_TEACH
 
 
 def attach_page_router(
@@ -36,9 +32,7 @@ def attach_page_router(
 ) -> Optional[list]:
     """Attach filesystem page routes to ``asgi_app``. Returns route_table or None.
 
-    host:
-      - "auto" / "fastapi" / "asgi" → DirectoryRoutes + host.bind
-      - "batteries" / "directory_router" → fail-closed (leftover, not product)
+    host: "auto" / "fastapi" / "asgi" → DirectoryRoutes + host.bind; else ValueError.
     """
 
     def _resolve_unit(cls, path, name):
@@ -46,9 +40,6 @@ def attach_page_router(
         return unit_registry.get(sid)
 
     host = (host or "auto").lower().strip()
-
-    if host in ("batteries", "directory_router"):
-        raise ProductBatteriesRejected(_BATTERIES_TEACH)
 
     if host not in ("auto", "fastapi", "asgi"):
         raise ValueError(

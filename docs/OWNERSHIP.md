@@ -130,5 +130,5 @@ Locked (full table in the spec):
 - FastAPI is the product process. DirectoryASGI is the no-Starlette degrade.
 - Page units have no HTTP verbs. One path law (`http_path`).
 - `App.boot("auto")` is Level 1. Channel binds after the process exists.
-- `host="batteries"` fails closed. No `StreamingRoute`. No HTML
+- `host=` is `auto` | `fastapi` | `asgi`. No `StreamingRoute`. No HTML
   `default_response_class`.

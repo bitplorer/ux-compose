@@ -311,12 +311,55 @@ def _write_archive(src: Path, tar_path: Path, name: str, mtime: int) -> None:
         raise
 
 
-# GET each (path, content-type word) from the app's own ASGI callable, no lifespan
-# (Channel stays down). A failure is one stderr line starting with _STATIC.
+# Boot the app as uvicorn would (ASGI lifespan startup; an app that rejects
+# the lifespan scope has none), GET each (path, content-type word) from its
+# own ASGI callable, then shut it down. A failure is one stderr line
+# starting with _STATIC. Each phase is bounded by LIFESPAN_TIMEOUT seconds.
 _STATIC = "uxcompose-static:"
+LIFESPAN_TIMEOUT = 30.0
 _PROBE = """
 import asyncio
-async def get(app, path):
+
+def fail(message):
+    sys.exit(STATIC + " " + " ".join(str(message).split()))
+
+def why(exc):
+    return f"{type(exc).__name__}: {exc}"
+
+async def within(awaitable, what):
+    try:
+        return await asyncio.wait_for(awaitable, TIMEOUT)
+    except TimeoutError:
+        fail(f"{what} did not finish within {TIMEOUT:g}s")
+
+class Lifespan:
+    def __init__(self, app, state):
+        self.to_app, self.from_app, self.received = asyncio.Queue(), asyncio.Queue(), False
+        scope = {"type": "lifespan", "asgi": {"version": "3.0", "spec_version": "2.0"}, "state": state}
+        self.task = asyncio.create_task(self.run(app, scope))
+
+    async def receive(self):
+        self.received = True
+        return await self.to_app.get()
+
+    async def run(self, app, scope):
+        try:
+            await app(scope, self.receive, self.from_app.put)
+        except Exception as exc:
+            await self.from_app.put({"type": "raised", "message": why(exc)})
+        else:
+            await self.from_app.put({"type": "returned", "message": "the app returned"})
+
+    async def step(self, phase):
+        await self.to_app.put({"type": f"lifespan.{phase}"})
+        msg = await within(self.from_app.get(), f"ASGI {phase}")
+        if msg["type"] == f"lifespan.{phase}.complete":
+            return True
+        if not self.received:
+            return False  # rejected the lifespan scope: no lifespan, as uvicorn --lifespan auto
+        fail(f"ASGI {phase} failed: {msg.get('message') or msg['type']}")
+
+async def get(app, path, state):
     sent, done, requested = [], asyncio.Event(), []
     async def receive():
         if not requested:
@@ -331,17 +374,31 @@ async def get(app, path):
     scope = {"type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1", "method": "GET",
              "scheme": "http", "path": path, "raw_path": path.encode(), "query_string": b"",
              "root_path": "", "headers": [(b"host", b"localhost")], "client": ("127.0.0.1", 0),
-             "server": ("localhost", 80)}
-    await app(scope, receive, send)
-    start = next(m for m in sent if m["type"] == "http.response.start")
+             "server": ("localhost", 80), "state": dict(state)}
+    try:
+        await within(app(scope, receive, send), f"GET {path}")
+    except Exception as exc:
+        fail(f"GET {path} from the bundle alone raised {why(exc)}")
+    start = next((m for m in sent if m["type"] == "http.response.start"), None)
+    if start is None:
+        fail(f"GET {path} from the bundle alone sent no response")
     body = b"".join(m.get("body", b"") for m in sent if m["type"] == "http.response.body")
     kind = dict(start.get("headers", [])).get(b"content-type", b"").decode()
     return start["status"], kind, len(body)
-for path, want in PATHS:
-    status, kind, size = asyncio.run(get(APP, path))
-    if status != 200 or want not in kind or not size:
-        sys.exit(f"STATIC GET {path} from the bundle alone returned {status} {kind or 'no content-type'} "
+
+async def main():
+    state = {}
+    lifespan = Lifespan(APP, state)
+    booted = await lifespan.step("startup")
+    for path, want in PATHS:
+        status, kind, size = await get(APP, path, state)
+        if status != 200 or want not in kind or not size:
+            fail(f"GET {path} from the bundle alone returned {status} {kind or 'no content-type'} "
                  f"({size} bytes); the app must serve it with 200 {want}")
+    if booted:
+        await lifespan.step("shutdown")
+
+asyncio.run(main())
 """
 
 
@@ -361,8 +418,9 @@ def _smoke_import(bundle: Path, entry: str) -> None:
 
     ``-I`` keeps the source root, ``PYTHONPATH`` and the user site off
     ``sys.path``; only the bundle dir is added. The copy keeps the app's
-    import-time writes (``WebAssets`` folders) out of the bundle. The GETs
-    (``_served``) go to the imported ASGI callable in the same process.
+    import-time writes (``WebAssets`` folders) out of the bundle. In the same
+    process the app's ASGI lifespan starts, the GETs (``_served``) run, and
+    it shuts down (``_PROBE``).
     """
     import subprocess
     import sys
@@ -375,7 +433,8 @@ def _smoke_import(bundle: Path, entry: str) -> None:
         f"APP = getattr(m, {attr!r}, None)\n"
         f"assert APP is not None, 'no attribute {attr}'\n"
         f"PATHS = {_served(bundle)!r}\n"
-        + _PROBE.replace("STATIC", _STATIC)
+        f"STATIC, TIMEOUT = {_STATIC!r}, {LIFESPAN_TIMEOUT!r}\n"
+        + _PROBE
     )
     env = {k: v for k, v in os.environ.items() if not k.startswith("PYTHON")}
     probe = Path(tempfile.mkdtemp(prefix="uxcompose-probe-"))

@@ -387,7 +387,7 @@ def _package_check_step(report: ProductBuildReport, app_ref: str) -> None:
         BuildStep(
             "package",
             True,
-            f"would pass: doctor --prod, import {entry} and GET {', '.join(served)} "
+            f"would pass: doctor --prod, import {entry}, ASGI startup, GET {', '.join(served)} "
             "from the bundle alone, the ux-compose pin",
         )
     )

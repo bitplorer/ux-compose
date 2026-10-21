@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   downloading or repairing the cached CLI
   (`resolve_tailwind(read_only=True)`); the `doctor` law scan; and
   `package`, every `--package` check (file set, `doctor --prod`, import
-  from the bundle alone, then an in-process ASGI `GET
+  from the bundle alone, then ASGI lifespan startup (a failure, an
+  exception or a 30 s hang FAILs) and an in-process `GET
   /ux-dom/static/x_element.js` and `/css/output.css` that must return 200
   with a JS/CSS content-type, so a library-JS 404 FAILs `--package` too;
   ux-compose pin) on a copy in the system temp dir, with the same one-line FAIL messages. Exit 1 on any FAIL. It does

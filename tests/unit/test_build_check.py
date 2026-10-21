@@ -89,7 +89,7 @@ def test_check_writes_nothing_and_passes(built, capsys):
     assert _snapshot(built) == before
     assert list(_rows(out)) == ["app.py", "tailwind", "doctor", "package"]
     assert f"[OK  ] tailwind: {CSS} matches a fresh env compile" in out
-    assert "[OK  ] package: would pass: doctor --prod, import app:asgi and GET /ux-dom/static/x_element.js, /css/output.css from the bundle alone" in out
+    assert "[OK  ] package: would pass: doctor --prod, import app:asgi, ASGI startup, GET /ux-dom/static/x_element.js, /css/output.css from the bundle alone" in out
     assert out.rstrip().endswith("BUILD OK (--check: nothing written)")
 
 
@@ -211,6 +211,71 @@ def test_check_fails_when_the_app_does_not_serve_the_library_js(built, capsys):
     assert main(["build", "--skip-tailwind", "--package"]) == 1
     assert _rows(capsys.readouterr().out)["package"] == check
     assert not (built / "dist" / "demo").exists()
+
+
+LIFESPAN = {
+    "raises": "        await receive()\n        raise RuntimeError('db unreachable')\n",
+    "fails": "        await receive()\n        await send({'type': 'lifespan.startup.failed', 'message': 'db\\nunreachable'})\n        return\n",
+    "hangs": "        await receive()\n        await asyncio.Event().wait()\n",
+    "none": "        raise RuntimeError('lifespan is not supported')\n",
+}
+
+
+def _wrap_lifespan(root: Path, body: str) -> None:
+    (root / "app.py").write_text(
+        (root / "app.py").read_text(encoding="utf-8")
+        + "\nimport asyncio\n_served = asgi\n\n\nasync def asgi(scope, receive, send):\n"
+        + "    if scope['type'] == 'lifespan':\n" + body
+        + "    else:\n        await _served(scope, receive, send)\n",
+        encoding="utf-8",
+    )
+
+
+@pytest.mark.parametrize(
+    "case, want",
+    [
+        ("raises", "[FAIL] package: ASGI startup failed: RuntimeError: db unreachable"),
+        ("fails", "[FAIL] package: ASGI startup failed: db unreachable"),
+        ("hangs", "[FAIL] package: ASGI startup did not finish within 1s"),
+    ],
+)
+def test_check_and_package_boot_the_app(built, capsys, monkeypatch, case, want):
+    import ux_compose.cli.package as package
+
+    monkeypatch.setattr(package, "LIFESPAN_TIMEOUT", 1.0)
+    _wrap_lifespan(built, LIFESPAN[case])
+    assert main(["build", "--check"]) == 1
+    assert _rows(capsys.readouterr().out)["package"] == want
+    assert main(["build", "--skip-tailwind", "--package"]) == 1
+    assert _rows(capsys.readouterr().out)["package"] == want
+    assert not (built / "dist" / "demo").exists()
+
+
+def test_an_app_without_lifespan_passes(built, capsys):
+    _wrap_lifespan(built, LIFESPAN["none"])
+    assert main(["build"]) == 0  # app.py changed: refresh output.css
+    assert main(["build", "--check"]) == 0, capsys.readouterr().out
+    assert main(["build", "--skip-tailwind", "--package"]) == 0, capsys.readouterr().out
+    assert (built / "dist" / "demo" / "MANIFEST.json").is_file()
+
+
+def test_a_request_error_is_not_an_import_error(built, capsys):
+    (built / "app.py").write_text(
+        (built / "app.py").read_text(encoding="utf-8")
+        + "\n_served = asgi\n\n\nasync def asgi(scope, receive, send):\n"
+        + "    if scope['type'] == 'http':\n        raise RuntimeError('state.db not initialised')\n"
+        + "    await _served(scope, receive, send)\n",
+        encoding="utf-8",
+    )
+    assert main(["build", "--skip-tailwind", "--package"]) == 1
+    assert _rows(capsys.readouterr().out)["package"] == (
+        "[FAIL] package: GET /ux-dom/static/x_element.js from the bundle alone raised "
+        "RuntimeError: state.db not initialised"
+    )
+
+
+def test_the_scaffold_boots_and_packages(built, capsys):
+    assert main(["build", "--skip-tailwind", "--package"]) == 0, capsys.readouterr().out
 
 
 def test_default_build_steps_unchanged(app, capsys):

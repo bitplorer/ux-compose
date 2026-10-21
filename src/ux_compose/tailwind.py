@@ -32,10 +32,13 @@ import http.client
 import os
 import platform
 import shutil
+import signal
 import stat
 import sys
 import tempfile
+import threading
 import urllib.request
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Sequence
@@ -264,6 +267,45 @@ def _missing(reason: str) -> FileNotFoundError:
     )
 
 
+class _Terminated(BaseException):
+    """SIGTERM or SIGHUP arrived while a download was being written."""
+
+    def __init__(self, signum: int):
+        super().__init__(signum)
+        self.signum = signum
+
+
+def _on_terminate(signum, frame) -> None:
+    raise _Terminated(signum)
+
+
+@contextmanager
+def _terminate_unwinds():
+    """SIGTERM and SIGHUP unwind through ``finally`` like Ctrl-C, then end the process by that signal.
+
+    Their default action kills the process with no cleanup (docker stop,
+    systemd, ``timeout``). Only a default handler is replaced, on the main
+    thread: an app's own handler, or ``nohup``'s ignore, stays as it is.
+    """
+    saved = {}
+    if threading.current_thread() is threading.main_thread():
+        for name in ("SIGTERM", "SIGHUP"):
+            sig = getattr(signal, name, None)
+            if sig is not None and signal.getsignal(sig) is signal.SIG_DFL:
+                saved[sig] = signal.signal(sig, _on_terminate)
+    try:
+        yield
+    except _Terminated as stop:
+        for sig, handler in saved.items():
+            signal.signal(sig, handler)
+        saved = {}
+        signal.raise_signal(stop.signum)
+        raise SystemExit(128 + stop.signum) from None
+    finally:
+        for sig, handler in saved.items():
+            signal.signal(sig, handler)
+
+
 def _download_standalone(*, timeout: float = 60.0) -> Optional[Path]:
     """Download, verify, then install into the cache.
 
@@ -273,7 +315,8 @@ def _download_standalone(*, timeout: float = 60.0) -> Optional[Path]:
 
     Each process writes its own temp file next to the cache entry, verifies
     it, then ``os.replace`` s it in, so parallel builds never share a
-    half-written file. The temp file is removed on any exit, Ctrl-C too.
+    half-written file. The temp file is removed on any exit, Ctrl-C and
+    SIGTERM too (``_terminate_unwinds``).
     Windows refuses the replace while another build runs the binary; a
     verified file already there is then the result. The returned path is
     hashed again after the replace.
@@ -286,37 +329,38 @@ def _download_standalone(*, timeout: float = 60.0) -> Optional[Path]:
     url = f"{TAILWIND_RELEASES_URL}/{version}/{name}"
     digest = hashlib.sha256()
     tmp: Optional[Path] = None
-    try:
+    with _terminate_unwinds():
         try:
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            fd, tmp_name = tempfile.mkstemp(dir=dest.parent, prefix=f"{name}.", suffix=".part")
-            tmp = Path(tmp_name)
-            req = urllib.request.Request(url, headers={"User-Agent": "ux-compose/0.1"})
-            with urllib.request.urlopen(req, timeout=timeout) as resp, os.fdopen(fd, "wb") as fh:
-                for block in iter(lambda: resp.read(1 << 20), b""):
-                    digest.update(block)
-                    fh.write(block)
-                fh.flush()
-                os.fsync(fh.fileno())
-        except (OSError, http.client.HTTPException) as exc:
-            raise _missing(f"downloading Tailwind {version} from {url} failed: {exc}") from exc
-        actual = digest.hexdigest()
-        if actual != expected:
-            raise TailwindIntegrityError(
-                f"Tailwind download failed sha256: expected {expected}, got {actual} "
-                f"from {url}. The file was deleted and nothing was run."
-            )
-        tmp.chmod(0o755)
-        try:
-            os.replace(tmp, dest)
-        except PermissionError:
-            if not (dest.is_file() and _sha256(dest) == expected):
-                raise
-        else:
-            tmp = None
-    finally:
-        if tmp is not None:
-            tmp.unlink(missing_ok=True)
+            try:
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                fd, tmp_name = tempfile.mkstemp(dir=dest.parent, prefix=f"{name}.", suffix=".part")
+                tmp = Path(tmp_name)
+                req = urllib.request.Request(url, headers={"User-Agent": "ux-compose/0.1"})
+                with urllib.request.urlopen(req, timeout=timeout) as resp, os.fdopen(fd, "wb") as fh:
+                    for block in iter(lambda: resp.read(1 << 20), b""):
+                        digest.update(block)
+                        fh.write(block)
+                    fh.flush()
+                    os.fsync(fh.fileno())
+            except (OSError, http.client.HTTPException) as exc:
+                raise _missing(f"downloading Tailwind {version} from {url} failed: {exc}") from exc
+            actual = digest.hexdigest()
+            if actual != expected:
+                raise TailwindIntegrityError(
+                    f"Tailwind download failed sha256: expected {expected}, got {actual} "
+                    f"from {url}. The file was deleted and nothing was run."
+                )
+            tmp.chmod(0o755)
+            try:
+                os.replace(tmp, dest)
+            except PermissionError:
+                if not (dest.is_file() and _sha256(dest) == expected):
+                    raise
+            else:
+                tmp = None
+        finally:
+            if tmp is not None:
+                tmp.unlink(missing_ok=True)
     actual = _sha256(dest)
     if actual != expected:
         raise TailwindIntegrityError(

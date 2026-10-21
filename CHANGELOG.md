@@ -94,6 +94,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `doctor --prod`'s requirements scan (#140) names every requirement by
+  what it installs, in every form, and FAILs when that is a specialist
+  (ux-dom, ux-channel, ux-behavior, ux-motion; PEP 503 spelling): the
+  declared name (`name`, `name @ url`, `#egg=`), else a wheel filename
+  (now also with a marker, `#sha256=`, `?query`, `file://` or a local
+  path), else a `bitplorer/<repo>` URL (now also `-e` without `#egg`),
+  else an sdist filename, else a local checkout's `[project].name` or
+  specialist folder name (`-e ./vendor/ux-dom`). Before, a specialist
+  wheel URL with a marker, an sdist URL and a local checkout were only a
+  WARN or not reported. Forks and other repos do not FAIL; a URL that
+  names nothing is a WARN with its text. A diamond `-r` include (A→B,
+  A→C, B→D, C→D) reads D's lines once instead of failing "listed twice";
+  a cycle is still a file in its own include stack. Duplicate lines whose
+  markers can both hold (`python_version>='3.13'` and
+  `sys_platform=='linux'`) are "listed twice"; disjoint markers stay one
+  install (evaluated with `packaging.markers` over CPython/PyPy 3.8–3.16
+  on linux/darwin/win32).
+
+- The Tailwind standalone download (#140) removes its temp file on SIGTERM
+  and SIGHUP too (docker stop, systemd, `timeout`), then still ends by that
+  signal. Only a default handler is replaced, on the main thread.
+
 - The Tailwind standalone download (#120) removes its temp file on every
   exit (Ctrl-C and `SystemExit` included, not only `OSError`); on Windows,
   an `os.replace` refused because a parallel build runs the binary

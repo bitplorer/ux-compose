@@ -101,10 +101,14 @@ def _platform() -> str:
 
 
 def _is_musl(lib: Path = Path("/lib")) -> bool:
-    """musl Linux: not glibc, and the musl loader the musl assets ask for exists."""
+    """musl Linux: not glibc, and this machine's musl loader (the one the musl
+    assets ask for) exists. Another arch's loader (a hybrid image) is not musl.
+    A wrong guess is overridden by ``UXCOMPOSE_TAILWIND``.
+    """
     if platform.libc_ver()[0] == "glibc":
         return False
-    return any(lib.glob("ld-musl-*.so.1"))
+    arch = {"amd64": "x86_64", "arm64": "aarch64"}.get(platform.machine().lower(), platform.machine().lower())
+    return (lib / f"ld-musl-{arch}.so.1").exists()
 
 
 def standalone_asset_name() -> str:
@@ -269,7 +273,10 @@ def _download_standalone(*, timeout: float = 60.0) -> Optional[Path]:
 
     Each process writes its own temp file next to the cache entry, verifies
     it, then ``os.replace`` s it in, so parallel builds never share a
-    half-written file. The returned path is hashed again after the replace.
+    half-written file. The temp file is removed on any exit, Ctrl-C too.
+    Windows refuses the replace while another build runs the binary; a
+    verified file already there is then the result. The returned path is
+    hashed again after the replace.
     """
     if not _download_allowed():
         return None
@@ -280,29 +287,36 @@ def _download_standalone(*, timeout: float = 60.0) -> Optional[Path]:
     digest = hashlib.sha256()
     tmp: Optional[Path] = None
     try:
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        fd, tmp_name = tempfile.mkstemp(dir=dest.parent, prefix=f"{name}.", suffix=".part")
-        tmp = Path(tmp_name)
-        req = urllib.request.Request(url, headers={"User-Agent": "ux-compose/0.1"})
-        with urllib.request.urlopen(req, timeout=timeout) as resp, os.fdopen(fd, "wb") as fh:
-            for block in iter(lambda: resp.read(1 << 20), b""):
-                digest.update(block)
-                fh.write(block)
-            fh.flush()
-            os.fsync(fh.fileno())
-    except (OSError, http.client.HTTPException) as exc:
+        try:
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            fd, tmp_name = tempfile.mkstemp(dir=dest.parent, prefix=f"{name}.", suffix=".part")
+            tmp = Path(tmp_name)
+            req = urllib.request.Request(url, headers={"User-Agent": "ux-compose/0.1"})
+            with urllib.request.urlopen(req, timeout=timeout) as resp, os.fdopen(fd, "wb") as fh:
+                for block in iter(lambda: resp.read(1 << 20), b""):
+                    digest.update(block)
+                    fh.write(block)
+                fh.flush()
+                os.fsync(fh.fileno())
+        except (OSError, http.client.HTTPException) as exc:
+            raise _missing(f"downloading Tailwind {version} from {url} failed: {exc}") from exc
+        actual = digest.hexdigest()
+        if actual != expected:
+            raise TailwindIntegrityError(
+                f"Tailwind download failed sha256: expected {expected}, got {actual} "
+                f"from {url}. The file was deleted and nothing was run."
+            )
+        tmp.chmod(0o755)
+        try:
+            os.replace(tmp, dest)
+        except PermissionError:
+            if not (dest.is_file() and _sha256(dest) == expected):
+                raise
+        else:
+            tmp = None
+    finally:
         if tmp is not None:
             tmp.unlink(missing_ok=True)
-        raise _missing(f"downloading Tailwind {version} from {url} failed: {exc}") from exc
-    actual = digest.hexdigest()
-    if actual != expected:
-        tmp.unlink(missing_ok=True)
-        raise TailwindIntegrityError(
-            f"Tailwind download failed sha256: expected {expected}, got {actual} "
-            f"from {url}. The file was deleted and nothing was run."
-        )
-    tmp.chmod(0o755)
-    os.replace(tmp, dest)
     actual = _sha256(dest)
     if actual != expected:
         raise TailwindIntegrityError(

@@ -94,6 +94,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Tailwind standalone download (#120) removes its temp file on every
+  exit (Ctrl-C and `SystemExit` included, not only `OSError`); on Windows,
+  an `os.replace` refused because a parallel build runs the binary
+  succeeds when a verified file is already in place; musl is detected only
+  from this machine's loader (`ld-musl-x86_64.so.1` / `ld-musl-aarch64.so.1`),
+  not another arch's on a hybrid image. `docs/guides/TAILWIND.md`
+  documents `UXCOMPOSE_TAILWIND` as the override when detection still
+  picks the wrong asset.
+
 - `ux_compose.components`' docstring, ADR 0004 §3 and the doctor teaching
   line describe the catalog as it is (import a component, or
   `uxcompose add` copies it to own) instead of the removed

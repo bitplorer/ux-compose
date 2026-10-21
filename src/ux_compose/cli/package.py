@@ -1,8 +1,9 @@
 """``uxcompose build --package`` / ``--archive`` — the runnable bundle.
 
-``OUT/<name>/`` holds an allowlist of the app: root ``*.py``, the
-requirements file and deploy configs, and the source/asset file types under
-``routes/``, ``components/``, ``assets/`` and ``deploy/``. Three files are
+``OUT/<name>/`` holds an allowlist of the app's regular files: every
+``*.py``, the requirements file and deploy configs, and the source/asset
+file types under ``routes/``, ``components/``, ``assets/`` and ``deploy/``.
+Before it is moved into place, the entry must import from the bundle alone. Three files are
 generated: ``run.sh``, ``README.RUN.txt``, ``MANIFEST.json``. Library JS is
 not vendored; the installed packages serve it. Nothing in the bundle names
 the build machine, and the archive is byte-identical for the same inputs.
@@ -86,6 +87,9 @@ Library JavaScript (x_element.js, the Channel client) is NOT vendored into
 this bundle. The installed packages serve it from site-packages.
 MANIFEST.json lists every copied file with its sha256 and the commits of
 ux-compose and its specialists this bundle was built and checked with.
+
+uxcompose build regenerates this directory, and refuses to replace it once
+it holds anything else (a .venv, an .env, an edit): keep those elsewhere.
 """
 
 
@@ -118,49 +122,42 @@ def _key_content(path: Path) -> bool:
     return any(marker in head for marker in _KEY_CONTENT)
 
 
-def collect(root: Path) -> Collected:
-    """Allowlisted files to copy; everything else excluded (listed) or refused.
+def collect(root: Path, *, skip: Path | None = None) -> Collected:
+    """Allowlisted regular files to copy; everything else excluded (listed) or refused.
 
-    Refused: a symlink out of the app tree that the allowlist would copy, a
-    key-shaped file (by name or content) inside an allowed directory, and a
-    private key in a root file the allowlist would copy. A symlinked
-    directory is left out and listed. Nothing outside the tree is read.
+    Copied: every ``*.py`` under the root (outside excluded dirs), root
+    ``ROOT_FILES``, and ``ALLOWED`` suffixes under ``routes/``,
+    ``components/``, ``assets/``, ``deploy/``. Excluded: tool caches, real
+    venvs, validated bundles, ``skip`` (the ``--out`` dir), and every other
+    file. Refused: any symlink, a key-shaped file (name or content) inside an
+    allowed dir, and a copied file holding a private key.
     """
     root = root.resolve()
     out = Collected()
 
     def visit(path: Path, allowed: set[str] | None) -> None:
         rel = path.relative_to(root).as_posix()
-        if allowed is None and not (
-            (path.name in ALLOWED and path.is_dir()) or path.suffix == ".py" or path.name in ROOT_FILES
-        ):
-            out.excluded.append(f"{rel}/" if path.is_dir() and not path.is_symlink() else rel)
-            return
         if path.is_symlink():
-            target = path.resolve()
-            if not target.is_relative_to(root):
-                out.refused.append(f"{rel} (symlink out of the app tree)")
-                return
-            if target.is_dir():
-                out.excluded.append(f"{rel}/ (symlinked dir)")
-                return
-        if path.is_dir():
-            sub = ALLOWED[path.name] if allowed is None else allowed
-            if is_skipped_dir(path):
+            out.refused.append(f"{rel} (symlink)")
+        elif path.is_dir():
+            if path == skip or is_skipped_dir(path):
                 out.excluded.append(f"{rel}/")
                 return
+            if allowed is None and path.parent == root:
+                allowed = ALLOWED.get(path.name)
             for child in sorted(path.iterdir()):
-                visit(child, sub)
-            return
-        if allowed is None:
+                visit(child, allowed)
+        elif allowed is not None and (_key_name(path.name) or _key_content(path)):
+            out.refused.append(f"{rel} (key-shaped)")
+        elif (
+            path.suffix == ".py"
+            or (allowed is not None and path.suffix.lower() in allowed)
+            or (path.parent == root and path.name in ROOT_FILES)
+        ):
             if _key_content(path):
                 out.refused.append(f"{rel} (holds a private key)")
             else:
                 out.files.append(Path(rel))
-        elif _key_name(path.name) or _key_content(path):
-            out.refused.append(f"{rel} (key-shaped)")
-        elif path.suffix.lower() in allowed:
-            out.files.append(Path(rel))
         else:
             out.excluded.append(rel)
 
@@ -200,7 +197,7 @@ def check_out(root: Path, out_dir: Path, name: str) -> Path:
             p.name
             for p in sorted(out.iterdir())
             if not (
-                (p.is_dir() and not p.is_symlink() and is_bundle(p))
+                (p.is_dir() and not p.is_symlink() and is_bundle(p, allow_venv=False))
                 or _is_bundle_archive(p)
                 or (p.name.startswith(_TMP) and p.is_dir() and not p.is_symlink())
             )
@@ -314,6 +311,44 @@ def _write_archive(src: Path, tar_path: Path, name: str, mtime: int) -> None:
         raise
 
 
+def _smoke_import(bundle: Path, entry: str) -> None:
+    """Import ``entry`` from a copy of the bundle alone: ``python -I -B``, cwd = bundle.
+
+    ``-I`` keeps the source root, ``PYTHONPATH`` and the user site off
+    ``sys.path``; only the bundle dir is added. The copy keeps the app's
+    import-time writes (``WebAssets`` folders) out of the bundle.
+    """
+    import subprocess
+    import sys
+
+    mod, _, attr = entry.partition(":")
+    code = (
+        "import importlib, sys\n"
+        "sys.path.insert(0, '.')\n"
+        f"m = importlib.import_module({mod!r})\n"
+        f"assert getattr(m, {attr!r}, None) is not None, 'no attribute {attr}'\n"
+    )
+    env = {k: v for k, v in os.environ.items() if not k.startswith("PYTHON")}
+    probe = Path(tempfile.mkdtemp(prefix="uxcompose-probe-"))
+    try:
+        shutil.copytree(bundle, probe / "bundle")
+        proc = subprocess.run(
+            [sys.executable, "-I", "-B", "-c", code],
+            check=False,
+            cwd=probe / "bundle",
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+    finally:
+        shutil.rmtree(probe, ignore_errors=True)
+    if proc.returncode != 0:
+        lines = [ln for ln in (proc.stderr or proc.stdout or "").splitlines() if ln.strip()]
+        reason = lines[-1].replace(str(probe / "bundle") + "/", "") if lines else f"exit {proc.returncode}"
+        raise PackageError(f"import {entry} from the bundle alone failed: {reason}")
+
+
 def _source_date_epoch() -> int:
     raw = os.environ.get("SOURCE_DATE_EPOCH") or "0"
     if not raw.isdigit():
@@ -342,7 +377,7 @@ def write_bundle(
     out = check_out(root, Path(out_dir), name)
     mtime = _source_date_epoch()
     _requirement_lines(root)
-    found = collect(root)
+    found = collect(root, skip=out)
     if found.refused:
         raise PackageError("refusing to bundle: " + ", ".join(found.refused))
 
@@ -363,6 +398,7 @@ def write_bundle(
         fails = [row for row in scan_product_readiness(tmp) if row.startswith("[FAIL]")]
         if fails:
             raise PackageError("doctor --prod: " + "; ".join(fails))
+        _smoke_import(tmp, entry)
         manifest = {
             "generator": BUNDLE_GENERATOR,
             "name": name,
@@ -379,12 +415,18 @@ def write_bundle(
     except BaseException:
         shutil.rmtree(tmp, ignore_errors=True)
         if created:
-            shutil.rmtree(out, ignore_errors=True)
+            try:
+                out.rmdir()  # only if still empty: never another writer's files
+            except OSError:
+                pass
         raise
 
     dest = out / name
     tar_path = out / f"{name}.tar.gz"
-    if dest.exists():  # check_out proved it is a bundle this tool wrote
+    if dest.exists():
+        if dest.is_symlink() or not is_bundle(dest, allow_venv=False):  # changed since check_out
+            shutil.rmtree(tmp, ignore_errors=True)
+            raise PackageError(f"{dest} changed during the build and is no longer a bundle this tool wrote")
         trash = Path(tempfile.mkdtemp(prefix=_TMP, dir=out))
         os.rename(dest, trash / name)
         os.rename(tmp, dest)

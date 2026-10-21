@@ -15,7 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   uid/gid 0, mtime `SOURCE_DATE_EPOCH` or 0). The bundle is an allowlist:
   root `*.py`, `requirements.txt`, `README.md`, existing deploy files, and
   source/asset/config file types under `routes/`, `components/`, `assets/`
-  and `deploy/`; every other file is left out and listed. Generated:
+  and `deploy/`, plus every `*.py` under the app root (`lib/`, nested
+  packages); every other file is left out and listed. Before the bundle
+  is moved into place, `python -I -B` imports the entry from a copy of it
+  alone, and a failure refuses the build. Generated:
   `run.sh` (`exec uvicorn app:asgi --app-dir .`, one-line secret refusal
   before boot), `README.RUN.txt`, `MANIFEST.json` (bundle marker,
   per-file sha256, `resolved` commits for ux-compose and the four
@@ -25,7 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (checked on the resolved path; only a marked bundle is ever replaced,
   through a temp dir and rename); a key-shaped file (`.env*`, `id_rsa*`,
   `*.pem`, `*.key`, `*.p12`, `*.pfx`, `.netrc`, `.npmrc`, private-key
-  content, …) inside an allowed directory; a symlink out of the app tree;
+  content, …; best-effort, so secrets belong in the environment) inside
+  an allowed directory; any symlink in the tree;
   a `doctor --prod` FAIL row on the bundle; a ux-compose line that is not
   the running ux-compose; `-r`/`-c` includes. A dirty editable checkout
   prints a `WARNING:` line. This replaces `uxdom build --package/--archive`
@@ -72,10 +76,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `doctor(paths)` skips, when it walks a directory, a bundle written by
-  `uxcompose build --package` (its `MANIFEST.json` marker, whatever
-  `--out` was), a venv (`pyvenv.cfg`), and `__pycache__/`, `.git/`,
+  `uxcompose build --package` (its `MANIFEST.json` marker, file list and
+  hashes all match the dir, whatever `--out` was), a venv (`pyvenv.cfg`
+  and an interpreter), and `__pycache__/`, `.git/`,
   `node_modules/`, `.pytest_cache/`, `.mypy_cache/`
-  (`ux_compose.doctor.is_skipped_dir`). A bundle inside the app no longer
+  (`ux_compose.doctor.is_skipped_dir`). A stray `pyvenv.cfg` or marker does not
+  hide a dir. A bundle inside the app no longer
   reads as a second Document, so the next `uxcompose build` passes.
 
 - `uxcompose serve dev` stops all of its processes on SIGTERM and SIGHUP,

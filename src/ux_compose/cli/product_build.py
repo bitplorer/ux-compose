@@ -296,13 +296,15 @@ def run_product_build(
 
         doc = doctor([root], fail=False)
         ok_flag = bool(getattr(doc, "ok", True))
-        report.steps.append(
-            BuildStep(
-                "doctor",
-                ok_flag,
-                f"ok={ok_flag} surfaces={getattr(doc, 'surfaces', None)}",
-            )
-        )
+        detail = f"ok={ok_flag} surfaces={getattr(doc, 'surfaces', None)}"
+        hard = [
+            d
+            for d in getattr(doc, "diagnostics", [])
+            if any(k in d.lower() for k in ("violation", "dual-document risk", "incomplete stack"))
+        ]
+        if not ok_flag and hard:
+            detail += f" · {hard[0][:300]}"
+        report.steps.append(BuildStep("doctor", ok_flag, detail))
     except Exception as e:
         report.steps.append(BuildStep("doctor", False, f"doctor failed: {e}"))
 
@@ -335,7 +337,10 @@ def _package_step(
     report.package_path, report.archive_path = bundle.path, bundle.archive
     report.warnings.extend(bundle.warnings)
     shown = bundle.path.relative_to(root) if bundle.path.is_relative_to(root) else bundle.path
-    detail = f"{shown.as_posix()} (run.sh {entry}; excluded: {', '.join(bundle.excluded) or 'none'})"
+    detail = (
+        f"{shown.as_posix()} (run.sh {entry}; excluded: {', '.join(bundle.excluded) or 'none'}; "
+        "secret detection is best-effort: keep secrets in the environment, not in the app tree)"
+    )
     report.steps.append(BuildStep("package", True, detail))
 
 

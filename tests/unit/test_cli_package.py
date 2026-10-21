@@ -68,7 +68,7 @@ def test_flags_are_on_build_help(capsys):
 
 
 def _excluded(out: str) -> list[str]:
-    return out.split("excluded: ", 1)[1].split(")\n", 1)[0].split(", ")
+    return out.split("excluded: ", 1)[1].split("; ", 1)[0].split(", ")
 
 
 def test_file_set_is_an_allowlist_and_lists_every_exclusion(app, capsys):
@@ -84,7 +84,7 @@ def test_file_set_is_an_allowlist_and_lists_every_exclusion(app, capsys):
         "components/stale.pyc": "x",
         "routes/__pycache__/hello.cpython-314.pyc": "x",
         "assets/node_modules/x.js": "x",
-        "tests/test_x.py": "x",
+        "tests/fixture.json": "{}",
     }
     for rel, text in planted.items():
         (app / rel).parent.mkdir(parents=True, exist_ok=True)
@@ -95,6 +95,7 @@ def test_file_set_is_an_allowlist_and_lists_every_exclusion(app, capsys):
     bundle = app / "dist" / "demo"
     assert _tree(bundle) == SOURCE | GENERATED
     assert "[OK  ] package: dist/demo" in out
+    assert "secret detection is best-effort: keep secrets in the environment, not in the app tree" in out
     assert set(_excluded(out)) == {
         ".env",
         ".env.local",
@@ -102,7 +103,7 @@ def test_file_set_is_an_allowlist_and_lists_every_exclusion(app, capsys):
         "id_rsa",
         "notes.txt",
         "pyproject.toml",
-        "tests/",
+        "tests/fixture.json",
         "__pycache__/",
         "routes/notes.bin",
         "routes/__pycache__/",
@@ -137,40 +138,129 @@ def test_refuses_key_shaped_files_in_allowed_dirs(app, capsys, rel, text):
     assert not (app / "dist").exists()
 
 
-def test_refuses_symlinks_out_of_the_tree(app, tmp_path, capsys):
+def test_refuses_every_symlink_in_the_tree(app, tmp_path, capsys):
+    """The bundle copies regular files only; no link target is classified."""
     outside = tmp_path / "outside"
     outside.mkdir()
     (outside / "creds.json").write_text('{"token": "x"}', encoding="utf-8")
+    (app / ".env").write_text("SECRET=1", encoding="utf-8")
+    (app / "routes" / "env.txt").symlink_to("../.env")
     (app / "routes" / "creds.json").symlink_to(outside / "creds.json")
-    (app / "assets" / "rel.txt").symlink_to(os.path.relpath(outside / "creds.json", app / "assets"))
-    (app / "assets" / "shared").symlink_to(outside, target_is_directory=True)
+    (app / "assets" / "css" / "alias.css").symlink_to("input.css")
+    (app / "assets" / "css2").symlink_to("css", target_is_directory=True)
+    (app / "shared").symlink_to(outside, target_is_directory=True)
     assert _package() == 1
     out = capsys.readouterr().out
     assert (
-        "[FAIL] package: refusing to bundle: assets/rel.txt (symlink out of the app tree), "
-        "assets/shared (symlink out of the app tree), routes/creds.json (symlink out of the app tree)"
+        "[FAIL] package: refusing to bundle: assets/css/alias.css (symlink), assets/css2 (symlink), "
+        "routes/creds.json (symlink), routes/env.txt (symlink), shared (symlink)"
     ) in out
     assert not (app / "dist").exists()
 
 
-def test_in_tree_symlinks(app, capsys):
-    (app / "assets" / "css" / "alias.css").symlink_to("input.css")
-    (app / "assets" / "css2").symlink_to("css", target_is_directory=True)
+def _write(root: Path, files: dict[str, str]) -> None:
+    for rel, text in files.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text, encoding="utf-8")
+
+
+def test_ships_every_python_module_and_imports_from_the_bundle(app, capsys):
+    """lib/, a nested package and relative imports: the bundle imports alone."""
+    _write(
+        app,
+        {
+            "lib/__init__.py": "from .sub import deep\nVALUE = deep.VALUE\n",
+            "lib/sub/__init__.py": "",
+            "lib/sub/deep.py": "from ..helpers import double\nVALUE = double(21)\n",
+            "lib/helpers.py": "def double(x):\n    return 2 * x\n",
+            "util.py": "NAME = 'util'\n",
+        },
+    )
+    settings = app / "settings.py"
+    settings.write_text(
+        settings.read_text(encoding="utf-8") + "\nfrom lib import VALUE\nfrom util import NAME\nassert VALUE == 42\n",
+        encoding="utf-8",
+    )
     assert _package() == 0
     out = capsys.readouterr().out
+    assert "[OK  ] package: dist/demo" in out
     bundle = app / "dist" / "demo"
-    alias = bundle / "assets" / "css" / "alias.css"
-    assert not alias.is_symlink()
-    assert alias.read_bytes() == (app / "assets" / "css" / "input.css").read_bytes()
-    assert "assets/css2/ (symlinked dir)" in _excluded(out)
+    assert {"lib/__init__.py", "lib/sub/__init__.py", "lib/sub/deep.py", "lib/helpers.py", "util.py"} <= _tree(bundle)
+
+
+def test_refuses_a_bundle_that_cannot_import_alone(app, capsys):
+    """The smoke import runs with -I from the bundle dir: no source root on sys.path."""
+    _write(app, {"lib/__init__.py": "", "lib/data.yaml": "x: 1\n"})
+    settings = app / "settings.py"
+    settings.write_text(
+        settings.read_text(encoding="utf-8")
+        + "\nDATA = (Path(__file__).resolve().parent / 'lib' / 'data.yaml').read_text()\n",
+        encoding="utf-8",
+    )
+    assert _package() == 1
+    out = capsys.readouterr().out
+    assert "[FAIL] package: import app:asgi from the bundle alone failed: FileNotFoundError: " in out
+    assert "lib/data.yaml" in out
+    assert not (app / "dist").exists()
+
+
+@pytest.mark.parametrize(
+    "stray",
+    [
+        ("routes/pyvenv.cfg", "home = /usr/bin"),
+        ("routes/MANIFEST.json", '{"generator": "uxcompose build --package", "files": []}'),
+    ],
+)
+def test_a_stray_venv_or_bundle_marker_does_not_hide_a_source_dir(app, capsys, stray):
+    _write(app, {stray[0]: stray[1]})
+    assert _package() == 0
+    out = capsys.readouterr().out
+    assert "routes/" not in _excluded(out)
+    tree = _tree(app / "dist" / "demo")
+    assert "routes/hello.py" in tree
+    assert (stray[0] in _excluded(out)) != (stray[0] in tree)  # an ordinary file: shipped or listed
+
+
+def test_replaces_a_bundle_that_ran_but_not_one_holding_user_files(app, tmp_path, capsys):
+    out_dir = str(tmp_path / "out")
+    assert _package("--out", out_dir) == 0
+    bundle = tmp_path / "out" / "demo"
+    (bundle / "__pycache__").mkdir()
+    (bundle / "__pycache__" / "app.cpython-314.pyc").write_bytes(b"x")
+    (bundle / "assets" / "static" / "file" / "js").mkdir(parents=True)
+    assert _package("--out", out_dir) == 0
+    (bundle / ".env").write_text("SECRET=1", encoding="utf-8")
+    assert _package("--out", out_dir) == 1
+    out = capsys.readouterr().out
+    assert "not a dedicated bundle directory (it holds demo)" in out
+    assert (bundle / ".env").read_text(encoding="utf-8") == "SECRET=1"
+    (bundle / ".env").unlink()
+    (bundle / "routes" / "hello.py").write_text("# edited", encoding="utf-8")
+    assert _package("--out", out_dir) == 1
+    assert (bundle / "routes" / "hello.py").read_text(encoding="utf-8") == "# edited"
 
 
 def test_rebuilt_from_scratch(app):
     assert _package() == 0
-    stale = app / "dist" / "demo" / "stale.txt"
-    stale.write_text("old", encoding="utf-8")
+    (app / "routes" / "hello.py").write_text("# v2\n" + (app / "routes" / "hello.py").read_text(encoding="utf-8"))
+    (app / "util.py").write_text("X = 1\n", encoding="utf-8")
     assert _package() == 0
-    assert not stale.exists()
+    bundle = app / "dist" / "demo"
+    assert (bundle / "routes" / "hello.py").read_text(encoding="utf-8").startswith("# v2\n")
+    (app / "util.py").unlink()
+    assert _package() == 0
+    assert not (bundle / "util.py").exists()
+
+
+def test_an_edited_bundle_inside_the_app_is_source_again(app, capsys):
+    """Not a pristine bundle: doctor scans it, and the dual Document fails the build."""
+    assert _package() == 0
+    (app / "dist" / "demo" / "notes.txt").write_text("mine", encoding="utf-8")
+    assert _package() == 1
+    out = capsys.readouterr().out
+    assert "[FAIL] doctor: ok=False" in out
+    assert "dual-Document" in out
+    assert (app / "dist" / "demo" / "notes.txt").read_text(encoding="utf-8") == "mine"
 
 
 def test_package_without_archive_drops_an_older_archive(app):

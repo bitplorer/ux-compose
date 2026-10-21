@@ -131,3 +131,68 @@ def test_corpus_parses(name, names):
     # The corpus installs plain PyPI packages, so only the ux-compose rule is unmet.
     assert scan.problem == f"{name} does not name ux-compose"
     assert scan.unchecked == []
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "git+https://github.com/bitplorer/ux-dom.git@abc",
+        "-e git+https://github.com/bitplorer/ux-dom.git@abc",
+        "https://example.com/pkgs/ux-dom-main.tar.gz",
+    ],
+)
+def test_nameless_requirement_is_reported_unidentifiable(tmp_path, line):
+    """pip learns these names only by building them, so the rule cannot see a second ux-dom (#129)."""
+    scan = _scan(tmp_path, f"ux-compose\n{line}\n")
+    assert scan.problem is None
+    assert scan.unchecked == [
+        f"requirements.txt:2 names no distribution ({line.removeprefix('-e ')}); "
+        "write 'name @ url' or add #egg=name"
+    ]
+
+
+def test_wheel_url_is_named_by_its_filename(tmp_path):
+    scan = _scan(tmp_path, "ux-compose\nhttps://example.com/w/ux_dom-0.2.0-py3-none-any.whl\n")
+    assert scan.problem == (
+        "ux-dom (requirements.txt:2) pinned beside ux-compose; specialists come with the ux-compose line"
+    )
+
+
+@pytest.mark.parametrize("option", ["-c nope.txt", "--constraint=nope.txt", "-cnope.txt"])
+def test_missing_constraints_file_fails_like_pip(tmp_path, option):
+    assert _scan(tmp_path, f"ux-compose\n{option}\n").problem == (
+        "requirements.txt:2: constrains with nope.txt, which does not exist"
+    )
+
+
+def test_constraints_are_not_requirements(tmp_path):
+    scan = _scan(tmp_path, "ux-compose\n-c c.txt\n", **{"c.txt": "ux-dom==1\n"})
+    assert scan == (None, [], {"ux-compose": "requirements.txt:1"})
+
+
+@pytest.mark.parametrize(
+    "lines",
+    [
+        "foo; python_version<'3.13'\nfoo; python_version>='3.13'\n",
+        "foo==1; sys_platform=='win32'\nFoo @ https://x/foo.zip ; sys_platform!='win32'\n",
+        "uvicorn\nuvicorn[standard]\n",
+        "uvicorn[standard]>=0.30\nuvicorn[http]>=0.30\n",
+    ],
+    ids=["markers", "markers-differ-in-pin", "extras", "extras-same-pin"],
+)
+def test_pip_accepted_splits_are_not_duplicates(tmp_path, lines):
+    """pip installs one distribution from these, so they are not a second line (#129)."""
+    assert _scan(tmp_path, "ux-compose\n" + lines).problem is None
+
+
+@pytest.mark.parametrize(
+    "lines",
+    [
+        "foo\nfoo; python_version>='3.13'\n",
+        "uvicorn\nuvicorn[standard]>=0.30\n",
+        "foo; os_name=='nt'\nfoo; os_name=='nt'\n",
+    ],
+    ids=["one-unmarked", "extras-with-another-pin", "same-marker"],
+)
+def test_overlapping_lines_still_count_twice(tmp_path, lines):
+    assert _scan(tmp_path, "ux-compose\n" + lines).problem.endswith("one line per distribution")

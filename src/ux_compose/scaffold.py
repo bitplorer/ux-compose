@@ -292,13 +292,16 @@ SPECIALISTS = ("ux-dom", "ux-channel", "ux-behavior", "ux-motion")
 # continues the line, and a line's options start at its first '-' token.
 _COMMENT = re.compile(r"(^|\s+)#.*$")
 _EGG = re.compile(r"#egg=([A-Za-z0-9][A-Za-z0-9._-]*)")
-_FLAGS = {"-r": "-r", "--requirement": "-r", "-e": "-e", "--editable": "-e"}
+_FLAGS = {
+    "-r": "-r", "--requirement": "-r", "-e": "-e", "--editable": "-e", "-c": "-c", "--constraint": "-c",
+}
 
 
 class RequirementsScan(NamedTuple):
     """``problem``: why pip or create-app's one-line rule refuses the file.
 
-    ``unchecked``: ``-r`` includes doctor cannot read (remote URLs).
+    ``unchecked``: what doctor cannot read: remote ``-r``/``-c`` files, and
+    requirements with no name (a bare URL or path pip names by building it).
     ``names``: canonical distribution name -> ``file:line``.
     """
 
@@ -324,7 +327,7 @@ def _logical_lines(text: str):
 
 
 def _option_values(options: str) -> list[tuple[str, str]]:
-    """(``-r``|``-e``, value) pairs from a pip option line; other options are skipped."""
+    """(``-r``|``-e``|``-c``, value) pairs from a pip option line; other options are skipped."""
     tokens = shlex.split(options)
     found = []
     for i, token in enumerate(tokens):
@@ -333,37 +336,73 @@ def _option_values(options: str) -> list[tuple[str, str]]:
             found.append((_FLAGS[flag], value))
         elif token in _FLAGS and i + 1 < len(tokens):
             found.append((_FLAGS[token], tokens[i + 1]))
-        elif token[:2] in ("-r", "-e") and len(token) > 2 and not token.startswith("--"):
+        elif token[:2] in ("-r", "-e", "-c") and len(token) > 2 and not token.startswith("--"):
             found.append((token[:2], token[2:]))
     return found
 
 
-def _distribution(spec: str) -> tuple[str | None, bool]:
-    """(canonical name or None, parses). A bare URL or path has no name to check."""
+class _Line(NamedTuple):
+    """What pip merges lines of one distribution by: pin, URL, markers, extras."""
+
+    specifier: str
+    url: str | None
+    marker: str | None
+    extras: frozenset[str]
+
+
+def _distribution(spec: str) -> tuple[str | None, bool, _Line | None]:
+    """(canonical name or None, parses, line). A bare URL or path has no name to check.
+
+    A wheel is named by its filename, as pip names it without building.
+    """
     from packaging.requirements import InvalidRequirement, Requirement
-    from packaging.utils import canonicalize_name
+    from packaging.utils import InvalidWheelFilename, canonicalize_name, parse_wheel_filename
 
     try:
-        return canonicalize_name(Requirement(spec).name), True
+        req = Requirement(spec)
     except InvalidRequirement:
         pass
+    else:
+        marker = str(req.marker) if req.marker else None
+        return canonicalize_name(req.name), True, _Line(str(req.specifier), req.url, marker, frozenset(req.extras))
     if egg := _EGG.search(spec):
-        return canonicalize_name(egg.group(1)), True
+        return canonicalize_name(egg.group(1)), True, None
+    if spec.endswith(".whl"):
+        try:
+            return parse_wheel_filename(spec.rsplit("/", 1)[-1])[0], True, None
+        except InvalidWheelFilename:
+            pass
     if "://" in spec or "/" in spec or spec.startswith(".") or spec.endswith((".whl", ".zip", ".tar.gz")):
-        return None, True
-    return None, False
+        return None, True, None
+    return None, False, None
+
+
+def _one_install(a: _Line | None, b: _Line | None) -> bool:
+    """Two lines pip installs as one distribution, so not a second line.
+
+    Both marker-guarded with different markers (a platform or Python split),
+    or the same pin and URL asking for different extras (pip unions them).
+    """
+    if a is None or b is None:
+        return False
+    if a.marker and b.marker and a.marker != b.marker:
+        return True
+    return (a.specifier, a.url, a.marker) == (b.specifier, b.url, b.marker) and a.extras != b.extras
 
 
 def scan_requirements(path: Path) -> RequirementsScan:
     """Read ``requirements.txt`` the way pip does and check create-app's rule.
 
     Rule: one line per distribution, ux-compose named, no specialist pinned
-    beside it (a second ux-dom line is the file pip and uv refuse). Options
-    (``--index-url``, ``--hash``, ``-c``…) are not requirements; ``-e`` lines
+    beside it (a second ux-dom line is the file pip and uv refuse). Lines pip
+    installs as one (a marker split, or extras of the same pin) are one.
+    Options (``--index-url``, ``--hash``…) are not requirements; ``-e`` lines
     are; local ``-r`` includes are followed relative to the including file,
-    and an include cycle fails as it does in pip.
+    and an include cycle fails as it does in pip. A ``-c`` file is not read,
+    but a missing one fails, as in pip.
     """
     names: dict[str, str] = {}
+    lines: dict[str, list[_Line | None]] = {}
     unchecked: list[str] = []
     base = path.parent
 
@@ -388,25 +427,30 @@ def scan_requirements(path: Path) -> RequirementsScan:
                     if flag == "-e":
                         specs.append(value)
                         continue
+                    verb = "constrains with" if flag == "-c" else "includes"
                     if "://" in value:
-                        unchecked.append(f"{loc} includes {value}")
+                        unchecked.append(f"{loc} {verb} {value}")
                         continue
                     target = file.parent / value
                     if not target.is_file():
-                        return f"{loc}: includes {value}, which does not exist"
+                        return f"{loc}: {verb} {value}, which does not exist"
+                    if flag == "-c":
+                        continue
                     if target.resolve() in chain:
                         return f"{loc}: includes {value}, which includes this file again"
                     if problem := scan(target, chain):
                         return problem
             for item in specs:
-                name, parses = _distribution(item)
+                name, parses, line = _distribution(item)
                 if not parses:
                     return f"{loc}: not a requirement: {item!r}"
                 if name is None:
+                    unchecked.append(f"{loc} names no distribution ({item}); write 'name @ url' or add #egg=name")
                     continue
-                if name in names:
+                if not all(_one_install(line, seen) for seen in lines.get(name, [])):
                     return f"{name} is listed twice ({names[name]}, {loc}); one line per distribution"
-                names[name] = loc
+                names.setdefault(name, loc)
+                lines.setdefault(name, []).append(line)
         return None
 
     problem = scan(path, ())

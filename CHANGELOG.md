@@ -94,6 +94,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `doctor --prod`'s requirements scan (#129) reads three more cases the way
+  pip does: a missing `-c`/`--constraint` file FAILs; lines pip installs as
+  one distribution (different environment markers on both, or one pin
+  with different extras) are not "listed twice"; a requirement with no
+  name (bare VCS URL without `#egg=`, sdist URL, path) is a WARN naming
+  it, since it could be a second ux-dom, and a wheel URL is named by its
+  filename.
+
 - The stdlib-shadow check (#136) counts every importable top-level file
   (`importlib.machinery.all_suffixes()`), so a sourceless root
   `secrets.pyc` or an extension `secrets.so` FAILs like `secrets.py`.

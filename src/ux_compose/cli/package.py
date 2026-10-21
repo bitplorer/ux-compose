@@ -356,6 +356,53 @@ def _source_date_epoch() -> int:
     return int(raw)
 
 
+def _collect_checked(root: Path, *, skip: Path | None = None) -> Collected:
+    _requirement_lines(root)
+    found = collect(root, skip=skip)
+    if found.refused:
+        raise PackageError("refusing to bundle: " + ", ".join(found.refused))
+    return found
+
+
+def _stage(root: Path, found: Collected, dest: Path) -> list[dict]:
+    """Copy the collected files into ``dest``; return their MANIFEST entries."""
+    manifest_files = []
+    for rel in found.files:
+        (dest / rel).parent.mkdir(parents=True, exist_ok=True)
+        data = (root / rel).read_bytes()
+        (dest / rel).write_bytes(data)
+        shutil.copymode(root / rel, dest / rel)
+        manifest_files.append(
+            {"path": rel.as_posix(), "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
+        )
+    return manifest_files
+
+
+def _check_staged(staged: Path, entry: str, warnings: list[str]) -> dict:
+    """``doctor --prod``, the import from the bundle alone, the ux-compose pin; returns ``resolved``."""
+    from ux_compose.doctor import scan_product_readiness
+
+    fails = [row for row in scan_product_readiness(staged) if row.startswith("[FAIL]")]
+    if fails:
+        raise PackageError("doctor --prod: " + "; ".join(fails))
+    _smoke_import(staged, entry)
+    return _resolved(staged, warnings)
+
+
+def check_bundle(root: Path, *, entry: str = "app:asgi") -> list[str]:
+    """Every ``write_bundle`` check on a throwaway copy in the system temp dir; returns its warnings.
+
+    Raises the ``PackageError`` ``write_bundle`` would raise. Writes nothing under ``root``.
+    """
+    root = Path(root).resolve()
+    found = _collect_checked(root)
+    warnings: list[str] = []
+    with tempfile.TemporaryDirectory(prefix="uxcompose-check-") as tmp:
+        _stage(root, found, Path(tmp))
+        _check_staged(Path(tmp), entry, warnings)
+    return warnings
+
+
 def write_bundle(
     root: Path,
     *,
@@ -371,41 +418,24 @@ def write_bundle(
     ``doctor --prod`` and the ux-compose pin check before it replaces the
     previous bundle.
     """
-    from ux_compose.doctor import scan_product_readiness
-
     root = Path(root).resolve()
     out = check_out(root, Path(out_dir), name)
     mtime = _source_date_epoch()
-    _requirement_lines(root)
-    found = collect(root, skip=out)
-    if found.refused:
-        raise PackageError("refusing to bundle: " + ", ".join(found.refused))
+    found = _collect_checked(root, skip=out)
 
     created = not out.exists()
     out.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix=_TMP, dir=out))
     warnings: list[str] = []
     try:
-        manifest_files = []
-        for rel in found.files:
-            (tmp / rel).parent.mkdir(parents=True, exist_ok=True)
-            data = (root / rel).read_bytes()
-            (tmp / rel).write_bytes(data)
-            shutil.copymode(root / rel, tmp / rel)
-            manifest_files.append(
-                {"path": rel.as_posix(), "sha256": hashlib.sha256(data).hexdigest(), "bytes": len(data)}
-            )
-        fails = [row for row in scan_product_readiness(tmp) if row.startswith("[FAIL]")]
-        if fails:
-            raise PackageError("doctor --prod: " + "; ".join(fails))
-        _smoke_import(tmp, entry)
+        manifest_files = _stage(root, found, tmp)
         manifest = {
             "generator": BUNDLE_GENERATOR,
             "name": name,
             "entrypoint": entry,
             "static_model": "single_copy_from_site_packages",
             "files": manifest_files,
-            "resolved": _resolved(tmp, warnings),
+            "resolved": _check_staged(tmp, entry, warnings),
         }
         (tmp / "README.RUN.txt").write_text(README_RUN.format(name=name), encoding="utf-8")
         (tmp / "run.sh").write_text(RUN_SH.format(entry=entry), encoding="utf-8")
@@ -442,4 +472,4 @@ def write_bundle(
     return bundle
 
 
-__all__ = ["Bundle", "Collected", "PackageError", "check_out", "collect", "write_bundle"]
+__all__ = ["Bundle", "Collected", "PackageError", "check_bundle", "check_out", "collect", "write_bundle"]

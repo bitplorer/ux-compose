@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `uxcompose build --check` verifies without writing anything (no CSS,
+  no bundle, no Tailwind cache change, no `__pycache__`; it passes on a
+  read-only tree): `app.py`; `tailwind` compiles to a temp file and FAILs
+  when `output.css` differs from it (stale) or is missing, never
+  downloading or repairing the cached CLI
+  (`resolve_tailwind(read_only=True)`); the `doctor` law scan; and
+  `package`, every `--package` check (file set, `doctor --prod`, import
+  from the bundle alone, ux-compose pin) on a copy in the system temp
+  dir, with the same one-line FAIL messages. Exit 1 on any FAIL. It does
+  not import the source tree. `--package`, `--archive`, `--out`, `--name`
+  and `--skip-import` with `--check` exit 2. Library:
+  `ux_compose.cli.package.check_bundle`.
+
 - `uxcompose build --package` writes a runnable bundle to `dist/<name>/`
   (`--out`, `--name`) after every build step passes; `--archive` adds a
   byte-identical `dist/<name>.tar.gz` (sorted members, one `<name>/` root,

@@ -211,6 +211,32 @@ pip install -r dist/<name>/requirements.txt && dist/<name>/run.sh
   uid/gid 0, mtime `SOURCE_DATE_EPOCH` (or 0) in the tar and gzip
   headers: two archives of the same tree are byte-identical.
 
+### `uxcompose build --check`
+
+Verify that the app is built and shippable, writing nothing: no CSS, no
+bundle, no Tailwind cache change, no `__pycache__`. It passes on a
+read-only tree. Exit 0 when every step is OK, 1 on any FAIL.
+
+```bash
+UX_CHANNEL_SECRET=... uxcompose build --check   # CI gate before deploy
+```
+
+Steps (`--skip-tailwind` and `--no-minify` apply; `--package`,
+`--archive`, `--out`, `--name` and `--skip-import` exit 2):
+
+- `app.py`, then `tailwind`: `assets/static/file/css/output.css` must
+  equal a fresh compile (to a temp file) by the same Tailwind CLI, so
+  an edited template or `input.css` FAILs as stale. It never downloads
+  the CLI or repairs the cache: with no CLI found, or a cache entry that
+  fails its SHA256, the step FAILs and says why.
+- `doctor`: the same law scan as `build`.
+- `package`: every `--package` check, on a copy in the system temp dir:
+  the file set, `doctor --prod` on the copy, the import from the bundle
+  alone, and the ux-compose pin. A FAIL prints the line `--package`
+  prints. Because `doctor --prod` runs, set `UX_CHANNEL_SECRET` and
+  unset `DEBUG`. The source tree is not imported: an app may write when
+  imported, so the import runs from the copy only.
+
 Architecture: [../internals/hmr.md](../internals/hmr.md).
 Decision: [../adr/0005-serve-dev-split.md](../adr/0005-serve-dev-split.md).
 CSS how-to: [TAILWIND.md](TAILWIND.md).

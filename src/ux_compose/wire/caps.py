@@ -14,7 +14,8 @@ import json
 from contextvars import ContextVar
 from typing import Any, Mapping, Optional
 
-from ux_compose.helpers import _require_control_arg_names, safe_html
+from ux_compose.dom import html_text
+from ux_compose.helpers import _require_control_arg_names
 
 _PROCESS_CHANNEL: Any = None
 _LIVE: ContextVar[Any] = ContextVar("ux_compose_live_channel", default=None)
@@ -152,23 +153,17 @@ def mint_cap(
 _HTML_OPS = frozenset({"morph", "swap"})
 
 
-def _wire_html(html: Any) -> str:
-    """HTML for the client. ``__html__`` (``Markup``, compose tree output) as
-    written; a plain ``str`` / ``bytes`` through ``sanitize_html``; a tree as
-    ux-dom renders it."""
-    if html is None:
-        return ""
-    if hasattr(html, "__html__") or isinstance(html, (str, bytes, bytearray, memoryview)):
-        return str(safe_html(html))
-    return str(html)
+def _wire_html(html: Any, sink: str) -> str:
+    """HTML for the client, under the HTML sink contract (``html_text``)."""
+    return str(html_text(html, sink=sink))
 
 
 def _wire_plan(node: Any) -> Any:
-    """Copy of a motion plan whose ``str`` ``html`` fields are sanitized."""
+    """Copy of a motion plan whose ``html`` fields follow the contract."""
     if isinstance(node, Mapping):
         out = {key: _wire_plan(value) for key, value in node.items()}
-        if isinstance(node.get("html"), (str, bytes, bytearray, memoryview)):
-            out["html"] = _wire_html(node["html"])
+        if node.get("html") is not None:
+            out["html"] = _wire_html(node["html"], "motion enter html")
         return out
     if isinstance(node, (list, tuple)):
         return [_wire_plan(item) for item in node]
@@ -178,7 +173,7 @@ def _wire_plan(node: Any) -> Any:
 def _wire_dict(op: Mapping) -> dict:
     out = dict(op)
     if out.get("op") in _HTML_OPS and "html" in out:
-        out["html"] = _wire_html(out["html"])
+        out["html"] = _wire_html(out["html"], f"{out['op']} op html")
     if "plan" in out:
         out["plan"] = _wire_plan(out["plan"])
     return out
@@ -188,8 +183,10 @@ def ops_to_wire(ops: Any) -> list[dict]:
     """Project Behavior Op objects to Channel wire-shape dicts.
 
     Every HTML field the client inserts (morph / swap ``html``, motion
-    ``enter`` ``html``) is a plain ``str`` → ux-dom ``sanitize_html``, or
-    ``__html__`` / a tree → as written.
+    ``enter`` ``html``) follows the HTML sink contract
+    (``ux_compose.dom.html_text``): ``str`` / ``bytes`` → ux-dom
+    ``sanitize_html``; ``__html__`` / a ux-dom tree → as written; any other
+    type → ``TypeError``.
     """
     out: list[dict] = []
     if not ops:
@@ -210,7 +207,7 @@ def ops_to_wire(ops: Any) -> list[dict]:
             target = str(payload.get("target") or "")
             if target and not target.startswith(("#", "[")):
                 target = f"#{target}"
-            out.append({"op": "morph", "target": target, "html": _wire_html(html)})
+            out.append({"op": "morph", "target": target, "html": _wire_html(html, "morph html")})
         elif name in ("append", "notify", "toast") or ns in ("log", "notify"):
             out.append(
                 {

@@ -518,8 +518,37 @@ def test_chromium_runs_no_script_from_string_or_streamed_routes(served):
     rng = random.Random(7)
     ran = []
     for index in range(len(ATTACKS)):
-        for path in (f"page/{index}", f"stream/{index}_{rng.randint(1, 99)}",
-                     f"astream/{index}_0"):
+        for path in (
+            f"page/{index}",
+            f"bytes/{index}",
+            f"stream/{index}_{rng.randint(1, 99)}",
+            f"astream/{index}_0",
+            f"bstream/{index}_{rng.randint(1, 99)}",
+        ):
             if browser.visit(f"{origin}/{path}"):
                 ran.append(path)
+    assert ran == []
+
+
+def test_chromium_runs_no_script_in_a_brand_wrapped_document(tmp_path):
+    pytest.importorskip("fastapi")
+    from ux_dom import Document
+
+    from ux_compose.brand import brand_wrap
+
+    document = Document(head=[], body=[], ensure_csrf_token=False)
+    asgi = _build(tmp_path, "fastapi", document=document, wrap=brand_wrap(document))
+    server, thread, origin = _serve(asgi)
+    browser = _Chrome()
+    try:
+        ran = [
+            path
+            for index in range(len(ATTACKS))
+            for path in (f"page/{index}", f"bytes/{index}")
+            if browser.visit(f"{origin}/{path}")
+        ]
+    finally:
+        browser.close()
+        server.should_exit = True
+        thread.join(timeout=5)
     assert ran == []

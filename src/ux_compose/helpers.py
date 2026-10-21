@@ -14,8 +14,7 @@ from typing import Any, List, Optional
 
 from ux_behavior import bind as _behavior_bind, notify as _real_notify, update as _real_update
 from ux_behavior.ops import Op as _Op
-from ux_dom.response import sanitize_html
-from ux_dom.response.serialize import to_html_bytes
+from ux_compose.dom import TrustedHtml, html_text
 
 # Soft USE (ux-dom#20 / compose#80 C2): prefer owner extract when the
 # symbol exists. Homemade walker below is escape if absent. Cached so
@@ -149,40 +148,14 @@ def control(action: str, **args) -> dict:
     return _action_attrs(action, args)
 
 
-class TrustedHtml(str):
-    """HTML that goes to the client as written (``__html__``, like ``Markup``).
-
-    Compose makes it from a ux-dom tree (the renderer escapes) or from
-    ``sanitize_html`` output, never from a raw author string, so ``hx-*`` /
-    ``x-*`` attributes on a tree survive the morph wire.
-    """
-
-    __slots__ = ()
-
-    def __html__(self) -> str:
-        return str(self)
-
-
-def safe_html(value: Any) -> TrustedHtml:
-    """Untrusted ``str`` / ``bytes`` → ux-dom ``sanitize_html``; ``__html__`` as written."""
-    if value is None:
-        return TrustedHtml("")
-    if isinstance(value, (bytes, bytearray, memoryview)):
-        value = bytes(value).decode("utf-8")
-    return TrustedHtml(sanitize_html(value))
-
-
 def _serialize_tree(tree: Any) -> TrustedHtml:
     """Serialize via ux-dom. No homemade HTML-string renderer.
 
-    A ``str`` from ``render()`` is untrusted HTML: ux-dom ``sanitize_html``
-    (``Markup`` stays as written). Tree output is trusted.
+    The HTML sink contract (``ux_compose.dom.html_text``): a ``str`` /
+    ``bytes`` from ``render()`` is sanitized, ``Markup`` and ux-dom trees
+    are trusted, any other type raises ``TypeError``.
     """
-    if tree is None:
-        return TrustedHtml("")
-    if isinstance(tree, str):
-        return safe_html(tree)
-    return TrustedHtml(to_html_bytes(tree).decode("utf-8"))
+    return html_text(tree, sink="render()")
 
 
 # Prefer ux-dom ``extract_by_id`` (serialize door; ux-dom#20). String
@@ -347,7 +320,7 @@ def _fragment_for_target(html: str, target_id: str) -> str:
 
 def _render_html(component_or_id: Any, *, target_id: str | None = None) -> TrustedHtml:
     if isinstance(component_or_id, str):
-        html = safe_html(component_or_id)
+        html = html_text(component_or_id, sink="update_with / morph_play html")
     else:
         render = getattr(component_or_id, "render", None)
         tree = render() if callable(render) else component_or_id
@@ -464,7 +437,8 @@ def update_with(
     if fields:
         morph_payload["fields"] = list(fields)
     if html is not None:
-        morph_payload["html"] = TrustedHtml(_fragment_for_target(safe_html(html), tid))
+        trusted = html_text(html, sink="update_with(html=)")
+        morph_payload["html"] = TrustedHtml(_fragment_for_target(trusted, tid))
     else:
         morph_payload["html"] = _render_html(component, target_id=tid)
     # strip helper kwargs that are not morph fields

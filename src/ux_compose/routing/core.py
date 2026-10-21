@@ -201,67 +201,49 @@ def apply_html_document(document: Any, payload: Any) -> Any:
     skip it). Author-provided ``document=`` is the SSoT. A synthesized
     Document is for ``document.mount`` (CSP / static), not for wrapping.
 
-    A ``str`` / ``bytes`` payload is untrusted HTML: it goes through
-    ux-dom's ``sanitize_html`` whether or not there is a Document.
-    ``Markup`` is explicit trust and stays as written. HTML strings are not
-    valid ``Document(*args)`` children (ux-dom treats a positional str on
+    The payload follows the HTML sink contract (``ux_compose.dom.html_value``):
+    ``str`` / ``bytes`` are sanitized with ux-dom ``sanitize_html`` whether or
+    not there is a Document, ``Markup`` and ux-dom trees are trusted, any
+    other type raises ``TypeError``. HTML strings are not valid
+    ``Document(*args)`` children (ux-dom treats a positional str on
     ``<body>`` as a script ``src``), so the sanitized fragment goes in
     through ``raw()``.
     """
-    payload = sanitize_html_payload(payload)
+    from ux_compose.dom import html_child, html_value
+
+    if payload is None:
+        return document() if callable(document) else None
     if document is None or not callable(document):
-        return payload
-    child = _document_child(payload)
+        return html_value(payload, sink=_ROUTE_SINK)
+    child = html_child(payload, sink=_ROUTE_SINK)
     try:
-        if child is None:
-            return document()
         return document(child)
     except Exception:
         logger.exception("apply_html_document failed; returning the fragment")
-        return payload
+        return html_value(payload, sink=_ROUTE_SINK)
 
 
-def sanitize_html_payload(payload: Any) -> Any:
-    """``str`` / ``bytes`` route body → ``sanitize_html`` str. Others unchanged."""
-    from ux_dom.response import sanitize_html
-
-    if isinstance(payload, (bytes, bytearray, memoryview)):
-        payload = bytes(payload).decode("utf-8")
-    if isinstance(payload, str):
-        return sanitize_html(payload)
-    return payload
-
-
-def _document_child(payload: Any) -> Any:
-    if isinstance(payload, str):
-        from ux_dom.dom import raw
-
-        return raw(payload)
-    return payload
-
-
-class _Rendered:
-    """A tree chunk rendered by ux-dom: trusted (``__html__``) in the stream."""
-
-    __slots__ = ("html",)
-
-    def __init__(self, html: str) -> None:
-        self.html = html
-
-    def __html__(self) -> str:
-        return self.html
+_ROUTE_SINK = "route body"
+_STREAM_SINK = "route stream chunk"
 
 
 def _stream_text(chunk: Any, decoder: Any) -> Any:
+    """One stream chunk under the HTML sink contract.
+
+    ``str`` is left for ``sanitize_html_stream``, which sanitizes across
+    chunk boundaries; ``bytes`` are one strict UTF-8 stream (a character may
+    span chunks). Everything else goes through ``html_text``: ``Markup`` and
+    trees are trusted, other types raise ``TypeError``.
+    """
+    from ux_compose.dom import html_text
+
     if chunk is None:
         return ""
     if isinstance(chunk, (bytes, bytearray, memoryview)):
         return decoder.decode(bytes(chunk))
-    if isinstance(chunk, str) or hasattr(chunk, "__html__"):
+    if isinstance(chunk, str) and not hasattr(chunk, "__html__"):
         return chunk
-    from ux_dom.response import to_html_bytes
-
-    return _Rendered(to_html_bytes(chunk).decode("utf-8"))
+    return html_text(chunk, sink=_STREAM_SINK)
 
 
 def sanitize_stream_payload(payload: Any) -> Any:

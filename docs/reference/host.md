@@ -79,6 +79,15 @@ its `str` / `bytes` chunks are untrusted, its tree and `Markup` chunks are
 sent as written. `Markup` (anything with `__html__`) is explicit trust and
 is never sanitized. A Response object is passed through as-is.
 
+One closed type contract holds at every HTML sink (route body, stream
+chunk, `render()`, morph html, motion `enter` html, `brand_wrap`):
+`ux_compose.dom.html_value` / `html_text`. Trusted: `__html__` and real
+ux-dom trees (ux-dom `dom_tag` / `Component`, `Document`, compose
+`Component`). Sanitized: `str`, and `bytes` as strict UTF-8. `None` is
+empty. Any other type (list, tuple, numbers, an object with an HTML
+`__str__`) raises `TypeError` naming the sink, never `str()`; bytes that
+are not UTF-8 raise `ValueError`. On a route either is a 500.
+
 | `render()` / handler returns | HTTP | Document wrap | CSP stamp |
 |------------------------------|------|---------------|-----------|
 | ux-dom tag / Document / Component / HTML `str` / `bytes` | `HTMLResponse` | yes | yes (ux-dom `prepare_html_body`) |

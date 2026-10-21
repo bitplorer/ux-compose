@@ -74,6 +74,14 @@ class Xss(Component):
         return update_with(self, scene("s").enter("#stage", fade(), html=STAGE))
 
     @action(caps=())
+    def html_kw_bytes(self):
+        return update_with(self, html=ATTACK.encode())
+
+    @action(caps=())
+    def behavior_update_bytes(self):
+        return [update("#xss", ATTACK.encode())]
+
+    @action(caps=())
     def markup(self):
         return update_with(self, html=Markup(ATTACK))
 
@@ -88,7 +96,13 @@ class Xss(Component):
         return update_with(self)
 
 
-UNTRUSTED = ("html_kw", "behavior_update", "motion_enter")
+UNTRUSTED = (
+    "html_kw",
+    "behavior_update",
+    "motion_enter",
+    "html_kw_bytes",
+    "behavior_update_bytes",
+)  # ux-motion's own IR refuses bytes html in enter(); the wire contract test covers it
 TRUSTED = ("markup", "motion_markup")
 
 

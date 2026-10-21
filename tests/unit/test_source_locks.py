@@ -119,7 +119,8 @@ def test_fragment_walker_escape_prefers_dom_extract():
     absent. Not a second serialize. No ``fragment.py``.
     """
     helpers = _read("helpers.py")
-    assert "from ux_dom.response.serialize import to_html_bytes" in helpers
+    assert "from ux_compose.dom import TrustedHtml, html_text" in helpers
+    assert "from ux_dom.response import to_html_bytes" in _read("dom.py")
     assert "extract_by_id" in helpers
     assert "No homemade HTML-string renderer" in helpers
     assert "escape" in helpers.lower()

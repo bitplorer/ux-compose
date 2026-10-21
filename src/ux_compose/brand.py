@@ -22,9 +22,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ux_dom.response import sanitize_html
-
-from ux_compose.dom import nav, raw, span
+from ux_compose.dom import html_child, nav, span
 
 GET_BRAND_ATTR = "data-uxcompose-brand"
 DEFAULT_BRAND = "App"
@@ -37,16 +35,11 @@ __all__ = [
 
 
 def _as_child(inner: Any) -> Any:
-    """Accept a GET fragment: a tag tree, or an HTML str that is sanitized
-    (ux-dom ``sanitize_html``; ``Markup`` stays as written) and put in via
-    ``raw()``."""
+    """A GET fragment under the HTML sink contract (``html_child``): a tree,
+    ``Markup``, or a sanitized ``str`` / ``bytes`` put in via ``raw()``."""
     if inner is None:
         return None
-    if isinstance(inner, (bytes, bytearray, memoryview)):
-        inner = bytes(inner).decode("utf-8")
-    if isinstance(inner, str):
-        return raw(sanitize_html(inner))
-    return inner
+    return html_child(inner, sink="brand_wrap child")
 
 
 def brand_wrap(document: Any, *, brand: str = DEFAULT_BRAND):

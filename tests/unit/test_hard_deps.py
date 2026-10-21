@@ -141,7 +141,9 @@ def test_helpers_use_specialist_facades_not_parallel_shims():
     assert "html_escape" not in src
     assert "html_attrs" not in src
     assert "_HAS_BEHAVIOR" not in src
-    assert "to_html_bytes" in src
+    # Serialize is ux-dom's, behind the one HTML sink contract (dom.html_text).
+    assert "from ux_compose.dom import TrustedHtml, html_text" in src
+    assert "to_html_bytes" in inspect.getsource(inspect.getmodule(helpers.html_text))
     from ux_compose.author import optional_plan
 
     plan = optional_plan("x", "#y", ms=10)

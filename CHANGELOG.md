@@ -108,7 +108,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`helpers.TrustedHtml`, `__html__`), so `hx-*` / `x-*` attributes on a
   tree survive the morph; a `Markup` stays as written. The pinned
   ux-channel `0ffe8e9` client has no morph guard of its own, so this is
-  the only layer. A generator body
+  the only layer. Every HTML sink (route body, stream chunk, `render()`,
+  `update_with(html=)`, `ux_behavior.update`, `morph` / `swap` ops, motion
+  `enter` html, `brand_wrap`) applies one closed type contract,
+  `ux_compose.dom.html_value` / `html_text`: `__html__` (`Markup`) and real
+  ux-dom trees (ux-dom `dom_tag` / `Component`, `Document`, compose
+  `Component`) are trusted and rendered by ux-dom; `str`, and `bytes` as
+  strict UTF-8, are sanitized; `None` is empty; anything else (list,
+  tuple, dict, numbers, an object whose `__str__` returns HTML) raises
+  `TypeError` naming the sink, and undecodable bytes raise `ValueError`.
+  Main `str()`-coerced those values, so a list or `__str__` object reached
+  the client as raw HTML and `bytes` from `render()` were sent as written;
+  a route that returns one is now a 500. A generator body
   goes through `sanitize_html_stream`: `str` / `bytes` chunks are untrusted
   (bytes decoded as one UTF-8 stream), tree and `Markup` chunks are sent as
   written, and the joined output equals `sanitize_html` of the joined text

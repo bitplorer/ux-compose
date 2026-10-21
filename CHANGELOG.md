@@ -94,6 +94,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `docs/internals/PLACE.md`: identity for authorization is the verified
+  principal; a subject-bound Cap requires principal == subject
+  (ux-channel#68); a subject-less Cap's `ctx.principal` may come from client
+  args (ux-channel#72), so it is not identity.
 - Security: a route body that is a plain `str` or `bytes` is untrusted HTML
   and goes through ux-dom `sanitize_html` on both hosts, with or without a
   Document, and through `brand_wrap`; main sent it through `raw()` (or as

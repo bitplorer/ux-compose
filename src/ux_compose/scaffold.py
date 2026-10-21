@@ -16,6 +16,7 @@ Motion attach).
 """
 from __future__ import annotations
 
+from functools import cache
 from importlib import metadata
 from pathlib import Path
 from textwrap import dedent
@@ -292,11 +293,13 @@ SPECIALISTS = ("ux-dom", "ux-channel", "ux-behavior", "ux-motion")
 # continues the line, and a line's options start at its first '-' token.
 _COMMENT = re.compile(r"(^|\s+)#.*$")
 _EGG = re.compile(r"#egg=([A-Za-z0-9][A-Za-z0-9._-]*)")
-# A bitplorer/ux-* repo URL (VCS over https or ssh, archive, tarball, codeload)
-# is that distribution whether or not it says #egg: pip installs it all the same.
-_BITPLORER_REPO = re.compile(
-    r"(?:codeload\.github\.com|api\.github\.com/repos|github\.com)[/:]bitplorer/"
-    r"([A-Za-z0-9_.-]+?)(?:\.git)?(?=[/@#?]|$)",
+# A GitHub repo URL (VCS over https or ssh, archive, tarball, codeload): a
+# bitplorer/ux-* repo is that distribution whether or not it says #egg, as
+# pip installs it all the same. Another owner's repo (a fork) is named only
+# by building it.
+_GITHUB_REPO = re.compile(
+    r"(?:codeload\.github\.com|api\.github\.com/repos|github\.com)[/:]([A-Za-z0-9_.-]+)/"
+    r"([A-Za-z0-9_.-]+?)(?:\.git)?(?=[/@#?;]|$)",
     re.IGNORECASE,
 )
 _FLAGS = {
@@ -357,18 +360,76 @@ class _Line(NamedTuple):
     extras: frozenset[str]
 
 
-def _distribution(spec: str) -> tuple[str | None, bool, _Line | None]:
-    """(canonical name or None, parses, line). A bare URL or path has no name to check.
+def _local_name(path: Path) -> str | None:
+    """A local checkout's ``[project].name``, else its folder name when that is a specialist."""
+    import tomllib
+
+    from packaging.utils import canonicalize_name
+
+    try:
+        project = tomllib.loads((path / "pyproject.toml").read_text(encoding="utf-8")).get("project", {})
+    except (OSError, tomllib.TOMLDecodeError):
+        project = {}
+    if isinstance(name := project.get("name"), str):
+        return canonicalize_name(name)
+    folder = canonicalize_name(path.resolve().name)
+    return folder if folder in SPECIALISTS else None
+
+
+def _url_identity(url: str, base: Path) -> str | None:
+    """The distribution a nameless URL or path installs, or None if only a build would say.
+
+    ``#egg``, then a wheel filename, then a bitplorer repo, then an sdist
+    filename (not a GitHub archive's, which is a ref, not a name), then a
+    local directory's metadata. A trailing ``;marker`` is dropped first, so a
+    marker never hides the target.
+    """
+    from packaging.utils import (
+        InvalidSdistFilename, InvalidWheelFilename, canonicalize_name, parse_sdist_filename, parse_wheel_filename,
+    )
+
+    if egg := _EGG.search(url):
+        return canonicalize_name(egg.group(1))
+    url = url.split(";", 1)[0].strip()
+    parts = urlparse(url)
+    filename = parts.path.rstrip("/").rsplit("/", 1)[-1]
+    if filename.endswith(".whl"):
+        try:
+            return parse_wheel_filename(filename)[0]
+        except InvalidWheelFilename:
+            pass
+    repo = _GITHUB_REPO.search(url)
+    if (
+        repo
+        and repo.group(1).lower() == "bitplorer"
+        and (name := canonicalize_name(repo.group(2))) in (*SPECIALISTS, "ux-compose")
+    ):
+        return name
+    if filename.endswith((".tar.gz", ".zip")) and (not repo or "/releases/download/" in parts.path):
+        try:
+            return parse_sdist_filename(filename)[0]
+        except InvalidSdistFilename:
+            pass
+    if parts.scheme in ("", "file") and not repo and not url.startswith(("git+", "hg+", "svn+", "bzr+")):
+        local = Path(url2pathname(parts.path)) if parts.scheme else Path(url)
+        if not (target := base / local).is_file():
+            return _local_name(target)
+    return None
+
+
+def _distribution(spec: str, base: Path) -> tuple[str | None, bool, _Line | None]:
+    """(canonical name or None, parses, line): the distribution a requirement installs.
 
     Markers split as pip splits them (``req_install.parse_req_from_line``):
     at the first ``"; "`` of a bare URL line, else at the first ``;``, so
     ``name @ url;marker`` is ``name`` with that marker (packaging alone may
-    read the marker into the URL). A wheel is named by its filename and a
-    bitplorer/ux-* repo URL by its repo, as pip names them; other bare URLs
-    and paths only by building them.
+    read the marker into the URL). A declared name wins; a nameless URL or
+    path is named by ``_url_identity``, whatever its marker. None: a URL
+    pip names only by building it, or the app's own local code.
     """
+    from packaging.markers import InvalidMarker, Marker
     from packaging.requirements import InvalidRequirement, Requirement
-    from packaging.utils import InvalidWheelFilename, canonicalize_name, parse_wheel_filename
+    from packaging.utils import canonicalize_name
 
     head, semi, marker = spec.partition("; " if "://" in spec.split(" ", 1)[0] else ";")
     try:
@@ -379,31 +440,67 @@ def _distribution(spec: str) -> tuple[str | None, bool, _Line | None]:
         marker_text = str(req.marker) if req.marker else None
         line = _Line(str(req.specifier), req.url, marker_text, frozenset(req.extras))
         return canonicalize_name(req.name), True, line
-    if egg := _EGG.search(spec):
-        return canonicalize_name(egg.group(1)), True, None
-    if (repo := _BITPLORER_REPO.search(spec)) and (
-        name := canonicalize_name(repo.group(1))
-    ) in (*SPECIALISTS, "ux-compose"):
-        return name, True, None
-    if spec.endswith(".whl"):
-        try:
-            return parse_wheel_filename(spec.rsplit("/", 1)[-1])[0], True, None
-        except InvalidWheelFilename:
-            pass
-    if "://" in spec or "/" in spec or spec.startswith(".") or spec.endswith((".whl", ".zip", ".tar.gz")):
-        return None, True, None
-    return None, False, None
+    target = head.strip()
+    if not ("://" in target or "/" in target or target.startswith(".") or target.endswith((".whl", ".zip", ".tar.gz"))):
+        return None, False, None
+    try:
+        marker_text = str(Marker(marker)) if semi and marker.strip() else None
+    except InvalidMarker:
+        return None, False, None
+    return _url_identity(target, base), True, _Line("", target, marker_text, frozenset())
+
+
+@cache
+def _environments() -> tuple[dict[str, str], ...]:
+    """Interpreters pip runs on, for marker overlap: CPython/PyPy 3.8-3.16 on
+    linux/darwin/win32 and their common machines. Wider than the 3.14 floor so
+    a split at an older version reads as the split it is. A marker true on no
+    such interpreter (an exotic machine) overlaps nothing: that is the
+    approximation.
+    """
+    from packaging.markers import default_environment
+
+    platforms = (
+        ("linux", "posix", "Linux", ("x86_64", "aarch64")),
+        ("darwin", "posix", "Darwin", ("x86_64", "arm64")),
+        ("win32", "nt", "Windows", ("AMD64", "ARM64")),
+    )
+    envs = []
+    for minor in range(8, 17):
+        for sys_platform, os_name, system, machines in platforms:
+            for machine in machines:
+                for impl, impl_name in (("cpython", "CPython"), ("pypy", "PyPy")):
+                    envs.append({
+                        **default_environment(), "python_version": f"3.{minor}",
+                        "python_full_version": f"3.{minor}.0", "implementation_version": f"3.{minor}.0",
+                        "sys_platform": sys_platform, "os_name": os_name, "platform_system": system,
+                        "platform_machine": machine, "implementation_name": impl,
+                        "platform_python_implementation": impl_name,
+                    })
+    return tuple(envs)
+
+
+def _both_apply(a: str | None, b: str | None) -> bool:
+    """Some interpreter in ``_environments`` installs both lines (no marker: always)."""
+    from packaging.markers import Marker
+
+    if a is None or b is None:
+        marked = a or b
+        return marked is None or any(Marker(marked).evaluate(env) for env in _environments())
+    ma, mb = Marker(a), Marker(b)
+    return any(ma.evaluate(env) and mb.evaluate(env) for env in _environments())
 
 
 def _one_install(a: _Line | None, b: _Line | None) -> bool:
     """Two lines pip installs as one distribution, so not a second line.
 
-    Both marker-guarded with different markers (a platform or Python split),
-    or the same pin and URL asking for different extras (pip unions them).
+    Markers no interpreter satisfies together (a platform or Python split),
+    or the same pin, URL and marker asking for different extras (pip unions
+    them). Overlapping markers can both apply, so they are two lines.
     """
     if a is None or b is None:
         return False
-    if a.marker and b.marker and a.marker != b.marker:
+    if not _both_apply(a.marker, b.marker):
         return True
     return (a.specifier, a.url, a.marker) == (b.specifier, b.url, b.marker) and a.extras != b.extras
 
@@ -412,16 +509,20 @@ def scan_requirements(path: Path) -> RequirementsScan:
     """Read ``requirements.txt`` the way pip does and check create-app's rule.
 
     Rule: one line per distribution, ux-compose named, no specialist pinned
-    beside it (a second ux-dom line is the file pip and uv refuse). Lines pip
-    installs as one (a marker split, or extras of the same pin) are one.
-    Options (``--index-url``, ``--hash``…) are not requirements; ``-e`` lines
+    beside it (a second ux-dom line is the file pip and uv refuse). Every
+    form is named by what it installs (``_distribution``), so a specialist
+    wheel, sdist, repo URL or local checkout fails like a named pin. Lines
+    pip installs as one (markers that never hold together, or extras of the
+    same pin) are one. Options (``--index-url``, ``--hash``…) are not requirements; ``-e`` lines
     are; local ``-r`` includes are followed relative to the including file,
-    and an include cycle fails as it does in pip. A ``-c`` file is not read,
+    and an include cycle (a file in its own include stack) fails as it does
+    in pip; a diamond reads a shared file's lines once. A ``-c`` file is not read,
     but a missing one fails, as in pip.
     """
     names: dict[str, str] = {}
     lines: dict[str, list[_Line | None]] = {}
     unchecked: list[str] = []
+    read: set[str] = set()  # file:line already counted; a diamond include reads one twice
     base = path.parent
 
     def scan(file: Path, chain: tuple[Path, ...]) -> str | None:
@@ -432,6 +533,9 @@ def scan_requirements(path: Path) -> RequirementsScan:
             if not line:
                 continue
             loc = f"{rel}:{number}"
+            if loc in read:
+                continue
+            read.add(loc)
             tokens = line.split(" ")
             first_option = next((k for k, t in enumerate(tokens) if t.startswith("-")), len(tokens))
             spec, options = " ".join(tokens[:first_option]), " ".join(tokens[first_option:])
@@ -459,11 +563,11 @@ def scan_requirements(path: Path) -> RequirementsScan:
                     if problem := scan(target, chain):
                         return problem
             for item in specs:
-                name, parses, line = _distribution(item)
+                name, parses, line = _distribution(item, base)
                 if not parses:
                     return f"{loc}: not a requirement: {item!r}"
                 if name is None:
-                    if "://" in item:  # a local path is the app's own code
+                    if "://" in item or item.startswith("git+"):  # a local path is the app's own code
                         unchecked.append(f"{loc} names no distribution ({item}); write 'name @ url' or add #egg=name")
                     continue
                 if not all(_one_install(line, seen) for seen in lines.get(name, [])):

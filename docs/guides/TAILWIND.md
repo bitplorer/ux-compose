@@ -204,7 +204,10 @@ downloaded.
 Each build streams the download into its own temp file next to the cache
 entry, hashes it, fsyncs it, and only a match is made executable and moved
 into place with `os.replace`. The temp file is removed on every exit,
-Ctrl-C included. On Windows the replace fails while another build runs the
+Ctrl-C included, and SIGTERM or SIGHUP (docker stop, systemd, `timeout`):
+the download unwinds, deletes the temp file, then the process still ends
+by that signal. A handler the app installed, or `nohup`'s ignore, is left
+as it is. On Windows the replace fails while another build runs the
 binary; a verified file already in place is then used. The installed file
 is hashed again before it runs, so parallel builds on a cold cache each get
 a verified binary. A mismatch deletes the file, runs

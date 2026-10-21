@@ -366,6 +366,53 @@ def test_interrupted_download_leaves_no_temp_file(only_download, monkeypatch, ra
     assert list(only_download.parent.iterdir()) == []
 
 
+_STALLED_DOWNLOAD = """
+import sys, time
+import ux_compose.tailwind as tw
+
+class Stalled:
+    def __init__(self):
+        self.sent = False
+    def read(self, size=-1):
+        if not self.sent:
+            self.sent = True
+            return b"#!/bin/sh\\n"
+        print("stalled", flush=True)
+        time.sleep(60)
+        return b""
+    def __enter__(self):
+        return self
+    def __exit__(self, *exc):
+        return False
+
+tw.urllib.request.urlopen = lambda req, timeout=None: Stalled()
+tw.TAILWIND_STANDALONE_SHA256[tw.standalone_asset_name()] = "0" * 64
+tw.resolve_tailwind(ensure=True)
+"""
+
+
+@pytest.mark.skipif(os.name != "posix", reason="SIGTERM is POSIX")
+@pytest.mark.parametrize("signame", ["SIGTERM", "SIGHUP"])
+def test_terminated_download_leaves_no_temp_file(only_download, signame):
+    """#140: SIGTERM (docker stop, systemd, ``timeout``) cleans up like Ctrl-C, then still ends by that signal."""
+    import signal
+    import subprocess
+    import sys
+
+    env = {**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)}
+    proc = subprocess.Popen(
+        [sys.executable, "-c", _STALLED_DOWNLOAD], env=env, stdout=subprocess.PIPE, text=True
+    )
+    try:
+        assert proc.stdout.readline().strip() == "stalled"
+        assert [p.suffix for p in only_download.parent.iterdir()] == [".part"]
+        proc.send_signal(getattr(signal, signame))
+        assert proc.wait(timeout=30) == -getattr(signal, signame)
+    finally:
+        proc.kill()
+    assert list(only_download.parent.iterdir()) == []
+
+
 def test_replace_refused_by_a_running_verified_binary_is_success(only_download, monkeypatch):
     """#120: Windows refuses os.replace onto an exe another build is running; it is already verified."""
     _trust(monkeypatch, GOOD)

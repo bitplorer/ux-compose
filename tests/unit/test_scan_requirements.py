@@ -9,7 +9,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 import pytest
 
-from ux_compose.scaffold import scan_requirements
+from ux_compose.scaffold import SPECIALISTS, scan_requirements
 
 CORPUS = Path(__file__).resolve().parent / "requirements_corpus"
 
@@ -248,3 +248,191 @@ def test_name_at_url_marker_without_space_splits_like_the_spaced_form(tmp_path):
 def test_bare_compose_url_names_ux_compose(tmp_path):
     scan = _scan(tmp_path, "git+https://github.com/bitplorer/ux-compose.git@abc\n")
     assert scan.problem is None and scan.names == {"ux-compose": "requirements.txt:1"}
+
+
+# #140: every requirement form resolves to a distribution identity — the declared
+# name, else the wheel/sdist filename, else the bitplorer repo — and a ux-*
+# specialist identity FAILs, whatever the form, marker or extras.
+def _spellings(name):
+    """PEP 503: case and runs of ``-_.`` do not change the name."""
+    return [name, name.upper().replace("-", "_"), name.replace("-", ".").title()]
+
+
+def _dist(name):
+    """A wheel/sdist filename's distribution field (``-`` is the field separator)."""
+    return name.replace("-", "_").replace(".", "_")
+
+
+MARKERS = ["", ' ; python_version >= "3.14"', ";sys_platform=='linux'"]
+EXTRAS = ["", "[standard]", "[a,b]"]
+# {n}: a spelling of the specialist, {d}: it as a filename field, {r}: its repo, {e}: extras, {m}: marker.
+NAMED_FORMS = [
+    "{n}{e}{m}",
+    "{n}{e}==0.2.0{m}",
+    "{n}{e} @ git+https://github.com/someone/fork.git@abc{m}",
+    "{n}{e} @ https://example.com/whatever.zip{m}",
+    "git+https://github.com/someone/fork.git@abc#egg={n}{e}{m}",
+]
+URL_FORMS = [
+    "git+https://github.com/bitplorer/{r}.git@abc{m}",
+    "git+ssh://git@github.com/bitplorer/{r}.git@abc{m}",
+    "git+git@github.com:bitplorer/{r}.git@abc{m}",
+    "git+https://github.com/bitplorer/{r}@abc#subdirectory=python{m}",
+    "https://github.com/bitplorer/{r}/archive/abc.tar.gz{m}",
+    "https://codeload.github.com/bitplorer/{r}/zip/refs/heads/main{m}",
+    "https://api.github.com/repos/bitplorer/{r}/tarball/abc{m}",
+    "https://files.example.com/p/{d}-0.2.0-py3-none-any.whl{m}",
+    "https://files.example.com/p/{d}-0.2.0-py3-none-any.whl#sha256=00{m}",
+    "https://files.example.com/p/{d}-0.2.0-py3-none-any.whl?raw=true{m}",
+    "https://github.com/someone/fork/releases/download/v1/{d}-0.2.0-py3-none-any.whl{m}",
+    "https://files.example.com/p/{d}-0.2.0.tar.gz{m}",
+    "https://files.example.com/p/{d}-0.2.0.zip{m}",
+    "file:///srv/wheels/{d}-0.2.0-cp314-cp314-manylinux_2_17_x86_64.whl{m}",
+    "./wheels/{d}-0.2.0-py3-none-any.whl{m}",
+]
+EDITABLE_FORMS = [
+    "-e git+https://github.com/bitplorer/{r}.git@abc",
+    "--editable=git+https://github.com/someone/fork.git@abc#egg={n}{e}",
+    "-e git+ssh://git@github.com/bitplorer/{r}.git@abc#subdirectory=py",
+    "-e ./vendor/{r}",
+    "-e ./src/checkout",  # its pyproject.toml names the specialist
+    "./src/checkout",
+]
+
+
+def _cases():
+    out = []
+    for name in SPECIALISTS:
+        for spell in _spellings(name):
+            for form in NAMED_FORMS:
+                for e in EXTRAS:
+                    for m in MARKERS:
+                        out.append((name, form.format(n=spell, e=e, m=m)))
+            for form in URL_FORMS:
+                for m in MARKERS:
+                    out.append((name, form.format(r=spell, d=_dist(spell), m=m)))
+            for form in EDITABLE_FORMS:
+                for e in EXTRAS if "{e}" in form else [""]:
+                    out.append((name, form.format(n=spell, r=spell, e=e)))
+    return out
+
+
+SPECIALIST_CASES = _cases()
+
+
+@pytest.mark.parametrize("name, line", SPECIALIST_CASES, ids=[line for _, line in SPECIALIST_CASES])
+def test_every_form_naming_a_specialist_fails(tmp_path, name, line):
+    """UC1/D2: a second specialist must never install, by any requirement form (#140)."""
+    (tmp_path / "src" / "checkout").mkdir(parents=True)
+    (tmp_path / "src" / "checkout" / "pyproject.toml").write_text(
+        f'[project]\nname = "{name.upper()}"\nversion = "0"\n', encoding="utf-8"
+    )
+    scan = _scan(tmp_path, f"ux-compose\n{line}\n")
+    assert scan.problem == SPECIALIST_PIN.format(name=name)
+
+
+def test_the_cross_product_is_full():
+    per_spelling = len(NAMED_FORMS) * len(EXTRAS) * len(MARKERS) + len(URL_FORMS) * len(MARKERS) + 5 + len(EXTRAS)
+    assert len(SPECIALIST_CASES) == len(SPECIALISTS) * 3 * per_spelling
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "git+https://github.com/someone/ux-dom.git@abc",
+        "git+https://github.com/someone/ux-dom.git@abc ; python_version >= '3.14'",
+        "-e git+https://github.com/someone/ux-behavior.git@abc",
+        "git+ssh://git@github.com/someone/ux-motion.git@abc",
+        "https://github.com/someone/ux-channel/archive/abc.tar.gz",
+        "https://codeload.github.com/someone/ux-dom/tar.gz/abc",
+        "git+https://github.com/bitplorer/ux-dom-fork.git@abc",
+        "git+https://github.com/bitplorer/uxdom.git@abc",
+        "git+https://gitlab.com/bitplorer/ux-dom.git@abc",
+        "git+git@gitlab.com:someone/ux-dom@abc",
+        "https://example.com/pkgs/ux-dom-main.tar.gz",
+        "https://example.com/pkgs/tool.tar.gz;sys_platform=='linux'",
+    ],
+)
+def test_forks_and_unknown_urls_warn_with_their_text(tmp_path, line):
+    """A fork or an unrelated URL is not a specialist; pip names it only by building it."""
+    scan = _scan(tmp_path, f"ux-compose\n{line}\n")
+    assert scan.problem is None
+    url = line.removeprefix("-e ").split(";")[0].strip()
+    assert len(scan.unchecked) == 1 and url in scan.unchecked[0]
+
+
+@pytest.mark.parametrize(
+    "line, name",
+    [
+        ("ux-dom-fork", "ux-dom-fork"),
+        ("uxdom[standard] ; python_version >= '3.14'", "uxdom"),
+        ("ux-dom-fork @ git+https://github.com/bitplorer/ux-dom.git@abc", "ux-dom-fork"),
+        ("https://x/p/ux_dom_fork-0.2.0-py3-none-any.whl ; python_version >= '3.14'", "ux-dom-fork"),
+        ("https://x/p/ux_behavior_extra-1.0.tar.gz", "ux-behavior-extra"),
+        ("https://github.com/someone/fork/releases/download/v1/httpx-0.27.0-py3-none-any.whl", "httpx"),
+        ("-e ./vendor/lib", None),
+        ("-e git+https://github.com/someone/ux-dom.git@abc#egg=my-dom", "my-dom"),
+    ],
+)
+def test_forks_and_other_distributions_do_not_fail(tmp_path, line, name):
+    scan = _scan(tmp_path, f"ux-compose\n{line}\n")
+    assert scan.problem is None and scan.unchecked == []
+    assert set(scan.names) == {"ux-compose"} | ({name} if name else set())
+
+
+def test_declared_egg_name_wins_over_the_repo(tmp_path):
+    """``#egg`` is the declared name; pip refuses a build whose metadata disagrees."""
+    scan = _scan(tmp_path, "ux-compose\n-e git+https://github.com/bitplorer/ux-dom.git@abc#egg=other-name\n")
+    assert scan.problem is None and "other-name" in scan.names
+
+
+# (3) A diamond include reads D twice through two parents; that is not a cycle.
+def test_diamond_include_is_not_a_failure(tmp_path):
+    scan = _scan(
+        tmp_path,
+        "ux-compose\n-r b.txt\n-r c.txt\n",
+        **{"b.txt": "-r d.txt\n", "c.txt": "-r d.txt\n", "d.txt": "fastapi\n"},
+    )
+    assert scan.problem is None
+    assert scan.names == {"ux-compose": "requirements.txt:1", "fastapi": "d.txt:1"}
+
+
+def test_deep_cycle_still_fails(tmp_path):
+    scan = _scan(
+        tmp_path,
+        "ux-compose\n-r b.txt\n-r c.txt\n",
+        **{"b.txt": "-r d.txt\n", "c.txt": "-r d.txt\n", "d.txt": "-r c.txt\n"},
+    )
+    assert scan.problem == "c.txt:1: includes d.txt, which includes this file again"
+
+
+# (4) Duplicate lines whose markers can both hold on one interpreter are two lines.
+@pytest.mark.parametrize(
+    "lines",
+    [
+        "foo; python_version>='3.13'\nfoo; sys_platform=='linux'\n",
+        "foo; python_version>='3.12'\nfoo; python_version>='3.14'\n",
+        "foo; os_name=='posix'\nfoo; sys_platform=='darwin'\n",
+        "foo; platform_machine=='x86_64'\nfoo; implementation_name=='cpython'\n",
+        "foo; python_version >= '3.14'\nfoo; python_version>='3.14'\n",
+    ],
+    ids=["version-and-platform", "nested-versions", "posix-and-darwin", "machine-and-impl", "spacing-only"],
+)
+def test_overlapping_markers_count_twice(tmp_path, lines):
+    assert _scan(tmp_path, "ux-compose\n" + lines).problem == (
+        "foo is listed twice (requirements.txt:2, requirements.txt:3); one line per distribution"
+    )
+
+
+@pytest.mark.parametrize(
+    "lines",
+    [
+        "foo; sys_platform=='win32'\nfoo; sys_platform=='linux'\n",
+        "foo; os_name=='nt'\nfoo; sys_platform=='darwin'\n",
+        "foo; python_version<'3.15'\nfoo; python_version>='3.15'\n",
+        "foo; platform_system=='Windows'\nfoo; platform_system!='Windows'\n",
+        "foo; implementation_name=='pypy'\nfoo; implementation_name=='cpython' and os_name=='posix'\n",
+    ],
+)
+def test_disjoint_markers_stay_one_install(tmp_path, lines):
+    assert _scan(tmp_path, "ux-compose\n" + lines).problem is None

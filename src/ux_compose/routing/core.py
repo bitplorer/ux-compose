@@ -201,35 +201,112 @@ def apply_html_document(document: Any, payload: Any) -> Any:
     skip it). Author-provided ``document=`` is the SSoT. A synthesized
     Document is for ``document.mount`` (CSP / static), not for wrapping.
 
-    HTML strings are not valid ``Document(*args)`` children — ux-dom treats
-    a positional str on ``<body>`` as a script ``src``. Convert via ``raw()``
-    so the fragment lands in the body as markup.
+    The payload follows the HTML sink contract (``ux_compose.dom.html_value``):
+    ``str`` / ``bytes`` are sanitized with ux-dom ``sanitize_html`` whether or
+    not there is a Document, ``Markup`` and ux-dom trees are trusted, any
+    other type raises ``TypeError``. HTML strings are not valid
+    ``Document(*args)`` children (ux-dom treats a positional str on
+    ``<body>`` as a script ``src``), so the sanitized fragment goes in
+    through ``raw()``.
     """
+    from ux_compose.dom import html_child, html_value
+
+    if payload is None:
+        return document() if callable(document) else None
     if document is None or not callable(document):
-        return payload
-    child = _document_child(payload)
+        return html_value(payload, sink=_ROUTE_SINK)
+    child = html_child(payload, sink=_ROUTE_SINK)
     try:
-        if child is None:
-            return document()
         return document(child)
     except Exception:
         logger.exception("apply_html_document failed; returning the fragment")
-        return payload
+        return html_value(payload, sink=_ROUTE_SINK)
 
 
-def _document_child(payload: Any) -> Any:
-    if payload is None:
-        return None
-    if isinstance(payload, (bytes, bytearray, memoryview)):
-        payload = bytes(payload).decode("utf-8")
-    if isinstance(payload, str):
-        try:
-            from ux_dom.dom import raw
+_ROUTE_SINK = "route body"
+_STREAM_SINK = "route stream chunk"
 
-            return raw(payload)
-        except Exception:
-            return payload
-    return payload
+
+def _stream_text(chunk: Any, decoder: Any) -> Any:
+    """One stream chunk under the HTML sink contract.
+
+    ``str`` is left for ``sanitize_html_stream``, which sanitizes across
+    chunk boundaries; ``bytes`` are one strict UTF-8 stream (a character may
+    span chunks). Everything else goes through ``html_text``: ``Markup`` and
+    trees are trusted, other types raise ``TypeError``.
+    """
+    from ux_compose.dom import html_text
+
+    if chunk is None:
+        return ""
+    if isinstance(chunk, (bytes, bytearray, memoryview)):
+        return decoder.decode(bytes(chunk))
+    if isinstance(chunk, str) and not hasattr(chunk, "__html__"):
+        return chunk
+    return html_text(chunk, sink=_STREAM_SINK)
+
+
+def sanitize_stream_payload(payload: Any) -> Any:
+    """Generator route body → ``sanitize_html_stream`` of its text.
+
+    Sync stays sync, async stays async. ``bytes`` chunks are decoded as one
+    UTF-8 stream; ``str`` chunks are untrusted; ``Markup`` and tree chunks
+    are sent as written. Joined, the pieces equal ``sanitize_html`` of the
+    joined text. A stream that holds more than ``MAX_BUFFER_CHARS``
+    characters without a safe boundary raises ``HtmlStreamOverflow`` and
+    sends none of the held text.
+    """
+    import codecs
+
+    from ux_dom.response import sanitize_html_stream
+
+    decoder = codecs.getincrementaldecoder("utf-8")()
+    if hasattr(payload, "__aiter__"):
+
+        async def atexts():
+            async for chunk in payload:
+                yield _stream_text(chunk, decoder)
+            yield decoder.decode(b"", final=True)
+
+        return sanitize_html_stream(atexts())
+
+    def texts():
+        for chunk in payload:
+            yield _stream_text(chunk, decoder)
+        yield decoder.decode(b"", final=True)
+
+    return sanitize_html_stream(texts())
+
+
+async def open_html_stream(payload: Any) -> Any:
+    """Sanitized stream with its first piece already computed.
+
+    Hosts call this before they send the status line, so a stream that
+    fails before its first piece (``HtmlStreamOverflow`` included) becomes a
+    500 with no body. A failure after that point is raised mid-response.
+    A sync stream's first piece is computed off the event loop.
+    """
+    import asyncio
+
+    stream = sanitize_stream_payload(payload)
+    if hasattr(stream, "__aiter__"):
+        first = await anext(stream, None)
+
+        async def arest():
+            if first is not None:
+                yield first
+            async for piece in stream:
+                yield piece
+
+        return arest()
+    first = await asyncio.to_thread(next, stream, None)
+
+    def rest():
+        if first is not None:
+            yield first
+        yield from stream
+
+    return rest()
 
 
 def is_renderable_unit(klass: type) -> bool:

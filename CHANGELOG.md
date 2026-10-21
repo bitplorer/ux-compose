@@ -94,6 +94,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Security: a route body that is a plain `str` or `bytes` is untrusted HTML
+  and goes through ux-dom `sanitize_html` on both hosts, with or without a
+  Document, and through `brand_wrap`; main sent it through `raw()` (or as
+  is, with no Document) unsanitized, so `'<img src=x onerror=alert(1)>hi'`
+  ran script. Morph HTML follows the same rule: every HTML field the
+  client inserts goes through `wire.caps.ops_to_wire`, where a plain `str`
+  / `bytes` is sanitized, whether it comes from `update_with(html=)`, a
+  string `render()` (`Component.__render__`, `update_with`, `morph_play`,
+  ux-behavior's refresh), `ux_behavior.update(target, str)` (validation
+  messages included), a `morph` / `swap` dict, or a motion `enter`
+  `html=`. HTML compose renders from a ux-dom tree is trusted
+  (`helpers.TrustedHtml`, `__html__`), so `hx-*` / `x-*` attributes on a
+  tree survive the morph; a `Markup` stays as written. The pinned
+  ux-channel `0ffe8e9` client has no morph guard of its own, so this is
+  the only layer. Every HTML sink (route body, stream chunk, `render()`,
+  `update_with(html=)`, `ux_behavior.update`, `morph` / `swap` ops, motion
+  `enter` html, `brand_wrap`) applies one closed type contract,
+  `ux_compose.dom.html_value` / `html_text`: `__html__` (`Markup`) and real
+  ux-dom trees (ux-dom `dom_tag` / `Component`, `Document`, compose
+  `Component`) are trusted and rendered by ux-dom; `str`, and `bytes` as
+  strict UTF-8, are sanitized; `None` is empty; anything else (list,
+  tuple, dict, numbers, an object whose `__str__` returns HTML) raises
+  `TypeError` naming the sink, and undecodable bytes raise `ValueError`.
+  Main `str()`-coerced those values, so a list or `__str__` object reached
+  the client as raw HTML and `bytes` from `render()` were sent as written;
+  a route that returns one is now a 500. A generator body
+  goes through `sanitize_html_stream`: `str` / `bytes` chunks are untrusted
+  (bytes decoded as one UTF-8 stream), tree and `Markup` chunks are sent as
+  written, and the joined output equals `sanitize_html` of the joined text
+  wherever the chunks split. A stream that holds more than 1 MiB without a
+  safe HTML boundary raises `HtmlStreamOverflow` and sends none of the held
+  text: a logged 500 before the first byte (any other error before the
+  first byte is now a 500 too, not an empty 200), an aborted response with
+  no final chunk after it. `Markup` stays explicit trust; a Response object
+  passes through as before. Behavior change for apps that relied on
+  unsanitized strings: `<script>`, `<style>`, `<link>`, event-handler
+  attributes, `javascript:` URLs, `<!doctype>` and unknown tags are removed
+  or unwrapped, attributes come out sorted and double-quoted, and
+  `return tree.__async_render__()` (plain `str` tokens) is sanitized too.
+  Return `Markup(html)` for HTML you trust, a tree, or
+  `StreamingResponse(tree)`. Output gains no trailing newline. Tests:
+  `tests/security/test_route_strings_sanitized.py` (attack strings through
+  real routes, both hosts, random chunk splits; Chromium with the CSP
+  bypassed: 0 executions, while the same strings as `Markup` execute) and
+  `tests/security/test_morph_strings_sanitized.py` (each morph path through
+  the real `ux-channel.js` / ux-motion player in Chromium: 0 executions;
+  `Markup` executes; a tree's `hx-*` / `x-*` attributes survive).
 - `doctor --prod`'s requirements scan (#140) names every requirement by
   what it installs, in every form, and FAILs when that is a specialist
   (ux-dom, ux-channel, ux-behavior, ux-motion; PEP 503 spelling): the
@@ -311,6 +358,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- ux-dom pin `6ac2e5e` → `d87a21b` (ux-dom main: ux-dom#123 public
+  `ux_dom.response.sanitize_html` / `sanitize_html_stream` /
+  `HtmlStreamOverflow`, and ux-dom#44, whose `ux-valio` dependency
+  resolves from its pinned commit) in `pyproject.toml`, `Makefile` and
+  `test_hard_deps.py`; create-app's `requirements.txt` follows through the
+  ux-compose commit it pins.
 - ux-dom pin `8422b9a` → `6ac2e5e` (ux-dom main, 21 commits) in
   `pyproject.toml`, `Makefile` and `test_hard_deps.py`; create-app's
   `requirements.txt` follows through the ux-compose commit it pins. No

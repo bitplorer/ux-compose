@@ -63,8 +63,8 @@ def test_apply_html_document_never_drops_fragment():
     def shell(child=None):
         return f"SHELL:{child}"
 
-    assert apply_html_document(None, "<div id='hello'>hi</div>") == "<div id='hello'>hi</div>"
-    assert apply_html_document(shell, "<div id='hello'>hi</div>") == "SHELL:<div id='hello'>hi</div>"
+    assert apply_html_document(None, '<div id="hello">hi</div>') == '<div id="hello">hi</div>'
+    assert apply_html_document(shell, '<div id="hello">hi</div>') == 'SHELL:<div id="hello">hi</div>'
     assert apply_html_document(shell, None) == "SHELL:None"
 
 

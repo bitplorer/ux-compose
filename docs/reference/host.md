@@ -72,11 +72,27 @@ Not FastAPI `default_response_class`.**
 Same spirit as ux-dom `html_response` / `streaming_response` (wrap trees, pass
 the rest through). Compose treats a `str` as HTML, never JSON.
 
+A `str` or `bytes` body is **untrusted HTML**. Both hosts send it through
+ux-dom `sanitize_html` (the one string sanitizer, ux-dom ADR 0002), with or
+without a Document. A generator body goes through `sanitize_html_stream`:
+its `str` / `bytes` chunks are untrusted, its tree and `Markup` chunks are
+sent as written. `Markup` (anything with `__html__`) is explicit trust and
+is never sanitized. A Response object is passed through as-is.
+
+One closed type contract holds at every HTML sink (route body, stream
+chunk, `render()`, morph html, motion `enter` html, `brand_wrap`):
+`ux_compose.dom.html_value` / `html_text`. Trusted: `__html__` and real
+ux-dom trees (ux-dom `dom_tag` / `Component`, `Document`, compose
+`Component`). Sanitized: `str`, and `bytes` as strict UTF-8. `None` is
+empty. Any other type (list, tuple, numbers, an object with an HTML
+`__str__`) raises `TypeError` naming the sink, never `str()`; bytes that
+are not UTF-8 raise `ValueError`. On a route either is a 500.
+
 | `render()` / handler returns | HTTP | Document wrap | CSP stamp |
 |------------------------------|------|---------------|-----------|
 | ux-dom tag / Document / Component / HTML `str` / `bytes` | `HTMLResponse` | yes | yes (ux-dom `prepare_html_body`) |
 | `dict` or list-of-dicts | JSON (`application/json`) | **no** | n/a |
-| sync / async generator, or `__aiter__` that is not a tree | `StreamingResponse` (`text/html`) | **no** | only if ux-dom stream prepare runs |
+| sync / async generator, or `__aiter__` that is not a tree | `StreamingResponse` (`text/html`), `sanitize_html_stream` | **no** | only if ux-dom stream prepare runs |
 | `HTMLResponse` / `JSONResponse` / `StreamingResponse` / `Response` | as-is | **no** | whatever that object already did |
 | `None` | empty HTML | yes | — |
 
@@ -91,14 +107,24 @@ Predicates (host-agnostic, `routing/core.py`):
 Dispatch (`routing/fastapi.py` `_as_http_response`):
 
 1. already a Response **or** JSON payload → return as-is (FastAPI JSON-encodes dicts)
-2. stream payload → `StreamingResponse` (ux-dom if it accepts the body, else Starlette)
+2. stream payload → `open_html_stream` (sanitized, first piece computed
+   before the status line) → `StreamingResponse` (ux-dom if it accepts the
+   body, else Starlette)
 3. else → `apply_html_document(wrap, tree)` then `HTMLResponse`
 
-`apply_html_document` lives in `routing/core.py`. HTML `str` becomes
-ux-dom `raw()` so the fragment is body markup, not a script `src`.
+`apply_html_document` lives in `routing/core.py`. An HTML `str` / `bytes`
+becomes `sanitize_html(...)`, and inside a Document ux-dom
+`raw(sanitize_html(...))` so the fragment is body markup, not a script `src`.
 
 DirectoryASGI (`host="asgi"`) uses the same predicates. Streams go out as
 chunked ASGI `more_body`. JSON is `json.dumps`. HTML is `to_html_bytes`.
+
+A stream that holds more than ux-dom `MAX_BUFFER_CHARS` (1 MiB) characters
+without a safe HTML boundary raises `HtmlStreamOverflow` and none of the
+held text is sent (fail closed, logged). Before the first piece that is a
+**500** `Internal Server Error` with no page bytes (as is any other error
+there). After it, the status line is out: the response is aborted with no
+final chunk, so the client sees a cut-off response, not a complete one.
 
 ### Why trees are not auto-streamed
 
@@ -110,10 +136,12 @@ product path.
 To stream a tag tree, opt in:
 
 ```python
-return tree.__async_render__(pretty=False)   # async gen → stream
-# or
 return StreamingResponse(tree)               # ux-dom stream prepare + CSP
+# or yield trees: a tree chunk is rendered by ux-dom and sent as written
 ```
+
+`return tree.__async_render__(pretty=False)` yields plain `str` tokens,
+which a generator body sanitizes like any other string.
 
 ---
 

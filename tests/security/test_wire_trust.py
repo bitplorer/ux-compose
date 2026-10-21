@@ -10,6 +10,7 @@ from __future__ import annotations
 import contextvars
 import importlib.util
 import json
+from html import unescape
 
 import pytest
 from itsdangerous import URLSafeTimedSerializer
@@ -129,7 +130,8 @@ def test_payload_self_on_a_normal_method_is_not_a_500():
     body = response.json()
     error = body.get("error") or {}
     assert error.get("code") != "internal"
-    assert "unexpected keyword argument 'self'" in response.text
+    # Morph html is sanitized HTML: the message text is entity-escaped.
+    assert "unexpected keyword argument 'self'" in unescape(response.text)
     assert "Traceback" not in response.text
     assert ran["n"] == 0
 
@@ -144,7 +146,7 @@ def _validation_shape(response, keyword: str) -> tuple[int, dict]:
     for op in body.get("ops") or []:
         html = op.get("html")
         if isinstance(html, str):
-            op["html"] = html.replace(f"'{keyword}'", "'KEY'")
+            op["html"] = unescape(html).replace(f"'{keyword}'", "'KEY'")
     return response.status_code, body
 
 
@@ -189,8 +191,8 @@ def test_payload_self_matches_any_other_validation_error():
     assert self_key.status_code == other.status_code
     assert self_key.status_code != 500, self_key.text
     assert _validation_shape(self_key, "self") == _validation_shape(other, "note")
-    assert "unexpected keyword argument 'self'" in self_key.text
-    assert "unexpected keyword argument 'note'" in other.text
+    assert "unexpected keyword argument 'self'" in unescape(self_key.text)
+    assert "unexpected keyword argument 'note'" in unescape(other.text)
     assert ran["n"] == 0
 
 

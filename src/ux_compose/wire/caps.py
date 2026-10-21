@@ -14,6 +14,7 @@ import json
 from contextvars import ContextVar
 from typing import Any, Mapping, Optional
 
+from ux_compose.dom import html_text
 from ux_compose.helpers import _require_control_arg_names
 
 _PROCESS_CHANNEL: Any = None
@@ -149,8 +150,44 @@ def mint_cap(
     return mint(action, dict(args or {}), **kwargs)
 
 
+_HTML_OPS = frozenset({"morph", "swap"})
+
+
+def _wire_html(html: Any, sink: str) -> str:
+    """HTML for the client, under the HTML sink contract (``html_text``)."""
+    return str(html_text(html, sink=sink))
+
+
+def _wire_plan(node: Any) -> Any:
+    """Copy of a motion plan whose ``html`` fields follow the contract."""
+    if isinstance(node, Mapping):
+        out = {key: _wire_plan(value) for key, value in node.items()}
+        if node.get("html") is not None:
+            out["html"] = _wire_html(node["html"], "motion enter html")
+        return out
+    if isinstance(node, (list, tuple)):
+        return [_wire_plan(item) for item in node]
+    return node
+
+
+def _wire_dict(op: Mapping) -> dict:
+    out = dict(op)
+    if out.get("op") in _HTML_OPS and "html" in out:
+        out["html"] = _wire_html(out["html"], f"{out['op']} op html")
+    if "plan" in out:
+        out["plan"] = _wire_plan(out["plan"])
+    return out
+
+
 def ops_to_wire(ops: Any) -> list[dict]:
-    """Project Behavior Op objects to Channel wire-shape dicts."""
+    """Project Behavior Op objects to Channel wire-shape dicts.
+
+    Every HTML field the client inserts (morph / swap ``html``, motion
+    ``enter`` ``html``) follows the HTML sink contract
+    (``ux_compose.dom.html_text``): ``str`` / ``bytes`` → ux-dom
+    ``sanitize_html``; ``__html__`` / a ux-dom tree → as written; any other
+    type → ``TypeError``.
+    """
     out: list[dict] = []
     if not ops:
         return out
@@ -159,7 +196,7 @@ def ops_to_wire(ops: Any) -> list[dict]:
         if o is None:
             continue
         if isinstance(o, dict) and "op" in o:
-            out.append(dict(o))
+            out.append(_wire_dict(o))
             continue
         ns = str(getattr(o, "ns", "") or "")
         name = str(getattr(o, "name", "") or "")
@@ -170,7 +207,7 @@ def ops_to_wire(ops: Any) -> list[dict]:
             target = str(payload.get("target") or "")
             if target and not target.startswith(("#", "[")):
                 target = f"#{target}"
-            out.append({"op": "morph", "target": target, "html": str(html or "")})
+            out.append({"op": "morph", "target": target, "html": _wire_html(html, "morph html")})
         elif name in ("append", "notify", "toast") or ns in ("log", "notify"):
             out.append(
                 {
@@ -180,11 +217,11 @@ def ops_to_wire(ops: Any) -> list[dict]:
                 }
             )
         elif name == "play" or ns == "transition":
-            out.append({"op": "transition.play", "plan": payload.get("plan", payload)})
+            out.append({"op": "transition.play", "plan": _wire_plan(payload.get("plan", payload))})
         else:
             d = {"op": fq or "custom"}
             d.update(payload)
-            out.append(d)
+            out.append(_wire_dict(d))
     return out
 
 

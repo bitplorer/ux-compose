@@ -82,12 +82,13 @@ class Component(_BehaviorComponent):
 
     def __render__(self, pretty: bool = False, **_kw) -> str:
         """Serialize live render() output. Always current MorphState, never a construct-time snapshot."""
-        from ux_compose.helpers import _serialize_tree
+        from ux_compose.dom import html_text, html_value
 
-        tree = self.render()
-        if pretty and tree is not None and not isinstance(tree, str):
-            return str(tree)
-        return _serialize_tree(tree)
+        sink = f"{type(self).__name__}.render()"
+        node = html_value(self.render(), sink=sink)
+        if pretty and isinstance(node, _dom_tag):
+            return str(node)
+        return html_text(node, sink=sink)
 
     async def __async_render__(self, pretty: bool = False, **_kw) -> AsyncIterator[str]:
         """Async HTML stream for StreamingResponse / page-route plane.

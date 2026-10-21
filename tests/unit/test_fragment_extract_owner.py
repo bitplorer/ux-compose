@@ -59,6 +59,7 @@ def _stub_specialists(*, extract_by_id=False):
         serialize.__all__ = ["to_html_bytes", "extract_by_id"]
     response = types.ModuleType("ux_dom.response")
     response.serialize = serialize
+    response.sanitize_html = lambda html: html
     if extract_by_id is not False:
         response.extract_by_id = extract_by_id
     ux_dom = types.ModuleType("ux_dom")

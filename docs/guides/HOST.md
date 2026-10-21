@@ -72,6 +72,12 @@ control-minted cap under Cap Host require). Stamp the button with
 
 L1 without HTTP: return a ux-dom tag tree. A `str` still serializes as
 `text/html` (not JSON, not streamed) but is not a Document-absent product path.
+A `str` / `bytes` body is untrusted: ux-dom `sanitize_html` drops scripts,
+handlers and unsafe URLs. Return `markupsafe.Markup(html)` only for HTML you
+trust. The same holds for morph HTML: `update_with(html=str)`,
+`ux_behavior.update(target, str)` and a motion `enter(html=str)` are
+sanitized on the wire (which also drops `hx-*` / `x-*`); a tree `render()`
+and `Markup` go as written.
 
 Path params: `routes/shop/[sku].py` → `GET /shop/{sku}`.
 
@@ -125,7 +131,10 @@ wrap). Opt in with `build(openapi=True)` or `settings.OPENAPI = True`.
 
 Return a generator or async generator. No `StreamingResponse` wrap. No Document
 wrap (chunked body has no `Content-Length`; CSP stamp cannot run after the
-first byte unless you opt into ux-dom stream prepare).
+first byte unless you opt into ux-dom stream prepare). `str` / `bytes` chunks
+go through ux-dom `sanitize_html_stream`; tree and `Markup` chunks are sent as
+written. A stream with no safe HTML boundary in 1 MiB fails closed (500
+before the first byte, aborted after it).
 
 ```python
 class Ticks:
@@ -145,7 +154,6 @@ class Live:
     def render(self):
         tree = div("…", id="live")
         return StreamingResponse(tree)
-        # or: return tree.__async_render__(pretty=False)
 ```
 
 Do not set `router.route_class = StreamingRoute`. That is leftover ux-dom.

@@ -14,7 +14,7 @@ from typing import Any, List, Optional
 
 from ux_behavior import bind as _behavior_bind, notify as _real_notify, update as _real_update
 from ux_behavior.ops import Op as _Op
-from ux_dom.response.serialize import to_html_bytes
+from ux_compose.dom import TrustedHtml, html_text
 
 # Soft USE (ux-dom#20 / compose#80 C2): prefer owner extract when the
 # symbol exists. Homemade walker below is escape if absent. Cached so
@@ -148,13 +148,14 @@ def control(action: str, **args) -> dict:
     return _action_attrs(action, args)
 
 
-def _serialize_tree(tree: Any) -> str:
-    """Serialize via ux-dom. No homemade HTML-string renderer."""
-    if tree is None:
-        return ""
-    if isinstance(tree, str):
-        return tree
-    return to_html_bytes(tree).decode("utf-8")
+def _serialize_tree(tree: Any) -> TrustedHtml:
+    """Serialize via ux-dom. No homemade HTML-string renderer.
+
+    The HTML sink contract (``ux_compose.dom.html_text``): a ``str`` /
+    ``bytes`` from ``render()`` is sanitized, ``Markup`` and ux-dom trees
+    are trusted, any other type raises ``TypeError``.
+    """
+    return html_text(tree, sink="render()")
 
 
 # Prefer ux-dom ``extract_by_id`` (serialize door; ux-dom#20). String
@@ -317,9 +318,9 @@ def _fragment_for_target(html: str, target_id: str) -> str:
     return html
 
 
-def _render_html(component_or_id: Any, *, target_id: str | None = None) -> str:
+def _render_html(component_or_id: Any, *, target_id: str | None = None) -> TrustedHtml:
     if isinstance(component_or_id, str):
-        html = component_or_id
+        html = html_text(component_or_id, sink="update_with / morph_play html")
     else:
         render = getattr(component_or_id, "render", None)
         tree = render() if callable(render) else component_or_id
@@ -330,7 +331,8 @@ def _render_html(component_or_id: Any, *, target_id: str | None = None) -> str:
         if raw:
             tid = str(raw)
     if tid:
-        return _fragment_for_target(html, tid)
+        # A subtree of trusted HTML is trusted.
+        return TrustedHtml(_fragment_for_target(html, tid))
     return html
 
 
@@ -418,6 +420,10 @@ def update_with(
     Morph HTML for ``#target`` is the fragment rooted at that id. Authors
     should still write fragment ``render()``; helpers strip an outer shell
     when the rendered tree contains an element matching ``component.id``.
+
+    ``html=`` as a plain ``str`` is untrusted: ux-dom ``sanitize_html``
+    drops scripts, handlers, unsafe URLs and ``hx-*`` / ``x-*``. Pass a
+    ``Markup`` only for HTML you trust; tree ``render()`` output is trusted.
     """
     target = getattr(component, "id", None) or getattr(
         component, "__name__", component if isinstance(component, str) else "component"
@@ -431,7 +437,8 @@ def update_with(
     if fields:
         morph_payload["fields"] = list(fields)
     if html is not None:
-        morph_payload["html"] = _fragment_for_target(html, tid)
+        trusted = html_text(html, sink="update_with(html=)")
+        morph_payload["html"] = TrustedHtml(_fragment_for_target(trusted, tid))
     else:
         morph_payload["html"] = _render_html(component, target_id=tid)
     # strip helper kwargs that are not morph fields

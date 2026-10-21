@@ -691,10 +691,10 @@ def test_sixteen_threads_three_builds_serve_their_own_routes(tmp_path):
 
 
 def _marker(html: str) -> str:
-    start = html.find("<div id=m>")
+    start = html.find('<div id="m">')
     if start < 0:
         return html[:80]
-    start += len("<div id=m>")
+    start += len('<div id="m">')
     end = html.find("</div>", start)
     return html[start:end] if end >= 0 else html[start:start + 80]
 
@@ -1523,7 +1523,7 @@ def test_route_import_does_not_keep_another_threads_helper(tmp_path, monkeypatch
         assert not owner.is_alive() and not other.is_alive()
         assert "err" not in out, out.get("err")
         built = out["built"]
-        assert asgi_get(built[1], "/home").text == "<div id=m>A|HELPER_A</div>"
+        assert asgi_get(built[1], "/home").text == '<div id="m">A|HELPER_A</div>'
     finally:
         _purge_package("myapp")
         _drop_tree(tmp_path)

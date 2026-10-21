@@ -66,9 +66,7 @@ There is no `--one-process` / `--hmr` / `--css-watch` flag.
 `uxcompose serve` without a mode exits 2. `uxcompose build` is the
 one-shot minify. Deploy runs raw uvicorn, not `serve`.
 `cli/__init__.py` is argv only (`uxcompose = ux_compose.cli:main`). Clock bodies
-live in `cli/serve_dev.py` (sibling Tailwind `--watch` + tunnel). Leftover
-`start_css_watcher=` is gone. argv `development` / `production` /
-`restart_channel` fail closed — not synonyms. No `serve/` /
+live in `cli/serve_dev.py` (sibling Tailwind `--watch` + tunnel). No `serve/` /
 `services/` packages. Library modules do not import `ux_compose.cli`.
 
 ### Channel secret and `DEBUG`

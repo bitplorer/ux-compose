@@ -2,11 +2,8 @@
 
 Hard ownership (SoC + locality):
   create-app · build · serve · deploy · doctor · add  →  command modules here
-  argv ``create`` is leftover — use ``create-app``.
-  argv ``development`` / ``production`` / ``restart_channel`` are leftover —
-  use ``dev`` / ``prod`` / ``restart-channel``.
   ``cli/__init__.py`` is argv only. Clock bodies (sibling Tailwind ``--watch``,
-  tunnel) live in ``cli/serve_dev.py``. Leftover ``start_css_watcher=`` is gone.
+  tunnel) live in ``cli/serve_dev.py``.
   Pure Document tooling stays on uxdom (lint / profile / add ui|component).
   Tailwind *compiler resolution* lives in ``ux_compose.tailwind``.
   ux-dom owns className, the Document ``<link>``, and package static.

@@ -328,10 +328,9 @@ def test_on_disk_packages_are_mapped_not_ghosts():
     assert not (SRC / "services").exists()
     cli = _read("cli/__init__.py")
     serve = _read("cli/serve_dev.py")
-    assert "argv only" in cli or "argv ``create``" in cli
+    assert "argv only" in cli
     assert "start_tailwind_watch" in serve
-    assert "start_css_watcher:" not in serve
-    assert "start_css_watcher=" in serve
+    assert "start_css_watcher" not in serve
 
 
 def test_routing_adapters_path_absent():
@@ -349,17 +348,15 @@ def test_create_argv_dropped_create_app_stays():
     cli = _read("cli/__init__.py")
     assert 'cmd in ("create-app", "create")' not in cli
     assert 'cmd == "create-app"' in cli
-    assert "argv ``create`` is leftover" in cli
     help_fn = _fn(cli, "_help")
     assert "create-app" in help_fn
     assert "create |" not in help_fn and '", "create"' not in help_fn
     assert '"development": "dev"' not in cli
     assert '"production": "prod"' not in cli
     assert '"restart_channel": "restart-channel"' not in cli
-    assert "argv ``development``" in cli
-    arch = (DOCS / "ARCHITECTURE.md").read_text(encoding="utf-8")
-    assert "argv `create`" in arch
-    assert "argv `development`" in arch
+    from ux_compose.cli import main
+
+    assert main(["create", "x"]) == 2
 
 
 def _load_doctor():
@@ -507,10 +504,8 @@ def test_css_watch_spawn_lives_in_tailwind():
     serve = _read("cli/serve_dev.py")
     assert "start_tailwind_watch" not in cli
     assert "start_tailwind_watch" in serve
-    assert "start_css_watcher:" not in cli
-    assert "start_css_watcher:" not in serve
-    assert "start_css_watcher=" in cli
-    assert "start_css_watcher=" in serve
+    assert "start_css_watcher" not in cli
+    assert "start_css_watcher" not in serve
     assert "subprocess.Popen" in tw
     assert "subprocess.Popen" not in cli
     assert "Popen" not in hmr
@@ -613,23 +608,19 @@ def test_encyclopedia_teaches_cut3_leftovers():
     adr4 = (DOCS / "adr" / "0004-clarity-and-residuals.md").read_text(encoding="utf-8")
     host = (DOCS / "reference" / "host.md").read_text(encoding="utf-8")
     contrib = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8")
-    assert "start_css_watcher=" in agents
-    assert "development" in agents and "restart_channel" in agents
     assert "serve_dev.py" in agents
     assert "985e58a" in agents
     assert "Channel.boot" in agents
-    assert "start_css_watcher=" in start
-    assert "development" in start
     assert "serve_dev.py" in start
-    assert "start_css_watcher=" in cli
-    assert "development" in cli
     assert "argv only" in cli
+    for doc in (agents, start, cli, own):
+        assert "start_css_watcher" not in doc
     assert "Channel.attach(asgi)" not in own
     assert "Channel.boot" in own
     assert "serve_dev.py" in own
     assert "do not raise when a specialist is absent" not in adr4
     assert "fail loud" in adr4
-    assert "start_css_watcher=" in adr4
+    assert "start_css_watcher" not in adr4
     assert "_fragment_for_target" in adr4
     assert "authors import `build()`" in host
     assert "Channel.boot" in host

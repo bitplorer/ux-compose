@@ -273,6 +273,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `treeview` → `tree` alias in `uxcompose add`. Use `Sheet` /
   `uxcompose add sheet` and `uxcompose add tree`. `examples/presence.py`
   and `examples/catalog.py` use `Sheet`.
+- Tombstone prose for names that never shipped: argv `create`,
+  `development` / `production` / `restart_channel` and
+  `start_css_watcher=` in `cli/__init__.py`, `cli/serve.py`,
+  `cli/serve_dev.py`, `AGENTS.md`, `START_HERE.md`, `docs/OWNERSHIP.md`,
+  `docs/guides/CLI.md`, `docs/guides/serve-hmr-tunnel.md` and
+  `docs/internals/hmr.md` (its "Dead names" list). `docs/ARCHITECTURE.md`
+  "Leftovers that expire by teaching" becomes "Doctor residual"
+  (`scan_render_chrome`) plus "Design rules (do not recreate)". ADR 0004
+  point 4 ("leftovers expire by teaching") is amended to "removed names are
+  gone", and ADR 0005's dead-names list drops the same names. Unknown
+  verbs and serve modes already get the one generic error; the tests that
+  pinned the prose now assert the names are absent.
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

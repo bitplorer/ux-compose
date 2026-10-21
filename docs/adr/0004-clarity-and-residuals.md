@@ -37,17 +37,16 @@ still lock them. Confusion must stop growing.
 3. **One catalog.** `ux_compose.kit` is the source. `uxcompose add` copies.
    `examples/` is the Atelier, not a second catalog. Product trees do not
    import the kit.
-4. **Leftovers expire by teaching.** Doctor scans kit-imports and leftover
-   aliases in product trees and prints guidance. It does not fail-close on
-   them. Deleting aliases while 0.1 tests lock them is a capability drop.
-   Cut 3 leftovers (not doctor tokens): argv `development` / `production` /
-   `restart_channel`; `start_css_watcher=` on `serve_dev.run`; ghost
-   `cli/` / `serve/` / `services/` packages. Prefer frozen serve verbs and
-   `serve_dev` calling `start_tailwind_watch`. Homemade `helpers.py`
+4. **Removed names are gone** (amended 2026-10-21; was "leftovers expire
+   by teaching"). Nothing is published (ux-dom ADR 0004), so there are no
+   tombstones, alias periods or doctor scans that teach a removed name: it
+   is deleted with every caller in the same change, and a test locks its
+   absence. Frozen serve verbs; `serve_dev` calls `start_tailwind_watch`;
+   no `serve/` / `services/` packages. Homemade `helpers.py`
    `_fragment_for_target` walker prefers ux-dom `extract_by_id` when
    importable (ux-dom#20; compose#80 C2). KEEP the walker as escape if
    the owner symbol is absent (not a second serialize; no `fragment.py`).
-   See [../ARCHITECTURE.md](../ARCHITECTURE.md) **Agent leftovers**.
+   See [../ARCHITECTURE.md](../ARCHITECTURE.md) **Design rules (do not recreate)**.
 5. **Attach step-downs are visible and per-App.** Each `App` owns attach notes (`app.attach_notes`).
    `note()` dual-writes a process notebook so doctor has a process-wide audit.
    Two Apps in one process do not leak. `use_channel` / `use_motion` fail loud
@@ -76,8 +75,7 @@ still lock them. Confusion must stop growing.
 
 ## Non-goals
 
-- Deleting `App.mount`, `control()`, leftover aliases, or kit import
-  paths used by tests.
+- Deleting `App.mount` or `control()`.
 - Rewriting Dialog / Sheet / ActionSheet Tailwind or tree structure.
 - Reopening Clock A, Isolation Law, or the `serve dev` split.
 - Mass-deleting remote `feat/*` / `kit/*` branches from a composition PR.

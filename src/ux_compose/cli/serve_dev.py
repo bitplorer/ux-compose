@@ -10,8 +10,7 @@ Three processes, one browser URL. Names match what each process owns:
 A sibling Tailwind ``--watch`` writes ``output.css``. That is not a
 fourth server — it is a compiler next to these three. This module
 starts that sibling (``start_tailwind_watch``) and the optional
-tunnel. ``cli/__init__.py`` is argv only — leftover ``start_css_watcher=`` is
-gone.
+tunnel. ``cli/__init__.py`` is argv only.
 
 ``pages`` is not a word in this tree (the folder is ``routes/``).
 ``host`` is already ``--host`` / ``host=fastapi``. Do not reuse it.
@@ -464,8 +463,7 @@ def run(
 ) -> int:
     """Start the css watcher + both workers, then block on the origin process.
 
-    Clock body lives here. ``cli/__init__.py`` is argv only. Do not take a leftover
-    ``start_css_watcher=`` hook — call ``start_tailwind_watch`` directly.
+    Clock body lives here. ``cli/__init__.py`` is argv only.
     """
     import uvicorn
 

@@ -124,3 +124,13 @@ def test_kit_synonyms_are_gone():
     assert not hasattr(registry, "ALIASES")
     with pytest.raises(KeyError):
         registry.resolve("treeview")
+
+
+def test_no_tombstone_prose_in_src():
+    words = ("leftover", "Leftover", "not synonyms", "DirectoryRouter", "batteries")
+    hits = []
+    for rel in ("cli/__init__.py", "cli/serve.py", "cli/serve_dev.py", "doctor.py",
+                "surfaces.py", "surfaces_host.py", "routing/host.py"):
+        text = (SRC / rel).read_text(encoding="utf-8")
+        hits += [f"{rel}: {w}" for w in words if w in text]
+    assert hits == []

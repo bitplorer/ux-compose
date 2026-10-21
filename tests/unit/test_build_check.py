@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import stat
 import sys
 from pathlib import Path
@@ -200,8 +201,10 @@ def test_check_refuses_flags_that_write_or_skip_its_checks(app, capsys, flag):
     assert f"--check cannot be combined with {flag.split('=')[0]}" in capsys.readouterr().err
 
 
-def test_check_fails_when_the_app_does_not_serve_the_library_js(built, capsys):
+def test_check_fails_when_the_app_does_not_serve_the_library_js(built, capsys, monkeypatch):
     # A root secrets.py shadows the stdlib module the static mount needs (#131): import OK, JS 404.
+    # The stdlib name check refuses it first; with that check off, the served-JS check is the backstop.
+    monkeypatch.setattr(importlib.import_module("ux_compose.doctor"), "stdlib_shadows", lambda root: None)
     (built / "secrets.py").write_text("X = 1\n", encoding="utf-8")
     assert main(["build", "--check"]) == 1
     check = _rows(capsys.readouterr().out)["package"]

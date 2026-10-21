@@ -96,6 +96,25 @@ Outside dev, Channel attach needs `UX_CHANNEL_SECRET` (or
   docker `docker run -e UX_CHANNEL_SECRET`; railway `railway variables
   --set`; vps `EnvironmentFile=/etc/<name>.env`; checklist step 3.
 
+### App module names that shadow the standard library
+
+The app root is first on `sys.path` (uvicorn `--app-dir`), so a root
+`secrets.py` is the `secrets` module every library in the process imports.
+ux-dom's CSP nonce imported it and every library JS URL returned 404. Moving
+the root behind the stdlib would break the app's own `import secrets`
+instead, so the name is the error. `uxcompose doctor` (plain and `--prod`,
+row `stdlib`), `build` (all modes, a `stdlib` step before anything else
+runs) and `serve dev` / `serve prod` (exit 2) FAIL with one line naming every
+top-level module (`name.py`) and regular package (`name/__init__.py`) whose
+name is in `sys.stdlib_module_names`:
+
+```text
+app module `secrets.py` shadows the Python standard library module `secrets`; rename it
+```
+
+`ux_compose.doctor.stdlib_shadows(root)` is that check. The `--package`
+GET of `/ux-dom/static/x_element.js` stays as the backstop.
+
 ### `uxcompose doctor --prod`
 
 `uxcompose doctor [paths...]` checks the isolation laws. `--prod` adds
@@ -112,6 +131,7 @@ uxcompose doctor --prod --port 8080    # also warn if 0.0.0.0:8080 cannot be bou
 | Row | FAIL / WARN when |
 |-----|------------------|
 | `product` | FAIL: no `app.py` in the root (an empty dir fails; no other row is printed) |
+| `stdlib` | FAIL: a top-level app module or package shadows a standard library module (above); only printed then |
 | `dep:uvicorn`, `dep:fastapi` | FAIL: not importable in the interpreter running `uxcompose` |
 | `requirements` | FAIL: `requirements.txt` missing, or `ux_compose.scaffold.scan_requirements` finds a problem. It reads the file the way pip does: `\` continuations are joined, comments are stripped, option lines (`--index-url`, `-f`, `-c`, `--hash=…`, …) are skipped, `-e` lines count as requirements, and local `-r` includes are followed relative to the including file (an include cycle fails, as in pip). It FAILs on a line that is not a requirement, a distribution listed twice, no ux-compose line, or a specialist (ux-dom, ux-channel, ux-behavior, ux-motion) pinned beside ux-compose. WARN: a remote `-r https://…` include, which doctor does not fetch |
 | `secret` | FAIL: `secret_readiness()` returns a "Channel secret refused" line (ux-behavior's `attach_secret_problem`: missing outside dev, under 16 characters, the published dev secret, or `REDIS_URL` without one). The row adds "— set UX_CHANNEL_SECRET on the host"; it never suggests `DEBUG=1`, which the `DEBUG` row FAILs |
@@ -147,7 +167,11 @@ pip install -r dist/<name>/requirements.txt && dist/<name>/run.sh
   files and hashes match, holding nothing else but `__pycache__/`, or
   their `.tar.gz`). Only such a bundle is ever replaced, and it is
   re-checked just before the rename. A bundle you added files to
-  (a `.venv`, an `.env`, an edit) is refused, never deleted. The bundle
+  (a `.venv`, an `.env`, an edit) is refused, never deleted, naming them:
+  `dist/demo holds .env, .venv/, routes/hello.py (changed): not written by
+  uxcompose, …`. That line is printed even when an earlier step failed,
+  and `doctor` notes a changed bundle inside the app (it is scanned as
+  source, so its `document.py` is a dual-Document risk). The bundle
   is assembled in a temp dir inside `--out` and renamed into place; a
   refused bundle leaves nothing behind, and `--package` alone removes that
   bundle's older archive.
@@ -164,7 +188,10 @@ pip install -r dist/<name>/requirements.txt && dist/<name>/run.sh
   `.pytest_cache`, `.mypy_cache`), a venv (`pyvenv.cfg` and
   `bin/python` or `Scripts/python.exe`), a bundle whose MANIFEST file
   list and hashes match its dir, and `--out` itself. A stray `pyvenv.cfg`
-  or MANIFEST does not hide a dir: it stays source.
+  or MANIFEST does not hide a dir: it stays source. The top-level
+  `routes/`, `components/`, `assets/` and `deploy/` are never skipped as a
+  venv or bundle, by the bundle or by `doctor`, so planting `pyvenv.cfg`
+  and `bin/python` there hides nothing.
 - Refused (FAIL, nothing written), each listed:
   - any symlink in the walked tree, whatever it points at;
   - a key-shaped file inside an allowed directory: by name (`.env`,
@@ -172,7 +199,10 @@ pip install -r dist/<name>/requirements.txt && dist/<name>/run.sh
     `*.pem`, `*.key`, `*.p12`, `*.pfx`, `*.jks`, `*.keystore`, `*.kdbx`,
     `*.gpg`, `.netrc`, `.npmrc`, `.pypirc`, `.htpasswd`) or by content
     (`PRIVATE KEY-----`, a JSON `"private_key":` in the first 64 KiB), and
-    a copied file holding a private key. This is best-effort hygiene, not
+    a copied file holding a private key;
+  - a copied file with more than one hardlink (`st_nlink > 1`): the same
+    file under another name, such as `.env` linked into `routes/`.
+    This is best-effort hygiene, not
     a guarantee: it misses DER keys, tokens and keys under innocent names.
     Secrets belong in the environment, not in the app tree; the `package`
     row says so.
@@ -184,14 +214,19 @@ pip install -r dist/<name>/requirements.txt && dist/<name>/run.sh
   boots the app as uvicorn does: ASGI `lifespan.startup` must complete
   (a `startup.failed`, an exception or 30 s without an answer FAILs with
   the app's message on one line; an app that rejects the lifespan scope
-  has none, as with uvicorn `--lifespan auto`). Then it sends
+  has none, as with uvicorn `--lifespan auto`). A blocking call at import
+  time or in a sync startup handler cannot be timed by asyncio: the whole
+  process is bounded at 120 s and FAILs in one line. Then it sends
   `GET /ux-dom/static/x_element.js` (and `/css/output.css` when the
   bundle ships it) to the app's own ASGI callable, then
   `lifespan.shutdown`. Anything but 200 with a JavaScript (CSS)
   content-type and a body FAILs, naming the status; a handler that raises
   or sends no response FAILs as that GET, not as the import.
+  `--package` does not also import the source tree (the `import:` step),
+  so the app's import side effects run once, in the throwaway copy.
 - Generated: `run.sh` (0755: `cd` to the bundle, `PORT` 8080 / `HOST`
-  0.0.0.0 defaults, activates `.venv` if present, runs `python3` to print
+  0.0.0.0 defaults, activates `.venv` if present (in a copy or an unpacked
+  archive: the next build refuses to replace a bundle holding one), runs `python3` to print
   the one-line `Channel secret refused: …` and exit 1 when the secret is
   not usable, then `exec uvicorn app:asgi --app-dir .`; `--app` sets the
   entry, no `PYTHONPATH`), `README.RUN.txt`, and `MANIFEST.json`

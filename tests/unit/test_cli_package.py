@@ -43,6 +43,16 @@ def _prod_env(monkeypatch):
     monkeypatch.setenv("UX_CHANNEL_SECRET", SECRET)
 
 
+@pytest.fixture(autouse=True)
+def _stub_smoke_import(request, monkeypatch):
+    """The real import from the bundle alone costs ~1s a build. File-set and --out tests stub it;
+    ``real_smoke_import`` tests, test_build_check.py and tests/integration run it."""
+    if request.node.get_closest_marker("real_smoke_import") is None:
+        import ux_compose.cli.package as package
+
+        monkeypatch.setattr(package, "_smoke_import", lambda bundle, entry: None)
+
+
 @pytest.fixture
 def app(tmp_path, monkeypatch):
     root = create_app(tmp_path / "demo", name="demo")
@@ -104,7 +114,6 @@ def test_file_set_is_an_allowlist_and_lists_every_exclusion(app, capsys):
         "notes.txt",
         "pyproject.toml",
         "tests/fixture.json",
-        "__pycache__/",
         "routes/notes.bin",
         "routes/__pycache__/",
         "assets/data.sqlite",
@@ -164,6 +173,7 @@ def _write(root: Path, files: dict[str, str]) -> None:
         (root / rel).write_text(text, encoding="utf-8")
 
 
+@pytest.mark.real_smoke_import
 def test_ships_every_python_module_and_imports_from_the_bundle(app, capsys):
     """lib/, a nested package and relative imports: the bundle imports alone."""
     _write(
@@ -188,6 +198,7 @@ def test_ships_every_python_module_and_imports_from_the_bundle(app, capsys):
     assert {"lib/__init__.py", "lib/sub/__init__.py", "lib/sub/deep.py", "lib/helpers.py", "util.py"} <= _tree(bundle)
 
 
+@pytest.mark.real_smoke_import
 def test_refuses_a_bundle_that_cannot_import_alone(app, capsys):
     """The smoke import runs with -I from the bundle dir: no source root on sys.path."""
     _write(app, {"lib/__init__.py": "", "lib/data.yaml": "x: 1\n"})
@@ -232,7 +243,7 @@ def test_replaces_a_bundle_that_ran_but_not_one_holding_user_files(app, tmp_path
     (bundle / ".env").write_text("SECRET=1", encoding="utf-8")
     assert _package("--out", out_dir) == 1
     out = capsys.readouterr().out
-    assert "not a dedicated bundle directory (it holds demo)" in out
+    assert f"{bundle} holds .env: not written by uxcompose, so it is not replaced" in out
     assert (bundle / ".env").read_text(encoding="utf-8") == "SECRET=1"
     (bundle / ".env").unlink()
     (bundle / "routes" / "hello.py").write_text("# edited", encoding="utf-8")
@@ -375,10 +386,12 @@ def test_deploy_files_copied_only_if_present(app):
     assert not (bundle / "fly.toml").exists()
 
 
+@pytest.mark.real_smoke_import
 def test_refuses_a_failing_build(app, capsys):
     assert main(["build", "--skip-tailwind", "--package", "--app", "nope:asgi"]) == 1
     out = capsys.readouterr().out
-    assert "[FAIL] package: skipped — earlier build steps failed" in out
+    assert "[FAIL] package: import nope:asgi from the bundle alone failed: ModuleNotFoundError" in out
+    assert "import:" not in out  # --package imports the bundle copy only, not the source too
     assert not (app / "dist").exists()
 
 
@@ -540,3 +553,90 @@ def test_dirty_checkout_warns_loudly(app, capsys, monkeypatch):
     out = capsys.readouterr().out
     assert "  WARNING: the ux-compose checkout /src/ux-compose has uncommitted changes." in out
     assert "matches no commit" in out
+
+
+# --- #131: follow-ups from the #130 review -----------------------------------
+
+
+@pytest.mark.real_smoke_import
+@pytest.mark.parametrize("where", ["import", "sync startup"])
+def test_a_blocked_import_or_sync_startup_is_one_line(app, capsys, monkeypatch, where):
+    """asyncio cannot time a blocking call, so the subprocess timeout fires: no traceback."""
+    import ux_compose.cli.package as package
+
+    monkeypatch.setattr(package, "IMPORT_TIMEOUT", 2.0)
+    block = "import time\ntime.sleep(30)\n"
+    if where == "sync startup":
+        block = (
+            "_served = asgi\n\n\nasync def asgi(scope, receive, send):\n"
+            "    if scope['type'] == 'lifespan':\n        await receive()\n"
+            "        import time\n        time.sleep(30)\n"
+            "    await _served(scope, receive, send)\n"
+        )
+    (app / "app.py").write_text((app / "app.py").read_text(encoding="utf-8") + "\n" + block, encoding="utf-8")
+    want = (
+        "[FAIL] package: import app:asgi and its ASGI startup from the bundle alone did not finish "
+        "within 2s; a blocking call at import time or in a sync startup handler?"
+    )
+    for argv in (["build", "--check"], ["build", "--skip-tailwind", "--skip-import", "--package"]):
+        assert main(argv) == 1
+        out = capsys.readouterr().out
+        assert want in out.splitlines()[-3], out
+        assert "Traceback" not in out
+
+
+def test_a_planted_venv_does_not_hide_a_source_dir(app, capsys):
+    """routes/pyvenv.cfg + routes/bin/python made routes/ a venv: skipped by doctor and the bundle."""
+    _write(app, {"routes/pyvenv.cfg": "home = /usr/bin", "routes/bin/python": "", "routes/evil.py": "import ux_channel\n"})
+    assert main(["doctor", "."]) == 1
+    assert "evil.py" in capsys.readouterr().out
+    assert _package() == 1
+    out = capsys.readouterr().out
+    assert "Isolation violation" in out and "evil.py" in out
+    assert not (app / "dist").exists()
+    (app / "routes" / "evil.py").unlink()
+    assert _package() == 0
+    out = capsys.readouterr().out
+    assert {"routes/pyvenv.cfg", "routes/bin/python"} <= set(_excluded(out))
+    assert "routes/hello.py" in _tree(app / "dist" / "demo")
+
+
+def test_a_bundle_holding_user_files_names_them(app, capsys):
+    assert _package() == 0
+    bundle = app / "dist" / "demo"
+    (bundle / ".env").write_text("SECRET=1", encoding="utf-8")
+    (bundle / ".venv" / "bin").mkdir(parents=True)
+    (bundle / ".venv" / "pyvenv.cfg").write_text("home = /usr/bin", encoding="utf-8")
+    (bundle / "routes" / "hello.py").write_text("# edited", encoding="utf-8")
+    assert _package() == 1
+    out = capsys.readouterr().out
+    assert (
+        "dist/demo holds .env, .venv/, routes/hello.py (changed): not written by uxcompose, "
+        "so it is not replaced; move them out or pick another --out"
+    ) in out
+    assert (bundle / ".env").is_file() and (bundle / ".venv").is_dir()
+    readme = " ".join((bundle / "README.RUN.txt").read_text(encoding="utf-8").split())
+    assert "Keep a .venv in a copy of this directory or an unpacked archive, not here" in readme
+
+
+def test_refuses_a_hardlinked_file(app, capsys):
+    """A hardlink is the same file under another name: a copied file must have one link."""
+    (app / ".env").write_text("SECRET=1", encoding="utf-8")
+    os.link(app / ".env", app / "routes" / "env.txt")
+    assert _package() == 1
+    assert "[FAIL] package: refusing to bundle: routes/env.txt (hardlinked, 2 links)" in capsys.readouterr().out
+    assert not (app / "dist").exists()
+
+
+@pytest.mark.real_smoke_import
+def test_package_imports_the_app_once(app, capsys, monkeypatch, tmp_path):
+    """--package skips the source-tree import: the bundle import is the stricter one."""
+    count = tmp_path / "imports"
+    monkeypatch.setenv("UXC_COUNT", str(count))
+    (app / "app.py").write_text(
+        (app / "app.py").read_text(encoding="utf-8")
+        + "\nimport os\nwith open(os.environ['UXC_COUNT'], 'a') as _f:\n    _f.write('x')\n",
+        encoding="utf-8",
+    )
+    assert _package() == 0, capsys.readouterr().out
+    assert count.read_text() == "x"

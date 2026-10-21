@@ -172,6 +172,12 @@ def run_product_build(
         )
         return report
 
+    from ux_compose.doctor import stdlib_shadows
+
+    if shadow := stdlib_shadows(root):
+        report.steps.append(BuildStep("stdlib", False, shadow))
+        return report
+
     if skip_tailwind:
         report.steps.append(BuildStep("tailwind", True, "skipped"))
     else:
@@ -245,8 +251,10 @@ def run_product_build(
                             report.output_css = output_css
                         report.steps.append(BuildStep("tailwind", ok, detail))
 
-    if check:
-        pass  # the package check imports a copy; importing the source may write
+    if check or package or archive:
+        # The package step imports a copy of the bundle alone (stricter, and it
+        # writes nothing here), so the app's import side effects run once.
+        pass
     elif skip_import:
         report.steps.append(BuildStep("import", True, "skipped"))
     else:
@@ -301,16 +309,12 @@ def run_product_build(
             )
 
     try:
-        from ux_compose.doctor import doctor
+        from ux_compose.doctor import doctor, is_hard
 
         doc = doctor([root], fail=False)
         ok_flag = bool(getattr(doc, "ok", True))
         detail = f"ok={ok_flag} surfaces={getattr(doc, 'surfaces', None)}"
-        hard = [
-            d
-            for d in getattr(doc, "diagnostics", [])
-            if any(k in d.lower() for k in ("violation", "dual-document risk", "incomplete stack"))
-        ]
+        hard = [d for d in getattr(doc, "diagnostics", []) if is_hard(d)]
         if not ok_flag and hard:
             detail += f" · {hard[0][:300]}"
         report.steps.append(BuildStep("doctor", ok_flag, detail))
@@ -400,16 +404,22 @@ def _package_step(
     app_ref: str,
     archive: bool,
 ) -> None:
-    from ux_compose.cli.package import PackageError, write_bundle
+    from ux_compose.cli.package import PackageError, check_out, write_bundle
 
-    if not report.ok:
-        report.steps.append(BuildStep("package", False, "skipped — earlier build steps failed"))
-        return
     root = report.root
     out = out_dir or root / "dist"
+    name = root.name if name is None else name
+    if not report.ok:
+        detail = "skipped — earlier build steps failed"
+        try:
+            check_out(root, out, name)
+        except PackageError as exc:  # say it now, not after the next fix
+            detail += f"; and {exc}"
+        report.steps.append(BuildStep("package", False, detail))
+        return
     entry = _entry(app_ref)
     try:
-        bundle = write_bundle(root, out_dir=out, name=root.name if name is None else name, entry=entry, archive=archive)
+        bundle = write_bundle(root, out_dir=out, name=name, entry=entry, archive=archive)
     except PackageError as exc:
         report.steps.append(BuildStep("package", False, str(exc)))
         return

@@ -103,6 +103,12 @@ def main(argv: list[str]) -> int:
             print("clocks live on 'serve dev', not flags on prod", file=sys.stderr)
         return 2
 
+    from ux_compose.doctor import stdlib_shadows
+
+    if shadow := stdlib_shadows(os.getcwd()):
+        print(shadow, file=sys.stderr)
+        return 2
+
     tunnel_value = getattr(args, "tunnel", "none")
     tunnel_token = getattr(args, "tunnel_token", None)
     health_path = getattr(args, "health_path", "/")

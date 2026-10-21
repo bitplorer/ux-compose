@@ -28,7 +28,7 @@ from dataclasses import dataclass, field
 from importlib import metadata
 from pathlib import Path
 
-from ux_compose.doctor import BUNDLE_GENERATOR, is_bundle, is_skipped_dir
+from ux_compose.doctor import BUNDLE_GENERATOR, SOURCE_DIRS, bundle_changes, is_bundle, is_skipped_dir
 
 ROOT_FILES = (
     "requirements.txt",
@@ -48,6 +48,7 @@ _ASSET = {
 _DEPLOY = {".service", ".socket", ".timer", ".conf", ".toml", ".yaml", ".yml", ".json", ".sh", ".txt", ".md"}
 # Directory → file suffixes a bundle may carry from it. Everything else is left out and listed.
 ALLOWED = {"routes": _SOURCE, "components": _SOURCE, "assets": _ASSET, "deploy": _DEPLOY}
+assert set(ALLOWED) == SOURCE_DIRS
 # Key-shaped names; inside an allowed directory they refuse the build.
 KEY_NAMES = (
     ".env", ".env.*", "*.env", "id_rsa*", "id_dsa*", "id_ecdsa*", "id_ed25519*",
@@ -80,8 +81,9 @@ ux-compose runnable bundle: {name}
   export UX_CHANNEL_SECRET=$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')
   ./run.sh                      # PORT (default 8080), HOST (default 0.0.0.0)
 
-run.sh activates ./.venv when it exists, then uses the python3 and uvicorn
-on PATH: install requirements.txt into that environment.
+run.sh uses the python3 and uvicorn on PATH (activating ./.venv when it
+exists): install requirements.txt into that environment. Keep a .venv in a
+copy of this directory or an unpacked archive, not here; see the end.
 
 Library JavaScript (x_element.js, the Channel client) is NOT vendored into
 this bundle. The installed packages serve it from site-packages.
@@ -130,7 +132,10 @@ def collect(root: Path, *, skip: Path | None = None) -> Collected:
     ``components/``, ``assets/``, ``deploy/``. Excluded: tool caches, real
     venvs, validated bundles, ``skip`` (the ``--out`` dir), and every other
     file. Refused: any symlink, a key-shaped file (name or content) inside an
-    allowed dir, and a copied file holding a private key.
+    allowed dir, a copied file holding a private key or with more than one
+    hardlink (the same file under another name, which may be anything). A
+    top-level allowed dir is never skipped as a venv or bundle: two planted
+    files must not hide ``routes/`` from the bundle and from ``doctor``.
     """
     root = root.resolve()
     out = Collected()
@@ -140,7 +145,8 @@ def collect(root: Path, *, skip: Path | None = None) -> Collected:
         if path.is_symlink():
             out.refused.append(f"{rel} (symlink)")
         elif path.is_dir():
-            if path == skip or is_skipped_dir(path):
+            source = path.parent == root and path.name in SOURCE_DIRS
+            if path == skip or is_skipped_dir(path, source=source):
                 out.excluded.append(f"{rel}/")
                 return
             if allowed is None and path.parent == root:
@@ -156,6 +162,8 @@ def collect(root: Path, *, skip: Path | None = None) -> Collected:
         ):
             if _key_content(path):
                 out.refused.append(f"{rel} (holds a private key)")
+            elif (links := path.stat().st_nlink) > 1:
+                out.refused.append(f"{rel} (hardlinked, {links} links)")
             else:
                 out.files.append(Path(rel))
         else:
@@ -193,6 +201,14 @@ def check_out(root: Path, out_dir: Path, name: str) -> Path:
     if out.exists():
         if not out.is_dir():
             raise PackageError(f"--out {out_dir} is not a directory")
+        dest = out / name
+        if dest.is_dir() and not dest.is_symlink() and (changes := bundle_changes(dest, allow_venv=False)):
+            shown = ", ".join(changes[:5]) + (", …" if len(changes) > 5 else "")
+            where = dest.relative_to(root) if dest.is_relative_to(root) else dest
+            raise PackageError(
+                f"{where.as_posix()} holds {shown}: not written by uxcompose, "
+                "so it is not replaced; move them out or pick another --out"
+            )
         foreign = [
             p.name
             for p in sorted(out.iterdir())
@@ -317,6 +333,8 @@ def _write_archive(src: Path, tar_path: Path, name: str, mtime: int) -> None:
 # starting with _STATIC. Each phase is bounded by LIFESPAN_TIMEOUT seconds.
 _STATIC = "uxcompose-static:"
 LIFESPAN_TIMEOUT = 30.0
+# The whole probe process: asyncio cannot time out a blocking call (at import, or in a sync startup handler).
+IMPORT_TIMEOUT = 120.0
 _PROBE = """
 import asyncio
 
@@ -447,8 +465,13 @@ def _smoke_import(bundle: Path, entry: str) -> None:
             env=env,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=IMPORT_TIMEOUT,
         )
+    except subprocess.TimeoutExpired:
+        raise PackageError(
+            f"import {entry} and its ASGI startup from the bundle alone did not finish within "
+            f"{IMPORT_TIMEOUT:g}s; a blocking call at import time or in a sync startup handler?"
+        ) from None
     finally:
         shutil.rmtree(probe, ignore_errors=True)
     if proc.returncode != 0:

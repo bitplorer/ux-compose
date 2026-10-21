@@ -67,7 +67,7 @@ def test_dispatch_morph_carries_html():
 def test_component_does_not_subclass_ux_dom_component():
     """Shared MRO with tree verbs collides now or later. Tags are the return type."""
     from ux_compose import Component
-    from ux_dom.dom.src.component import Component as DomComponent
+    from ux_dom.dom import Component as DomComponent
 
     assert not issubclass(Component, DomComponent)
 
@@ -75,7 +75,7 @@ def test_component_does_not_subclass_ux_dom_component():
 @pytest.mark.skipif(not HAS_DOM, reason="ux-dom required for tree morph")
 def test_product_class_cannot_also_inherit_ux_dom_component():
     from ux_compose import Component
-    from ux_dom.dom.src.component import Component as DomComponent
+    from ux_dom.dom import Component as DomComponent
 
     with pytest.raises(TypeError, match="must not inherit"):
 
@@ -196,7 +196,7 @@ def test_live_component_returns_tag_tree_not_frozen_self():
     inst = Box()
     tree = inst.render()
     assert inst is not tree
-    from ux_dom.dom.src.component import Component as DomComponent
+    from ux_dom.dom import Component as DomComponent
 
     assert not isinstance(inst, DomComponent)
     assert hasattr(tree, "__render__")

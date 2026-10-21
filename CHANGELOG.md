@@ -241,6 +241,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `test_pins_agree_in_all_four_places` fails when `pyproject.toml`,
   `Makefile`, `scaffold.py` and `test_hard_deps.py` disagree on any
   specialist SHA.
+- `component.py`, `dom.py` and `routing/core.py` import `Component`,
+  `dom_tag` and `raw` from ux-dom's public `ux_dom.dom`, not the private
+  `ux_dom.dom.src.*` modules. `tests/regression/test_no_tombstones.py`
+  fails on any `ux_dom.*.src` or underscore-module import of a specialist
+  from `src/`.
+
+### Removed
 
 ## 0.2.0 — remove deprecations and bloat cleanup
 

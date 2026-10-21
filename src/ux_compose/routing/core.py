@@ -224,7 +224,7 @@ def _document_child(payload: Any) -> Any:
         payload = bytes(payload).decode("utf-8")
     if isinstance(payload, str):
         try:
-            from ux_dom.dom.src.utils.dom_util import raw
+            from ux_dom.dom import raw
 
             return raw(payload)
         except Exception:

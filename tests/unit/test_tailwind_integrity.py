@@ -341,3 +341,80 @@ def test_product_build_reports_a_binary_that_cannot_run(tmp_path, monkeypatch):
     report = run_product_build(cwd=root, skip_import=True)
     step = next(s for s in report.steps if s.name == "tailwind")
     assert not step.ok and "missing-tw" in step.detail
+
+
+class InterruptedBody(SlowBody):
+    """Serves one block, then the user presses Ctrl-C (or the process is told to exit)."""
+
+    def __init__(self, payload: bytes, raised: type[BaseException]):
+        super().__init__(payload)
+        self.raised = raised
+
+    def read(self, size=-1):
+        if len(self.chunks) < 2:
+            raise self.raised
+        return self.chunks.pop(0)
+
+
+@pytest.mark.parametrize("raised", [KeyboardInterrupt, SystemExit])
+def test_interrupted_download_leaves_no_temp_file(only_download, monkeypatch, raised):
+    """#120: try/finally, not except OSError — Ctrl-C must not strand a .part file."""
+    _trust(monkeypatch, GOOD)
+    monkeypatch.setattr(tw.urllib.request, "urlopen", lambda req, timeout=None: InterruptedBody(GOOD, raised))
+    with pytest.raises(raised):
+        tw.resolve_tailwind(ensure=True)
+    assert list(only_download.parent.iterdir()) == []
+
+
+def test_replace_refused_by_a_running_verified_binary_is_success(only_download, monkeypatch):
+    """#120: Windows refuses os.replace onto an exe another build is running; it is already verified."""
+    _trust(monkeypatch, GOOD)
+    monkeypatch.setattr(tw.urllib.request, "urlopen", lambda req, timeout=None: io.BytesIO(GOOD))
+
+    def busy(src, dst):
+        Path(dst).write_bytes(GOOD)  # the parallel build that won
+        raise PermissionError(13, "The process cannot access the file", str(dst))
+
+    monkeypatch.setattr(tw.os, "replace", busy)
+    hit = tw.resolve_tailwind(ensure=True)
+    assert hit is not None and hit.argv == [str(only_download)]
+    assert [p.name for p in only_download.parent.iterdir()] == [only_download.name]
+
+
+def test_replace_refused_without_a_verified_destination_fails(only_download, monkeypatch):
+    _trust(monkeypatch, GOOD)
+    monkeypatch.setattr(tw.urllib.request, "urlopen", lambda req, timeout=None: io.BytesIO(GOOD))
+
+    def busy(src, dst):
+        Path(dst).write_bytes(BAD)
+        raise PermissionError(13, "denied", str(dst))
+
+    monkeypatch.setattr(tw.os, "replace", busy)
+    with pytest.raises(PermissionError):
+        tw.resolve_tailwind(ensure=True)
+    assert [p.name for p in only_download.parent.iterdir()] == [only_download.name]  # no .part left
+
+
+@pytest.mark.parametrize(
+    "libc, machine, loaders, musl",
+    [
+        (("glibc", "2.39"), "x86_64", ["ld-musl-x86_64.so.1"], False),  # glibc host with musl installed
+        (("", ""), "x86_64", [], False),  # static / unreadable interpreter, no musl loader
+        (("", ""), "x86_64", ["ld-musl-x86_64.so.1"], True),  # Alpine
+        (("", ""), "aarch64", ["ld-musl-aarch64.so.1"], True),
+        (("", ""), "x86_64", ["ld-musl-aarch64.so.1"], False),  # hybrid image: another arch's loader
+        (("", ""), "aarch64", ["ld-musl-x86_64.so.1"], False),
+    ],
+)
+def test_musl_detection_inputs(tmp_path, monkeypatch, libc, machine, loaders, musl):
+    """#120: the inputs are libc_ver() and the loader for *this* machine; UXCOMPOSE_TAILWIND overrides."""
+    monkeypatch.setattr(tw.platform, "libc_ver", lambda: libc)
+    monkeypatch.setattr(tw.platform, "machine", lambda: machine)
+    for name in loaders:
+        (tmp_path / name).write_bytes(b"")
+    assert tw._is_musl(lib=tmp_path) is musl
+
+
+def test_musl_override_is_documented():
+    doc = (Path(__file__).resolve().parents[2] / "docs" / "guides" / "TAILWIND.md").read_text(encoding="utf-8")
+    assert "picks the wrong asset" in doc and "UXCOMPOSE_TAILWIND=" in doc

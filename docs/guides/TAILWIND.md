@@ -194,12 +194,20 @@ Product compile is here.
 standalone asset of v4.1.12 (linux x64/arm64 for glibc and musl, macOS
 x64/arm64, windows x64), copied from the release's
 [`sha256sums.txt`](https://github.com/tailwindlabs/tailwindcss/releases/download/v4.1.12/sha256sums.txt).
-Linux counts as musl when `platform.libc_ver()` is not glibc and
-`/lib/ld-musl-*.so.1` exists.
+Linux counts as musl when `platform.libc_ver()` is not glibc and this
+machine's loader, `/lib/ld-musl-<arch>.so.1` (`x86_64` or `aarch64`), exists;
+another arch's musl loader does not count. If detection still
+picks the wrong asset on a hybrid image (the build fails with `cannot run` or the binary
+exits at once), install the right `tailwindcss` and point
+`UXCOMPOSE_TAILWIND=/path/to/tailwindcss` at it; step 1 wins and nothing is
+downloaded.
 Each build streams the download into its own temp file next to the cache
 entry, hashes it, fsyncs it, and only a match is made executable and moved
-into place with `os.replace`. The installed file is hashed again before it
-runs, so parallel builds on a cold cache each get a verified binary. A mismatch deletes the file, runs
+into place with `os.replace`. The temp file is removed on every exit,
+Ctrl-C included. On Windows the replace fails while another build runs the
+binary; a verified file already in place is then used. The installed file
+is hashed again before it runs, so parallel builds on a cold cache each get
+a verified binary. A mismatch deletes the file, runs
 nothing, and fails the build with `TailwindIntegrityError` (expected digest,
 actual digest, URL). Nothing else is tried after that.
 

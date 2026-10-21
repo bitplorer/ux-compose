@@ -105,8 +105,12 @@ the root behind the stdlib would break the app's own `import secrets`
 instead, so the name is the error. `uxcompose doctor` (plain and `--prod`,
 row `stdlib`), `build` (all modes, a `stdlib` step before anything else
 runs) and `serve dev` / `serve prod` (exit 2) FAIL with one line naming every
-top-level module (`name.py`) and regular package (`name/__init__.py`) whose
-name is in `sys.stdlib_module_names`:
+top-level module (any `importlib.machinery.all_suffixes()` file: `name.py`,
+a sourceless `name.pyc`, an extension `name.so`) and regular package
+(`name/__init__.py`) whose name is in `sys.stdlib_module_names`. Top-level
+means in the app root, the directory on `sys.path` at runtime: `uxcompose
+doctor routes` checks the app root (the nearest directory with `app.py`), so
+`routes/email.py`, which is `routes.email`, is not flagged:
 
 ```text
 app module `secrets.py` shadows the Python standard library module `secrets`; rename it
@@ -133,7 +137,7 @@ uxcompose doctor --prod --port 8080    # also warn if 0.0.0.0:8080 cannot be bou
 | `product` | FAIL: no `app.py` in the root (an empty dir fails; no other row is printed) |
 | `stdlib` | FAIL: a top-level app module or package shadows a standard library module (above); only printed then |
 | `dep:uvicorn`, `dep:fastapi` | FAIL: not importable in the interpreter running `uxcompose` |
-| `requirements` | FAIL: `requirements.txt` missing, or `ux_compose.scaffold.scan_requirements` finds a problem. It reads the file the way pip does: `\` continuations are joined, comments are stripped, option lines (`--index-url`, `-f`, `-c`, `--hash=…`, …) are skipped, `-e` lines count as requirements, and local `-r` includes are followed relative to the including file (an include cycle fails, as in pip). It FAILs on a line that is not a requirement, a distribution listed twice, no ux-compose line, or a specialist (ux-dom, ux-channel, ux-behavior, ux-motion) pinned beside ux-compose. WARN: a remote `-r https://…` include, which doctor does not fetch |
+| `requirements` | FAIL: `requirements.txt` missing, or `ux_compose.scaffold.scan_requirements` finds a problem. It reads the file the way pip does: `\` continuations are joined, comments are stripped, option lines (`--index-url`, `-f`, `--hash=…`, …) are skipped, `-e` lines count as requirements, and local `-r` includes are followed relative to the including file (an include cycle fails, as in pip). A `-c` constraints file is not read, but a missing one FAILs, as in pip. It FAILs on a line that is not a requirement, a distribution listed twice, no ux-compose line, or a specialist (ux-dom, ux-channel, ux-behavior, ux-motion) pinned beside ux-compose. Lines pip installs as one distribution are one line: both guarded by different environment markers (`foo; python_version<'3.13'` and `foo; python_version>='3.13'`), or the same pin with different extras (`uvicorn` and `uvicorn[standard]`). A wheel URL is named by its filename, and a `github.com/bitplorer/<repo>` URL (git+https, git+ssh, `/archive/`, `/tarball/`, `/zipball/`, codeload; `#egg` or not, any case) by its repo, so a bare ux-dom/ux-channel/ux-behavior/ux-motion URL FAILs as a specialist pin. Markers split as pip splits them, so `name @ url;marker` (no space) is `name`. WARN: a remote `-r`/`-c https://…` file, which doctor does not fetch, and any other URL requirement with no name (a bare VCS URL without `#egg=`, an sdist URL; pip learns the name only by building it), which could be a second ux-dom: write `name @ url` to have it checked. A local path (`-e .`) is the app's own code and is not reported |
 | `secret` | FAIL: `secret_readiness()` returns a "Channel secret refused" line (ux-behavior's `attach_secret_problem`: missing outside dev, under 16 characters, the published dev secret, or `REDIS_URL` without one). The row adds "— set UX_CHANNEL_SECRET on the host"; it never suggests `DEBUG=1`, which the `DEBUG` row FAILs |
 | `DEBUG` | FAIL: `DEBUG` is dev (`debug_requests_dev`: `1` / `true` / `yes` / `on`) |
 | `.env` | WARN: present ("do not ship; set secrets on the host"). FAIL: present, a `Dockerfile` exists, and `.dockerignore` does not exclude `.env` the way Docker reads it (`*`, `?`, `[…]`, `**`, `!` re-include, last match wins, leading `/` dropped, `#` comments). A pattern with `\` before a letter or digit FAILs as "cannot be checked" |

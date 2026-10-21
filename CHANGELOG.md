@@ -94,6 +94,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The Tailwind standalone download (#120) removes its temp file on every
+  exit (Ctrl-C and `SystemExit` included, not only `OSError`); on Windows,
+  an `os.replace` refused because a parallel build runs the binary
+  succeeds when a verified file is already in place; musl is detected only
+  from this machine's loader (`ld-musl-x86_64.so.1` / `ld-musl-aarch64.so.1`),
+  not another arch's on a hybrid image. `docs/guides/TAILWIND.md`
+  documents `UXCOMPOSE_TAILWIND` as the override when detection still
+  picks the wrong asset.
+
+- `ux_compose.components`' docstring, ADR 0004 §3 and the doctor teaching
+  line describe the catalog as it is (import a component, or
+  `uxcompose add` copies it to own) instead of the removed
+  `ux_compose.kit` package (#134). A regression test keeps `src/` and
+  `docs/adr/` free of `ux_compose.kit`.
+
+- `doctor --prod`'s requirements scan (#129) reads three more cases the way
+  pip does: a missing `-c`/`--constraint` file FAILs; lines pip installs as
+  one distribution (different environment markers on both, or one pin
+  with different extras) are not "listed twice"; a
+  `github.com/bitplorer/ux-*` URL (VCS over https or ssh, archive,
+  tarball, codeload) is named by its repo with or without `#egg`, so a
+  bare specialist URL FAILs like a named pin; `name @ url;marker` (no
+  space) splits as pip splits it; any other URL requirement with no name
+  is a WARN naming it, and a wheel URL is named by its filename.
+
+- The stdlib-shadow check (#136) counts every importable top-level file
+  (`importlib.machinery.all_suffixes()`), so a sourceless root
+  `secrets.pyc` or an extension `secrets.so` FAILs like `secrets.py`.
+  `uxcompose doctor <subdir>` checks the app root's names (nearest
+  directory with `app.py`, else the first directory above the regular
+  packages) instead of the subdirectory's: `doctor routes` no longer flags
+  `routes/email.py`.
+
 - An app module named like a standard library module (`secrets.py`,
   `email/`, `types.py`, …) at the app root shadowed it for every library
   in the process: ux-dom's `import secrets` got the app's file and every

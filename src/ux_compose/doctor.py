@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import ast
+import importlib.machinery
 import json
 import os
 import posixpath
@@ -417,13 +418,17 @@ def stdlib_shadows(root: str | Path) -> str | None:
     ``secrets.py`` is the ``secrets`` every library in the process imports:
     ux-dom's CSP nonce got it and the library JS returned 404 (#131). Moving
     the root behind the stdlib would break the app's own import instead, so
-    the name is the error. Modules and regular packages only: a directory
-    without ``__init__.py`` is a namespace portion, which never beats stdlib.
+    the name is the error. A module is any file ending in an
+    ``importlib.machinery.all_suffixes()`` suffix (sourceless ``.pyc`` and
+    extensions too); a package needs ``__init__.py``: a directory without one
+    is a namespace portion, which never beats stdlib.
     """
+    suffixes = sorted(importlib.machinery.all_suffixes(), key=len, reverse=True)
     shown = []
     for path in sorted(Path(root).iterdir()):
-        if path.suffix == ".py" and path.is_file():
-            name, label = path.stem, path.name
+        suffix = next((s for s in suffixes if path.name.endswith(s)), None)
+        if suffix and path.is_file():
+            name, label = path.name[: -len(suffix)], path.name
         elif (path / "__init__.py").is_file():
             name, label = path.name, f"{path.name}/"
         else:
@@ -437,6 +442,23 @@ def stdlib_shadows(root: str | Path) -> str | None:
     if len(shown) == 1:
         return f"app module {labels} shadows the Python standard library module {names}; rename it"
     return f"app modules {labels} shadow the Python standard library modules {names}; rename them"
+
+
+def _app_root(path: str | Path) -> Path:
+    """The directory on ``sys.path`` when ``path``'s modules run.
+
+    The nearest directory holding ``app.py`` (serve and build put it first
+    on ``sys.path``); without one, the first directory above ``path`` that is
+    not a regular package. ``doctor routes`` checks the app root's names:
+    ``routes/email.py`` is ``routes.email`` and shadows nothing.
+    """
+    path = Path(path).resolve()
+    for parent in (path, *path.parents):
+        if (parent / "app.py").is_file():
+            return parent
+    while (path / "__init__.py").is_file() and path.parent != path:
+        path = path.parent
+    return path
 
 
 def is_hard(diagnostic: str) -> bool:
@@ -723,7 +745,10 @@ def _teaching_for_level(level: int, caps: dict) -> list[str]:
             "(routes/ + stem match via DirectoryRoutes). "
             "App.mount is the page-unit scan step, not a second product."
         )
-    lines.append("One catalog: uxcompose add copies a kit widget. Do not import kit in product apps.")
+    lines.append((
+            "One catalog: ux_compose.components. Import a component, or "
+            "uxcompose add copies it into components/ for the app to own."
+        ))
     try:
         from ux_compose.attach_notes import format_report
         lines.extend(format_report())
@@ -751,12 +776,15 @@ def doctor(
     diagnostics: list[str] = []
     diagnostics.extend(_stack_diagnostics(caps))
     expanded: list[Path] = []
+    roots: list[Path] = []
     if paths:
         for p in paths:
             pp = Path(p)
             if pp.is_dir():
-                if shadow := stdlib_shadows(pp):
-                    diagnostics.append(shadow)
+                if (root := _app_root(pp)) not in roots:
+                    roots.append(root)
+                    if shadow := stdlib_shadows(root):
+                        diagnostics.append(shadow)
                 expanded.extend(_walk_py(pp, diagnostics))
             elif pp.suffix == ".py":
                 expanded.append(pp)

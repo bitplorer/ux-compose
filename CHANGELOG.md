@@ -260,8 +260,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `pyproject.toml`, `Makefile` and `test_hard_deps.py`; create-app's
   `requirements.txt` follows through the ux-compose commit it pins. No
   compose code changed: none of the ux-dom removals in that range
-  (`uxdom build` and its bundle, doctor rows, `escape=`, `xhtml`, CLI
-  aliases, `ux_dom.htmx.Htmx` → `HtmxRoutes`, `map_parallel`, `filter`,
+  (ux-dom's product-build and bundle CLI, whose product path is
+  `uxcompose build`; doctor rows, `escape=`, `xhtml`, CLI aliases, `ux_dom.htmx.Htmx` → `HtmxRoutes`, `map_parallel`, `filter`,
   py2 aliases) is used by compose; `ux_dom.Htmx` (the control) stays.
   Rendered app pages differ only in whitespace from ux-dom's
   pretty-render fixes (inline elements and short text stay on one line).

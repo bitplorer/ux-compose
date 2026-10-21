@@ -256,6 +256,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- ux-dom pin `8422b9a` → `6ac2e5e` (ux-dom main, 21 commits) in
+  `pyproject.toml`, `Makefile` and `test_hard_deps.py`; create-app's
+  `requirements.txt` follows through the ux-compose commit it pins. No
+  compose code changed: none of the ux-dom removals in that range
+  (ux-dom's product-build and bundle CLI, whose product path is
+  `uxcompose build`; doctor rows, `escape=`, `xhtml`, CLI aliases, `ux_dom.htmx.Htmx` → `HtmxRoutes`, `map_parallel`, `filter`,
+  py2 aliases) is used by compose; `ux_dom.Htmx` (the control) stays.
+  Rendered app pages differ only in whitespace from ux-dom's
+  pretty-render fixes (inline elements and short text stay on one line).
 - ux-dom pin `0440ccb` → `8422b9a` (ux-dom main) in `pyproject.toml`,
   `Makefile`, `scaffold.py` (`DOM_VCS_PIN`, so create-app's
   `requirements.txt`), `apps/nook` and `apps/pulseboard`. No compose code

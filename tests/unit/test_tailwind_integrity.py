@@ -378,7 +378,11 @@ class Stalled:
             self.sent = True
             return b"#!/bin/sh\\n"
         print("stalled", flush=True)
-        time.sleep(60)
+        # Short sleeps, not one sleep(60): CPython runs the handler between
+        # bytecodes, so a signal landing just before one long sleep began
+        # waited out the whole minute (the test's 30 s timeout).
+        for _ in range(1200):
+            time.sleep(0.05)
         return b""
     def __enter__(self):
         return self

@@ -250,7 +250,10 @@ def test_chromium_untrusted_morph_string_runs_no_script(live, name):
     assert "onmouseover" not in html and "onerror" not in html
 
 
-@pytest.mark.parametrize("name", TRUSTED)
+# ux-channel (d34448c, #63) removes on* from every morph, Markup or not, so
+# only the motion player's enter html can still run a handler: it is the
+# oracle that proves the Chromium harness sees script.
+@pytest.mark.parametrize("name", ("motion_markup",))
 def test_chromium_markup_morph_runs_script_so_the_oracle_is_live(live, name):
     browser, origin = live
     hits, html = _click(browser, origin, name)

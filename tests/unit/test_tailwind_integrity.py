@@ -366,6 +366,33 @@ def test_interrupted_download_leaves_no_temp_file(only_download, monkeypatch, ra
     assert list(only_download.parent.iterdir()) == []
 
 
+def test_interrupt_just_after_the_temp_file_is_created_leaves_none(only_download, monkeypatch):
+    """#149 review: a signal landing as the temp file is created must not strand it.
+
+    The SIGINT and SIGTERM handlers raise at the next bytecode, which can be
+    before the download has bound the new file's name.
+    """
+    import signal
+
+    _trust(monkeypatch, GOOD)
+    monkeypatch.setattr(tw.urllib.request, "urlopen", lambda req, timeout=None: io.BytesIO(GOOD))
+    real_open = os.open
+
+    def open_then_interrupt(path, flags, *args, **kwargs):
+        fd = real_open(path, flags, *args, **kwargs)
+        if str(path).endswith(".part"):
+            os.close(fd)
+            raise KeyboardInterrupt
+        return fd
+
+    before = signal.getsignal(signal.SIGTERM)
+    monkeypatch.setattr(tw.os, "open", open_then_interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        tw.resolve_tailwind(ensure=True)
+    assert list(only_download.parent.iterdir()) == []
+    assert signal.getsignal(signal.SIGTERM) is before
+
+
 _STALLED_DOWNLOAD = """
 import sys, time
 import ux_compose.tailwind as tw

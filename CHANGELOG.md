@@ -364,10 +364,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `ux-bridge.js` is opt-in. It runs any method a `bridge.call` op names on a
   bridged widget, so pages without bridges no longer load it. ux-dom pin
-  `2b7c851` → `9a86233` (ux-dom#141: `ux_dom.Channel` defaults to
+  `2b7c851` → `bf5a846` (ux-dom#141: `ux_dom.Channel` defaults to
   `bridge=False`) in `pyproject.toml`, `Makefile` and `test_hard_deps.py`; a
   page that mounts bridges opts in with `Channel.optional(bridge=True)` in
-  `document.py`. `live_client_script_tags`, `LiveClientMiddleware` and
+  `document.py`. The Document owns script injection, so `build()` has no
+  bridge flag. `live_client_script_tags`, `LiveClientMiddleware` and
   `attach_live_client` default to `bridge=False` and take `bridge=True`.
 - ux-dom pin `d87a21b` → `2b7c851` (ux-dom main: ux-dom#140 removed its
   HTMX runtime, routes and middleware; `hx-*` attributes still render) in

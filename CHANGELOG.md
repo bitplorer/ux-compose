@@ -364,7 +364,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `ux-bridge.js` is opt-in. It runs any method a `bridge.call` op names on a
   bridged widget, so pages without bridges no longer load it. ux-dom pin
-  `2b7c851` → `bf5a846` (ux-dom#141: `ux_dom.Channel` defaults to
+  `2b7c851` → `23dcbe1` (ux-dom#141: `ux_dom.Channel` defaults to
   `bridge=False`) in `pyproject.toml`, `Makefile` and `test_hard_deps.py`; a
   page that mounts bridges opts in with `Channel.optional(bridge=True)` in
   `document.py`. The Document owns script injection, so `build()` has no

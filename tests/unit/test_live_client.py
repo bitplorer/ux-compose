@@ -333,3 +333,56 @@ def test_attach_live_client_is_idempotent():
     assert out is app
     assert out2 is app
     assert app.n == 1
+
+
+def test_live_client_bridge_is_opt_in():
+    assert "ux-bridge.js" not in live_client_script_tags()
+    assert CHANNEL_BRIDGE_URL in live_client_script_tags(bridge=True)
+
+    page = b"<!DOCTYPE html><html><body>hi</body></html>"
+    body = next(
+        m["body"]
+        for m in _run_asgi(None, content_type=b"text/html", body=page)
+        if m["type"] == "http.response.body"
+    )
+    assert CHANNEL_JS_URL.encode() in body
+    assert b"ux-bridge.js" not in body
+    assert CHANNEL_BRIDGE_URL.encode() in LiveClientMiddleware(None, bridge=True).script
+
+
+def test_attach_live_client_passes_bridge_opt_in():
+    class _App:
+        def add_middleware(self, cls, **kwargs):
+            self.mw = cls(None, **kwargs)
+
+    default, opted = _App(), _App()
+    attach_live_client(default)
+    attach_live_client(opted, bridge=True)
+    assert b"ux-bridge.js" not in default.mw.script
+    assert CHANNEL_BRIDGE_URL.encode() in opted.mw.script
+
+
+@pytest.mark.skipif(not HAS_FASTAPI, reason="fastapi required")
+@pytest.mark.parametrize("bridge", [False, True])
+def test_document_page_ships_bridge_only_when_opted_in(tmp_path: Path, bridge: bool):
+    pytest.importorskip("ux_channel")
+    from ux_dom import Channel, Csp, Document, XElement
+
+    from ux_compose.build import build
+
+    pkg = _pkg(
+        tmp_path,
+        {"routes/hello.py": "class Hello:\n    def render(self):\n        return '<p>hi</p>'\n"},
+        name=f"frag_bridge_{bridge}",
+    )
+    channel = Channel.optional(bridge=True) if bridge else Channel.optional()
+    document = Document(head=[], body=[], ensure_csrf_token=False).use(
+        XElement(), Csp.auto(), channel
+    )
+    _app, asgi, _bundle = build(
+        pkg, name="Demo", host="fastapi", live="auto", level=1, document=document
+    )
+    r = asgi_get(asgi, "/hello")
+    assert r.status_code == 200
+    assert CHANNEL_JS_URL in r.text
+    assert (CHANNEL_BRIDGE_URL in r.text) is bridge

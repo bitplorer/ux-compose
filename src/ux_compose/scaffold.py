@@ -150,7 +150,8 @@ DOCUMENT_PY = dedent('''\
     alias — never ux_channel.Channel. Isolation: this module never imports
     ux_channel.
 
-    HTMX is opt-in via build(use_htmx=True). Component.render() stays a
+    ux-channel bridges are opt-in: Channel.optional(bridge=True) loads
+    ux-bridge.js. HTMX is opt-in via build(use_htmx=True). Component.render() stays a
     fragment (the morph payload) — never put the stylesheet link inside render().
     """
     from __future__ import annotations

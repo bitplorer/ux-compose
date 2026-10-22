@@ -21,7 +21,7 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Application Frameworks",
 ]
 dependencies = [
-    "ux-dom @ git+https://github.com/bitplorer/ux-dom.git@2b7c851929e543798fc9e1845771240ece26cd74",
+    "ux-dom @ git+https://github.com/bitplorer/ux-dom.git@9a8623342315720f9fa07eeaf0699c598e340c97",
     "ux-channel @ git+https://github.com/bitplorer/ux-channel.git@0ffe8e9907cd1a0701ffc8cb2e5414d6b39d2996#subdirectory=python",
     "ux-behavior @ git+https://github.com/bitplorer/ux-behavior.git@f12321fa7a5399753a21fd6e5c4e88de43027222",
     "ux-motion @ git+https://github.com/bitplorer/ux-motion.git@bbe7d73466a6c1eccb47e711568c80ce3b4d5487",

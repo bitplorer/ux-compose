@@ -5,12 +5,15 @@ Cap Host stays on cek-runtime via Channel. This module does **not** import
 public URLs Channel already serves:
 
     /ux-channel/static/ux-channel.js
-    /ux-channel/static/ux-bridge.js   (optional)
+    /ux-channel/static/ux-bridge.js   (only with bridge=True)
     body data-channel-endpoint="/ux-channel/action"
 
 Product path is ``Document.use(XElement(), Csp.auto(), Channel.optional())``
 (the ``ux_dom`` Document-plugin alias). This helper is **not** the Document-absent
 primary: ``build()`` does not auto-attach it when ``document=None``.
+
+``ux-bridge.js`` runs any method a ``bridge.call`` op names on a bridged
+widget, so it ships only when the author passes ``bridge=True``.
 
 Never wrap HTML-string fragments with a synthesized Document — not a
 ux-dom ``Document`` and not a string ``<!DOCTYPE html>`` shell (a
@@ -36,7 +39,7 @@ def is_html_content_type(value: bytes) -> bool:
     return b"text/html" in value.lower()
 
 
-def live_client_script_tags(*, bridge: bool = True) -> str:
+def live_client_script_tags(*, bridge: bool = False) -> str:
     """Script tags that load the Channel client. Pin public URLs only."""
     tags = [
         f'<script src="{CHANNEL_JS_URL}" defer data-uxcompose-live-client></script>',
@@ -100,9 +103,9 @@ def insert_live_client(page: bytes, markup: bytes | None = None) -> bytes:
 class LiveClientMiddleware:
     """Insert Channel live-client tags into HTML. Fragment GET, not Document.use."""
 
-    def __init__(self, app: Any) -> None:
+    def __init__(self, app: Any, *, bridge: bool = False) -> None:
         self.app = app
-        self.script = live_client_script_tags().encode("utf-8")
+        self.script = live_client_script_tags(bridge=bridge).encode("utf-8")
 
     async def __call__(self, scope, receive, send):
         if scope["type"] != "http":
@@ -138,7 +141,7 @@ class LiveClientMiddleware:
         await self.app(scope, receive, send_wrapper)
 
 
-def attach_live_client(asgi_app: Any) -> Any:
+def attach_live_client(asgi_app: Any, *, bridge: bool = False) -> Any:
     """Wrap HTML responses with the Channel live client. Idempotent.
 
     FastAPI/Starlette: ``add_middleware`` so ``.mount`` / routes stay on the
@@ -150,10 +153,10 @@ def attach_live_client(asgi_app: Any) -> Any:
     if getattr(asgi_app, _ATTACH_FLAG, False):
         return asgi_app
     if hasattr(asgi_app, "add_middleware"):
-        asgi_app.add_middleware(LiveClientMiddleware)
+        asgi_app.add_middleware(LiveClientMiddleware, bridge=bridge)
         setattr(asgi_app, _ATTACH_FLAG, True)
         return asgi_app
-    wrapped = LiveClientMiddleware(asgi_app)
+    wrapped = LiveClientMiddleware(asgi_app, bridge=bridge)
     setattr(wrapped, _ATTACH_FLAG, True)
     return wrapped
 

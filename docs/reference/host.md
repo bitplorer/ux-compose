@@ -268,6 +268,9 @@ OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
   `live="null"`
   stays offline Behavior. Complete documents and `/css` are not
   double-wrapped.
+- `ux-bridge.js` is opt-in. It loads only with `Channel.optional(bridge=True)`
+  on the Document, or `attach_live_client(asgi, bridge=True)` /
+  `LiveClientMiddleware(app, bridge=True)` on the live-client path.
 
 ### Helper modules are not reloaded
 

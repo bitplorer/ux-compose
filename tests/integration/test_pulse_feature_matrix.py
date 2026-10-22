@@ -34,15 +34,21 @@ pytest.importorskip("ux_channel")
 pytest.importorskip("ux_motion")
 
 
+# One browser: the visitor cookie a page sets goes with the next request.
+_BROWSER = httpx.Cookies()
+
+
 def _httpx(asgi, method: str, path: str, **kwargs) -> httpx.Response:
     """httpx TestClient-style request against Pulse ASGI."""
 
     async def _go():
         transport = httpx.ASGITransport(app=asgi)
         async with httpx.AsyncClient(
-            transport=transport, base_url="http://pulse.test"
+            transport=transport, base_url="http://pulse.test", cookies=_BROWSER
         ) as client:
-            return await client.request(method, path, **kwargs)
+            response = await client.request(method, path, **kwargs)
+            _BROWSER.update(client.cookies)
+            return response
 
     return asyncio.run(_go())
 

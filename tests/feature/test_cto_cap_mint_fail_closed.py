@@ -372,6 +372,8 @@ def test_scaffold_hello_inc_intent_http_401_without_cap_200_with_minted(tmp_path
     blob = refused.text.lower()
     assert "unauthor" in blob or "cap" in blob or "missing" in blob
 
+    # The Cap is bound to the visitor the page minted; the browser sends its cookie.
+    visitor = page.headers["set-cookie"].split(";", 1)[0]
     ok = asgi_post_json(
         asgi,
         CHANNEL_ENDPOINT,
@@ -381,6 +383,7 @@ def test_scaffold_hello_inc_intent_http_401_without_cap_200_with_minted(tmp_path
             "args": minted["args"],
             "cap": minted["cap"],
         },
+        headers={"cookie": visitor},
     )
     assert ok.status_code == 200, ok.text[:500]
     body = ok.json()

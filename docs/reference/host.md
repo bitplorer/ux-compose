@@ -247,7 +247,7 @@ OpenAPI / Swagger is **off** by default (`docs_url=None`, `redoc_url=None`,
   not a frozen compose import. Boot applies the Cap adapter when
   `cek != "off"`. Do not assume classic `CapService` at `cek=require`.
 - Channel prefers Redis when `REDIS_URL` is set. serve-dev will not export
-  both `REDIS_URL` and `UXCOMPOSE_STATE_STORE`. Pin: ux-channel @ `0ffe8e9`
+  both `REDIS_URL` and `UXCOMPOSE_STATE_STORE`. Pin: ux-channel @ `c7b763b`
   (Python ≥3.14 tip; Cut C floor `985e58a`).
 - Cold import never pulls `wire/`.
 - Document is SSoT: one `Document` in `document.py`. `build(document=)` attaches
@@ -451,6 +451,28 @@ not that instance and is not passed into the action, including through
 back the same way as every other action validation error: the message
 (`unexpected keyword argument 'self'`) on the result, the same HTTP status,
 the same result shape, never a 500. There is no separate status for this key.
+
+## Visitor identity
+
+Every request has a subject, and every page Cap is minted for it
+(`sub=`), so a Cap runs only for the visitor whose page it was painted on.
+
+- **Logged in:** `scope["user"].identity` when `scope["user"].is_authenticated`
+  (Starlette `AuthenticationMiddleware`, the identity port). Add it after
+  `build()`, so it wraps compose's middleware and runs first.
+- **Anonymous:** `anon:<random>`, minted by the server on the first page
+  response in the `uxc_visitor` cookie: `HttpOnly; SameSite=Lax; Path=/`,
+  plus `Secure` when the request scheme is `https`. No `Max-Age`: the
+  visitor lasts for the browser session. The value is the id and an
+  HMAC-SHA256 over it. The key is derived from the Channel secret for this
+  one purpose, so a visitor cookie never verifies as a Cap. A missing,
+  malformed, or forged cookie gets a new visitor. The client never chooses
+  the id.
+
+`use_channel(asgi_app=...)` adds `ux_compose.visitor.VisitorMiddleware` and
+sets the Channel `registry.auth_resolver` to the same subject. The cookie
+is not set on a WebSocket. A Cap minted outside a request (a test, a
+script) names no subject, as before.
 
 ## Attach secret
 

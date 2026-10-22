@@ -16,6 +16,7 @@ from typing import Any, Mapping, Optional
 
 from ux_compose.dom import html_text
 from ux_compose.helpers import _require_control_arg_names
+from ux_compose.visitor import current_subject
 
 _PROCESS_CHANNEL: Any = None
 _LIVE: ContextVar[Any] = ContextVar("ux_compose_live_channel", default=None)
@@ -66,16 +67,18 @@ def _as_attr_map(result: Any) -> dict[str, str]:
     return {}
 
 
-def _call_control(control_fn: Any, action: str, args: Mapping[str, Any]) -> Any:
+def _call_control(
+    control_fn: Any, action: str, args: Mapping[str, Any], bind: Mapping[str, str]
+) -> Any:
     payload = dict(args)
     try:
-        return control_fn(action, trust=payload if payload else None)
+        return control_fn(action, trust=payload if payload else None, **bind)
     except TypeError:
         pass
     try:
-        return control_fn(action, **payload)
+        return control_fn(action, **bind, **payload)
     except TypeError:
-        return control_fn(action)
+        return control_fn(action, **bind)
 
 
 def control_attrs(channel: Any, action: str, /, **args: Any) -> dict[str, str]:
@@ -84,7 +87,12 @@ def control_attrs(channel: Any, action: str, /, **args: Any) -> dict[str, str]:
     Isolation door: duck-type ``channel.control(action, …).as_dict()``
     (underscore keys become hyphen). If ``control`` is absent, duck-type
     ``channel.mint``. Never re-implements Cap crypto.
+
+    The Cap is bound to the request's visitor (``sub=``), so only that
+    visitor can spend it. Outside a request the Cap names no subject.
     """
+    subject = current_subject()
+    bind = {"sub": subject} if subject else {}
     _require_control_arg_names(args)
     if channel is None:
         raise RuntimeError(
@@ -95,13 +103,13 @@ def control_attrs(channel: Any, action: str, /, **args: Any) -> dict[str, str]:
     control_fn = getattr(channel, "control", None)
     if callable(control_fn):
         try:
-            raw = _as_attr_map(_call_control(control_fn, str(action), args))
+            raw = _as_attr_map(_call_control(control_fn, str(action), args, bind))
         except Exception:
             raw = {}
     if not _cap_token(raw):
         mint_fn = getattr(channel, "mint", None)
         if callable(mint_fn):
-            token = str(mint_fn(str(action), dict(args)) or "").strip()
+            token = str(mint_fn(str(action), dict(args), **bind) or "").strip()
             if token:
                 raw.setdefault("data-channel-action", str(action))
                 raw["data-channel-cap"] = token
@@ -334,6 +342,7 @@ def bridge_actions(behavior: Any, channel: Any) -> list[str]:
             *,
             _action: str = name,
             args: Any = None,
+            principal: Any = None,  # the visitor; Channel injects it, not caller data
             **kw: Any,
         ) -> list[dict]:
             # Channel Intent is args=dict. dispatch_verified takes that payload.

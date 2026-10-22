@@ -58,8 +58,15 @@ def _page(asgi, inst):
     return asgi
 
 
+# Each client keeps the visitor cookie its first page set, as a browser does.
+_COOKIES: dict[tuple, str] = {}
+
+
 def _session(client):
-    return {"x-channel-session": f"visitor-{client[0]}"}
+    headers = {"x-channel-session": f"visitor-{client[0]}"}
+    if client in _COOKIES:
+        headers["cookie"] = _COOKIES[client]
+    return headers
 
 
 def _post(asgi, ctrl, form, client):
@@ -80,7 +87,10 @@ def _post(asgi, ctrl, form, client):
 
 
 def _get(asgi, client):
-    return asgi_get(asgi, "/", client=client, headers=_session(client))
+    response = asgi_get(asgi, "/", client=client, headers=_session(client))
+    if "set-cookie" in response.headers:
+        _COOKIES[client] = response.headers["set-cookie"].split(";", 1)[0]
+    return response
 
 
 def test_other_visitor_does_not_see_posted_kit_fields():

@@ -35,7 +35,6 @@ import shutil
 import signal
 import stat
 import sys
-import tempfile
 import threading
 import urllib.request
 from contextlib import contextmanager
@@ -328,13 +327,14 @@ def _download_standalone(*, timeout: float = 60.0) -> Optional[Path]:
     dest = cache_dir() / name
     url = f"{TAILWIND_RELEASES_URL}/{version}/{name}"
     digest = hashlib.sha256()
-    tmp: Optional[Path] = None
+    # Named before it exists, so ``finally`` sees it even when a signal lands
+    # as the file is created.
+    tmp: Optional[Path] = dest.parent / f"{name}.{os.urandom(8).hex()}.part"
     with _terminate_unwinds():
         try:
             try:
                 dest.parent.mkdir(parents=True, exist_ok=True)
-                fd, tmp_name = tempfile.mkstemp(dir=dest.parent, prefix=f"{name}.", suffix=".part")
-                tmp = Path(tmp_name)
+                fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o600)
                 req = urllib.request.Request(url, headers={"User-Agent": "ux-compose/0.1"})
                 with urllib.request.urlopen(req, timeout=timeout) as resp, os.fdopen(fd, "wb") as fh:
                     for block in iter(lambda: resp.read(1 << 20), b""):

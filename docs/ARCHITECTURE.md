@@ -52,6 +52,7 @@ This table is the module map. Do **not** add `docs/MODULE_MAP.md`.
 |---------|---------------|----------|
 | Isolation door | `wire/boot.py`, `wire/caps.py`, `wire/cek.py` | `ux_channel` import outside `wire/` |
 | Cap mint | `wire/caps.py` | empty-token dual attrs |
+| Visitor identity | `visitor.py` (cookie, middleware), `wire/boot.py` (key, Channel principal) | a client-chosen subject; a second session cookie |
 | Product CLI | `cli/__init__.py` | second verb, clock flags, library import of `ux_compose.cli` |
 | Build / CSS | `cli/product_build.py`, `tailwind.py`, `assets.py` | Tailwind on ux-dom; Tailwind `Popen` in `cli/` or `hmr.py` |
 | Product host | `routing/host.py`, `routing/fastapi.py`, `routing/asgi.py`, `routing/core.py` | fold FastAPI into DirectoryASGI |

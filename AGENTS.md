@@ -143,7 +143,7 @@ Channel's `FileStateStore`. Channel prefers Redis when `REDIS_URL` is set
 channel — that would drop HMR for route edits.
 
 Cap door is `Channel.boot` (not `ActionRegistry.from_config` — that name
-is not a frozen wire import). Pin: ux-channel @ `0ffe8e9` (cek-host 0.2.0;
+is not a frozen wire import). Pin: ux-channel @ `c7b763b` (cek-host 0.2.0;
 Cut C floor `985e58a`).
 
 ## Product host (Clock A)

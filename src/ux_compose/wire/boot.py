@@ -16,7 +16,11 @@ is the include_router soft-fail. This module never does that.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 from typing import Any
+
+from ux_compose import visitor
 
 
 def _is_asgi_app(obj: Any) -> bool:
@@ -50,6 +54,36 @@ def _bridge(behavior: Any, channel: Any) -> None:
         bridge_actions(behavior, channel)
     except Exception:
         pass
+
+
+def visitor_key(channel: Any) -> bytes:
+    """Visitor-cookie signing key, derived from the Channel secret.
+
+    A separate purpose key: a visitor cookie can never pass as a Cap.
+    """
+    secret = str(channel.config.secret).encode("utf-8")
+    return hmac.new(secret, b"ux-compose/visitor/v1", hashlib.sha256).digest()
+
+
+def _bind_visitors(channel: Any, asgi: Any) -> None:
+    """Caps run only for the visitor they were minted for.
+
+    The Channel principal is the request's subject (``visitor.resolve``):
+    the logged-in user, else the signed anonymous visitor. On a real ASGI
+    app, ``VisitorMiddleware`` binds the same subject for page renders and
+    mints the visitor cookie.
+    """
+    from ux_channel import Principal  # Isolation: only here
+
+    key = visitor_key(channel)
+
+    def principal(request: Any) -> Any:
+        subject = visitor.resolve(key, getattr(request, "scope", None) or {})
+        return Principal(id=subject) if subject else None
+
+    channel.registry.auth_resolver = principal
+    if asgi is not None:
+        asgi.add_middleware(visitor.VisitorMiddleware, key=key)
 
 
 def attach_channel(
@@ -119,6 +153,8 @@ def attach_channel(
         behavior.attach(asgi, **attach_kwargs)
         ch = getattr(behavior, "_wire", None)
         _bridge(behavior, ch)
+        if ch is not None:
+            _bind_visitors(ch, asgi)
         return ch
 
     # Headless / fallback boot — fail closed (do not impersonate offline)
@@ -128,6 +164,7 @@ def attach_channel(
         ch = Channel.boot()
     _bind_wire(behavior, ch)
     _bridge(behavior, ch)
+    _bind_visitors(ch, None)
     return ch
 
 

@@ -543,12 +543,14 @@ def test_catalog_scan_and_http_discover_are_two_walkers():
 
 
 def test_wire_imports_only_frozen_channel_paths():
-    """Isolation Law: wire/ may import only Channel, ChannelConfig,
-    apply_host_adapter, Intent. ActionRegistry is not a compose door."""
+    """Isolation Law: wire/ may import only Channel, ChannelConfig, Principal
+    (the visitor as Channel caller), apply_host_adapter, Intent.
+    ActionRegistry is not a compose door."""
     import ast
 
     allowed = {
         ("ux_channel", ("Channel", "ChannelConfig")),
+        ("ux_channel", ("Principal",)),
         ("ux_channel.cek.host_adapter", ("apply_host_adapter",)),
         ("ux_channel.protocol.types", ("Intent",)),
     }

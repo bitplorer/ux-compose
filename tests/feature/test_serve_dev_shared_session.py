@@ -92,6 +92,8 @@ def test_ui_document_get_paints_channel_morphstate_via_shared_store(tmp_path, mo
     minted = intent_from_control(page.text, "hello.inc")
     assert minted["cap"].strip(), minted
 
+    # The Cap is bound to the page's visitor; the browser sends its cookie.
+    visitor = {"cookie": page.headers["set-cookie"].split(";", 1)[0]}
     for _ in range(3):
         ok = asgi_post_json(
             asgi_ch,
@@ -102,6 +104,7 @@ def test_ui_document_get_paints_channel_morphstate_via_shared_store(tmp_path, mo
                 "args": minted["args"],
                 "cap": minted["cap"],
             },
+            headers=visitor,
         )
         assert ok.status_code == 200, ok.text[:500]
 

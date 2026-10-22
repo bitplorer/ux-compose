@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Every page Cap is bound to its visitor (`sub=`). A logged-in user is
+  `scope["user"].identity`. Anyone else gets a server-minted `anon:<random>`
+  in a signed `uxc_visitor` cookie (HttpOnly, SameSite=Lax, Secure over
+  HTTPS). A forged cookie gets a new visitor. The Channel principal is the
+  same subject, so a Cap painted for one visitor does not run for another.
+  See [host reference](docs/reference/host.md#visitor-identity). Pins
+  ux-channel @ `c7b763b`.
 - `uxcompose build --check` verifies without writing anything (no CSS,
   no bundle, no Tailwind cache change, no `__pycache__`; it passes on a
   read-only tree): `app.py`; `tailwind` compiles to a temp file and FAILs
